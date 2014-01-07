@@ -1,4 +1,4 @@
-#include <Q3Map.h>
+#include "Q3Map.h"
 #include <QErrorMessage>
 #include <QFile>
 
@@ -13,6 +13,15 @@ static void q3cToRightHand( float v[ 3 ] )
 
     v[ 1 ] = v[ 2 ];
     v[ 2 ] = -tmp; // we have to invert the y-axis to accomodate the right-handed positive z facing backward.
+}
+
+// Straight outta copypasta
+static void q3cToRightHand( int v[ 3 ] )
+{
+    int tmp = v[ 1 ];
+
+    v[ 1 ] = v[ 2 ];
+    v[ 2 ] = -tmp;
 }
 
 Quake3Map::Quake3Map( void )
@@ -70,14 +79,76 @@ void Quake3Map::read( const std::string& filepath )
     mLeafBuffer = ( BspLeaf* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_LEAVES ].offset );
     mPlaneBuffer = ( BspPlane* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_PLANE ].offset );
     mVertexBuffer = ( BspVertex* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_VERTEXES ].offset );
-    mModelBuffer = ( BspVertex* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MODELS ].offset );
+    mModelBuffer = ( BspModel* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MODELS ].offset );
     mFaceBuffer = ( BspFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_FACES ].offset );
+    mLeafFaces  = ( BspLeafFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].offset );
 
-    mNumNodes = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspNode );
-    mNumLeaves = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspLeaf );
-    mNumPlanes = mHeader->lumpEntries[ BSP_LUMP_PLANE ].numBytes / sizeof( BspPlane );
-    mNumVertices = mHeader->lumpEntries[ BSP_LUMP_VERTEXES ].numBytes / sizeof( BspVertex );
-    mNumModels = mHeader->lumpEntries[ BSP_LUMP_MODELS ].numBytes / sizeof( BspModel );
-    mNumFaces = mHeader->lumpEntries[ BSP_LUMP_FACES ].numBytes / sizeof( BspFace );
+    mTotalNodes = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspNode );
+    mTotalLeaves = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspLeaf );
+    mTotalPlanes = mHeader->lumpEntries[ BSP_LUMP_PLANE ].numBytes / sizeof( BspPlane );
+    mTotalVertices = mHeader->lumpEntries[ BSP_LUMP_VERTEXES ].numBytes / sizeof( BspVertex );
+    mTotalModels = mHeader->lumpEntries[ BSP_LUMP_MODELS ].numBytes / sizeof( BspModel );
+    mTotalFaces = mHeader->lumpEntries[ BSP_LUMP_FACES ].numBytes / sizeof( BspFace );
+    mTotalLeafFaces = mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].numBytes / sizeof( BspLeafFace );
 
+    // Perform coordinate space conversions
+    //=============================================
+
+    // Nodes and Planes
+    for ( size_t i = 0; i < mTotalNodes; ++i )
+    {
+        q3cToRightHand( mNodeBuffer[ i ].boxMax );
+        q3cToRightHand( mNodeBuffer[ i ].boxMin );
+
+        q3cToRightHand( mPlaneBuffer[ mNodeBuffer[ i ].plane ].normal );
+    }
+
+    // Leaves
+    for ( size_t i = 0; i < mTotalLeaves; ++i )
+    {
+        BspLeaf* const pLeaf = mLeafBuffer + i;
+
+        q3cToRightHand( pLeaf->boxMax );
+        q3cToRightHand( pLeaf->boxMin );
+
+        // Corresponding Leaf faces
+        convertFaceRangeToRHC( ( size_t ) pLeaf->leafFaceOffset, ( size_t )( pLeaf->leafFaceOffset + pLeaf->numLeafFaces ) );
+    }
+
+    // Models
+    for ( size_t i = 0; i < mTotalModels; ++i )
+    {
+        BspModel* const pMod = mModelBuffer + i;
+
+        q3cToRightHand( pMod->boxMax );
+        q3cToRightHand( pMod->boxMin );
+
+        // Corresponding Model Faces
+        convertFaceRangeToRHC( ( size_t ) pMod->faceOffset, ( size_t )( pMod->faceOffset + pMod->numFaces ) );
+    }
 }
+
+void Quake3Map::convertFaceRangeToRHC( size_t start, size_t end )
+{
+    for ( size_t i = start; i < end; ++i )
+    {
+        BspFace* face = mFaceBuffer + i;
+
+        q3cToRightHand( face->lightmapOrigin );
+        q3cToRightHand( face->normal );
+
+        // Corresponding Vertices
+        size_t endVertices = face->vertexOffset + face->numVertices;
+
+        for ( size_t v = 0; v < endVertices; ++v )
+        {
+            BspVertex* vertex = mVertexBuffer + v;
+
+            q3cToRightHand( vertex->normal );
+            q3cToRightHand( vertex->position );
+        }
+
+        // Corresponding Mesh Vertices ( TODO )
+    }
+}
+

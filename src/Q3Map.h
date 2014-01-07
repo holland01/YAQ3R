@@ -154,11 +154,15 @@ private:
     BspVertex*      mVertexBuffer;
     BspModel*       mModelBuffer;
     BspFace*        mFaceBuffer;
+    BspLeafFace*    mLeafFaces;
 
-    size_t          mNumNodes;
-    size_t          mNumLeaves;
-    size_t          mNumPlanes;
-    size_t          mNumVertices;
-    size_t          mNumModels;
-    size_t          mNumFaces;
+    size_t          mTotalNodes;
+    size_t          mTotalLeaves;
+    size_t          mTotalPlanes;
+    size_t          mTotalVertices;
+    size_t          mTotalModels;
+    size_t          mTotalFaces;
+    size_t          mTotalLeafFaces;
+
+    void            convertFaceRangeToRHC( size_t start, size_t end );
 };
