@@ -1,4 +1,4 @@
-#include "Q3Map.h"
+#include "Quake3Map.h"
 #include <QErrorMessage>
 #include <QFile>
 
@@ -25,19 +25,21 @@ static void q3cToRightHand( int v[ 3 ] )
 }
 
 Quake3Map::Quake3Map( void )
-     : mDataBuffer( NULL ),
-       mHeader( NULL ),
-       mNodeBuffer( NULL ),
+     : mNodeBuffer( NULL ),
        mLeafBuffer( NULL ),
        mPlaneBuffer( NULL ),
        mVertexBuffer( NULL ),
        mModelBuffer( NULL ),
-       mFaceBuffer( NULL )
+       mFaceBuffer( NULL ),
+
+       mDataBuffer( NULL ),
+       mHeader( NULL )
 {
 }
 
 Quake3Map::~Quake3Map( void )
 {
+    delete[] mDataBuffer;
 }
 
 void Quake3Map::read( const std::string& filepath )
@@ -82,6 +84,8 @@ void Quake3Map::read( const std::string& filepath )
     mModelBuffer = ( BspModel* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MODELS ].offset );
     mFaceBuffer = ( BspFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_FACES ].offset );
     mLeafFaces  = ( BspLeafFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].offset );
+    mMeshVertices = ( BspMeshVertex* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MESHVERTS ].offset );
+    mVisdata = ( BspVisdata* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_VISDATA ].offset );
 
     mTotalNodes = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspNode );
     mTotalLeaves = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspLeaf );
@@ -90,6 +94,9 @@ void Quake3Map::read( const std::string& filepath )
     mTotalModels = mHeader->lumpEntries[ BSP_LUMP_MODELS ].numBytes / sizeof( BspModel );
     mTotalFaces = mHeader->lumpEntries[ BSP_LUMP_FACES ].numBytes / sizeof( BspFace );
     mTotalLeafFaces = mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].numBytes / sizeof( BspLeafFace );
+    mTotalMeshVerts = mHeader->lumpEntries[ BSP_LUMP_MESHVERTS ].numBytes / sizeof( BspMeshVertex );
+    mVisdataSize = mHeader->lumpEntries[ BSP_LUMP_VISDATA ].numBytes;
+
 
     // Perform coordinate space conversions
     //=============================================
@@ -128,6 +135,55 @@ void Quake3Map::read( const std::string& filepath )
     }
 }
 
+void Quake3Map::loadVertexBuffer( QGLBuffer& vertexBuffer )
+{
+    vertexBuffer.allocate( ( void* ) mVertexBuffer, mTotalVertices );
+    vertexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
+}
+
+BspLeaf* Quake3Map::findClosestLeaf( const QVector3D& camPos )
+{
+    int nodeIndex = 0;
+
+    while ( nodeIndex >= 0 )
+    {
+        const BspNode* const node = mNodeBuffer + nodeIndex;
+        const BspPlane* const plane = mPlaneBuffer + node->plane;
+
+        // If the distance from the camera to the plane is >= 0,
+        // then our needed camera data is in a leaf somewhere in front of this node,
+        // otherwise it's behind the node somewhere.
+
+        QVector3D planeNormal( plane->normal[ 0 ], plane->normal[ 1 ], plane->normal[ 2 ] );
+
+        float distance = QVector3D::dotProduct( planeNormal, camPos ) - plane->distance;
+
+        if ( distance >= 0 )
+            nodeIndex = node->children[ 0 ];
+        else
+            nodeIndex = node->children[ 1 ];
+    }
+
+    nodeIndex = -( nodeIndex + 1 );
+
+    return &mLeafBuffer[ nodeIndex ];
+}
+
+bool Quake3Map::isClusterVisible( int visCluster, int testCluster )
+{
+    if ( mVisdata->bitsets == NULL || ( visCluster < 0 ) )
+    {
+        return true;
+    }
+
+    int i = ( visCluster * mVisdata->bytesPerCluster ) + ( testCluster >> 3 );
+
+    byte visSet = mVisdata->bitsets[ i ];
+
+    return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
+}
+
+
 void Quake3Map::convertFaceRangeToRHC( size_t start, size_t end )
 {
     for ( size_t i = start; i < end; ++i )
@@ -137,18 +193,30 @@ void Quake3Map::convertFaceRangeToRHC( size_t start, size_t end )
         q3cToRightHand( face->lightmapOrigin );
         q3cToRightHand( face->normal );
 
-        // Corresponding Vertices
+        // Corresponding Vertices, and Mesh Vertices
+
         size_t endVertices = face->vertexOffset + face->numVertices;
+        size_t endMeshVerts = face->meshVertexOffset + face->numMeshVertices;
 
-        for ( size_t v = 0; v < endVertices; ++v )
+        size_t k, j;
+
+        for ( k = face->vertexOffset, j = face->meshVertexOffset; k < endVertices && j < endMeshVerts; ( ++k, ++j ) )
         {
-            BspVertex* vertex = mVertexBuffer + v;
+            if ( k < endVertices )
+            {
+                BspVertex* vertex = mVertexBuffer + k;
 
-            q3cToRightHand( vertex->normal );
-            q3cToRightHand( vertex->position );
+                q3cToRightHand( vertex->normal );
+                q3cToRightHand( vertex->position );
+            }
+
+            if ( j < endMeshVerts )
+            {
+                BspVertex* meshVert = mVertexBuffer + j;
+
+                q3cToRightHand( meshVert->normal );
+                q3cToRightHand( meshVert->position );
+            }
         }
-
-        // Corresponding Mesh Vertices ( TODO )
     }
 }
-

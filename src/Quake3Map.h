@@ -101,6 +101,11 @@ struct BspVertex
     byte color[ 4 ];
 };
 
+struct BspMeshVertex
+{
+    int offset;
+};
+
 struct BspFace
 {
     int texture;
@@ -127,7 +132,7 @@ struct BspFace
 struct BspVisdata
 {
     int     length;
-    int     vectorSizeBytes;
+    int     bytesPerCluster;
 
     byte*   bitsets;
 };
@@ -136,18 +141,6 @@ class Quake3Map
 {
 public:
 
-    Quake3Map( void );
-
-    ~Quake3Map( void );
-
-    void read( const std::string& filepath );
-
-private:
-
-    byte*           mDataBuffer;
-
-    BspHeader*      mHeader;
-
     BspNode*        mNodeBuffer;
     BspLeaf*        mLeafBuffer;
     BspPlane*       mPlaneBuffer;
@@ -155,6 +148,8 @@ private:
     BspModel*       mModelBuffer;
     BspFace*        mFaceBuffer;
     BspLeafFace*    mLeafFaces;
+    BspMeshVertex*  mMeshVertices;
+    BspVisdata*     mVisdata;
 
     size_t          mTotalNodes;
     size_t          mTotalLeaves;
@@ -163,6 +158,28 @@ private:
     size_t          mTotalModels;
     size_t          mTotalFaces;
     size_t          mTotalLeafFaces;
+    size_t          mTotalMeshVerts;
 
-    void            convertFaceRangeToRHC( size_t start, size_t end );
+    size_t          mVisdataSize;
+
+
+    Quake3Map( void );
+
+    ~Quake3Map( void );
+
+    void read( const std::string& filepath );
+
+    BspLeaf* findClosestLeaf( const QVector3D& camPos );
+
+    bool isClusterVisible( int visCluster, int testCluster );
+
+    void loadVertexBuffer( QGLBuffer& vertexBuffer );
+
+private:
+
+    byte*           mDataBuffer;
+
+    BspHeader*      mHeader;
+
+    void convertFaceRangeToRHC( size_t start, size_t end );
 };

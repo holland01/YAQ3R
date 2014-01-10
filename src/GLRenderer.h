@@ -4,11 +4,11 @@
 #include <qmatrix.h>
 
 /*
-===========================
+=====================================================
 
-        GLCamera
+                    GLCamera
 
-===========================
+=====================================================
 */
 
 class GLCamera
@@ -32,6 +32,8 @@ public:
     const QMatrix4x4& view( void ) const { return mView; }
     const QMatrix4x4& projection( void ) const { return mProjection; }
 
+    const QVector3D& position( void ) const { return mPosition; }
+
     QMatrix4x4 orientation( void );
 
 private:
@@ -41,3 +43,54 @@ private:
     QMatrix4x4  mView, mProjection;
 };
 
+
+/*
+=====================================================
+
+                    GLRenderer
+
+=====================================================
+*/
+
+class Quake3Map;
+
+class GLRenderer
+{
+public:
+
+    GLCamera   mCamera;
+
+    GLRenderer( void );
+
+    ~GLRenderer( void );
+
+    void allocBase( void );
+
+    void loadMap( const std::string& filepath );
+
+    void render( void );
+
+    void update( void );
+
+private:
+
+    GLuint              mVao;
+
+    //                  Matrix uniform locations
+    int                 mProjectionUnif, mModelViewUnif;
+
+    QGLBuffer           mIndexBuffer;
+    QGLBuffer           mVertexBuffer;
+
+    QGLShaderProgram    mProgram;
+
+    Quake3Map*          mMapData;
+
+    //std::set< long unsigned int > mAlreadyVisible; // faces already visible
+
+    std::set< int >     mVisibleFaces;
+
+    QVector3D           mLastCameraPosition;
+
+    bool linkProgram( const QString& vertexShaderPath, const QString& fragmentShaderPath );
+};

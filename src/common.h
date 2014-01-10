@@ -16,5 +16,9 @@
 #include <stdlib.h>
 
 #include <string>
+#include <set>
+#include <bitset>
+
+#define NOP ;
 
 typedef unsigned char byte;

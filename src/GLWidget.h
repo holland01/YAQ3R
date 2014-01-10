@@ -25,16 +25,7 @@ protected:
 
 private:
 
-    bool linkProgram( const QString& vertexShaderPath, const QString& fragmentShaderPath );
-
-    QGLShaderProgram    mProgram;
-    QGLBuffer           mVertexBuffer;
-
-    QMatrix4x4          mModel;
-
-    GLuint mVao;
-
-    GLCamera mCamera;
+    GLRenderer          mRenderer;
 };
 
 

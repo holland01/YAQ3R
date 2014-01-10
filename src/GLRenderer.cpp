@@ -1,4 +1,14 @@
 #include "GLRenderer.h"
+#include "Quake3Map.h"
+
+
+/*
+=====================================================
+
+                    GLCamera
+
+=====================================================
+*/
 
 
 GLCamera::GLCamera( void )
@@ -68,4 +78,129 @@ void GLCamera::reset( void )
     mRotation = QVector3D( 0.0f, 0.0f, 0.0f );
 
     mView.setToIdentity();
+}
+
+/*
+=====================================================
+
+                    GLRenderer
+
+=====================================================
+*/
+
+GLRenderer::GLRenderer( void )
+    : mVao( 0 ),
+      mMapData( NULL ),
+      mLastCameraPosition( 0.0f, 0.0f, 0.0f )
+{
+}
+
+GLRenderer::~GLRenderer( void )
+{
+    if ( mMapData )
+    {
+        glDeleteVertexArrays( 1, &mVao );
+
+
+    }
+}
+
+void GLRenderer::allocBase( void )
+{
+    linkProgram( ":/shaders/test.vert", ":/shaders/test.frag" );
+    mProjectionUnif = mProgram.uniformLocation( "projection" );
+    mModelViewUnif = mProgram.uniformLocation( "modelView" );
+}
+
+void GLRenderer::loadMap( const std::string& filepath )
+{
+    if ( mMapData )
+    {
+        delete mMapData;
+    }
+
+    /*
+    float points[] = { -0.5f, -0.5f, 0.0f,
+                        0.5f, -0.5f, 0.0f,
+                        0.0f,  0.5f, 0.0f };*/
+
+    mMapData->read( filepath );
+    mMapData->loadVertexBuffer( mVertexBuffer );
+
+    mVertexBuffer.bind();
+    mProgram.bind();
+
+    mIndexBuffer.allocate( mMapData->mMeshVertices, sizeof( int ) * mMapData->mTotalMeshVerts );
+
+    glGenVertexArrays( 1, &mVao );
+    glBindVertexArray( mVao );
+
+    mProgram.enableAttributeArray( 0 );
+    mProgram.setAttributeBuffer( 0, GL_FLOAT, offsetof( BspVertex, BspVertex::position ), 3, sizeof( BspVertex ) );
+
+    mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
+}
+
+void GLRenderer::render( void )
+{
+    auto visibleFacesEnd = mVisibleFaces.end();
+
+    mIndexBuffer.bind();
+
+    for ( auto f = mVisibleFaces.begin(); f != visibleFacesEnd; ++f )
+    {
+        const BspFace* const face = mMapData->mFaceBuffer + *f;
+
+        glDrawElements( GL_TRIANGLES, face->numMeshVertices, GL_UNSIGNED_INT, &mMapData->mMeshVertices[ face->meshVertexOffset ] );
+    }
+
+    mIndexBuffer.release();
+}
+
+void GLRenderer::update( void )
+{
+    if ( mCamera.position() != mLastCameraPosition )
+    {
+        BspLeaf* leaf = mMapData->findClosestLeaf( mCamera.position() );
+
+        for ( int i = 0; i < mMapData->mVisdata->length; ++i )
+        {
+            if ( mMapData->isClusterVisible( leaf->clusterIndex, i ) )
+            {
+                int faceEnd = leaf->leafFaceOffset + leaf->numLeafFaces;
+
+                for ( int f = leaf->leafFaceOffset; f < faceEnd; ++f )
+                {
+                    if ( mVisibleFaces.find( f ) == mVisibleFaces.end() )
+                    {
+                        mVisibleFaces.insert( f );
+                    }
+                }
+            }
+        }
+
+        mCamera.updateView();
+
+        mProgram.setUniformValue( mModelViewUnif, mCamera.view() );
+        mProgram.setUniformValue( mProjectionUnif, mCamera.projection() );
+
+        mLastCameraPosition = mCamera.position();
+    }
+}
+
+bool GLRenderer::linkProgram( const QString& vertexShaderPath, const QString& fragShaderPath )
+{
+    bool result = mProgram.addShaderFromSourceFile( QGLShader::Vertex, vertexShaderPath );
+    if ( !result )
+        qWarning() << mProgram.log();
+
+    result = mProgram.addShaderFromSourceFile( QGLShader::Fragment, fragShaderPath );
+    if ( !result )
+        qWarning() << mProgram.log();
+
+    result = mProgram.link();
+    if ( !result )
+        qWarning() << "Could not link shader program:" << mProgram.log();
+
+    return result;
 }
