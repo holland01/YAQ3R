@@ -59,7 +59,7 @@ void Quake3Map::read( const std::string& filepath )
 
         mDataBuffer = new byte[ size ];
 
-        fread( mDataBuffer, size, 1, mapFile );
+        fread( mDataBuffer, sizeof( byte ), size, mapFile );
         fclose( mapFile );
     }
 
@@ -101,44 +101,104 @@ void Quake3Map::read( const std::string& filepath )
     // Perform coordinate space conversions
     //=============================================
 
-    // Nodes and Planes
-    for ( size_t i = 0; i < mTotalNodes; ++i )
+    const int NODES = 0;
+    const int LEAVES = 1;
+    const int FACES = 2;
+    const int PLANES = 3;
+    const int MODELS = 5;
+    const int VERTICES = 6;
+
+    size_t iterators[ 6 ];
+    memset( iterators, 0, sizeof( iterators ) );
+
+    do
     {
-        q3cToRightHand( mNodeBuffer[ i ].boxMax );
-        q3cToRightHand( mNodeBuffer[ i ].boxMin );
+        // Nodes
+        if ( iterators[ NODES ] < mTotalNodes )
+        {
+            q3cToRightHand( mNodeBuffer[ iterators[ NODES ] ].boxMax );
+            q3cToRightHand( mNodeBuffer[ iterators[ NODES ] ].boxMin );
 
-        q3cToRightHand( mPlaneBuffer[ mNodeBuffer[ i ].plane ].normal );
+            iterators[ NODES ]++;
+        }
+
+        // Leaves
+        if ( iterators[ LEAVES ] < mTotalLeaves )
+        {
+            q3cToRightHand( mLeafBuffer[ iterators[ LEAVES ] ].boxMax );
+            q3cToRightHand( mLeafBuffer[ iterators[ LEAVES ] ].boxMin );
+
+            iterators[ LEAVES ]++;
+        }
+
+        // Faces
+        if ( iterators[ FACES ] < mTotalFaces )
+        {
+            q3cToRightHand( mFaceBuffer[ iterators[ FACES ] ].normal );
+
+            iterators[ FACES ]++;
+        }
+
+        // Planes
+        if ( iterators[ PLANES ] < mTotalPlanes )
+        {
+            q3cToRightHand( mPlaneBuffer[ iterators[ PLANES ] ].normal );
+
+            iterators[ PLANES ]++;
+        }
+
+        // Models
+        if ( iterators[ MODELS ] < mTotalModels )
+        {
+            q3cToRightHand( mModelBuffer[ iterators[ MODELS ] ].boxMax );
+            q3cToRightHand( mModelBuffer[ iterators[ MODELS ] ].boxMin );
+
+            iterators[ MODELS ]++;
+        }
+
+        // Vertices
+        if ( iterators[ VERTICES ] < mTotalVertices )
+        {
+            q3cToRightHand( mVertexBuffer[ iterators[ VERTICES ] ].normal );
+            q3cToRightHand( mVertexBuffer[ iterators[ VERTICES ] ].position );
+
+            iterators[ VERTICES ]++;
+        }
+
+        // It's not pretty, but it works.
     }
-
-    // Leaves
-    for ( size_t i = 0; i < mTotalLeaves; ++i )
-    {
-        BspLeaf* const pLeaf = mLeafBuffer + i;
-
-        q3cToRightHand( pLeaf->boxMax );
-        q3cToRightHand( pLeaf->boxMin );
-
-        // Corresponding Leaf faces
-        convertFaceRangeToRHC( ( size_t ) pLeaf->leafFaceOffset, ( size_t )( pLeaf->leafFaceOffset + pLeaf->numLeafFaces ) );
-    }
-
-    // Models
-    for ( size_t i = 0; i < mTotalModels; ++i )
-    {
-        BspModel* const pMod = mModelBuffer + i;
-
-        q3cToRightHand( pMod->boxMax );
-        q3cToRightHand( pMod->boxMin );
-
-        // Corresponding Model Faces
-        convertFaceRangeToRHC( ( size_t ) pMod->faceOffset, ( size_t )( pMod->faceOffset + pMod->numFaces ) );
-    }
+    while(  iterators[ NODES ] < mTotalNodes
+        &&  iterators[ LEAVES ] < mTotalLeaves
+        &&  iterators[ FACES ] < mTotalFaces
+        &&  iterators[ PLANES ] < mTotalPlanes
+        &&  iterators[ MODELS ] < mTotalModels
+        &&  iterators[ VERTICES ] < mTotalVertices );
 }
 
 void Quake3Map::loadVertexBuffer( QGLBuffer& vertexBuffer )
 {
     vertexBuffer.allocate( ( void* ) mVertexBuffer, mTotalVertices );
     vertexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
+}
+
+void Quake3Map::loadIndexBuffer( QGLBuffer& indexBuffer )
+{
+    std::vector< int > indices;
+
+    for ( size_t i = 0; i < mTotalFaces; ++i )
+    {
+        BspFace* face = mFaceBuffer + i;
+
+        size_t end = face->numVertices;
+
+        for ( size_t j = face->vertexOffset; j < end; ++j )
+        {
+            indices.push_back( j );
+        }
+    }
+
+    indexBuffer.allocate( &indices[ 0 ], indices.size() * sizeof( int ) );
+    indexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
 }
 
 BspLeaf* Quake3Map::findClosestLeaf( const QVector3D& camPos )
@@ -181,42 +241,4 @@ bool Quake3Map::isClusterVisible( int visCluster, int testCluster )
     byte visSet = mVisdata->bitsets[ i ];
 
     return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
-}
-
-
-void Quake3Map::convertFaceRangeToRHC( size_t start, size_t end )
-{
-    for ( size_t i = start; i < end; ++i )
-    {
-        BspFace* face = mFaceBuffer + i;
-
-        q3cToRightHand( face->lightmapOrigin );
-        q3cToRightHand( face->normal );
-
-        // Corresponding Vertices, and Mesh Vertices
-
-        size_t endVertices = face->vertexOffset + face->numVertices;
-        size_t endMeshVerts = face->meshVertexOffset + face->numMeshVertices;
-
-        size_t k, j;
-
-        for ( k = face->vertexOffset, j = face->meshVertexOffset; k < endVertices && j < endMeshVerts; ( ++k, ++j ) )
-        {
-            if ( k < endVertices )
-            {
-                BspVertex* vertex = mVertexBuffer + k;
-
-                q3cToRightHand( vertex->normal );
-                q3cToRightHand( vertex->position );
-            }
-
-            if ( j < endMeshVerts )
-            {
-                BspVertex* meshVert = mVertexBuffer + j;
-
-                q3cToRightHand( meshVert->normal );
-                q3cToRightHand( meshVert->position );
-            }
-        }
-    }
 }

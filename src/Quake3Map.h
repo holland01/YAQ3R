@@ -141,6 +141,20 @@ class Quake3Map
 {
 public:
 
+    Quake3Map( void );
+
+    ~Quake3Map( void );
+
+    void read( const std::string& filepath );
+
+    BspLeaf* findClosestLeaf( const QVector3D& camPos );
+
+    bool isClusterVisible( int visCluster, int testCluster );
+
+    void loadVertexBuffer( QGLBuffer& vertexBuffer );
+
+    void loadIndexBuffer( QGLBuffer& indexBuffer );
+
     BspNode*        mNodeBuffer;
     BspLeaf*        mLeafBuffer;
     BspPlane*       mPlaneBuffer;
@@ -162,24 +176,11 @@ public:
 
     size_t          mVisdataSize;
 
-
-    Quake3Map( void );
-
-    ~Quake3Map( void );
-
-    void read( const std::string& filepath );
-
-    BspLeaf* findClosestLeaf( const QVector3D& camPos );
-
-    bool isClusterVisible( int visCluster, int testCluster );
-
-    void loadVertexBuffer( QGLBuffer& vertexBuffer );
-
 private:
+
+    void convertFaceRangeToRHC( size_t start, size_t end );
 
     byte*           mDataBuffer;
 
     BspHeader*      mHeader;
-
-    void convertFaceRangeToRHC( size_t start, size_t end );
 };

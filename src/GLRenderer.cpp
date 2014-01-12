@@ -101,13 +101,13 @@ GLRenderer::~GLRenderer( void )
     {
         glDeleteVertexArrays( 1, &mVao );
 
-
+        delete mMapData;
     }
 }
 
 void GLRenderer::allocBase( void )
 {
-    linkProgram( ":/shaders/test.vert", ":/shaders/test.frag" );
+    linkProgram( "src/test.vert", "src/test.frag" );
     mProjectionUnif = mProgram.uniformLocation( "projection" );
     mModelViewUnif = mProgram.uniformLocation( "modelView" );
 }
@@ -119,18 +119,15 @@ void GLRenderer::loadMap( const std::string& filepath )
         delete mMapData;
     }
 
-    /*
-    float points[] = { -0.5f, -0.5f, 0.0f,
-                        0.5f, -0.5f, 0.0f,
-                        0.0f,  0.5f, 0.0f };*/
+    mMapData = new Quake3Map;
 
     mMapData->read( filepath );
+
     mMapData->loadVertexBuffer( mVertexBuffer );
+    mMapData->loadIndexBuffer( mIndexBuffer );
 
     mVertexBuffer.bind();
     mProgram.bind();
-
-    mIndexBuffer.allocate( mMapData->mMeshVertices, sizeof( int ) * mMapData->mTotalMeshVerts );
 
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );

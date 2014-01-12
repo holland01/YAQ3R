@@ -52,6 +52,7 @@ void GLWidget::initializeGL( void )
 
     mRenderer.allocBase();
 
+    mRenderer.loadMap( "asset/quake/aty3dm1v2.bsp" );
     // TODO: load map here.
 }
 
