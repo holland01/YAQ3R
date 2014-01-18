@@ -86,6 +86,7 @@ void Quake3Map::read( const std::string& filepath )
     mLeafFaces  = ( BspLeafFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].offset );
     mMeshVertices = ( BspMeshVertex* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MESHVERTS ].offset );
     mVisdata = ( BspVisdata* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_VISDATA ].offset );
+    mVisdata->bitsets = ( byte* )mVisdata + 8;
 
     mTotalNodes = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspNode );
     mTotalLeaves = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspLeaf );
@@ -164,8 +165,6 @@ void Quake3Map::read( const std::string& filepath )
 
             iterators[ VERTICES ]++;
         }
-
-        // It's not pretty, but it works.
     }
     while(  iterators[ NODES ] < mTotalNodes
         &&  iterators[ LEAVES ] < mTotalLeaves
@@ -175,27 +174,41 @@ void Quake3Map::read( const std::string& filepath )
         &&  iterators[ VERTICES ] < mTotalVertices );
 }
 
-void Quake3Map::loadVertexBuffer( QGLBuffer& vertexBuffer )
+void Quake3Map::loadVertexBuffer( std::vector< QVector3D >& vertices, QGLBuffer& vertexBuffer )
 {
-    vertexBuffer.allocate( ( void* ) mVertexBuffer, mTotalVertices );
+    for ( size_t i = 0; i < mTotalVertices; ++i )
+    {
+        QVector3D pos;
+
+        pos.setX( ( mVertexBuffer + i )->position[ 0 ] );
+        pos.setY( ( mVertexBuffer + i )->position[ 1 ] );
+        pos.setZ( ( mVertexBuffer + i )->position[ 2 ] );
+
+        vertices.push_back( pos );
+    }
+
+    vertexBuffer.allocate( ( void* ) &vertices[ 0 ], vertices.size() * sizeof( QVector3D ) );
     vertexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
 }
 
-void Quake3Map::loadIndexBuffer( QGLBuffer& indexBuffer )
+void Quake3Map::loadIndexBuffer( std::vector< int >& indices, QGLBuffer& indexBuffer )
 {
-    std::vector< int > indices;
+    indices.clear();
+    indices.reserve( sizeof( int ) * mTotalFaces );
 
-    for ( size_t i = 0; i < mTotalFaces; ++i )
+    int total = ( int ) mTotalFaces;
+
+    for ( int i = 0; i < total; ++i )
     {
         BspFace* face = mFaceBuffer + i;
 
-        size_t end = face->numVertices;
-
-        for ( size_t j = face->vertexOffset; j < end; ++j )
+        for ( int j = 0; j < face->numVertices; ++j )
         {
-            indices.push_back( j );
+            indices.push_back( face->vertexOffset + j );
         }
     }
+
+    indices.shrink_to_fit();
 
     indexBuffer.allocate( &indices[ 0 ], indices.size() * sizeof( int ) );
     indexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
@@ -231,7 +244,7 @@ BspLeaf* Quake3Map::findClosestLeaf( const QVector3D& camPos )
 
 bool Quake3Map::isClusterVisible( int visCluster, int testCluster )
 {
-    if ( mVisdata->bitsets == NULL || ( visCluster < 0 ) )
+    if ( !mVisdata->bitsets || ( visCluster < 0 ) )
     {
         return true;
     }

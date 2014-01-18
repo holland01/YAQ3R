@@ -32,6 +32,9 @@ GLWidget::~GLWidget( void )
 
 void GLWidget::initializeGL( void )
 {
+    glDisableClientState( GL_COLOR_ARRAY );
+    glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+
     glewExperimental = true;
     GLenum response = glewInit();
 

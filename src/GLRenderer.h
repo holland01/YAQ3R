@@ -36,9 +36,11 @@ public:
 
     QMatrix4x4 orientation( void );
 
-private:
+    QVector3D   mPosition;
 
-    QVector3D   mRotation, mPosition;
+    QVector3D   mRotation;
+
+private:
 
     QMatrix4x4  mView, mProjection;
 };
@@ -89,6 +91,8 @@ private:
     //std::set< long unsigned int > mAlreadyVisible; // faces already visible
 
     std::set< int >     mVisibleFaces;
+    std::vector< int >  mIndicesBuffer;
+    std::vector< QVector3D > mVerticesBuffer;
 
     QVector3D           mLastCameraPosition;
 

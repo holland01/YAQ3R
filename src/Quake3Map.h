@@ -8,22 +8,22 @@ enum
     BSP_NUM_ENTRIES = 17,
     BSP_Q3_VERSION = 0x2E,
 
-    BSP_LUMP_ENTITY = 0x0,
-    BSP_LUMP_TEXTURE = 0x1,
-    BSP_LUMP_PLANE = 0x2,
-    BSP_LUMP_NODE = 0x3,
-    BSP_LUMP_LEAVES = 0x4,
-    BSP_LUMP_LEAF_FACES = 0x5,
-    BSP_LUMP_LEAF_BRUSHES = 0x6,
-    BSP_LUMP_MODELS = 0x7,
-    BSP_LUMP_BRUSHES = 0x8,
-    BSP_LUMP_BRUSH_SIDES = 0x9,
-    BSP_LUMP_VERTEXES = 0xA,
-    BSP_LUMP_MESHVERTS = 0xB,
-    BSP_LUMP_EFFECTS = 0xC,
-    BSP_LUMP_FACES = 0xD,
-    BSP_LUMP_LIGHTMAPS = 0xE,
-    BSP_LUMP_LIGHTVOLS = 0xF,
+    BSP_LUMP_ENTITY = 0x00,
+    BSP_LUMP_TEXTURE = 0x01,
+    BSP_LUMP_PLANE = 0x02,
+    BSP_LUMP_NODE = 0x03,
+    BSP_LUMP_LEAVES = 0x04,
+    BSP_LUMP_LEAF_FACES = 0x05,
+    BSP_LUMP_LEAF_BRUSHES = 0x06,
+    BSP_LUMP_MODELS = 0x07,
+    BSP_LUMP_BRUSHES = 0x08,
+    BSP_LUMP_BRUSH_SIDES = 0x09,
+    BSP_LUMP_VERTEXES = 0x0A,
+    BSP_LUMP_MESHVERTS = 0x0B,
+    BSP_LUMP_EFFECTS = 0x0C,
+    BSP_LUMP_FACES = 0x0D,
+    BSP_LUMP_LIGHTMAPS = 0x0E,
+    BSP_LUMP_LIGHTVOLS = 0x0F,
     BSP_LUMP_VISDATA = 0x10,
 
     BSP_FACE_TYPE_POLYGON = 0x1,
@@ -121,9 +121,9 @@ struct BspFace
     int lightmapIndex;
     int lightmapStartCorner[ 2 ];
     int lightmapSize[ 2 ];
-    int lightmapOrigin[ 3 ]; // in world space
-    int lightmapStVecs[ 2 ]; // world space s/t unit vector indices
 
+    float lightmapOrigin[ 3 ]; // in world space
+    float lightmapStVecs[ 2 ][ 3 ]; // world space s/t unit vectors
     float normal[ 3 ];
 
     int size[ 2 ];
@@ -131,7 +131,7 @@ struct BspFace
 
 struct BspVisdata
 {
-    int     length;
+    int     numClusters;
     int     bytesPerCluster;
 
     byte*   bitsets;
@@ -151,9 +151,9 @@ public:
 
     bool isClusterVisible( int visCluster, int testCluster );
 
-    void loadVertexBuffer( QGLBuffer& vertexBuffer );
+    void loadVertexBuffer( std::vector< QVector3D >& vertices, QGLBuffer& vertexBuffer );
 
-    void loadIndexBuffer( QGLBuffer& indexBuffer );
+    void loadIndexBuffer( std::vector< int >& indices, QGLBuffer& indexBuffer );
 
     BspNode*        mNodeBuffer;
     BspLeaf*        mLeafBuffer;

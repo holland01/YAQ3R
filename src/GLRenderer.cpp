@@ -12,8 +12,8 @@
 
 
 GLCamera::GLCamera( void )
-    : mRotation( 0.0f, 0.0f, 0.0f ),
-      mPosition( 0.0f, 0.0f, 0.0f )
+    : mPosition( 0.0f, 0.0f, 0.0f ),
+      mRotation( 0.0f, 0.0f, 0.0f )
 {
     mView.setToIdentity();
     mProjection.setToIdentity();
@@ -123,23 +123,39 @@ void GLRenderer::loadMap( const std::string& filepath )
 
     mMapData->read( filepath );
 
-    mMapData->loadVertexBuffer( mVertexBuffer );
-    mMapData->loadIndexBuffer( mIndexBuffer );
-
     mVertexBuffer.bind();
+    mIndexBuffer.bind();
+
+    mMapData->loadVertexBuffer( mVerticesBuffer, mVertexBuffer );
+    mMapData->loadIndexBuffer( mIndicesBuffer, mIndexBuffer );
+
+    QVector3D random;
+    random.setX( mMapData->mVertexBuffer->position[ 0 ] );
+    random.setY( mMapData->mVertexBuffer->position[ 1 ] );
+    random.setZ( mMapData->mVertexBuffer->position[ 2 ] );
+
+    mCamera.mPosition = random;
+
     mProgram.bind();
 
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );
 
+    mIndexBuffer.bind();
+
+    mVertexBuffer.bind();
     mProgram.enableAttributeArray( 0 );
-    mProgram.setAttributeBuffer( 0, GL_FLOAT, offsetof( BspVertex, BspVertex::position ), 3, sizeof( BspVertex ) );
+    mProgram.setAttributeBuffer( 0, GL_FLOAT, 0, 3, sizeof( QVector3D ) );
+
+    glBindVertexArray( 0 );
 
     mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
 }
 
 void GLRenderer::render( void )
 {
+    glBindVertexArray( mVao );
+
     auto visibleFacesEnd = mVisibleFaces.end();
 
     mIndexBuffer.bind();
@@ -148,10 +164,12 @@ void GLRenderer::render( void )
     {
         const BspFace* const face = mMapData->mFaceBuffer + *f;
 
-        glDrawElements( GL_TRIANGLES, face->numMeshVertices, GL_UNSIGNED_INT, &mMapData->mMeshVertices[ face->meshVertexOffset ] );
+        glDrawElements( GL_TRIANGLES, face->numVertices, GL_UNSIGNED_INT, &mIndicesBuffer[ face->vertexOffset ] );
     }
 
     mIndexBuffer.release();
+
+    glBindVertexArray( 0 );
 }
 
 void GLRenderer::update( void )
@@ -160,7 +178,7 @@ void GLRenderer::update( void )
     {
         BspLeaf* leaf = mMapData->findClosestLeaf( mCamera.position() );
 
-        for ( int i = 0; i < mMapData->mVisdata->length; ++i )
+        for ( int i = 0; i < mMapData->mVisdata->numClusters; ++i )
         {
             if ( mMapData->isClusterVisible( leaf->clusterIndex, i ) )
             {
