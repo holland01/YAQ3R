@@ -1,8 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include <qmatrix.h>
-
 /*
 =====================================================
 
@@ -20,29 +18,24 @@ public:
     void strafe( float step );
     void raise ( float step );
 
-    void rotateX( float angDeg );
-    void rotateY( float angDeg );
-
     void updateView( void );
 
     void setPerspective( float fovy, float aspect, float zNear, float zFar );
 
     void reset( void );
 
-    const QMatrix4x4& view( void ) const { return mView; }
-    const QMatrix4x4& projection( void ) const { return mProjection; }
+    const glm::mat4& view( void ) const { return mView; }
+    const glm::mat4& projection( void ) const { return mProjection; }
 
-    const QVector3D& position( void ) const { return mPosition; }
+    glm::mat4 orientation( void );
 
-    QMatrix4x4 orientation( void );
+    glm::vec3   mPosition;
 
-    QVector3D   mPosition;
-
-    QVector3D   mRotation;
+    glm::vec3   mRotation;
 
 private:
 
-    QMatrix4x4  mView, mProjection;
+    glm::mat4  mView, mProjection;
 };
 
 
@@ -79,22 +72,12 @@ private:
     GLuint              mVao;
 
     //                  Matrix uniform locations
-    int                 mProjectionUnif, mModelViewUnif;
+    GLint               mProjectionUnif, mModelViewUnif;
 
-    QGLBuffer           mIndexBuffer;
-    QGLBuffer           mVertexBuffer;
+    Quake3Map*          mMap;
 
-    QGLShaderProgram    mProgram;
+    glm::vec3           mLastCameraPosition;
 
-    Quake3Map*          mMapData;
+    byte*               mVisibleFaces;
 
-    //std::set< long unsigned int > mAlreadyVisible; // faces already visible
-
-    std::set< int >     mVisibleFaces;
-    std::vector< int >  mIndicesBuffer;
-    std::vector< QVector3D > mVerticesBuffer;
-
-    QVector3D           mLastCameraPosition;
-
-    bool linkProgram( const QString& vertexShaderPath, const QString& fragmentShaderPath );
 };

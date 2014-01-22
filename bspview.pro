@@ -1,15 +1,17 @@
-QT += opengl gui core
+QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror
 
-QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror \
-    -Wno-unused-function
+debug {
+   QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter
+}
 
-LIBS += -lGL -lGLU -lGLEW
+LIBS += -L/usr/lib/regal -lRegal -lglfw -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 
 HEADERS += \
     src/GLWidget.h \
     src/GLRenderer.h \
     src/common.h \
-    src/Quake3Map.h
+    src/Quake3Map.h \
+    src/vec.h
 
 OTHER_FILES += \
     src/test.vert \

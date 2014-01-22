@@ -33,31 +33,47 @@ enum
 
 };
 
-struct BspLump
-{
-    int         offset;
-    int         numBytes;
-};
-
 struct BspHeader
 {
     char        id[ 4 ];
+
     int         version;
-    BspLump     lumpEntries[ BSP_NUM_ENTRIES ];
+
+    // sizes are represented in terms of bytes
+
+    int         offsetEntities, sizeEntities;
+    int         offsetTextures, sizeTextures;
+    int         offsetPlanes, sizePlanes;
+    int         offsetNodes, sizeNodes;
+    int         offsetLeaves, sizeLeaves;
+    int         offsetLeafFaces, sizeLeafFaces;
+    int         offsetLeafBrushes, sizeLeafBrushes;
+    int         offsetModels, sizeModels;
+    int         offsetBrushes, sizeBrushes;
+    int         offsetBrushSides, sizeBrushSides;
+    int         offsetVertexes, sizeVertexes;
+    int         offsetMeshVertexes, sizeMeshVertexes;
+    int         offsetEffeccts, sizeEffects;
+    int         offsetFaces, sizeFaces;
+    int         offsetLightMaps, sizeLightMaps;
+    int         offsetLightVols, sizeLightVols;
+    int         offsetVisData, sizeVisData;
 };
+
 
 struct BspPlane
 {
-    float       normal[ 3 ];
+    vec3f       normal;
     float       distance;
 };
 
 struct BspNode
 {
-    int plane;
-    int children[ 2 ];
-    int boxMin[ 3 ];    // bounding box int coords
-    int boxMax[ 3 ];
+    int     plane;
+    int     children[ 2 ];
+
+    vec3i   boxMin;
+    vec3i   boxMax;
 };
 
 struct BspLeaf
@@ -65,8 +81,8 @@ struct BspLeaf
     int clusterIndex;
     int areaPortal;
 
-    int boxMin[ 3 ];
-    int boxMax[ 3 ];
+    vec3i   boxMin;
+    vec3i   boxMax;
 
     int leafFaceOffset;
     int numLeafFaces;
@@ -82,8 +98,8 @@ struct BspLeafFace
 
 struct BspModel
 {
-    float boxMax[ 3 ];
-    float boxMin[ 3 ];
+    vec3f boxMax;
+    vec3f boxMin;
 
     int faceOffset;
     int numFaces;
@@ -94,9 +110,9 @@ struct BspModel
 
 struct BspVertex
 {
-    float position[ 3 ];
-    float texcoord[ 3 ];
-    float normal[ 3 ];
+    vec3f position;
+    vec2f texcoords[ 2 ];
+    vec3f normal;
 
     byte color[ 4 ];
 };
@@ -122,17 +138,17 @@ struct BspFace
     int lightmapStartCorner[ 2 ];
     int lightmapSize[ 2 ];
 
-    float lightmapOrigin[ 3 ]; // in world space
-    float lightmapStVecs[ 2 ][ 3 ]; // world space s/t unit vectors
-    float normal[ 3 ];
+    vec3f lightmapOrigin; // in world space
+    vec3f lightmapStVecs[ 2 ]; // world space s/t unit vectors
+    vec3f normal;
 
-    int size[ 2 ];
+    int     size[ 2 ];
 };
 
-struct BspVisdata
+struct BspVisData
 {
-    int     numClusters;
-    int     bytesPerCluster;
+    int     numVectors;
+    int     sizeVector;
 
     byte*   bitsets;
 };
@@ -145,42 +161,37 @@ public:
 
     ~Quake3Map( void );
 
-    void read( const std::string& filepath );
+    void read( const std::string& filepath, int divisionScale );
 
-    BspLeaf* findClosestLeaf( const QVector3D& camPos );
+    BspLeaf* findClosestLeaf( const glm::vec3& camPos );
 
     bool isClusterVisible( int visCluster, int testCluster );
 
-    void loadVertexBuffer( std::vector< QVector3D >& vertices, QGLBuffer& vertexBuffer );
-
-    void loadIndexBuffer( std::vector< int >& indices, QGLBuffer& indexBuffer );
-
-    BspNode*        mNodeBuffer;
-    BspLeaf*        mLeafBuffer;
-    BspPlane*       mPlaneBuffer;
-    BspVertex*      mVertexBuffer;
-    BspModel*       mModelBuffer;
-    BspFace*        mFaceBuffer;
+    BspNode*        mNodes;
+    BspLeaf*        mLeaves;
+    BspPlane*       mPlanes;
+    BspVertex*      mVertexes;
+    BspModel*       mModels;
+    BspFace*        mFaces;
     BspLeafFace*    mLeafFaces;
-    BspMeshVertex*  mMeshVertices;
-    BspVisdata*     mVisdata;
+    BspMeshVertex*  mMeshVertexes;
+    BspVisData*     mVisData;
 
-    size_t          mTotalNodes;
-    size_t          mTotalLeaves;
-    size_t          mTotalPlanes;
-    size_t          mTotalVertices;
-    size_t          mTotalModels;
-    size_t          mTotalFaces;
-    size_t          mTotalLeafFaces;
-    size_t          mTotalMeshVerts;
-
-    size_t          mVisdataSize;
+    int          mTotalNodes;
+    int          mTotalLeaves;
+    int          mTotalPlanes;
+    int          mTotalVertexes;
+    int          mTotalModels;
+    int          mTotalFaces;
+    int          mTotalLeafFaces;
+    int          mTotalMeshVertexes;
+    int          mTotalVisVecs;
 
 private:
 
     void convertFaceRangeToRHC( size_t start, size_t end );
 
-    byte*           mDataBuffer;
+    BspHeader       mHeader;
 
-    BspHeader*      mHeader;
+    bool            mMapAllocd;
 };

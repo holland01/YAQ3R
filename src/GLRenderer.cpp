@@ -13,71 +13,59 @@
 
 GLCamera::GLCamera( void )
     : mPosition( 0.0f, 0.0f, 0.0f ),
-      mRotation( 0.0f, 0.0f, 0.0f )
+      mRotation( 0.0f, 0.0f, 0.0f ),
+      mView( 1.0f ),
+      mProjection( 1.0f )
 {
-    mView.setToIdentity();
-    mProjection.setToIdentity();
 }
 
-QMatrix4x4 GLCamera::orientation( void )
+glm::mat4 GLCamera::orientation( void )
 {
-    QMatrix4x4 orient;
-    orient.setToIdentity();
+    glm::mat4 orient( 1.0f );
 
-    orient.rotate( mRotation.x(), QVector3D( 1.0f, 0.0f, 0.0f ) );
-    orient.rotate( mRotation.y(), QVector3D( 0.0f, 1.0f, 0.0f ) );
+    orient = glm::rotate( orient, mRotation.x, glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    orient = glm::rotate( orient, mRotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
 
     return orient;
 }
 
 void GLCamera::walk( float step )
 {
-    QVector4D forward = orientation().inverted() * QVector4D( 0.0f, 0.0f, -step, 1.0f );
+    glm::vec4 forward = glm::inverse( orientation() ) * glm::vec4( 0.0f, 0.0f, -step, 1.0f );
 
-    mPosition += forward.toVector3D();
+    mPosition += glm::vec3( forward );
 }
 
 void GLCamera::strafe( float step )
 {
-    QVector4D right = orientation().inverted() * QVector4D( step, 0.0f, 0.0f, 1.0f );
+    glm::vec4 right = glm::inverse( orientation() ) * glm::vec4( step, 0.0f, 0.0f, 1.0f );
 
-    mPosition += right.toVector3D();
+    mPosition += glm::vec3( right );
 }
 
 void GLCamera::raise( float step )
 {
-    QVector4D up = orientation().inverted() * QVector4D( 0.0f, step, 0.0f, 1.0f );
+    glm::vec4 up = glm::inverse( orientation() ) * glm::vec4( 0.0f, step, 0.0f, 1.0f );
 
-    mPosition += up.toVector3D();
-}
-
-void GLCamera::rotateX( float angDeg )
-{
-    mRotation.setX( angDeg );
-}
-
-void GLCamera::rotateY( float angDeg )
-{
-    mRotation.setY( angDeg );
+    mPosition += glm::vec3( up );
 }
 
 void GLCamera::updateView( void )
 {
-    mView = orientation();
-    mView.translate( -mPosition );
+    mView = orientation() * glm::translate( glm::mat4( 1.0f ), -mPosition );
 }
 
 void GLCamera::setPerspective( float fovy, float aspect, float zNear, float zFar )
 {
-    mProjection.perspective( fovy, aspect, zNear, zFar );
+    mProjection = glm::perspective( fovy, aspect, zNear, zFar );
 }
 
 void GLCamera::reset( void )
 {
-    mPosition = QVector3D( 0.0f, 0.0f, 0.0f );
-    mRotation = QVector3D( 0.0f, 0.0f, 0.0f );
+    mPosition = glm::vec3( 0.0f, 0.0f, 0.0f );
+    mRotation = glm::vec3( 0.0f, 0.0f, 0.0f );
 
-    mView.setToIdentity();
+    mView = glm::mat4( 1.0f );
 }
 
 /*
@@ -90,62 +78,50 @@ void GLCamera::reset( void )
 
 GLRenderer::GLRenderer( void )
     : mVao( 0 ),
-      mMapData( NULL ),
-      mLastCameraPosition( 0.0f, 0.0f, 0.0f )
+      mMap( NULL ),
+      mLastCameraPosition( 0.0f, 0.0f, 0.0f ),
+      mVisibleFaces( NULL )
 {
 }
 
 GLRenderer::~GLRenderer( void )
 {
-    if ( mMapData )
+    if ( mMap )
     {
         glDeleteVertexArrays( 1, &mVao );
 
-        delete mMapData;
+        delete mMap;
+    }
+
+    if ( mVisibleFaces )
+    {
+        delete mVisibleFaces;
     }
 }
 
 void GLRenderer::allocBase( void )
 {
-    linkProgram( "src/test.vert", "src/test.frag" );
-    mProjectionUnif = mProgram.uniformLocation( "projection" );
-    mModelViewUnif = mProgram.uniformLocation( "modelView" );
+
+    //mProjectionUnif = mProgram.uniformLocation( "projection" );
+    //mModelViewUnif = mProgram.uniformLocation( "modelView" );
 }
 
 void GLRenderer::loadMap( const std::string& filepath )
 {
-    if ( mMapData )
+    if ( mMap )
     {
-        delete mMapData;
+        delete mMap;
     }
 
-    mMapData = new Quake3Map;
+    mMap = new Quake3Map;
 
-    mMapData->read( filepath );
+    mMap->read( filepath, 16 );
 
-    mVertexBuffer.bind();
-    mIndexBuffer.bind();
-
-    mMapData->loadVertexBuffer( mVerticesBuffer, mVertexBuffer );
-    mMapData->loadIndexBuffer( mIndicesBuffer, mIndexBuffer );
-
-    QVector3D random;
-    random.setX( mMapData->mVertexBuffer->position[ 0 ] );
-    random.setY( mMapData->mVertexBuffer->position[ 1 ] );
-    random.setZ( mMapData->mVertexBuffer->position[ 2 ] );
-
-    mCamera.mPosition = random;
-
-    mProgram.bind();
+    mVisibleFaces = ( byte* )malloc( mMap->mTotalFaces );
+    memset( mVisibleFaces, 0, mMap->mTotalFaces );
 
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );
-
-    mIndexBuffer.bind();
-
-    mVertexBuffer.bind();
-    mProgram.enableAttributeArray( 0 );
-    mProgram.setAttributeBuffer( 0, GL_FLOAT, 0, 3, sizeof( QVector3D ) );
 
     glBindVertexArray( 0 );
 
@@ -156,39 +132,24 @@ void GLRenderer::render( void )
 {
     glBindVertexArray( mVao );
 
-    auto visibleFacesEnd = mVisibleFaces.end();
-
-    mIndexBuffer.bind();
-
-    for ( auto f = mVisibleFaces.begin(); f != visibleFacesEnd; ++f )
-    {
-        const BspFace* const face = mMapData->mFaceBuffer + *f;
-
-        glDrawElements( GL_TRIANGLES, face->numVertices, GL_UNSIGNED_INT, &mIndicesBuffer[ face->vertexOffset ] );
-    }
-
-    mIndexBuffer.release();
-
     glBindVertexArray( 0 );
 }
 
 void GLRenderer::update( void )
 {
-    if ( mCamera.position() != mLastCameraPosition )
+    if ( mCamera.mPosition != mLastCameraPosition )
     {
-        BspLeaf* leaf = mMapData->findClosestLeaf( mCamera.position() );
+        BspLeaf* leaf = mMap->findClosestLeaf( mCamera.mPosition );
 
-        for ( int i = 0; i < mMapData->mVisdata->numClusters; ++i )
+        for ( int i = 0; i < mMap->mVisData->numVectors; ++i )
         {
-            if ( mMapData->isClusterVisible( leaf->clusterIndex, i ) )
+            if ( mMap->isClusterVisible( leaf->clusterIndex, i ) )
             {
-                int faceEnd = leaf->leafFaceOffset + leaf->numLeafFaces;
-
-                for ( int f = leaf->leafFaceOffset; f < faceEnd; ++f )
+                for ( int f = leaf->leafFaceOffset; f < leaf->leafFaceOffset + leaf->numLeafFaces; ++f )
                 {
-                    if ( mVisibleFaces.find( f ) == mVisibleFaces.end() )
+                    if ( mVisibleFaces[ f ] == 0 )
                     {
-                        mVisibleFaces.insert( f );
+                        mVisibleFaces[ f ] = 1;
                     }
                 }
             }
@@ -196,26 +157,12 @@ void GLRenderer::update( void )
 
         mCamera.updateView();
 
-        mProgram.setUniformValue( mModelViewUnif, mCamera.view() );
-        mProgram.setUniformValue( mProjectionUnif, mCamera.projection() );
 
-        mLastCameraPosition = mCamera.position();
+        // TODO: update view and projection matrices
+        //mProgram.setUniformValue( mModelViewUnif, mCamera.view() );
+        //mProgram.setUniformValue( mProjectionUnif, mCamera.projection() );
+
+        mLastCameraPosition = mCamera.mPosition;
     }
 }
 
-bool GLRenderer::linkProgram( const QString& vertexShaderPath, const QString& fragShaderPath )
-{
-    bool result = mProgram.addShaderFromSourceFile( QGLShader::Vertex, vertexShaderPath );
-    if ( !result )
-        qWarning() << mProgram.log();
-
-    result = mProgram.addShaderFromSourceFile( QGLShader::Fragment, fragShaderPath );
-    if ( !result )
-        qWarning() << mProgram.log();
-
-    result = mProgram.link();
-    if ( !result )
-        qWarning() << "Could not link shader program:" << mProgram.log();
-
-    return result;
-}

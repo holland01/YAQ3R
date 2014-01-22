@@ -1,23 +1,27 @@
 #pragma once
 
-#include <GL/glew.h>
-
-#include <QGLShaderProgram>
-#include <QGLBuffer>
-#include <QMatrix4x4>
-#include <QVector4D>
-#include <QVector3D>
-
-#include <QMouseEvent>
-
-#include <QResource>
+//#include <GL/glew.h>
+#include <GL/Regal.h>
+#include <GLFW/glfw3.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory.h>
+#include <math.h>
 
 #include <string>
 #include <set>
 #include <bitset>
+
+#define GLM_FORCE_RADIANS
+
+#include <glm/glm.hpp>
+#include <glm/common.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+
+#include "vec.h"
 
 #define NOP ;
 

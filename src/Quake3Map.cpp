@@ -1,235 +1,239 @@
 #include "Quake3Map.h"
-#include <QErrorMessage>
-#include <QFile>
+
 
 // Convert quake 3 coordinate system to a
 // right handed coordinate system;
 // v[ 0 ] => x
 // v[ 1 ] => y
 // v[ 2 ] => z
-static void q3cToRightHand( float v[ 3 ] )
+static void swizzleCoords( vec3f& v )
 {
-    float tmp = v[ 1 ];
+    float tmp = v.y;
 
-    v[ 1 ] = v[ 2 ];
-    v[ 2 ] = -tmp; // we have to invert the y-axis to accomodate the right-handed positive z facing backward.
+    v.y = v.z;
+    v.z = -tmp; // we have to invert the y-axis to accomodate the right-handed positive z facing backward.
 }
 
 // Straight outta copypasta
-static void q3cToRightHand( int v[ 3 ] )
+static void swizzleCoords( vec3i& v )
 {
-    int tmp = v[ 1 ];
+    int tmp = v.y;
 
-    v[ 1 ] = v[ 2 ];
-    v[ 2 ] = -tmp;
+    v.y = v.z;
+    v.z = -tmp;
 }
 
 Quake3Map::Quake3Map( void )
-     : mNodeBuffer( NULL ),
-       mLeafBuffer( NULL ),
-       mPlaneBuffer( NULL ),
-       mVertexBuffer( NULL ),
-       mModelBuffer( NULL ),
-       mFaceBuffer( NULL ),
-
-       mDataBuffer( NULL ),
-       mHeader( NULL )
+     : mNodes( NULL ),
+       mLeaves( NULL ),
+       mPlanes( NULL ),
+       mVertexes( NULL ),
+       mModels( NULL ),
+       mFaces( NULL ),
+       mMapAllocd( false )
 {
 }
 
 Quake3Map::~Quake3Map( void )
 {
-    delete[] mDataBuffer;
+    if ( mMapAllocd )
+    {
+        free( mNodes );
+        free( mLeaves );
+        free( mPlanes );
+
+        free( mFaces );
+        free( mModels );
+        free( mVertexes );
+        free( mLeafFaces );
+        free( mMeshVertexes );
+
+        free( mVisData );
+    }
 }
 
-void Quake3Map::read( const std::string& filepath )
+void Quake3Map::read( const std::string& filepath, int divisionScale )
 {
+    FILE* file = fopen( filepath.c_str(), "rb" );
+
+    if ( !file )
     {
-        FILE* mapFile = fopen( filepath.c_str(), "rb" );
-
-        if ( !mapFile )
-        {
-            qWarning() << "Failed to open " << filepath.c_str();
-            return;
-        }
-
-        fseek( mapFile, 0, SEEK_END );
-        long size = ftell( mapFile );
-        fseek( mapFile, 0, SEEK_SET );
-
-        mDataBuffer = new byte[ size ];
-
-        fread( mDataBuffer, sizeof( byte ), size, mapFile );
-        fclose( mapFile );
-    }
-
-    mHeader = ( BspHeader* ) mDataBuffer;
-
-    if ( mHeader->id[ 0 ] != 'I' || mHeader->id[ 1 ] != 'B' || mHeader->id[ 2 ] != 'S' || mHeader->id[ 3 ] != 'P' )
-    {
-        qWarning() << "Header ID does NOT match \'IBSP\'. ID read is: " << mHeader->id;
+        printf("Failed to open %s\n", filepath.c_str() );
         return;
     }
 
-    if ( mHeader->version != BSP_Q3_VERSION )
+    fread( &mHeader, sizeof( BspHeader ), 1, file );
+
+    if ( mHeader.id[ 0 ] != 'I' || mHeader.id[ 1 ] != 'B' || mHeader.id[ 2 ] != 'S' || mHeader.id[ 3 ] != 'P' )
     {
-        qWarning() << "Header version does NOT match " << BSP_Q3_VERSION << ". Version found is " << mHeader->version;
+        printf( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", mHeader.id );
         return;
     }
 
-    mNodeBuffer = ( BspNode* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_NODE ].offset );
-    mLeafBuffer = ( BspLeaf* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_LEAVES ].offset );
-    mPlaneBuffer = ( BspPlane* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_PLANE ].offset );
-    mVertexBuffer = ( BspVertex* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_VERTEXES ].offset );
-    mModelBuffer = ( BspModel* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MODELS ].offset );
-    mFaceBuffer = ( BspFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_FACES ].offset );
-    mLeafFaces  = ( BspLeafFace* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].offset );
-    mMeshVertices = ( BspMeshVertex* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_MESHVERTS ].offset );
-    mVisdata = ( BspVisdata* )( mDataBuffer + mHeader->lumpEntries[ BSP_LUMP_VISDATA ].offset );
-    mVisdata->bitsets = ( byte* )mVisdata + 8;
-
-    mTotalNodes = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspNode );
-    mTotalLeaves = mHeader->lumpEntries[ BSP_LUMP_NODE ].numBytes / sizeof( BspLeaf );
-    mTotalPlanes = mHeader->lumpEntries[ BSP_LUMP_PLANE ].numBytes / sizeof( BspPlane );
-    mTotalVertices = mHeader->lumpEntries[ BSP_LUMP_VERTEXES ].numBytes / sizeof( BspVertex );
-    mTotalModels = mHeader->lumpEntries[ BSP_LUMP_MODELS ].numBytes / sizeof( BspModel );
-    mTotalFaces = mHeader->lumpEntries[ BSP_LUMP_FACES ].numBytes / sizeof( BspFace );
-    mTotalLeafFaces = mHeader->lumpEntries[ BSP_LUMP_LEAF_FACES ].numBytes / sizeof( BspLeafFace );
-    mTotalMeshVerts = mHeader->lumpEntries[ BSP_LUMP_MESHVERTS ].numBytes / sizeof( BspMeshVertex );
-    mVisdataSize = mHeader->lumpEntries[ BSP_LUMP_VISDATA ].numBytes;
-
-
-    // Perform coordinate space conversions
-    //=============================================
-
-    const int NODES = 0;
-    const int LEAVES = 1;
-    const int FACES = 2;
-    const int PLANES = 3;
-    const int MODELS = 5;
-    const int VERTICES = 6;
-
-    size_t iterators[ 6 ];
-    memset( iterators, 0, sizeof( iterators ) );
-
-    do
+    if ( mHeader.version != BSP_Q3_VERSION )
     {
-        // Nodes
-        if ( iterators[ NODES ] < mTotalNodes )
-        {
-            q3cToRightHand( mNodeBuffer[ iterators[ NODES ] ].boxMax );
-            q3cToRightHand( mNodeBuffer[ iterators[ NODES ] ].boxMin );
-
-            iterators[ NODES ]++;
-        }
-
-        // Leaves
-        if ( iterators[ LEAVES ] < mTotalLeaves )
-        {
-            q3cToRightHand( mLeafBuffer[ iterators[ LEAVES ] ].boxMax );
-            q3cToRightHand( mLeafBuffer[ iterators[ LEAVES ] ].boxMin );
-
-            iterators[ LEAVES ]++;
-        }
-
-        // Faces
-        if ( iterators[ FACES ] < mTotalFaces )
-        {
-            q3cToRightHand( mFaceBuffer[ iterators[ FACES ] ].normal );
-
-            iterators[ FACES ]++;
-        }
-
-        // Planes
-        if ( iterators[ PLANES ] < mTotalPlanes )
-        {
-            q3cToRightHand( mPlaneBuffer[ iterators[ PLANES ] ].normal );
-
-            iterators[ PLANES ]++;
-        }
-
-        // Models
-        if ( iterators[ MODELS ] < mTotalModels )
-        {
-            q3cToRightHand( mModelBuffer[ iterators[ MODELS ] ].boxMax );
-            q3cToRightHand( mModelBuffer[ iterators[ MODELS ] ].boxMin );
-
-            iterators[ MODELS ]++;
-        }
-
-        // Vertices
-        if ( iterators[ VERTICES ] < mTotalVertices )
-        {
-            q3cToRightHand( mVertexBuffer[ iterators[ VERTICES ] ].normal );
-            q3cToRightHand( mVertexBuffer[ iterators[ VERTICES ] ].position );
-
-            iterators[ VERTICES ]++;
-        }
-    }
-    while(  iterators[ NODES ] < mTotalNodes
-        &&  iterators[ LEAVES ] < mTotalLeaves
-        &&  iterators[ FACES ] < mTotalFaces
-        &&  iterators[ PLANES ] < mTotalPlanes
-        &&  iterators[ MODELS ] < mTotalModels
-        &&  iterators[ VERTICES ] < mTotalVertices );
-}
-
-void Quake3Map::loadVertexBuffer( std::vector< QVector3D >& vertices, QGLBuffer& vertexBuffer )
-{
-    for ( size_t i = 0; i < mTotalVertices; ++i )
-    {
-        QVector3D pos;
-
-        pos.setX( ( mVertexBuffer + i )->position[ 0 ] );
-        pos.setY( ( mVertexBuffer + i )->position[ 1 ] );
-        pos.setZ( ( mVertexBuffer + i )->position[ 2 ] );
-
-        vertices.push_back( pos );
+        printf( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, mHeader.version );
+        return;
     }
 
-    vertexBuffer.allocate( ( void* ) &vertices[ 0 ], vertices.size() * sizeof( QVector3D ) );
-    vertexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
-}
+    mNodes = ( BspNode* )malloc( mHeader.sizeNodes );
+    mTotalNodes = mHeader.sizeNodes / sizeof( BspNode );
+    fseek( file, mHeader.offsetNodes, SEEK_SET );
+    fread( mNodes, mHeader.sizeNodes, 1, file );
 
-void Quake3Map::loadIndexBuffer( std::vector< int >& indices, QGLBuffer& indexBuffer )
-{
-    indices.clear();
-    indices.reserve( sizeof( int ) * mTotalFaces );
-
-    int total = ( int ) mTotalFaces;
-
-    for ( int i = 0; i < total; ++i )
+    for ( int i = 0; i < mTotalNodes; ++i )
     {
-        BspFace* face = mFaceBuffer + i;
+        mNodes[ i ].boxMax.x /= divisionScale;
+        mNodes[ i ].boxMax.y /= divisionScale;
+        mNodes[ i ].boxMax.z /= divisionScale;
 
-        for ( int j = 0; j < face->numVertices; ++j )
-        {
-            indices.push_back( face->vertexOffset + j );
-        }
+        mNodes[ i ].boxMin.x /= divisionScale;
+        mNodes[ i ].boxMin.y /= divisionScale;
+        mNodes[ i ].boxMin.z /= divisionScale;
+
+        swizzleCoords( mNodes[ i ].boxMax );
+        swizzleCoords( mNodes[ i ].boxMin );
     }
 
-    indices.shrink_to_fit();
+    mLeaves = ( BspLeaf* )malloc( mHeader.sizeLeaves );
+    mTotalLeaves = mHeader.sizeLeaves / sizeof( BspLeaf );
+    fseek( file, mHeader.offsetLeaves, SEEK_SET );
+    fread( mLeaves, mHeader.sizeLeaves, 1, file );
 
-    indexBuffer.allocate( &indices[ 0 ], indices.size() * sizeof( int ) );
-    indexBuffer.setUsagePattern( QGLBuffer::DynamicDraw );
+    for ( int i = 0; i < mTotalLeaves; ++i )
+    {
+        mLeaves[ i ].boxMax.x /= divisionScale;
+        mLeaves[ i ].boxMax.y /= divisionScale;
+        mLeaves[ i ].boxMax.z /= divisionScale;
+
+        mLeaves[ i ].boxMin.x /= divisionScale;
+        mLeaves[ i ].boxMin.y /= divisionScale;
+        mLeaves[ i ].boxMin.z /= divisionScale;
+
+        swizzleCoords( mLeaves[ i ].boxMax );
+        swizzleCoords( mLeaves[ i ].boxMin );
+    }
+
+    mPlanes = ( BspPlane* )malloc( mHeader.sizePlanes );
+    mTotalPlanes = mHeader.sizePlanes / sizeof( BspPlane );
+    fseek( file, mHeader.offsetPlanes, SEEK_SET );
+    fread( mPlanes, mHeader.sizePlanes, 1, file );
+
+    for ( int i = 0; i < mTotalPlanes; ++i )
+    {
+        mPlanes[ i ].normal.x /= ( float ) divisionScale;
+        mPlanes[ i ].normal.y /= ( float ) divisionScale;
+        mPlanes[ i ].normal.z /= ( float ) divisionScale;
+
+        mPlanes[ i ].distance /= ( float ) divisionScale;
+
+        swizzleCoords( mPlanes[ i ].normal );
+    }
+
+    mVertexes = ( BspVertex* )malloc( mHeader.sizeVertexes );
+    mTotalVertexes = mHeader.sizeVertexes / sizeof( BspVertex );
+    fseek( file, mHeader.offsetVertexes, SEEK_SET );
+    fread( mVertexes, mHeader.sizeVertexes, 1, file );
+
+    for ( int i = 0; i < mTotalVertexes; ++i )
+    {
+        mVertexes[ i ].position.x /= ( float ) divisionScale;
+        mVertexes[ i ].position.y /= ( float ) divisionScale;
+        mVertexes[ i ].position.z /= ( float ) divisionScale;
+
+        mVertexes[ i ].normal.x /= ( float ) divisionScale;
+        mVertexes[ i ].normal.y /= ( float ) divisionScale;
+        mVertexes[ i ].normal.z /= ( float ) divisionScale;
+
+        swizzleCoords( mVertexes[ i ].position );
+        swizzleCoords( mVertexes[ i ].normal );
+    }
+
+    mModels = ( BspModel* )malloc( mHeader.sizeModels );
+    mTotalModels = mHeader.sizeModels / sizeof( BspModel );
+    fseek( file, mHeader.offsetModels, SEEK_SET );
+    fread( mModels, mHeader.sizeModels, 1, file );
+
+    for ( int i = 0; i < mTotalModels; ++i )
+    {
+        mModels[ i ].boxMax.x /= ( float ) divisionScale;
+        mModels[ i ].boxMax.y /= ( float ) divisionScale;
+        mModels[ i ].boxMax.z /= ( float ) divisionScale;
+
+        mModels[ i ].boxMin.x /= ( float ) divisionScale;
+        mModels[ i ].boxMin.y /= ( float ) divisionScale;
+        mModels[ i ].boxMin.z /= ( float ) divisionScale;
+
+        swizzleCoords( mModels[ i ].boxMax );
+        swizzleCoords( mModels[ i ].boxMin );
+    }
+
+    mFaces = ( BspFace* )malloc( mHeader.sizeFaces );
+    mTotalFaces = mHeader.sizeFaces / sizeof( BspFace );
+    fseek( file, mHeader.offsetFaces, SEEK_SET );
+    fread( mFaces, mHeader.sizeFaces, 1, file );
+
+    for ( int i = 0; i < mTotalFaces; ++i )
+    {
+        mFaces[ i ].normal.x /= ( float ) divisionScale;
+        mFaces[ i ].normal.y /= ( float ) divisionScale;
+        mFaces[ i ].normal.z /= ( float ) divisionScale;
+
+        mFaces[ i ].lightmapOrigin.x /= ( float ) divisionScale;
+        mFaces[ i ].lightmapOrigin.y /= ( float ) divisionScale;
+        mFaces[ i ].lightmapOrigin.z /= ( float ) divisionScale;
+
+        mFaces[ i ].lightmapStVecs[ 0 ].x /= ( float ) divisionScale;
+        mFaces[ i ].lightmapStVecs[ 0 ].y /= ( float ) divisionScale;
+        mFaces[ i ].lightmapStVecs[ 0 ].z /= ( float ) divisionScale;
+
+        mFaces[ i ].lightmapStVecs[ 1 ].x /= ( float ) divisionScale;
+        mFaces[ i ].lightmapStVecs[ 1 ].y /= ( float ) divisionScale;
+        mFaces[ i ].lightmapStVecs[ 1 ].z /= ( float ) divisionScale;
+
+        swizzleCoords( mFaces[ i ].normal );
+        swizzleCoords( mFaces[ i ].lightmapOrigin );
+        swizzleCoords( mFaces[ i ].lightmapStVecs[ 0 ] );
+        swizzleCoords( mFaces[ i ].lightmapStVecs[ 1 ] );
+    }
+
+    mLeafFaces = ( BspLeafFace* )malloc( mHeader.sizeLeafFaces );
+    mTotalLeafFaces = mHeader.sizeLeafFaces / sizeof( BspLeafFace );
+    fseek( file, mHeader.offsetLeafFaces, SEEK_SET );
+    fread( mLeafFaces, mHeader.sizeLeafFaces, 1, file );
+
+    mMeshVertexes = ( BspMeshVertex* )malloc( mHeader.sizeMeshVertexes );
+    mTotalMeshVertexes = mHeader.sizeMeshVertexes / sizeof( BspMeshVertex );
+    fseek( file, mHeader.offsetMeshVertexes, SEEK_SET );
+    fread( mMeshVertexes, mHeader.sizeMeshVertexes, 1, file );
+
+    mVisData = ( BspVisData* )malloc( mHeader.sizeVisData );
+    mTotalVisVecs = mHeader.sizeVisData;
+    fseek( file, mHeader.offsetVisData, SEEK_SET );
+    fread( mVisData, 2, sizeof( int ), file );
+    int size = mVisData->numVectors * mVisData->sizeVector;
+    mVisData->bitsets = ( byte* )malloc( size );
+    fread( mVisData->bitsets, 1, size, file );
+
+    fclose( file );
 }
 
-BspLeaf* Quake3Map::findClosestLeaf( const QVector3D& camPos )
+BspLeaf* Quake3Map::findClosestLeaf( const glm::vec3& camPos )
 {
     int nodeIndex = 0;
 
     while ( nodeIndex >= 0 )
     {
-        const BspNode* const node = mNodeBuffer + nodeIndex;
-        const BspPlane* const plane = mPlaneBuffer + node->plane;
+        const BspNode* const node = mNodes + nodeIndex;
+        const BspPlane* const plane = mPlanes + node->plane;
 
         // If the distance from the camera to the plane is >= 0,
         // then our needed camera data is in a leaf somewhere in front of this node,
         // otherwise it's behind the node somewhere.
 
-        QVector3D planeNormal( plane->normal[ 0 ], plane->normal[ 1 ], plane->normal[ 2 ] );
+        glm::vec3 planeNormal( plane->normal.x, plane->normal.y, plane->normal.z );
 
-        float distance = QVector3D::dotProduct( planeNormal, camPos ) - plane->distance;
+        float distance = glm::dot( planeNormal, camPos ) - plane->distance;
 
         if ( distance >= 0 )
             nodeIndex = node->children[ 0 ];
@@ -239,19 +243,19 @@ BspLeaf* Quake3Map::findClosestLeaf( const QVector3D& camPos )
 
     nodeIndex = -( nodeIndex + 1 );
 
-    return &mLeafBuffer[ nodeIndex ];
+    return &mLeaves[ nodeIndex ];
 }
 
 bool Quake3Map::isClusterVisible( int visCluster, int testCluster )
 {
-    if ( !mVisdata->bitsets || ( visCluster < 0 ) )
+    if ( !mVisData->bitsets || ( visCluster < 0 ) )
     {
         return true;
     }
 
-    int i = ( visCluster * mVisdata->bytesPerCluster ) + ( testCluster >> 3 );
+    int i = ( visCluster * mVisData->sizeVector ) + ( testCluster >> 3 );
 
-    byte visSet = mVisdata->bitsets[ i ];
+    byte visSet = mVisData->bitsets[ i ];
 
     return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }

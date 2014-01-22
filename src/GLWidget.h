@@ -1,19 +1,16 @@
 #pragma once
 
 #include "common.h"
-#include <QGLWidget>
 #include "GLRenderer.h"
 
-class GLWidget : public QGLWidget
-{
-    Q_OBJECT
-
+class GLWidget
+{   
 public:
 
-    GLWidget( QWidget* parent = 0 );
+    GLWidget( void );
     ~GLWidget( void );
 
-protected:
+private:
 
     void initializeGL( void );
     void resizeGL( int width, int height );
@@ -21,9 +18,7 @@ protected:
     void updateGL( void );
 
 
-    void keyPressEvent( QKeyEvent* event );
-
-private:
+    void keyPressEvent(int key );
 
     GLRenderer          mRenderer;
 };
