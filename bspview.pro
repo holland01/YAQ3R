@@ -4,14 +4,15 @@ debug {
    QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter
 }
 
-LIBS += -L/usr/lib/regal -lRegal -lglfw -lX11 -lXxf86vm -lXrandr -lpthread -lXi
+LIBS += -lGL -lGLU -lGLEW -lglfw -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 
 HEADERS += \
-    src/GLWidget.h \
-    src/GLRenderer.h \
     src/common.h \
-    src/Quake3Map.h \
-    src/vec.h
+    src/vec.h \
+    src/shader.h \
+    src/log.h \
+    src/q3m.h \
+    src/renderer.h
 
 OTHER_FILES += \
     src/test.vert \
@@ -20,8 +21,9 @@ OTHER_FILES += \
     asset/quake/cp_towers_a4_5.bsp
 
 SOURCES += \
-    src/Main.cpp \
-    src/GLWidget.cpp \
-    src/GLRenderer.cpp \
-    src/Quake3Map.cpp
+    src/shader.cpp \
+    src/log.cpp \
+    src/q3m.cpp \
+    src/renderer.cpp \
+    src/main.cpp
 

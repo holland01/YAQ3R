@@ -1,4 +1,4 @@
-#include "Quake3Map.h"
+#include "q3m.h"
 
 
 // Convert quake 3 coordinate system to a

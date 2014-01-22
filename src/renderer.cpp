@@ -1,6 +1,6 @@
-#include "GLRenderer.h"
-#include "Quake3Map.h"
-
+#include "renderer.h"
+#include "q3m.h"
+#include "shader.h"
 
 /*
 =====================================================
@@ -80,7 +80,8 @@ GLRenderer::GLRenderer( void )
     : mVao( 0 ),
       mMap( NULL ),
       mLastCameraPosition( 0.0f, 0.0f, 0.0f ),
-      mVisibleFaces( NULL )
+      mVisibleFaces( NULL ),
+      mBspProgram( 0 )
 {
 }
 
@@ -97,13 +98,22 @@ GLRenderer::~GLRenderer( void )
     {
         delete mVisibleFaces;
     }
+
+    if ( mBspProgram != 0 )
+    {
+        glDeleteProgram( mBspProgram );
+    }
 }
 
 void GLRenderer::allocBase( void )
 {
+    GLuint shaders[] =
+    {
+        loadShader( "src/test.vert", GL_VERTEX_SHADER ),
+        loadShader( "src/test.frag", GL_FRAGMENT_SHADER )
+    };
 
-    //mProjectionUnif = mProgram.uniformLocation( "projection" );
-    //mModelViewUnif = mProgram.uniformLocation( "modelView" );
+    mBspProgram = makeProgram( shaders, 2 );
 }
 
 void GLRenderer::loadMap( const std::string& filepath )
@@ -123,15 +133,25 @@ void GLRenderer::loadMap( const std::string& filepath )
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );
 
+    GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
+
+    glEnableVertexAttribArray( positionAttrib );
+    glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( BspVertex ), ( void* ) offsetof( BspVertex, BspVertex::position ) );
+
     glBindVertexArray( 0 );
 
     mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
 }
 
-void GLRenderer::render( void )
+void GLRenderer::draw( void )
 {
     glBindVertexArray( mVao );
+    glUseProgram( mBspProgram );
 
+    glUniform4f( glGetUniformLocation( mBspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
+    glUniform4f( glGetUniformLocation( mBspProgram, "color1" ), 1.0f, 0.0f, 1.0f, 1.0f );
+
+    glUseProgram( 0 );
     glBindVertexArray( 0 );
 }
 
@@ -157,10 +177,8 @@ void GLRenderer::update( void )
 
         mCamera.updateView();
 
-
-        // TODO: update view and projection matrices
-        //mProgram.setUniformValue( mModelViewUnif, mCamera.view() );
-        //mProgram.setUniformValue( mProjectionUnif, mCamera.projection() );
+        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "view" ), 1, GL_FALSE, glm::value_ptr( mCamera.view() ) );
+        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( mCamera.projection() ) );
 
         mLastCameraPosition = mCamera.mPosition;
     }

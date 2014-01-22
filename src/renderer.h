@@ -63,7 +63,7 @@ public:
 
     void loadMap( const std::string& filepath );
 
-    void render( void );
+    void draw( void );
 
     void update( void );
 
@@ -71,13 +71,12 @@ private:
 
     GLuint              mVao;
 
-    //                  Matrix uniform locations
-    GLint               mProjectionUnif, mModelViewUnif;
-
     Quake3Map*          mMap;
 
     glm::vec3           mLastCameraPosition;
 
     byte*               mVisibleFaces;
+
+    GLuint              mBspProgram;
 
 };
