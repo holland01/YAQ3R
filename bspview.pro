@@ -12,13 +12,17 @@ HEADERS += \
     src/shader.h \
     src/log.h \
     src/q3m.h \
-    src/renderer.h
+    src/renderer.h \
+    src/global.h
 
 OTHER_FILES += \
     src/test.vert \
     src/test.frag \
     asset/quake/aty3dm1v2.bsp \
-    asset/quake/cp_towers_a4_5.bsp
+    asset/quake/cp_towers_a4_5.bsp \
+    log/drawLog.log \
+    log/camLog.log \
+    log/bspData.log
 
 SOURCES += \
     src/shader.cpp \

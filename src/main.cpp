@@ -1,22 +1,46 @@
 #include "common.h"
 #include "renderer.h"
+#include "log.h"
 
 GLFWwindow* _window = NULL;
 
 GLRenderer _renderer;
+
+const float STEP_SPEED = 2.0f;
 
 bool _running = false;
 
 void flagExit( void )
 {
     _running = false;
+    killLog();
 }
 
 void handleInput( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
-    if ( key == GLFW_KEY_ESCAPE )
+    switch ( key )
     {
-        flagExit();
+        case GLFW_KEY_ESCAPE:
+            flagExit();
+            break;
+        case GLFW_KEY_W:
+            _renderer.mCamera.walk( STEP_SPEED );
+            break;
+        case GLFW_KEY_S:
+            _renderer.mCamera.walk( -STEP_SPEED );
+            break;
+        case GLFW_KEY_A:
+            _renderer.mCamera.strafe( -STEP_SPEED );
+            break;
+        case GLFW_KEY_D:
+            _renderer.mCamera.strafe( STEP_SPEED );
+            break;
+        case GLFW_KEY_SPACE:
+            _renderer.mCamera.raise( STEP_SPEED );
+            break;
+        case GLFW_KEY_C:
+            _renderer.mCamera.raise( -STEP_SPEED );
+            break;
     }
 }
 
@@ -59,9 +83,14 @@ int main( int argc, char** argv )
     if ( !initGL() )
         return 1;
 
+    initLog();
+
     _running = true;
 
-    glClearColor( 1.0f, 0.0f, 0.0f, 1.0f );
+    _renderer.allocBase();
+    _renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );
+
+    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
     while( _running && !glfwWindowShouldClose( _window ) )
     {

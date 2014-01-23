@@ -1,5 +1,5 @@
 #include "q3m.h"
-
+#include "log.h"
 
 // Convert quake 3 coordinate system to a
 // right handed coordinate system;
@@ -66,14 +66,12 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
 
     if ( mHeader.id[ 0 ] != 'I' || mHeader.id[ 1 ] != 'B' || mHeader.id[ 2 ] != 'S' || mHeader.id[ 3 ] != 'P' )
     {
-        printf( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", mHeader.id );
-        return;
+        ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", mHeader.id );
     }
 
     if ( mHeader.version != BSP_Q3_VERSION )
     {
-        printf( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, mHeader.version );
-        return;
+        ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, mHeader.version );
     }
 
     mNodes = ( BspNode* )malloc( mHeader.sizeNodes );
@@ -137,6 +135,7 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < mTotalVertexes; ++i )
     {
+        /*
         mVertexes[ i ].position.x /= ( float ) divisionScale;
         mVertexes[ i ].position.y /= ( float ) divisionScale;
         mVertexes[ i ].position.z /= ( float ) divisionScale;
@@ -144,6 +143,7 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         mVertexes[ i ].normal.x /= ( float ) divisionScale;
         mVertexes[ i ].normal.y /= ( float ) divisionScale;
         mVertexes[ i ].normal.z /= ( float ) divisionScale;
+        */
 
         swizzleCoords( mVertexes[ i ].position );
         swizzleCoords( mVertexes[ i ].normal );
@@ -215,7 +215,12 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
     mVisData->bitsets = ( byte* )malloc( size );
     fread( mVisData->bitsets, 1, size, file );
 
+    mMapAllocd = true;
+
     fclose( file );
+
+    logBspData( BSP_LOG_VERTEXES, ( void* ) mVertexes, mTotalVertexes );
+    logBspData( BSP_LOG_MESH_VERTEXES, ( void* ) mMeshVertexes, mTotalMeshVertexes );
 }
 
 BspLeaf* Quake3Map::findClosestLeaf( const glm::vec3& camPos )

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "global.h"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -8,12 +10,11 @@
 #include <memory.h>
 #include <math.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <time.h>
 
 #include <string>
-#include <set>
-#include <bitset>
+#include <sstream>
+#include <vector>
 
 #define GLM_FORCE_RADIANS
 
@@ -30,4 +31,3 @@
 
 typedef unsigned char byte;
 
-void flagExit( void );

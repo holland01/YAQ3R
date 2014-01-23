@@ -7,5 +7,5 @@ out vec4 out_Color;
 
 void main(void)
 {
-    out_Color = mix( color0, color1, 0.5 );
+    out_Color = vec4( 1.0f, 1.0f, 1.0f, mix( color0.a, color1.a, 1.0 ) );
 }

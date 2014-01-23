@@ -69,7 +69,7 @@ public:
 
 private:
 
-    GLuint              mVao;
+    GLuint              mVao, mVbo;
 
     Quake3Map*          mMap;
 

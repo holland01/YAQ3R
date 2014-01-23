@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "q3m.h"
 #include "shader.h"
+#include "log.h"
 
 /*
 =====================================================
@@ -78,11 +79,13 @@ void GLCamera::reset( void )
 
 GLRenderer::GLRenderer( void )
     : mVao( 0 ),
+      mVbo( 0 ),
       mMap( NULL ),
       mLastCameraPosition( 0.0f, 0.0f, 0.0f ),
       mVisibleFaces( NULL ),
       mBspProgram( 0 )
 {
+    mCamera.mPosition = glm::vec3( -8.000000f, -2.000000f, -214.000000f );
 }
 
 GLRenderer::~GLRenderer( void )
@@ -125,7 +128,7 @@ void GLRenderer::loadMap( const std::string& filepath )
 
     mMap = new Quake3Map;
 
-    mMap->read( filepath, 16 );
+    mMap->read( filepath, 24 );
 
     mVisibleFaces = ( byte* )malloc( mMap->mTotalFaces );
     memset( mVisibleFaces, 0, mMap->mTotalFaces );
@@ -133,25 +136,63 @@ void GLRenderer::loadMap( const std::string& filepath )
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );
 
+    glGenBuffers( 1, &mVbo );
+    glBindBuffer( GL_ARRAY_BUFFER, mVbo );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, ( void* ) mMap->mVertexes, GL_DYNAMIC_DRAW );
+
     GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
 
     glEnableVertexAttribArray( positionAttrib );
     glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( BspVertex ), ( void* ) offsetof( BspVertex, BspVertex::position ) );
 
     glBindVertexArray( 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
     mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
 }
 
+static glm::mat4 _tempModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 20.0f, 20.0f, 20.0f ) );
+
 void GLRenderer::draw( void )
 {
     glBindVertexArray( mVao );
+    glBindBuffer( GL_ARRAY_BUFFER, mVbo );
     glUseProgram( mBspProgram );
 
     glUniform4f( glGetUniformLocation( mBspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
     glUniform4f( glGetUniformLocation( mBspProgram, "color1" ), 1.0f, 0.0f, 1.0f, 1.0f );
 
+    for ( int i = 0; i < mMap->mTotalFaces; ++i )
+    {
+        if ( mVisibleFaces[ i ] == 0 )
+            continue;
+
+        const BspFace* const face = &mMap->mFaces[ mVisibleFaces[ i ] ];
+
+        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( _tempModel ) );
+
+        std::vector< int > offsets;
+        offsets.reserve( face->numMeshVertexes );
+
+        for ( int i = face->meshVertexOffset; i < face->numVertexes + face->meshVertexOffset; ++i )
+        {
+            offsets.push_back( mMap->mMeshVertexes[ i ].offset );
+        }
+
+        //glDrawElements( GL_LINE_STRIP, face->numMeshVertexes, GL_UNSIGNED_INT, &offsets[ 0 ] );
+
+        glDrawArrays( GL_LINE_STRIP, face->vertexOffset, face->numVertexes );
+
+        /*myFPrintF( gDrawLog,
+                  "Draw Call Data",
+                  "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i\n, mMap->mMeshVertexes[ face->meshVertexOffset ]: %i",
+                  face->numMeshVertexes, face->meshVertexOffset, mMap->mMeshVertexes[ face->meshVertexOffset ] );
+            */
+
+    }
+
     glUseProgram( 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindVertexArray( 0 );
 }
 
@@ -170,6 +211,8 @@ void GLRenderer::update( void )
                     if ( mVisibleFaces[ f ] == 0 )
                     {
                         mVisibleFaces[ f ] = 1;
+
+                        myPrintf( "Visible Faces", "Face Found!" );
                     }
                 }
             }
@@ -181,6 +224,8 @@ void GLRenderer::update( void )
         glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( mCamera.projection() ) );
 
         mLastCameraPosition = mCamera.mPosition;
+
+        myPrintf( "Camera Position", "x => %f, y => %f z => %f", mCamera.mPosition.x, mCamera.mPosition.y, mCamera.mPosition.z );
     }
 }
 

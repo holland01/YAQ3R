@@ -2,8 +2,6 @@
 
 #include "common.h"
 
-#pragma once
-
 #define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
 
 #define ERROR( args... )                                \
@@ -12,6 +10,7 @@
         puts("======== ERROR ========");                    \
         myPrintf( ( __func__ ), args );                   \
         puts("=======================");                    \
+        flagExit();                                         \
     }                                                       \
     while( 0 )
 
@@ -34,6 +33,24 @@
     }                                       \
     while( 0 )
 
+enum BspDataType
+{
+    BSP_LOG_VERTEXES,
+    BSP_LOG_MESH_VERTEXES
+};
+
+void logBspData( BspDataType type, void* data, int length );
+
 void myPrintf( const char* header, const char* fmt, ... );
 
+void myFPrintF( FILE* f, const char* header, const char* fmt, ... );
+
 void myDateTime( const char* format, char* outBuffer, int length );
+
+void initLog( void );
+
+void killLog( void );
+
+
+
+

@@ -129,10 +129,10 @@ struct BspFace
     int type;
 
     int vertexOffset;
-    int numVertices;
+    int numVertexes;
 
     int meshVertexOffset;
-    int numMeshVertices;
+    int numMeshVertexes;
 
     int lightmapIndex;
     int lightmapStartCorner[ 2 ];
