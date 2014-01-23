@@ -4,6 +4,8 @@
 FILE* gDrawLog = NULL;
 FILE* gBspDataLog = NULL;
 
+int* meshVertexOffsets = NULL;
+
 void myPrintf( const char* header, const char* fmt, ... )
 {
     va_list arg;
@@ -36,6 +38,26 @@ void myDateTime( const char* format, char* outBuffer, int length )
     info = localtime( &timer );
 
     strftime( outBuffer, length, format, info );
+}
+
+void initLogBaseData( Quake3Map* map )
+{
+    meshVertexOffsets = ( int* )malloc( sizeof( int ) * map->mTotalMeshVertexes );
+    memset( meshVertexOffsets, 0, sizeof( int ) * map->mTotalFaces );
+}
+
+void logDrawCall( const BspFace* const face, const BspMeshVertex* meshVertexBuffer )
+{
+    // Check to see if we've already logged this
+    if ( meshVertexOffsets[ face->meshVertexOffset ] )
+        return;
+
+    meshVertexOffsets[ face->meshVertexOffset ] = 1;
+
+    myFPrintF( gDrawLog,
+              "Draw Call Data",
+              "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i\n, mMap->mMeshVertexes[ face->meshVertexOffset ].offset: %i",
+              face->numMeshVertexes, face->meshVertexOffset, meshVertexBuffer[ face->meshVertexOffset ].offset );
 }
 
 void logBspData( BspDataType type, void* data, int length )
@@ -127,5 +149,8 @@ void killLog( void )
 
     if ( gBspDataLog )
         fclose( gBspDataLog );
+
+    if ( meshVertexOffsets )
+        free( meshVertexOffsets );
 }
 

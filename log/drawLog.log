@@ -1,0 +1,10 @@
+
+[ Draw Call Data ]: {
+
+face: 0,
+ face->numMeshVertices: 6,
+ face->meshVertexOffset: 3
+, mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 38516560
+
+}
+

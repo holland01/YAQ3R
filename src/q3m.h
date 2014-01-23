@@ -41,23 +41,23 @@ struct BspHeader
 
     // sizes are represented in terms of bytes
 
-    int         offsetEntities, sizeEntities;
-    int         offsetTextures, sizeTextures;
-    int         offsetPlanes, sizePlanes;
-    int         offsetNodes, sizeNodes;
-    int         offsetLeaves, sizeLeaves;
-    int         offsetLeafFaces, sizeLeafFaces;
-    int         offsetLeafBrushes, sizeLeafBrushes;
-    int         offsetModels, sizeModels;
-    int         offsetBrushes, sizeBrushes;
-    int         offsetBrushSides, sizeBrushSides;
-    int         offsetVertexes, sizeVertexes;
-    int         offsetMeshVertexes, sizeMeshVertexes;
-    int         offsetEffeccts, sizeEffects;
-    int         offsetFaces, sizeFaces;
-    int         offsetLightMaps, sizeLightMaps;
-    int         offsetLightVols, sizeLightVols;
-    int         offsetVisData, sizeVisData;
+    int         offsetEntities, sizeEntities;               // 0
+    int         offsetTextures, sizeTextures;               // 1
+    int         offsetPlanes, sizePlanes;                   // 2
+    int         offsetNodes, sizeNodes;                     // 3
+    int         offsetLeaves, sizeLeaves;                   // 4
+    int         offsetLeafFaces, sizeLeafFaces;             // 5
+    int         offsetLeafBrushes, sizeLeafBrushes;         // 6
+    int         offsetModels, sizeModels;                   // 7
+    int         offsetBrushes, sizeBrushes;                 // 8
+    int         offsetBrushSides, sizeBrushSides;           // 9
+    int         offsetVertexes, sizeVertexes;               // 10
+    int         offsetMeshVertexes, sizeMeshVertexes;       // 11
+    int         offsetEffects, sizeEffects;                 // 12
+    int         offsetFaces, sizeFaces;                     // 13
+    int         offsetLightMaps, sizeLightMaps;             // 14
+    int         offsetLightVols, sizeLightVols;             // 15
+    int         offsetVisData, sizeVisData;                 // 16
 };
 
 

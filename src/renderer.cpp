@@ -129,6 +129,7 @@ void GLRenderer::loadMap( const std::string& filepath )
     mMap = new Quake3Map;
 
     mMap->read( filepath, 24 );
+    initLogBaseData( mMap );
 
     mVisibleFaces = ( byte* )malloc( mMap->mTotalFaces );
     memset( mVisibleFaces, 0, mMap->mTotalFaces );
@@ -138,7 +139,7 @@ void GLRenderer::loadMap( const std::string& filepath )
 
     glGenBuffers( 1, &mVbo );
     glBindBuffer( GL_ARRAY_BUFFER, mVbo );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, ( void* ) mMap->mVertexes, GL_DYNAMIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, ( void* ) mMap->mVertexes, GL_STATIC_DRAW );
 
     GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
 
@@ -164,31 +165,18 @@ void GLRenderer::draw( void )
 
     for ( int i = 0; i < mMap->mTotalFaces; ++i )
     {
-        if ( mVisibleFaces[ i ] == 0 )
+        if ( mVisibleFaces[ i ] == 0 || ( mMap->mFaces[ i ].type != 3 && mMap->mFaces[ i ].type != 1 ) )
             continue;
 
         const BspFace* const face = &mMap->mFaces[ mVisibleFaces[ i ] ];
 
         glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( _tempModel ) );
 
-        std::vector< int > offsets;
-        offsets.reserve( face->numMeshVertexes );
+        glDrawElements( GL_TRIANGLE_FAN, face->numMeshVertexes, GL_UNSIGNED_INT, &mMap->mMeshVertexes[ face->meshVertexOffset ].offset );
 
-        for ( int i = face->meshVertexOffset; i < face->numVertexes + face->meshVertexOffset; ++i )
-        {
-            offsets.push_back( mMap->mMeshVertexes[ i ].offset );
-        }
+        //glDrawArrays( GL_LINE_STRIP, face->vertexOffset, face->numVertexes );
 
-        //glDrawElements( GL_LINE_STRIP, face->numMeshVertexes, GL_UNSIGNED_INT, &offsets[ 0 ] );
-
-        glDrawArrays( GL_LINE_STRIP, face->vertexOffset, face->numVertexes );
-
-        /*myFPrintF( gDrawLog,
-                  "Draw Call Data",
-                  "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i\n, mMap->mMeshVertexes[ face->meshVertexOffset ]: %i",
-                  face->numMeshVertexes, face->meshVertexOffset, mMap->mMeshVertexes[ face->meshVertexOffset ] );
-            */
-
+        logDrawCall( face, mMap->mMeshVertexes );
     }
 
     glUseProgram( 0 );

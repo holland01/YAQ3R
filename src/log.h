@@ -39,15 +39,19 @@ enum BspDataType
     BSP_LOG_MESH_VERTEXES
 };
 
+class BspFace;
+class BspMeshVertex;
+class Quake3Map;
+
+void logDrawCall( const BspFace* const face, const BspMeshVertex* meshVertexBuffer );
 void logBspData( BspDataType type, void* data, int length );
 
 void myPrintf( const char* header, const char* fmt, ... );
-
 void myFPrintF( FILE* f, const char* header, const char* fmt, ... );
-
 void myDateTime( const char* format, char* outBuffer, int length );
 
 void initLog( void );
+void initLogBaseData( Quake3Map* map );
 
 void killLog( void );
 
