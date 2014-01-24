@@ -46,18 +46,31 @@ void initLogBaseData( Quake3Map* map )
     memset( meshVertexOffsets, 0, sizeof( int ) * map->mTotalFaces );
 }
 
-void logDrawCall( const BspFace* const face, const BspMeshVertex* meshVertexBuffer )
+void exitOnGLError( const char* caller )
+{
+    GLenum error = glGetError();
+
+    if ( GL_NO_ERROR != error )
+    {
+        const char* errorString = ( const char* ) gluErrorString( error );
+
+        myPrintf( caller, "GL ERROR: %s", errorString );
+        //flagExit();
+    }
+}
+
+void logDrawCall( int faceIndex, const BspFace* const face, const BspMeshVertex* meshVertexBuffer )
 {
     // Check to see if we've already logged this
-    if ( meshVertexOffsets[ face->meshVertexOffset ] )
+    if ( meshVertexOffsets[ face->meshVertexOffset ] == 1 )
         return;
 
     meshVertexOffsets[ face->meshVertexOffset ] = 1;
 
     myFPrintF( gDrawLog,
               "Draw Call Data",
-              "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i\n, mMap->mMeshVertexes[ face->meshVertexOffset ].offset: %i",
-              face->numMeshVertexes, face->meshVertexOffset, meshVertexBuffer[ face->meshVertexOffset ].offset );
+              "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i,\n mMap->mMeshVertexes[ face->meshVertexOffset ].offset: %i",
+              faceIndex, face->numMeshVertexes, face->meshVertexOffset, ( meshVertexBuffer + face->meshVertexOffset )->offset );
 }
 
 void logBspData( BspDataType type, void* data, int length )

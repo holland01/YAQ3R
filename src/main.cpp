@@ -49,6 +49,7 @@ bool initGL( void )
     if ( !glfwInit() )
         return false;
 
+    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
 
@@ -62,17 +63,16 @@ bool initGL( void )
 
     glfwMakeContextCurrent( _window );
 
-    glfwSetKeyCallback( _window, handleInput );
-
     glewExperimental = true;
     GLenum response = glewInit();
 
     if ( response != GLEW_OK )
     {
         printf( "Could not initialize GLEW! %s", glewGetErrorString( response ) );
-
         return false;
     }
+
+    glfwSetKeyCallback( _window, handleInput );
 
     return true;
 }
@@ -86,6 +86,8 @@ int main( int argc, char** argv )
     initLog();
 
     _running = true;
+
+    exitOnGLError( "main" );
 
     _renderer.allocBase();
     _renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );

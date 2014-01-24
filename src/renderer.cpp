@@ -144,10 +144,11 @@ void GLRenderer::loadMap( const std::string& filepath )
     GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
 
     glEnableVertexAttribArray( positionAttrib );
-    glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( BspVertex ), ( void* ) offsetof( BspVertex, BspVertex::position ) );
+    glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( BspVertex ), ( void* )offsetof( BspVertex, BspVertex::position ) );
 
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    exitOnGLError( "loadMap" );
 
     mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
 }
@@ -160,23 +161,23 @@ void GLRenderer::draw( void )
     glBindBuffer( GL_ARRAY_BUFFER, mVbo );
     glUseProgram( mBspProgram );
 
-    glUniform4f( glGetUniformLocation( mBspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
-    glUniform4f( glGetUniformLocation( mBspProgram, "color1" ), 1.0f, 0.0f, 1.0f, 1.0f );
+    //glUniform4f( glGetUniformLocation( mBspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
+    //glUniform4f( glGetUniformLocation( mBspProgram, "color1" ), 1.0f, 0.0f, 1.0f, 1.0f );
 
     for ( int i = 0; i < mMap->mTotalFaces; ++i )
     {
         if ( mVisibleFaces[ i ] == 0 || ( mMap->mFaces[ i ].type != 3 && mMap->mFaces[ i ].type != 1 ) )
             continue;
 
-        const BspFace* const face = &mMap->mFaces[ mVisibleFaces[ i ] ];
+        const BspFace* const face = &mMap->mFaces[ i ];
 
         glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( _tempModel ) );
 
-        glDrawElements( GL_TRIANGLE_FAN, face->numMeshVertexes, GL_UNSIGNED_INT, &mMap->mMeshVertexes[ face->meshVertexOffset ].offset );
+        logDrawCall( i, face, mMap->mMeshVertexes );
 
-        //glDrawArrays( GL_LINE_STRIP, face->vertexOffset, face->numVertexes );
-
-        logDrawCall( face, mMap->mMeshVertexes );
+        // TODO: generate an index buffer and set its data according to the visible face. Use GL_DYNAMIC_DRAW
+        //glDrawElements( GL_TRIANGLE_FAN, face->numMeshVertexes, GL_UNSIGNED_INT, &( mMap->mMeshVertexes + face->meshVertexOffset )->offset );
+        exitOnGLError( "draw" );
     }
 
     glUseProgram( 0 );

@@ -10,6 +10,7 @@
 #include <memory.h>
 #include <math.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <time.h>
 
 #include <string>

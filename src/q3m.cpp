@@ -74,10 +74,10 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, mHeader.version );
     }
 
-    mNodes = ( BspNode* )malloc( mHeader.sizeNodes );
-    mTotalNodes = mHeader.sizeNodes / sizeof( BspNode );
-    fseek( file, mHeader.offsetNodes, SEEK_SET );
-    fread( mNodes, mHeader.sizeNodes, 1, file );
+    mNodes = ( BspNode* )malloc( mHeader.directories[ BSP_LUMP_NODES ].length );
+    mTotalNodes = mHeader.directories[ BSP_LUMP_NODES ].length / sizeof( BspNode );
+    fseek( file, mHeader.directories[ BSP_LUMP_NODES ].offset, SEEK_SET );
+    fread( mNodes, mHeader.directories[ BSP_LUMP_NODES ].length, 1, file );
 
     for ( int i = 0; i < mTotalNodes; ++i )
     {
@@ -93,10 +93,10 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         swizzleCoords( mNodes[ i ].boxMin );
     }
 
-    mLeaves = ( BspLeaf* )malloc( mHeader.sizeLeaves );
-    mTotalLeaves = mHeader.sizeLeaves / sizeof( BspLeaf );
-    fseek( file, mHeader.offsetLeaves, SEEK_SET );
-    fread( mLeaves, mHeader.sizeLeaves, 1, file );
+    mLeaves = ( BspLeaf* )malloc( mHeader.directories[ BSP_LUMP_LEAVES ].length );
+    mTotalLeaves = mHeader.directories[ BSP_LUMP_LEAVES ].length / sizeof( BspLeaf );
+    fseek( file, mHeader.directories[ BSP_LUMP_LEAVES ].offset, SEEK_SET );
+    fread( mLeaves, mHeader.directories[ BSP_LUMP_LEAVES ].length, 1, file );
 
     for ( int i = 0; i < mTotalLeaves; ++i )
     {
@@ -112,10 +112,10 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         swizzleCoords( mLeaves[ i ].boxMin );
     }
 
-    mPlanes = ( BspPlane* )malloc( mHeader.sizePlanes );
-    mTotalPlanes = mHeader.sizePlanes / sizeof( BspPlane );
-    fseek( file, mHeader.offsetPlanes, SEEK_SET );
-    fread( mPlanes, mHeader.sizePlanes, 1, file );
+    mPlanes = ( BspPlane* )malloc( mHeader.directories[ BSP_LUMP_PLANES ].length );
+    mTotalPlanes = mHeader.directories[ BSP_LUMP_PLANES ].length / sizeof( BspPlane );
+    fseek( file, mHeader.directories[ BSP_LUMP_PLANES ].offset, SEEK_SET );
+    fread( mPlanes, mHeader.directories[ BSP_LUMP_PLANES ].length, 1, file );
 
     for ( int i = 0; i < mTotalPlanes; ++i )
     {
@@ -128,31 +128,42 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         swizzleCoords( mPlanes[ i ].normal );
     }
 
-    mVertexes = ( BspVertex* )malloc( mHeader.sizeVertexes );
-    mTotalVertexes = mHeader.sizeVertexes / sizeof( BspVertex );
-    fseek( file, mHeader.offsetVertexes, SEEK_SET );
-    fread( mVertexes, mHeader.sizeVertexes, 1, file );
+    mVertexes = ( BspVertex* )malloc( mHeader.directories[ BSP_LUMP_VERTEXES ].length );
+    mTotalVertexes = mHeader.directories[ BSP_LUMP_VERTEXES ].length / sizeof( BspVertex );
+    fseek( file, mHeader.directories[ BSP_LUMP_VERTEXES ].offset, SEEK_SET );
+    fread( mVertexes, mHeader.directories[ BSP_LUMP_VERTEXES ].length, 1, file );
 
     for ( int i = 0; i < mTotalVertexes; ++i )
     {
-        /*
-        mVertexes[ i ].position.x /= ( float ) divisionScale;
-        mVertexes[ i ].position.y /= ( float ) divisionScale;
-        mVertexes[ i ].position.z /= ( float ) divisionScale;
+        float& x = mVertexes[ i ].position.x;
+        float& y = mVertexes[ i ].position.y;
+        float& z = mVertexes[ i ].position.z;
+
+        x /= ( float ) divisionScale;
+        y /= ( float ) divisionScale;
+        z /= ( float ) divisionScale;
 
         mVertexes[ i ].normal.x /= ( float ) divisionScale;
         mVertexes[ i ].normal.y /= ( float ) divisionScale;
         mVertexes[ i ].normal.z /= ( float ) divisionScale;
-        */
 
         swizzleCoords( mVertexes[ i ].position );
         swizzleCoords( mVertexes[ i ].normal );
+
+        float length = glm::sqrt( x * x + y * y + z * z );
+
+        if ( length > 1.0f )
+        {
+            x /= length;
+            y /= length;
+            z /= length;
+        }
     }
 
-    mModels = ( BspModel* )malloc( mHeader.sizeModels );
-    mTotalModels = mHeader.sizeModels / sizeof( BspModel );
-    fseek( file, mHeader.offsetModels, SEEK_SET );
-    fread( mModels, mHeader.sizeModels, 1, file );
+    mModels = ( BspModel* )malloc( mHeader.directories[ BSP_LUMP_MODELS ].length );
+    mTotalModels = mHeader.directories[ BSP_LUMP_MODELS ].length / sizeof( BspModel );
+    fseek( file, mHeader.directories[ BSP_LUMP_MODELS ].offset, SEEK_SET );
+    fread( mModels, mHeader.directories[ BSP_LUMP_MODELS ].length, 1, file );
 
     for ( int i = 0; i < mTotalModels; ++i )
     {
@@ -168,10 +179,10 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         swizzleCoords( mModels[ i ].boxMin );
     }
 
-    mFaces = ( BspFace* )malloc( mHeader.sizeFaces );
-    mTotalFaces = mHeader.sizeFaces / sizeof( BspFace );
-    fseek( file, mHeader.offsetFaces, SEEK_SET );
-    fread( mFaces, mHeader.sizeFaces, 1, file );
+    mFaces = ( BspFace* )malloc( mHeader.directories[ BSP_LUMP_FACES ].length );
+    mTotalFaces = mHeader.directories[ BSP_LUMP_FACES ].length / sizeof( BspFace );
+    fseek( file, mHeader.directories[ BSP_LUMP_FACES ].offset, SEEK_SET );
+    fread( mFaces, mHeader.directories[ BSP_LUMP_FACES ].length, 1, file );
 
     for ( int i = 0; i < mTotalFaces; ++i )
     {
@@ -197,19 +208,19 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         swizzleCoords( mFaces[ i ].lightmapStVecs[ 1 ] );
     }
 
-    mLeafFaces = ( BspLeafFace* )malloc( mHeader.sizeLeafFaces );
-    mTotalLeafFaces = mHeader.sizeLeafFaces / sizeof( BspLeafFace );
-    fseek( file, mHeader.offsetLeafFaces, SEEK_SET );
-    fread( mLeafFaces, mHeader.sizeLeafFaces, 1, file );
+    mLeafFaces = ( BspLeafFace* )malloc( mHeader.directories[ BSP_LUMP_LEAF_FACES ].length );
+    mTotalLeafFaces = mHeader.directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( BspLeafFace );
+    fseek( file, mHeader.directories[ BSP_LUMP_LEAF_FACES ].offset, SEEK_SET );
+    fread( mLeafFaces, mHeader.directories[ BSP_LUMP_LEAF_FACES ].length, 1, file );
 
-    mMeshVertexes = ( BspMeshVertex* )malloc( mHeader.sizeMeshVertexes );
-    mTotalMeshVertexes = mHeader.sizeMeshVertexes / sizeof( BspMeshVertex );
-    fseek( file, mHeader.offsetMeshVertexes, SEEK_SET );
-    fread( mMeshVertexes, mHeader.sizeMeshVertexes, 1, file );
+    mMeshVertexes = ( BspMeshVertex* )malloc( mHeader.directories[ BSP_LUMP_MESH_VERTEXES ].length );
+    mTotalMeshVertexes = mHeader.directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( BspMeshVertex );
+    fseek( file, mHeader.directories[ BSP_LUMP_MESH_VERTEXES ].offset, SEEK_SET );
+    fread( mMeshVertexes, mHeader.directories[ BSP_LUMP_MESH_VERTEXES ].length, 1, file );
 
-    mVisData = ( BspVisData* )malloc( mHeader.sizeVisData );
-    mTotalVisVecs = mHeader.sizeVisData;
-    fseek( file, mHeader.offsetVisData, SEEK_SET );
+    mVisData = ( BspVisData* )malloc( mHeader.directories[ BSP_LUMP_VISDATA ].length );
+    mTotalVisVecs = mHeader.directories[ BSP_LUMP_VISDATA ].length;
+    fseek( file, mHeader.directories[ BSP_LUMP_VISDATA ].offset, SEEK_SET );
     fread( mVisData, 2, sizeof( int ), file );
     int size = mVisData->numVectors * mVisData->sizeVector;
     mVisData->bitsets = ( byte* )malloc( size );

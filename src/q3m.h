@@ -8,10 +8,10 @@ enum
     BSP_NUM_ENTRIES = 17,
     BSP_Q3_VERSION = 0x2E,
 
-    BSP_LUMP_ENTITY = 0x00,
-    BSP_LUMP_TEXTURE = 0x01,
-    BSP_LUMP_PLANE = 0x02,
-    BSP_LUMP_NODE = 0x03,
+    BSP_LUMP_ENTITIES = 0x00,
+    BSP_LUMP_TEXTURES = 0x01,
+    BSP_LUMP_PLANES = 0x02,
+    BSP_LUMP_NODES = 0x03,
     BSP_LUMP_LEAVES = 0x04,
     BSP_LUMP_LEAF_FACES = 0x05,
     BSP_LUMP_LEAF_BRUSHES = 0x06,
@@ -19,7 +19,7 @@ enum
     BSP_LUMP_BRUSHES = 0x08,
     BSP_LUMP_BRUSH_SIDES = 0x09,
     BSP_LUMP_VERTEXES = 0x0A,
-    BSP_LUMP_MESHVERTS = 0x0B,
+    BSP_LUMP_MESH_VERTEXES = 0x0B,
     BSP_LUMP_EFFECTS = 0x0C,
     BSP_LUMP_FACES = 0x0D,
     BSP_LUMP_LIGHTMAPS = 0x0E,
@@ -33,31 +33,19 @@ enum
 
 };
 
+struct BspLump
+{
+    int offset;
+    int length;
+};
+
 struct BspHeader
 {
     char        id[ 4 ];
 
     int         version;
 
-    // sizes are represented in terms of bytes
-
-    int         offsetEntities, sizeEntities;               // 0
-    int         offsetTextures, sizeTextures;               // 1
-    int         offsetPlanes, sizePlanes;                   // 2
-    int         offsetNodes, sizeNodes;                     // 3
-    int         offsetLeaves, sizeLeaves;                   // 4
-    int         offsetLeafFaces, sizeLeafFaces;             // 5
-    int         offsetLeafBrushes, sizeLeafBrushes;         // 6
-    int         offsetModels, sizeModels;                   // 7
-    int         offsetBrushes, sizeBrushes;                 // 8
-    int         offsetBrushSides, sizeBrushSides;           // 9
-    int         offsetVertexes, sizeVertexes;               // 10
-    int         offsetMeshVertexes, sizeMeshVertexes;       // 11
-    int         offsetEffects, sizeEffects;                 // 12
-    int         offsetFaces, sizeFaces;                     // 13
-    int         offsetLightMaps, sizeLightMaps;             // 14
-    int         offsetLightVols, sizeLightVols;             // 15
-    int         offsetVisData, sizeVisData;                 // 16
+    BspLump     directories[ 17 ];
 };
 
 
