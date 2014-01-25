@@ -1,4 +1,4 @@
-#version 330
+#version 420
 
 //uniform vec4 color0;
 //uniform vec4 color1;

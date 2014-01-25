@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+
+
 void flagExit( void );
 
 extern FILE* gDrawLog;

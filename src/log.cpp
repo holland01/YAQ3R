@@ -1,5 +1,6 @@
 #include "log.h"
 #include "q3m.h"
+#include "gldebug.h"
 
 FILE* gDrawLog = NULL;
 FILE* gBspDataLog = NULL;
@@ -40,12 +41,6 @@ void myDateTime( const char* format, char* outBuffer, int length )
     strftime( outBuffer, length, format, info );
 }
 
-void initLogBaseData( Quake3Map* map )
-{
-    meshVertexOffsets = ( int* )malloc( sizeof( int ) * map->mTotalMeshVertexes );
-    memset( meshVertexOffsets, 0, sizeof( int ) * map->mTotalFaces );
-}
-
 void exitOnGLError( const char* caller )
 {
     GLenum error = glGetError();
@@ -55,8 +50,14 @@ void exitOnGLError( const char* caller )
         const char* errorString = ( const char* ) gluErrorString( error );
 
         myPrintf( caller, "GL ERROR: %s", errorString );
-        //flagExit();
+        flagExit();
     }
+}
+
+void initLogBaseData( Quake3Map* map )
+{
+    meshVertexOffsets = ( int* )malloc( sizeof( int ) * map->mTotalMeshVertexes );
+    memset( meshVertexOffsets, 0, sizeof( int ) * map->mTotalFaces );
 }
 
 void logDrawCall( int faceIndex, const BspFace* const face, const BspMeshVertex* meshVertexBuffer )
@@ -153,6 +154,8 @@ void initLog( void )
 
     if ( !gBspDataLog )
         ERROR( "could not open gBspDataLog" );
+
+    glDebugInit();
 }
 
 void killLog( void )
@@ -165,5 +168,7 @@ void killLog( void )
 
     if ( meshVertexOffsets )
         free( meshVertexOffsets );
+
+    glDebugKill();
 }
 

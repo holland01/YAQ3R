@@ -1,5 +1,6 @@
 #pragma once
 
+#include "def.h"
 #include "global.h"
 
 #include <GL/glew.h>
@@ -30,5 +31,4 @@
 
 #define NOP ;
 
-typedef unsigned char byte;
 

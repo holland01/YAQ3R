@@ -79,7 +79,6 @@ void GLCamera::reset( void )
 
 GLRenderer::GLRenderer( void )
     : mVao( 0 ),
-      mVbo( 0 ),
       mMap( NULL ),
       mLastCameraPosition( 0.0f, 0.0f, 0.0f ),
       mVisibleFaces( NULL ),
@@ -128,7 +127,7 @@ void GLRenderer::loadMap( const std::string& filepath )
 
     mMap = new Quake3Map;
 
-    mMap->read( filepath, 24 );
+    mMap->read( filepath, 8 );
     initLogBaseData( mMap );
 
     mVisibleFaces = ( byte* )malloc( mMap->mTotalFaces );
@@ -137,9 +136,12 @@ void GLRenderer::loadMap( const std::string& filepath )
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );
 
-    glGenBuffers( 1, &mVbo );
-    glBindBuffer( GL_ARRAY_BUFFER, mVbo );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, ( void* ) mMap->mVertexes, GL_STATIC_DRAW );
+    glGenBuffers( 2, mBuffers );
+    glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, mMap->mVertexes, GL_STATIC_DRAW );
+
+    //glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mBuffers[ 1 ] );
+    glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( int ) * mMap->mTotalMeshVertexes, ( void* ) NULL, GL_DYNAMIC_DRAW );
 
     GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
 
@@ -148,18 +150,21 @@ void GLRenderer::loadMap( const std::string& filepath )
 
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    exitOnGLError( "loadMap" );
+    //glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
     mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
 }
 
-static glm::mat4 _tempModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 20.0f, 20.0f, 20.0f ) );
+static glm::mat4 _tempModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
 void GLRenderer::draw( void )
 {
     glBindVertexArray( mVao );
-    glBindBuffer( GL_ARRAY_BUFFER, mVbo );
+    glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mBuffers[ 1 ] );
     glUseProgram( mBspProgram );
+
+    //void* indexBuffer = glMapBuffer( GL_ELEMENT_ARRAY_BUFFER, GL_READ_WRITE );
 
     //glUniform4f( glGetUniformLocation( mBspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
     //glUniform4f( glGetUniformLocation( mBspProgram, "color1" ), 1.0f, 0.0f, 1.0f, 1.0f );
@@ -173,15 +178,30 @@ void GLRenderer::draw( void )
 
         glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( _tempModel ) );
 
-        logDrawCall( i, face, mMap->mMeshVertexes );
+        int buffer[ face->numMeshVertexes ];
+
+        int j = face->meshVertexOffset;
+        for ( int i = 0; j < face->numMeshVertexes + face->meshVertexOffset; j++, i++ )
+        {
+            int v = mMap->mMeshVertexes[ j ].offset;
+
+            buffer[ i ] = v;
+        }
+
+        //logDrawCall( i, face, mMap->mMeshVertexes );
+
+        glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, sizeof( int ) * face->numMeshVertexes, ( void* ) buffer );
 
         // TODO: generate an index buffer and set its data according to the visible face. Use GL_DYNAMIC_DRAW
-        //glDrawElements( GL_TRIANGLE_FAN, face->numMeshVertexes, GL_UNSIGNED_INT, &( mMap->mMeshVertexes + face->meshVertexOffset )->offset );
-        exitOnGLError( "draw" );
+        glDrawElements( GL_TRIANGLE_FAN, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* )0 );
     }
+
+    //glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER );
+    //indexBuffer = NULL;
 
     glUseProgram( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
     glBindVertexArray( 0 );
 }
 

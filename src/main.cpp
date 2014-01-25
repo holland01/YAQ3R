@@ -50,8 +50,8 @@ bool initGL( void )
         return false;
 
     glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 
     _window = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
 
@@ -86,8 +86,6 @@ int main( int argc, char** argv )
     initLog();
 
     _running = true;
-
-    exitOnGLError( "main" );
 
     _renderer.allocBase();
     _renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );

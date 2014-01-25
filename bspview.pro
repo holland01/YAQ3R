@@ -13,7 +13,9 @@ HEADERS += \
     src/log.h \
     src/q3m.h \
     src/renderer.h \
-    src/global.h
+    src/global.h \
+    def.h \
+    src/gldebug.h
 
 OTHER_FILES += \
     src/test.vert \
@@ -22,12 +24,14 @@ OTHER_FILES += \
     asset/quake/cp_towers_a4_5.bsp \
     log/drawLog.log \
     log/camLog.log \
-    log/bspData.log
+    log/bspData.log \
+    log/gl.log
 
 SOURCES += \
     src/shader.cpp \
     src/log.cpp \
     src/q3m.cpp \
     src/renderer.cpp \
-    src/main.cpp
+    src/main.cpp \
+    src/gldebug.cpp
 

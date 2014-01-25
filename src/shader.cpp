@@ -30,8 +30,6 @@ GLuint makeProgram( GLuint shaders[], int len )
         glDeleteShader( shaders[ i ] );
     }
 
-    exitOnGLError( "makeProgram" );
-
     return program;
 }
 
@@ -65,8 +63,6 @@ GLuint loadShader( const char* filename, GLenum shader_type )
 
                     glShaderSource(shader_id, 1, &sourceconst, length);
                     glCompileShader(shader_id);
-
-                    exitOnGLError( "loadShader" );
 
                     GLint compile_success;
                     glGetShaderiv( shader_id, GL_COMPILE_STATUS, &compile_success );
