@@ -14,6 +14,10 @@ class GLCamera
 public:
     GLCamera( void );
 
+    void evalKeyPress( int key );
+
+    void evalMouseCoords( float x, float y );
+
     void walk( float step );
     void strafe( float step );
     void raise ( float step );
@@ -35,7 +39,9 @@ public:
 
 private:
 
-    glm::mat4  mView, mProjection;
+    glm::mat4   mView, mProjection;
+
+    glm::vec2   mLastMouse;
 };
 
 
@@ -49,15 +55,15 @@ private:
 
 class Quake3Map;
 
-class GLRenderer
+class BSPRenderer
 {
 public:
 
     GLCamera   mCamera;
 
-    GLRenderer( void );
+    BSPRenderer( void );
 
-    ~GLRenderer( void );
+    ~BSPRenderer( void );
 
     void allocBase( void );
 

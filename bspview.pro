@@ -4,7 +4,9 @@ debug {
    QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter
 }
 
-LIBS += -lGL -lGLU -lGLEW -lglfw -lX11 -lXxf86vm -lXrandr -lpthread -lXi
+unix {
+    LIBS += -lGL -lGLU -lGLEW -lglfw3 -lX11 -lXxf86vm -lXrandr -lpthread -lXi
+}
 
 HEADERS += \
     src/common.h \
@@ -15,7 +17,8 @@ HEADERS += \
     src/renderer.h \
     src/global.h \
     def.h \
-    src/gldebug.h
+    src/gldebug.h \
+    src/tests/texture.h
 
 OTHER_FILES += \
     src/test.vert \
@@ -25,7 +28,9 @@ OTHER_FILES += \
     log/drawLog.log \
     log/camLog.log \
     log/bspData.log \
-    log/gl.log
+    log/gl.log \
+    src/tex2D.vert \
+    src/tex2D.frag
 
 SOURCES += \
     src/shader.cpp \
@@ -33,5 +38,6 @@ SOURCES += \
     src/q3m.cpp \
     src/renderer.cpp \
     src/main.cpp \
-    src/gldebug.cpp
+    src/gldebug.cpp \
+    src/tests/texture.cpp
 

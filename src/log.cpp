@@ -2,8 +2,8 @@
 #include "q3m.h"
 #include "gldebug.h"
 
-FILE* gDrawLog = NULL;
-FILE* gBspDataLog = NULL;
+FILE* drawLog = NULL;
+FILE* bspDataLog = NULL;
 
 int* meshVertexOffsets = NULL;
 
@@ -68,7 +68,7 @@ void logDrawCall( int faceIndex, const BspFace* const face, const BspMeshVertex*
 
     meshVertexOffsets[ face->meshVertexOffset ] = 1;
 
-    myFPrintF( gDrawLog,
+    myFPrintF( drawLog,
               "Draw Call Data",
               "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i,\n mMap->mMeshVertexes[ face->meshVertexOffset ].offset: %i",
               faceIndex, face->numMeshVertexes, face->meshVertexOffset, ( meshVertexBuffer + face->meshVertexOffset )->offset );
@@ -76,7 +76,7 @@ void logDrawCall( int faceIndex, const BspFace* const face, const BspMeshVertex*
 
 void logBspData( BspDataType type, void* data, int length )
 {
-    if ( !gBspDataLog )
+    if ( !bspDataLog )
         return;
 
     std::stringstream ss;
@@ -141,18 +141,18 @@ void logBspData( BspDataType type, void* data, int length )
 
     }
 
-    myFPrintF( gBspDataLog, header.c_str(), ss.str().c_str() );
+    myFPrintF( bspDataLog, header.c_str(), ss.str().c_str() );
 }
 
 void initLog( void )
 {
-    gDrawLog = fopen( "log/drawLog.log", "w" );
-    gBspDataLog = fopen( "log/bspData.log", "w" );
+    drawLog = fopen( "log/drawLog.log", "w" );
+    bspDataLog = fopen( "log/bspData.log", "w" );
 
-    if ( !gDrawLog )
+    if ( !drawLog )
         ERROR( "could not open gDrawLog" );
 
-    if ( !gBspDataLog )
+    if ( !bspDataLog )
         ERROR( "could not open gBspDataLog" );
 
     glDebugInit();
@@ -160,11 +160,11 @@ void initLog( void )
 
 void killLog( void )
 {
-    if ( gDrawLog )
-        fclose( gDrawLog );
+    if ( drawLog )
+        fclose( drawLog );
 
-    if ( gBspDataLog )
-        fclose( gBspDataLog );
+    if ( bspDataLog )
+        fclose( bspDataLog );
 
     if ( meshVertexOffsets )
         free( meshVertexOffsets );

@@ -16,7 +16,8 @@ GLCamera::GLCamera( void )
     : mPosition( 0.0f, 0.0f, 0.0f ),
       mRotation( 0.0f, 0.0f, 0.0f ),
       mView( 1.0f ),
-      mProjection( 1.0f )
+      mProjection( 1.0f ),
+      mLastMouse( 0.0f, 0.0f )
 {
 }
 
@@ -28,6 +29,47 @@ glm::mat4 GLCamera::orientation( void )
     orient = glm::rotate( orient, mRotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
 
     return orient;
+}
+
+const float CAM_STEP_SPEED = 2.0f;
+
+void GLCamera::evalKeyPress( int key )
+{
+    if ( key == GLFW_KEY_W )
+    {
+        walk( CAM_STEP_SPEED );
+    }
+    else if ( key == GLFW_KEY_S )
+    {
+        walk( -CAM_STEP_SPEED );
+    }
+    else if ( key == GLFW_KEY_A )
+    {
+        strafe( -CAM_STEP_SPEED );
+    }
+    else if ( key == GLFW_KEY_D )
+    {
+        strafe( CAM_STEP_SPEED );
+    }
+    else if ( key == GLFW_KEY_SPACE )
+    {
+        raise( CAM_STEP_SPEED );
+    }
+    else if ( key == GLFW_KEY_C )
+    {
+        raise( -CAM_STEP_SPEED );
+    }
+}
+
+const float MOUSE_CAM_ROT_FACTOR = 0.01f;
+
+void GLCamera::evalMouseCoords( float x, float y )
+{
+    mRotation.x += -( mLastMouse.y - y ) * MOUSE_CAM_ROT_FACTOR;
+    mRotation.y += ( mLastMouse.x - x ) * MOUSE_CAM_ROT_FACTOR;
+
+    mLastMouse.x = x;
+    mLastMouse.y = y;
 }
 
 void GLCamera::walk( float step )
@@ -77,7 +119,7 @@ void GLCamera::reset( void )
 =====================================================
 */
 
-GLRenderer::GLRenderer( void )
+BSPRenderer::BSPRenderer( void )
     : mVao( 0 ),
       mMap( NULL ),
       mLastCameraPosition( 0.0f, 0.0f, 0.0f ),
@@ -87,7 +129,7 @@ GLRenderer::GLRenderer( void )
     mCamera.mPosition = glm::vec3( -8.000000f, -2.000000f, -214.000000f );
 }
 
-GLRenderer::~GLRenderer( void )
+BSPRenderer::~BSPRenderer( void )
 {
     if ( mMap )
     {
@@ -107,7 +149,7 @@ GLRenderer::~GLRenderer( void )
     }
 }
 
-void GLRenderer::allocBase( void )
+void BSPRenderer::allocBase( void )
 {
     GLuint shaders[] =
     {
@@ -118,7 +160,7 @@ void GLRenderer::allocBase( void )
     mBspProgram = makeProgram( shaders, 2 );
 }
 
-void GLRenderer::loadMap( const std::string& filepath )
+void BSPRenderer::loadMap( const std::string& filepath )
 {
     if ( mMap )
     {
@@ -157,7 +199,7 @@ void GLRenderer::loadMap( const std::string& filepath )
 
 static glm::mat4 _tempModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
-void GLRenderer::draw( void )
+void BSPRenderer::draw( void )
 {
     glBindVertexArray( mVao );
     glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
@@ -205,7 +247,7 @@ void GLRenderer::draw( void )
     glBindVertexArray( 0 );
 }
 
-void GLRenderer::update( void )
+void BSPRenderer::update( void )
 {
     if ( mCamera.mPosition != mLastCameraPosition )
     {

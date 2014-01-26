@@ -1,46 +1,33 @@
 #include "common.h"
 #include "renderer.h"
 #include "log.h"
+#include "tests/texture.h"
 
-GLFWwindow* _window = NULL;
+GLFWwindow* window = NULL;
 
-GLRenderer _renderer;
+BSPRenderer renderer;
 
-const float STEP_SPEED = 2.0f;
-
-bool _running = false;
+bool running = false;
 
 void flagExit( void )
 {
-    _running = false;
+    running = false;
     killLog();
 }
 
 void handleInput( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
-    switch ( key )
+    if ( action == GLFW_PRESS )
     {
-        case GLFW_KEY_ESCAPE:
-            flagExit();
-            break;
-        case GLFW_KEY_W:
-            _renderer.mCamera.walk( STEP_SPEED );
-            break;
-        case GLFW_KEY_S:
-            _renderer.mCamera.walk( -STEP_SPEED );
-            break;
-        case GLFW_KEY_A:
-            _renderer.mCamera.strafe( -STEP_SPEED );
-            break;
-        case GLFW_KEY_D:
-            _renderer.mCamera.strafe( STEP_SPEED );
-            break;
-        case GLFW_KEY_SPACE:
-            _renderer.mCamera.raise( STEP_SPEED );
-            break;
-        case GLFW_KEY_C:
-            _renderer.mCamera.raise( -STEP_SPEED );
-            break;
+        switch ( key )
+        {
+            case GLFW_KEY_ESCAPE:
+                flagExit();
+                break;
+            default:
+                renderer.mCamera.evalKeyPress( key );
+                break;
+        }
     }
 }
 
@@ -53,15 +40,15 @@ bool initGL( void )
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 
-    _window = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
+    window = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
 
-    if ( !_window )
+    if ( !window )
     {
         glfwTerminate();
         return false;
     }
 
-    glfwMakeContextCurrent( _window );
+    glfwMakeContextCurrent( window );
 
     glewExperimental = true;
     GLenum response = glewInit();
@@ -72,7 +59,11 @@ bool initGL( void )
         return false;
     }
 
-    glfwSetKeyCallback( _window, handleInput );
+    glfwSetKeyCallback( window, handleInputTestTexture );
+    glfwSetCursorPosCallback( window, handleMousePosTestTexture );
+
+    glEnable( GL_DEPTH_TEST );
+    glDepthFunc( GL_LEQUAL );
 
     return true;
 }
@@ -85,27 +76,29 @@ int main( int argc, char** argv )
 
     initLog();
 
-    _running = true;
+    running = true;
 
-    _renderer.allocBase();
-    _renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );
+    loadTestTexture();
+
+    //_renderer.allocBase();
+    //_renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );
 
     glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
-    while( _running && !glfwWindowShouldClose( _window ) )
+    while( running && !glfwWindowShouldClose( window ) )
     {
-        glClear( GL_COLOR_BUFFER_BIT );
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-        _renderer.draw();
+        //_renderer.draw();
+        //_renderer.update();
 
-        glfwSwapBuffers( _window );
+        drawTestTexture();
 
-        _renderer.update();
-
+        glfwSwapBuffers( window );
         glfwPollEvents();
     }
 
-    glfwDestroyWindow( _window );
+    glfwDestroyWindow( window );
     glfwTerminate();
 
     return 0;

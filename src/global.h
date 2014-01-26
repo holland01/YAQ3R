@@ -6,6 +6,6 @@
 
 void flagExit( void );
 
-extern FILE* gDrawLog;
-extern FILE* gBspDataLog;
+extern FILE* drawLog;
+extern FILE* bspDataLog;
 

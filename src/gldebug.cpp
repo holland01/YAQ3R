@@ -8,6 +8,14 @@ Global
 ===========================
 */
 
+typedef enum sys_glio_value_e
+{
+    GLDEBUG_LOG_STDOUT = 0x1,
+
+    GLDEBUG_LOG_FILE = 0x2
+}
+sys_glio_value_t;
+
 static sys_glio_value_t  g_values[] =
 {
     GLDEBUG_LOG_FILE
@@ -63,19 +71,6 @@ void glDebugKill( void )
     glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
     glDebugMessageCallbackARB( NULL, NULL );
 
-}
-
-/*
-===========================
-
-sys_glio_map_param
-
-===========================
-*/
-
-void glDebugMapParam( sys_glio_param_t param, sys_glio_value_t value )
-{
-    g_values[ param ] = value;
 }
 
 /*
@@ -139,11 +134,12 @@ GL_PROC void glDebugOutProc( GLenum source,
         case GL_DEBUG_SEVERITY_LOW_ARB:     strcpy( deb_sev, "Low" ); break;
     }
 
-    switch( g_values[ GLDEBUG_PARAM_LOG ] )
+    switch( g_values[ 0 ] )
     {
         case GLDEBUG_LOG_FILE:
         {
-            fprintf( g_gl_log,
+            myFPrintF( g_gl_log,
+                     "Log",
                      out_fmt,
                      g_date_time,
                      g_file_entry_count,
