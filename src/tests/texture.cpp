@@ -2,33 +2,12 @@
 #include "../renderer.h"
 #include "../shader.h"
 
-// CREATE SIX TEXTURES FOR EACH FACE
-
 const unsigned char COLOR_A = 0xFF;
-const unsigned char COLOR_B = 0x00;
+const unsigned char COLOR_B = 0x88;
+const int TEX_WIDTH = 64;
+const int TEX_HEIGHT = 64;
 
-const unsigned char checkerboardTexture[] =
-{
-    /*
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-        */
-
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-    COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B,
-    COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A, COLOR_B, COLOR_A,
-};
+unsigned char checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
 
 GLuint vao, vbo, texture;
 
@@ -65,6 +44,19 @@ void handleMousePosTestTexture( GLFWwindow* w, double x, double y )
 
 void loadTestTexture( void )
 {
+    for ( int i = 0; i < TEX_WIDTH; ++i )
+    {
+        for ( int j = 0; j < TEX_HEIGHT; ++j )
+        {
+            unsigned char v = ( ( ( ( i & 0x8 ) == 0 ) ^ ( ( j & 0x8 ) == 0 ) ) * 255 ) & 128;
+
+            checkerboard[ i ][ j ][ 0 ] = v;
+            checkerboard[ i ][ j ][ 1 ] = v;
+            checkerboard[ i ][ j ][ 2 ] = v;
+            checkerboard[ i ][ j ][ 3 ] = v;
+        }
+    }
+
      GLuint shaders[] =
     {
         loadShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
@@ -145,8 +137,8 @@ void loadTestTexture( void )
     glGenTextures( 1, &texture);
     glBindTexture( GL_TEXTURE_2D, texture );
 
-    glTexStorage2D( GL_TEXTURE_2D, 2, GL_R3_G3_B2, 8, 8 );
-    glTexSubImage1D( GL_TEXTURE_2D, 0, 0, 0, GL_RGB, GL_UNSIGNED_BYTE, ( void* )checkerboardTexture );
+    glTexStorage2D( GL_TEXTURE_2D, 4, GL_RGBA8, TEX_WIDTH, TEX_HEIGHT );
+    glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, TEX_WIDTH, TEX_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, ( void* )checkerboard );
 
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
