@@ -7,6 +7,9 @@
 /*
 =====================================================
 
+Author: Holland Schutte
+License: WTFPL
+
                    renderer.h
 
     Contains the driver functionality for the Quake3Map class,

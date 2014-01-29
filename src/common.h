@@ -1,5 +1,18 @@
 #pragma once
 
+/*
+==========================
+
+Author: Holland Schutte
+License: WTFPL
+
+    common.h
+
+Global include file, containing often-used or down-right-necessary files for each module.
+
+==========================
+*/
+
 #include "def.h"
 #include "global.h"
 

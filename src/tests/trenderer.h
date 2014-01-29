@@ -3,10 +3,10 @@
 #include "../common.h"
 #include "../renderer.h"
 
-void loadTestRenderer( GLFWwindow* window );
+void LoadTestRenderer( GLFWwindow* window );
 
-void drawTestRenderer( void );
+void DrawTestRenderer( void );
 
-void handleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods );
+void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods );
 
-void handleMousePosTestRenderer( GLFWwindow* w, double x, double y );
+void HandleMousePosTestRenderer( GLFWwindow* w, double x, double y );

@@ -2,7 +2,7 @@
 
 BSPRenderer renderer;
 
-void handleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
+void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
 
     switch ( key )
@@ -17,21 +17,21 @@ void handleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
 
 }
 
-void handleMousePosTestRenderer( GLFWwindow* w, double x, double y )
+void HandleMousePosTestRenderer( GLFWwindow* w, double x, double y )
 {
     //renderer.mCamera.evalMouseCoords( ( float ) x, ( float ) y );
 }
 
-void loadTestRenderer( GLFWwindow* window )
+void LoadTestRenderer( GLFWwindow* window )
 {
-    glfwSetKeyCallback( window, handleInputTestRenderer );
-    glfwSetCursorPosCallback( window, handleMousePosTestRenderer );
+    glfwSetKeyCallback( window, HandleInputTestRenderer );
+    glfwSetCursorPosCallback( window, HandleMousePosTestRenderer );
 
     renderer.Prep();
     renderer.Load( "asset/quake/aty3dm1v2.bsp" );
 }
 
-void drawTestRenderer( void )
+void DrawTestRenderer( void )
 {
     renderer.Update();
     renderer.Draw();

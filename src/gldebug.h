@@ -3,6 +3,9 @@
 /*
 ============================
 
+Author: Holland Schutte
+License: WTFPL
+
     gldebug.h
 
     Base logging functionality

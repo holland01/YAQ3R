@@ -5,6 +5,9 @@
 /*
 =====================================================
 
+Author: Holland Schutte
+License: WTFPL
+
                     log.h
 
         Generic file for logging issues related

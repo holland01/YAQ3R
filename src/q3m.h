@@ -5,6 +5,9 @@
 /*
 =====================================================
 
+Author: Holland Schutte
+License: WTFPL
+
                     q3m.h
 
         Contains data structure definitions

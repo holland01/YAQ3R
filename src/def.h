@@ -1,5 +1,20 @@
 #pragma once
 
+/*
+==========================
+
+Author: Holland Schutte
+License: WTFPL
+
+    def.h
+
+Typedefs and ( known ) necessary
+preprocessor directives to maintain multi-platform
+compliance.
+
+==========================
+*/
+
 #if defined(_WIN32)
 #define GL_PROC __stdcall
 #elif defined( __GNUC__ ) && defined( __amd64__ )

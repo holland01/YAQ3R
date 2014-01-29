@@ -5,6 +5,9 @@
 /*
 =====================================================
 
+Author: Holland Schutte
+License: WTFPL
+
                    shader.h
 
     Global GLSL Shader Program helper functions.

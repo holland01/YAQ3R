@@ -4,6 +4,8 @@
 /*
 =====================================================
 
+Author: Holland Schutte
+License: WTFPL
                    vec.h
 
         Generic vector structures,

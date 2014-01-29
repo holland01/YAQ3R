@@ -19,7 +19,7 @@ static const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::rad
 
 Camera camera;
 
-void handleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, int mods )
+void HandleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
     if ( action == GLFW_PRESS )
     {
@@ -37,16 +37,16 @@ void handleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, i
 
 }
 
-void handleMousePosTestTexture( GLFWwindow* w, double x, double y )
+void HandleMousePosTestTexture( GLFWwindow* w, double x, double y )
 {
     camera.EvalMouseMove( ( float ) x, ( float ) y );
 }
 
-void loadTestTexture( GLFWwindow* window )
+void LoadTestTexture( GLFWwindow* window )
 {
 
-    glfwSetKeyCallback( window, handleInputTestTexture );
-    glfwSetCursorPosCallback( window, handleMousePosTestTexture );
+    glfwSetKeyCallback( window, HandleInputTestTexture );
+    glfwSetCursorPosCallback( window, HandleMousePosTestTexture );
 
     for ( int i = 0; i < TEX_WIDTH; ++i )
     {
@@ -154,7 +154,7 @@ void loadTestTexture( GLFWwindow* window )
     camera.SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 100.0f );
 }
 
-void drawTestTexture( void )
+void DrawTestTexture( void )
 {
 
     glUseProgram( program );
