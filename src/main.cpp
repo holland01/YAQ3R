@@ -2,10 +2,9 @@
 #include "renderer.h"
 #include "log.h"
 #include "tests/texture.h"
+#include "tests/trenderer.h"
 
 GLFWwindow* window = NULL;
-
-BSPRenderer renderer;
 
 bool running = false;
 
@@ -15,23 +14,9 @@ void flagExit( void )
     killLog();
 }
 
-void handleInput( GLFWwindow* w, int key, int scancode, int action, int mods )
-{
-    if ( action == GLFW_PRESS )
-    {
-        switch ( key )
-        {
-            case GLFW_KEY_ESCAPE:
-                flagExit();
-                break;
-            default:
-                renderer.mCamera.evalKeyPress( key );
-                break;
-        }
-    }
-}
 
-bool initGL( void )
+
+bool appInit( void )
 {
     if ( !glfwInit() )
         return false;
@@ -59,11 +44,12 @@ bool initGL( void )
         return false;
     }
 
-    glfwSetKeyCallback( window, handleInputTestTexture );
-    glfwSetCursorPosCallback( window, handleMousePosTestTexture );
-
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );
+
+    initLog();
+
+    running = true;
 
     return true;
 }
@@ -71,28 +57,18 @@ bool initGL( void )
 
 int main( int argc, char** argv )
 {
-    if ( !initGL() )
+    if ( !appInit() )
         return 1;
 
-    initLog();
+    loadTestRenderer( window );
 
-    running = true;
-
-    loadTestTexture();
-
-    //_renderer.allocBase();
-    //_renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );
-
-    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+    glClearColor( 0.3f, 0.0f, 0.0f, 1.0f );
 
     while( running && !glfwWindowShouldClose( window ) )
     {
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-        //_renderer.draw();
-        //_renderer.update();
-
-        drawTestTexture();
+        drawTestRenderer();
 
         glfwSwapBuffers( window );
         glfwPollEvents();

@@ -2,7 +2,7 @@
 
 #include "../common.h"
 
-void loadTestTexture( void );
+void loadTestTexture( GLFWwindow* window );
 
 void drawTestTexture( void );
 

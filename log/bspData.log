@@ -1,0 +1,1946 @@
+
+[ VERTEXES ]: {
+
+TOTAL VERTEXES: 95630
+
+Vertex [ 0 ]
+	 position:
+		 x: -880
+		 y: -8
+		 z: 616
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.996094
+	 texcoords[ 1 ]:
+		 x: 0.800781
+		 y: 0.214844
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 1 ]
+	 position:
+		 x: -880
+		 y: -8
+		 z: 496
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.0644532
+	 texcoords[ 1 ]:
+		 x: 0.851562
+		 y: 0.214844
+	 normal:
+		 x: 0
+		 y: -0.707107
+		 z: -0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 2 ]
+	 position:
+		 x: -880
+		 y: 119.5
+		 z: 496
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: -0.931641
+	 texcoords[ 1 ]:
+		 x: 0.902344
+		 y: 0.214844
+	 normal:
+		 x: 0
+		 y: 0
+		 z: -1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 3 ]
+	 position:
+		 x: -704
+		 y: -8
+		 z: 616
+	 texcoords[ 0 ]:
+		 x: 0.125
+		 y: 0.996094
+	 texcoords[ 1 ]:
+		 x: 0.800781
+		 y: 0.300781
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 4 ]
+	 position:
+		 x: -704
+		 y: -8
+		 z: 496
+	 texcoords[ 0 ]:
+		 x: 0.125
+		 y: 0.0644532
+	 texcoords[ 1 ]:
+		 x: 0.851562
+		 y: 0.300781
+	 normal:
+		 x: 0
+		 y: -0.707107
+		 z: -0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 5 ]
+	 position:
+		 x: -704
+		 y: 119.5
+		 z: 496
+	 texcoords[ 0 ]:
+		 x: 0.125
+		 y: -0.931641
+	 texcoords[ 1 ]:
+		 x: 0.902344
+		 y: 0.300781
+	 normal:
+		 x: 0
+		 y: 0
+		 z: -1
+	 color byte:
+		 r: 
+
+		 g: 	
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 6 ]
+	 position:
+		 x: -528
+		 y: -8
+		 z: 616
+	 texcoords[ 0 ]:
+		 x: -0.75
+		 y: 0.996094
+	 texcoords[ 1 ]:
+		 x: 0.800781
+		 y: 0.386719
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 7 ]
+	 position:
+		 x: -528
+		 y: -8
+		 z: 496
+	 texcoords[ 0 ]:
+		 x: -0.75
+		 y: 0.0644532
+	 texcoords[ 1 ]:
+		 x: 0.851562
+		 y: 0.386719
+	 normal:
+		 x: 0
+		 y: -0.707107
+		 z: -0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 8 ]
+	 position:
+		 x: -528
+		 y: 119.5
+		 z: 496
+	 texcoords[ 0 ]:
+		 x: -0.75
+		 y: -0.93164
+	 texcoords[ 1 ]:
+		 x: 0.902344
+		 y: 0.386719
+	 normal:
+		 x: 0
+		 y: 0
+		 z: -1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 9 ]
+	 position:
+		 x: -824
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: -5e-10
+	 texcoords[ 1 ]:
+		 x: 0.855469
+		 y: 0.121094
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 10 ]
+	 position:
+		 x: -888
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.5
+		 y: 4.2e-09
+	 texcoords[ 1 ]:
+		 x: 0.882812
+		 y: 0.121094
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 11 ]
+	 position:
+		 x: -888
+		 y: 112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.19209e-07
+		 y: 4.2e-09
+	 texcoords[ 1 ]:
+		 x: 0.910156
+		 y: 0.121094
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 12 ]
+	 position:
+		 x: -824
+		 y: 0
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.875
+	 texcoords[ 1 ]:
+		 x: 0.855469
+		 y: 0.175781
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: L
+		 g: A
+		 b: 3
+		 a: ÿ
+End Vertex
+
+Vertex [ 13 ]
+	 position:
+		 x: -888
+		 y: 0
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.5
+		 y: 0.875
+	 texcoords[ 1 ]:
+		 x: 0.882812
+		 y: 0.175781
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 4
+		 g: .
+		 b: (
+		 a: ÿ
+End Vertex
+
+Vertex [ 14 ]
+	 position:
+		 x: -888
+		 y: 0
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 5.96046e-08
+		 y: 0.875
+	 texcoords[ 1 ]:
+		 x: 0.910156
+		 y: 0.175781
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 3
+		 g: /
+		 b: *
+		 a: ÿ
+End Vertex
+
+Vertex [ 15 ]
+	 position:
+		 x: -824
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 1.75
+	 texcoords[ 1 ]:
+		 x: 0.855469
+		 y: 0.230469
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 16 ]
+	 position:
+		 x: -888
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.5
+		 y: 1.75
+	 texcoords[ 1 ]:
+		 x: 0.882812
+		 y: 0.230469
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 17 ]
+	 position:
+		 x: -888
+		 y: -112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 1.75
+	 texcoords[ 1 ]:
+		 x: 0.910156
+		 y: 0.230469
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 18 ]
+	 position:
+		 x: -824
+		 y: 120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.128906
+		 y: 0.519531
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 19 ]
+	 position:
+		 x: -888
+		 y: 120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.15625
+		 y: 0.519531
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 20 ]
+	 position:
+		 x: -888
+		 y: 120
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.183594
+		 y: 0.519531
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 21 ]
+	 position:
+		 x: -824
+		 y: 116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.128906
+		 y: 0.527344
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 22 ]
+	 position:
+		 x: -888
+		 y: 116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.15625
+		 y: 0.527344
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 23 ]
+	 position:
+		 x: -888
+		 y: 116
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.183594
+		 y: 0.527344
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 24 ]
+	 position:
+		 x: -824
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.128906
+		 y: 0.535156
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 25 ]
+	 position:
+		 x: -888
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.15625
+		 y: 0.535156
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 26 ]
+	 position:
+		 x: -888
+		 y: 112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.183594
+		 y: 0.535156
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 27 ]
+	 position:
+		 x: -824
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.128906
+		 y: 0.542969
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 28 ]
+	 position:
+		 x: -888
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.15625
+		 y: 0.542969
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 29 ]
+	 position:
+		 x: -888
+		 y: -112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.183594
+		 y: 0.542969
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 30 ]
+	 position:
+		 x: -824
+		 y: -116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.128906
+		 y: 0.550781
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 31 ]
+	 position:
+		 x: -888
+		 y: -116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.15625
+		 y: 0.550781
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 32 ]
+	 position:
+		 x: -888
+		 y: -116
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.183594
+		 y: 0.550781
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 33 ]
+	 position:
+		 x: -824
+		 y: -120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.128906
+		 y: 0.558594
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 34 ]
+	 position:
+		 x: -888
+		 y: -120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.15625
+		 y: 0.558594
+	 normal:
+		 x: 0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 35 ]
+	 position:
+		 x: -888
+		 y: -120
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.183594
+		 y: 0.558594
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 36 ]
+	 position:
+		 x: -520
+		 y: 112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: -5e-10
+	 texcoords[ 1 ]:
+		 x: 0.917969
+		 y: 0.121094
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 37 ]
+	 position:
+		 x: -520
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.5
+		 y: 4.2e-09
+	 texcoords[ 1 ]:
+		 x: 0.945312
+		 y: 0.121094
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 38 ]
+	 position:
+		 x: -584
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.19209e-07
+		 y: 4.2e-09
+	 texcoords[ 1 ]:
+		 x: 0.972656
+		 y: 0.121094
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 39 ]
+	 position:
+		 x: -520
+		 y: 0
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.875
+	 texcoords[ 1 ]:
+		 x: 0.917969
+		 y: 0.175781
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 4
+		 g: /
+		 b: +
+		 a: ÿ
+End Vertex
+
+Vertex [ 40 ]
+	 position:
+		 x: -520
+		 y: 0
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.5
+		 y: 0.875
+	 texcoords[ 1 ]:
+		 x: 0.945312
+		 y: 0.175781
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 5
+		 g: /
+		 b: )
+		 a: ÿ
+End Vertex
+
+Vertex [ 41 ]
+	 position:
+		 x: -584
+		 y: 0
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 5.96046e-08
+		 y: 0.875
+	 texcoords[ 1 ]:
+		 x: 0.972656
+		 y: 0.175781
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: M
+		 g: A
+		 b: 3
+		 a: ÿ
+End Vertex
+
+Vertex [ 42 ]
+	 position:
+		 x: -520
+		 y: -112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 1.75
+	 texcoords[ 1 ]:
+		 x: 0.917969
+		 y: 0.230469
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 43 ]
+	 position:
+		 x: -520
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.5
+		 y: 1.75
+	 texcoords[ 1 ]:
+		 x: 0.945312
+		 y: 0.230469
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 44 ]
+	 position:
+		 x: -584
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 1.75
+	 texcoords[ 1 ]:
+		 x: 0.972656
+		 y: 0.230469
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 45 ]
+	 position:
+		 x: -520
+		 y: 120
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.378906
+		 y: 0.566406
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 46 ]
+	 position:
+		 x: -520
+		 y: 120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.40625
+		 y: 0.566406
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 47 ]
+	 position:
+		 x: -584
+		 y: 120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.433594
+		 y: 0.566406
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 48 ]
+	 position:
+		 x: -520
+		 y: 116
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.378906
+		 y: 0.574219
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 49 ]
+	 position:
+		 x: -520
+		 y: 116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.40625
+		 y: 0.574219
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 50 ]
+	 position:
+		 x: -584
+		 y: 116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.433594
+		 y: 0.574219
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 51 ]
+	 position:
+		 x: -520
+		 y: 112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.378906
+		 y: 0.582031
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 52 ]
+	 position:
+		 x: -520
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.40625
+		 y: 0.582031
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 53 ]
+	 position:
+		 x: -584
+		 y: 112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.433594
+		 y: 0.582031
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 54 ]
+	 position:
+		 x: -520
+		 y: -112
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.191406
+		 y: 0.566406
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 55 ]
+	 position:
+		 x: -520
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.21875
+		 y: 0.566406
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 56 ]
+	 position:
+		 x: -584
+		 y: -112
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.246094
+		 y: 0.566406
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 57 ]
+	 position:
+		 x: -520
+		 y: -116
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.191406
+		 y: 0.574219
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+
+		 g: 
+
+		 b: 	
+		 a: ÿ
+End Vertex
+
+Vertex [ 58 ]
+	 position:
+		 x: -520
+		 y: -116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.21875
+		 y: 0.574219
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 59 ]
+	 position:
+		 x: -584
+		 y: -116
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.246094
+		 y: 0.574219
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 60 ]
+	 position:
+		 x: -520
+		 y: -120
+		 z: 136
+	 texcoords[ 0 ]:
+		 x: 0.0117188
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.191406
+		 y: 0.582031
+	 normal:
+		 x: -1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 	
+		 g: 	
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 61 ]
+	 position:
+		 x: -520
+		 y: -120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 0.511719
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.21875
+		 y: 0.582031
+	 normal:
+		 x: -0.707107
+		 y: 0
+		 z: 0.707107
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 62 ]
+	 position:
+		 x: -584
+		 y: -120
+		 z: 72
+	 texcoords[ 0 ]:
+		 x: 1.01172
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.246094
+		 y: 0.582031
+	 normal:
+		 x: 0
+		 y: 0
+		 z: 1
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 63 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -368
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.996094
+	 texcoords[ 1 ]:
+		 x: 0.402344
+		 y: 0.261719
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 64 ]
+	 position:
+		 x: -2.71733e-05
+		 y: 120
+		 z: -368
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.0644532
+	 texcoords[ 1 ]:
+		 x: 0.453125
+		 y: 0.261719
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 65 ]
+	 position:
+		 x: -2.71733e-05
+		 y: 247.5
+		 z: -368
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: -0.931641
+	 texcoords[ 1 ]:
+		 x: 0.503906
+		 y: 0.261719
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 66 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -192
+	 texcoords[ 0 ]:
+		 x: 0.125
+		 y: 0.996094
+	 texcoords[ 1 ]:
+		 x: 0.402344
+		 y: 0.347656
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: "
+		 g: !
+		 b:  
+		 a: ÿ
+End Vertex
+
+Vertex [ 67 ]
+	 position:
+		 x: -2.71733e-05
+		 y: 120
+		 z: -192
+	 texcoords[ 0 ]:
+		 x: 0.125
+		 y: 0.0644532
+	 texcoords[ 1 ]:
+		 x: 0.453125
+		 y: 0.347656
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 68 ]
+	 position:
+		 x: -2.71733e-05
+		 y: 247.5
+		 z: -192
+	 texcoords[ 0 ]:
+		 x: 0.125
+		 y: -0.931641
+	 texcoords[ 1 ]:
+		 x: 0.503906
+		 y: 0.347656
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 69 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -16
+	 texcoords[ 0 ]:
+		 x: -0.75
+		 y: 0.996094
+	 texcoords[ 1 ]:
+		 x: 0.402344
+		 y: 0.433594
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 70 ]
+	 position:
+		 x: -2.71733e-05
+		 y: 120
+		 z: -16
+	 texcoords[ 0 ]:
+		 x: -0.75
+		 y: 0.0644532
+	 texcoords[ 1 ]:
+		 x: 0.453125
+		 y: 0.433594
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 71 ]
+	 position:
+		 x: -2.71733e-05
+		 y: 247.5
+		 z: -16
+	 texcoords[ 0 ]:
+		 x: -0.75
+		 y: -0.93164
+	 texcoords[ 1 ]:
+		 x: 0.503906
+		 y: 0.433594
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+
+		 a: ÿ
+End Vertex
+
+Vertex [ 72 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -16
+	 texcoords[ 0 ]:
+		 x: -1
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.394531
+		 y: 0.417969
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 73 ]
+	 position:
+		 x: -2.89737e-05
+		 y: 120
+		 z: -16
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.445312
+		 y: 0.417969
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 74 ]
+	 position:
+		 x: -2.89737e-05
+		 y: 247.5
+		 z: -16
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.496094
+		 y: 0.417969
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+
+		 a: ÿ
+End Vertex
+
+Vertex [ 75 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -12
+	 texcoords[ 0 ]:
+		 x: -1
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.394531
+		 y: 0.425781
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+
+		 a: ÿ
+End Vertex
+
+Vertex [ 76 ]
+	 position:
+		 x: -2.89737e-05
+		 y: 120
+		 z: -12
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.445312
+		 y: 0.425781
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 77 ]
+	 position:
+		 x: -2.89737e-05
+		 y: 247.5
+		 z: -12
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.496094
+		 y: 0.425781
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 	
+		 a: ÿ
+End Vertex
+
+Vertex [ 78 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -8
+	 texcoords[ 0 ]:
+		 x: -1
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.394531
+		 y: 0.433594
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+
+		 a: ÿ
+End Vertex
+
+Vertex [ 79 ]
+	 position:
+		 x: -2.89737e-05
+		 y: 120
+		 z: -8
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.445312
+		 y: 0.433594
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 80 ]
+	 position:
+		 x: -2.89737e-05
+		 y: 247.5
+		 z: -8
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.496094
+		 y: 0.433594
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 81 ]
+	 position:
+		 x: 4.14e-07
+		 y: 248
+		 z: -368
+	 texcoords[ 0 ]:
+		 x: -1
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.535156
+		 y: 0.472656
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 82 ]
+	 position:
+		 x: 4.14e-07
+		 y: 120
+		 z: -368
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.585938
+		 y: 0.472656
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 83 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -368
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0
+	 texcoords[ 1 ]:
+		 x: 0.636719
+		 y: 0.472656
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 84 ]
+	 position:
+		 x: 4.14e-07
+		 y: 248
+		 z: -372
+	 texcoords[ 0 ]:
+		 x: -1
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.535156
+		 y: 0.480469
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 85 ]
+	 position:
+		 x: 4.14e-07
+		 y: 120
+		 z: -372
+	 texcoords[ 0 ]:
+		 x: 0
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.585938
+		 y: 0.480469
+	 normal:
+		 x: 0.707107
+		 y: -0.707107
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 86 ]
+	 position:
+		 x: -120
+		 y: 120
+		 z: -372
+	 texcoords[ 0 ]:
+		 x: 1
+		 y: 0.5
+	 texcoords[ 1 ]:
+		 x: 0.636719
+		 y: 0.480469
+	 normal:
+		 x: 0
+		 y: -1
+		 z: -0
+	 color byte:
+		 r: 
+		 g: 
+		 b: 
+		 a: ÿ
+End Vertex
+
+Vertex [ 87 ]
+	 position:
+		 x: 4.14e-07
+		 y: 248
+		 z: -376
+	 texcoords[ 0 ]:
+		 x: -1
+		 y: 1
+	 texcoords[ 1 ]:
+		 x: 0.535156
+		 y: 0.488281
+	 normal:
+		 x: 1
+		 y: 0
+		 z: -0
+	 color byte:
+		 r: 
+
+}
+

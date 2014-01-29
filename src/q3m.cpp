@@ -152,14 +152,10 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
         swizzleCoords( mVertexes[ i ].normal );
 
         /*
-        float length = glm::sqrt( vx * vx + vy * vy + vz * vz );
-
-        if ( length > 1.0f )
-        {
-            vx /= length;
-            vy /= length;
-            vz /= length;
-        }*/
+        glm::vec3 pos( mVertexes[ i ].position.x, mVertexes[ i ].position.y, mVertexes[ i ].position.z );
+        pos = glm::normalize( pos );
+        mVertexes[ i ].position = { pos.x, pos.y, pos.z };
+        */
     }
 
     mModels = ( BspModel* )malloc( mHeader.directories[ BSP_LUMP_MODELS ].length );

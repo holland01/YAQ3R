@@ -18,7 +18,8 @@ HEADERS += \
     src/global.h \
     def.h \
     src/gldebug.h \
-    src/tests/texture.h
+    src/tests/texture.h \
+    src/tests/trenderer.h
 
 OTHER_FILES += \
     src/test.vert \
@@ -39,5 +40,6 @@ SOURCES += \
     src/renderer.cpp \
     src/main.cpp \
     src/gldebug.cpp \
-    src/tests/texture.cpp
+    src/tests/texture.cpp \
+    src/tests/trenderer.cpp
 

@@ -42,8 +42,12 @@ void handleMousePosTestTexture( GLFWwindow* w, double x, double y )
     camera.evalMouseCoords( ( float ) x, ( float ) y );
 }
 
-void loadTestTexture( void )
+void loadTestTexture( GLFWwindow* window )
 {
+
+    glfwSetKeyCallback( window, handleInputTestTexture );
+    glfwSetCursorPosCallback( window, handleMousePosTestTexture );
+
     for ( int i = 0; i < TEX_WIDTH; ++i )
     {
         for ( int j = 0; j < TEX_HEIGHT; ++j )

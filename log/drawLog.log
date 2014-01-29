@@ -1,0 +1,240 @@
+
+[ Draw Call Data ]: {
+
+face: 1031,
+ face->numMeshVertices: 150,
+ face->meshVertexOffset: 966,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1032,
+ face->numMeshVertices: 12,
+ face->meshVertexOffset: 954,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1039,
+ face->numMeshVertices: 1254,
+ face->meshVertexOffset: 3624,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1040,
+ face->numMeshVertices: 30,
+ face->meshVertexOffset: 4878,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 1
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1041,
+ face->numMeshVertices: 381,
+ face->meshVertexOffset: 4908,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1063,
+ face->numMeshVertices: 252,
+ face->meshVertexOffset: 702,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 1
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1091,
+ face->numMeshVertices: 381,
+ face->meshVertexOffset: 6,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 3
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 1092,
+ face->numMeshVertices: 315,
+ face->meshVertexOffset: 387,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 2
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6152,
+ face->numMeshVertices: 6,
+ face->meshVertexOffset: 12006,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6166,
+ face->numMeshVertices: 9,
+ face->meshVertexOffset: 12135,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6192,
+ face->numMeshVertices: 63,
+ face->meshVertexOffset: 21204,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6193,
+ face->numMeshVertices: 66,
+ face->meshVertexOffset: 21267,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6195,
+ face->numMeshVertices: 42,
+ face->meshVertexOffset: 21333,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 1
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6196,
+ face->numMeshVertices: 42,
+ face->meshVertexOffset: 21375,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 1
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6197,
+ face->numMeshVertices: 69,
+ face->meshVertexOffset: 21417,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6198,
+ face->numMeshVertices: 57,
+ face->meshVertexOffset: 21486,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6199,
+ face->numMeshVertices: 24,
+ face->meshVertexOffset: 12201,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 1
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6200,
+ face->numMeshVertices: 66,
+ face->meshVertexOffset: 21543,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6207,
+ face->numMeshVertices: 60,
+ face->meshVertexOffset: 21609,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6213,
+ face->numMeshVertices: 33,
+ face->meshVertexOffset: 21669,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6215,
+ face->numMeshVertices: 66,
+ face->meshVertexOffset: 21702,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6259,
+ face->numMeshVertices: 84,
+ face->meshVertexOffset: 21768,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 1
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6261,
+ face->numMeshVertices: 15,
+ face->meshVertexOffset: 21852,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+
+
+[ Draw Call Data ]: {
+
+face: 6270,
+ face->numMeshVertices: 39,
+ face->meshVertexOffset: 21867,
+ mMap->mMeshVertexes[ face->meshVertexOffset ].offset: 0
+
+}
+

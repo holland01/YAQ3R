@@ -126,7 +126,6 @@ BSPRenderer::BSPRenderer( void )
       mVisibleFaces( NULL ),
       mBspProgram( 0 )
 {
-    mCamera.mPosition = glm::vec3( -8.000000f, -2.000000f, -214.000000f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -169,7 +168,7 @@ void BSPRenderer::loadMap( const std::string& filepath )
 
     mMap = new Quake3Map;
 
-    mMap->read( filepath, 8 );
+    mMap->read( filepath, 1 );
     initLogBaseData( mMap );
 
     mVisibleFaces = ( byte* )malloc( mMap->mTotalFaces );
@@ -183,7 +182,7 @@ void BSPRenderer::loadMap( const std::string& filepath )
     glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, mMap->mVertexes, GL_STATIC_DRAW );
 
     //glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mBuffers[ 1 ] );
-    glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( int ) * mMap->mTotalMeshVertexes, ( void* ) NULL, GL_DYNAMIC_DRAW );
+    //glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( int ) * mMap->mTotalMeshVertexes, ( void* ) NULL, GL_DYNAMIC_DRAW );
 
     GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
 
@@ -194,10 +193,10 @@ void BSPRenderer::loadMap( const std::string& filepath )
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     //glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
-    mCamera.setPerspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );
+    mCamera.setPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 800.0f );
 }
 
-static glm::mat4 _tempModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f, 1.0f, 1.0f ) );
+static glm::mat4 _tempModel( 1.0f ); //glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f ) );
 
 void BSPRenderer::draw( void )
 {
@@ -205,11 +204,6 @@ void BSPRenderer::draw( void )
     glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mBuffers[ 1 ] );
     glUseProgram( mBspProgram );
-
-    //void* indexBuffer = glMapBuffer( GL_ELEMENT_ARRAY_BUFFER, GL_READ_WRITE );
-
-    //glUniform4f( glGetUniformLocation( mBspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
-    //glUniform4f( glGetUniformLocation( mBspProgram, "color1" ), 1.0f, 0.0f, 1.0f, 1.0f );
 
     for ( int i = 0; i < mMap->mTotalFaces; ++i )
     {
@@ -225,21 +219,17 @@ void BSPRenderer::draw( void )
         int j = face->meshVertexOffset;
         for ( int i = 0; j < face->numMeshVertexes + face->meshVertexOffset; j++, i++ )
         {
-            int v = mMap->mMeshVertexes[ j ].offset;
-
-            buffer[ i ] = v;
+            buffer[ i ] = mMap->mMeshVertexes[ j ].offset;
         }
 
-        //logDrawCall( i, face, mMap->mMeshVertexes );
+        logDrawCall( i, face, mMap->mMeshVertexes );
 
-        glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, sizeof( int ) * face->numMeshVertexes, ( void* ) buffer );
+        glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( int ) * face->numMeshVertexes, ( void* ) buffer, GL_STREAM_DRAW );
 
-        // TODO: generate an index buffer and set its data according to the visible face. Use GL_DYNAMIC_DRAW
-        glDrawElements( GL_TRIANGLE_FAN, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* )0 );
+        glDrawElements( GL_TRIANGLE_STRIP, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* )0 );
+
+        //myPrintf( "Draw", "%s", "You have a draw call!" );
     }
-
-    //glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER );
-    //indexBuffer = NULL;
 
     glUseProgram( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
