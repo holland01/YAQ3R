@@ -2,10 +2,8 @@
 
 #include <stdio.h>
 
-
-
 void flagExit( void );
 
-extern FILE* drawLog;
-extern FILE* bspDataLog;
+extern FILE* globalDrawLog;
+extern FILE* globalBspDataLog;
 

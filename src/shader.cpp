@@ -1,7 +1,7 @@
 #include "shader.h"
 #include "log.h"
 
-GLuint makeProgram( GLuint shaders[], int len )
+GLuint LinkProgram( GLuint shaders[], int len )
 {
     GLuint program = glCreateProgram();
 
@@ -35,7 +35,7 @@ GLuint makeProgram( GLuint shaders[], int len )
 
 // (Slightly modified) Implementation is copy-pasta from http://code.google.com/p/openglbook-samples/source/browse/trunk/Chapter%204/Utils.c
 
-GLuint loadShader( const char* filename, GLenum shader_type )
+GLuint CompileShader( const char* filename, GLenum shader_type )
 {
     GLuint shader_id = 0;
     FILE* file;

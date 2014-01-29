@@ -7,6 +7,20 @@
 /*
 =====================================================
 
+                   renderer.h
+
+    Contains the driver functionality for the Quake3Map class,
+    along with a camera class to perform basic view transformations.
+    Provides the necessary functionality to get the map on the screen.
+
+=====================================================
+*/
+
+
+
+/*
+=====================================================
+
                     Camera
 
 =====================================================

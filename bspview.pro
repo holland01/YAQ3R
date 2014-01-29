@@ -16,10 +16,10 @@ HEADERS += \
     src/q3m.h \
     src/renderer.h \
     src/global.h \
-    def.h \
     src/gldebug.h \
     src/tests/texture.h \
-    src/tests/trenderer.h
+    src/tests/trenderer.h \
+    src/def.h
 
 OTHER_FILES += \
     src/test.vert \

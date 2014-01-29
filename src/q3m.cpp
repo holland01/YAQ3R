@@ -6,8 +6,8 @@
 
 SwizzleCoords
 
-Convert vector formatted in Quake 3 coordinate system to a
-right-handed coordinate system vector.
+Convert 3D vector formatted in Quake 3 coordinate system to a
+right-handed coordinate system 3D vector.
 
 original:       { x => -left/+right, y => -backward/+forward, z => -down/+up }
 right-handed:   { x => -left/+right, y => -down/+up,          z => +backward/-forward }
@@ -23,7 +23,7 @@ static void SwizzleCoords( vec3f& v )
     v.z = -tmp;
 }
 
-// Straight outta copypasta, for integer vectors
+// Straight outta copypasta ( for integer vectors )
 static void SwizzleCoords( vec3i& v )
 {
     int tmp = v.y;
@@ -258,8 +258,8 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     fclose( file );
 
-    logBspData( BSP_LOG_VERTEXES, ( void* ) vertexes, numVertexes );
-    logBspData( BSP_LOG_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
+    LogBSPData( BSP_LOG_VERTEXES, ( void* ) vertexes, numVertexes );
+    LogBSPData( BSP_LOG_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
 }
 
 /*

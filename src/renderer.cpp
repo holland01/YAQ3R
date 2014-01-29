@@ -246,17 +246,19 @@ void BSPRenderer::Prep( void )
 {
     GLuint shaders[] =
     {
-        loadShader( "src/test.vert", GL_VERTEX_SHADER ),
-        loadShader( "src/test.frag", GL_FRAGMENT_SHADER )
+        CompileShader( "src/test.vert", GL_VERTEX_SHADER ),
+        CompileShader( "src/test.frag", GL_FRAGMENT_SHADER )
     };
 
-    bspProgram = makeProgram( shaders, 2 );
+    bspProgram = LinkProgram( shaders, 2 );
 }
 
 /*
 =====================================================
 
 BSPRenderer::Load
+
+    Load map file specified by param filepath.
 
 =====================================================
 */
@@ -271,7 +273,6 @@ void BSPRenderer::Load( const std::string& filepath )
     map = new Quake3Map;
 
     map->Read( filepath, 1 );
-    initLogBaseData( map );
 
     visibleFaces = ( byte* )malloc( map->numFaces );
     memset( visibleFaces, 0, map->numFaces );
@@ -294,8 +295,16 @@ void BSPRenderer::Load( const std::string& filepath )
     camera.SetPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 800.0f );
 }
 
+/*
+=====================================================
+
+BSPRenderer::Draw
+
+=====================================================
+*/
+
 static glm::mat4 testModel( 1.0f );
-const glm::mat4& rotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
+static const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
 void BSPRenderer::Draw( void )
 {
@@ -313,7 +322,7 @@ void BSPRenderer::Draw( void )
         glUniformMatrix4fv( glGetUniformLocation( bspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( testModel ) );
 
         glDrawArrays( GL_TRIANGLES, face->meshVertexOffset, face->numMeshVertexes );
-        logDrawCall( i, camera.position, face, map );
+        LogDrawCall( i, camera.position, face, map );
     }
 
     // Zero this out to reset visibility on the next update.
@@ -323,39 +332,49 @@ void BSPRenderer::Draw( void )
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindVertexArray( 0 );
 
-    testModel *= rotMatrix;
+    testModel *= testRotMatrix;
 }
+
+/*
+=====================================================
+
+BSPRenderer::Update
+
+    Update camera and visibility data, using the Quake3Map
+    instance held by this class to determine which faces
+    in the map are visible at this moment
+
+=====================================================
+*/
 
 void BSPRenderer::Update( void )
 {
-    if ( camera.position != lastCameraPosition )
+
+    BSPLeaf* leaf = map->FindClosestLeaf( camera.position );
+
+    for ( int i = 0; i < map->visdata->numVectors; ++i )
     {
-        BSPLeaf* leaf = map->FindClosestLeaf( camera.position );
-
-        for ( int i = 0; i < map->visdata->numVectors; ++i )
+        if ( map->IsClusterVisible( leaf->clusterIndex, i ) )
         {
-            if ( map->IsClusterVisible( leaf->clusterIndex, i ) )
+            for ( int f = leaf->leafFaceOffset; f < leaf->leafFaceOffset + leaf->numLeafFaces; ++f )
             {
-                for ( int f = leaf->leafFaceOffset; f < leaf->leafFaceOffset + leaf->numLeafFaces; ++f )
+                if ( visibleFaces[ f ] == 0 )
                 {
-                    if ( visibleFaces[ f ] == 0 )
-                    {
-                        visibleFaces[ f ] = 1;
+                    visibleFaces[ f ] = 1;
 
-                        myPrintf( "Visible Faces", "Face Found! Num visible faces: %i", ++debug_visibleFaceCount );
-                    }
+                    MyPrintf( "Visible Faces", "Face Found! Num visible faces: %i", ++debug_visibleFaceCount );
                 }
             }
         }
-
-        camera.UpdateView();
-
-        glUniformMatrix4fv( glGetUniformLocation( bspProgram, "view" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
-        glUniformMatrix4fv( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
-
-        lastCameraPosition = camera.position;
-
-        myPrintf( "Camera Position", "x => %f, y => %f z => %f", camera.position.x, camera.position.y, camera.position.z );
     }
+
+    camera.UpdateView();
+
+    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "view" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
+    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
+
+    lastCameraPosition = camera.position;
+
+    MyPrintf( "Camera Position", "x => %f, y => %f z => %f", camera.position.x, camera.position.y, camera.position.z );
 }
 

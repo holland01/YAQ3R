@@ -15,7 +15,7 @@ GLuint program;
 
 glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
 
-static const glm::mat4& rotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
+static const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
 Camera camera;
 
@@ -63,8 +63,8 @@ void loadTestTexture( GLFWwindow* window )
 
      GLuint shaders[] =
     {
-        loadShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
-        loadShader( "src/tex2D.frag", GL_FRAGMENT_SHADER )
+        CompileShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
+        CompileShader( "src/tex2D.frag", GL_FRAGMENT_SHADER )
     };
 
     GLfloat vertexData[] =
@@ -119,7 +119,7 @@ void loadTestTexture( GLFWwindow* window )
         -1.0f, -1.0f, -0.5f, 0.0f, 0.0f
     };
 
-    program = makeProgram( shaders, 2 );
+    program = LinkProgram( shaders, 2 );
 
     glGenVertexArrays( 1, &vao );
     glBindVertexArray( vao );
@@ -179,5 +179,5 @@ void drawTestTexture( void )
     glUseProgram( 0 );
 
     camera.UpdateView();
-    cubeModel *= rotMatrix;
+    cubeModel *= testRotMatrix;
 }

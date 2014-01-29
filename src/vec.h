@@ -1,5 +1,22 @@
 #pragma once
 
+
+/*
+=====================================================
+
+                   vec.h
+
+        Generic vector structures,
+        for use in C-style structs
+        being read into from binary
+        data.
+
+        Created primarily to enhance
+        readability.
+
+=====================================================
+*/
+
 struct vec3f
 {
     float x, y, z;

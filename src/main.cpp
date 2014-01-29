@@ -11,7 +11,7 @@ bool running = false;
 void flagExit( void )
 {
     running = false;
-    killLog();
+    KillLog();
 }
 
 bool appInit( void )
@@ -48,7 +48,7 @@ bool appInit( void )
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );
 
-    initLog();
+    InitLog();
 
     running = true;
 

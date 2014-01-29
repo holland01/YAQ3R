@@ -1,48 +1,54 @@
 #include "gldebug.h"
 #include "log.h"
-/*
-===========================
 
-Global
 
-===========================
-*/
-
-typedef enum sys_glio_value_e
+enum GLDebugValue
 {
     GLDEBUG_LOG_STDOUT = 0x1,
 
     GLDEBUG_LOG_FILE = 0x2
-}
-sys_glio_value_t;
-
-static sys_glio_value_t  g_values[] =
-{
-    GLDEBUG_LOG_FILE
 };
-
-static char* g_date_time            = NULL;
-static int   g_file_entry_count     = 0;
-static int   g_stdout_entry_count   = 0;
-static FILE* g_gl_log               = NULL;
 
 /*
 ===========================
 
-sys_glio_init
+Globals
 
 ===========================
 */
 
-#define DT_STR_SIZE 40
+static GLDebugValue  values[] =
+{
+    GLDEBUG_LOG_FILE
+};
+
+static char* dateTime           = NULL;
+static int   fileEntryCount     = 0;
+static int   stdoutEntryCount   = 0;
+static FILE* glLog              = NULL;
+
+/*
+===========================
+
+glDebugInit
+
+Initialize functionality
+used to print OpenGL info
+to a file as soon as OpenGL
+detects a warning or issue.
+
+===========================
+*/
+
+const int DATE_TIME_STR_SIZE = 40;
 
 void glDebugInit( void )
 {
-    g_date_time = ( char* )malloc( sizeof( char ) * DT_STR_SIZE );
-    myDateTime( "%Y/%m/%d %H:%M:%S", g_date_time, DT_STR_SIZE );
-    g_gl_log    = fopen( "log/gl.log", "w" );
+    dateTime = ( char* )malloc( sizeof( char ) * DATE_TIME_STR_SIZE );
+    MyDateTime( "%Y/%m/%d %H:%M:%S", dateTime, DATE_TIME_STR_SIZE );
+    glLog    = fopen( "log/gl.log", "w" );
 
-    if ( !g_gl_log )
+    if ( !glLog )
         ERROR( "Could not open gl.log" );
 
     glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
@@ -55,19 +61,19 @@ void glDebugInit( void )
 /*
 ===========================
 
-sys_glio_kill
+glDebugKill
 
 ===========================
 */
 
 void glDebugKill( void )
 {
-    fclose( g_gl_log );
+    fclose( glLog );
 
-    if ( g_date_time )
+    if ( dateTime )
     {
-        free( g_date_time );
-        g_date_time = NULL;
+        free( dateTime );
+        dateTime = NULL;
     }
 
     glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
@@ -78,7 +84,7 @@ void glDebugKill( void )
 /*
 ===========================
 
-sys_glio_debug_out
+glDebugOutProc
 
     Process GL-sent callback info
     and output to user-specified file.
@@ -136,38 +142,38 @@ GL_PROC void glDebugOutProc( GLenum source,
         case GL_DEBUG_SEVERITY_LOW_ARB:     strcpy( deb_sev, "Low" ); break;
     }
 
-    switch( g_values[ 0 ] )
+    switch( values[ 0 ] )
     {
         case GLDEBUG_LOG_FILE:
         {
-            myFPrintF( g_gl_log,
+            MyFprintf( glLog,
                      "Log",
                      out_fmt,
-                     g_date_time,
-                     g_file_entry_count,
+                     dateTime,
+                     fileEntryCount,
                      deb_source,
                      deb_type,
                      id,
                      deb_sev,
                      message );
 
-            ++g_file_entry_count;
+            ++fileEntryCount;
         }
         break;
 
         case GLDEBUG_LOG_STDOUT:
         {
-            myPrintf(  "glio_debug_out",
+            MyPrintf(  "glio_debug_out",
                         out_fmt,
-                        g_date_time,
-                        g_stdout_entry_count,
+                        dateTime,
+                        stdoutEntryCount,
                         deb_source,
                         deb_type,
                         id,
                         deb_sev,
                         message );
 
-            ++g_stdout_entry_count;
+            ++stdoutEntryCount;
         }
         break;
     }

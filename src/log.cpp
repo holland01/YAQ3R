@@ -2,12 +2,18 @@
 #include "q3m.h"
 #include "gldebug.h"
 
-FILE* drawLog = NULL;
-FILE* bspDataLog = NULL;
+FILE* globalDrawLog = NULL;
+FILE* globalBspDataLog = NULL;
 
-int* meshVertexOffsets = NULL;
+/*
+===============================
 
-void myPrintf( const char* header, const char* fmt, ... )
+MyPrintf
+
+===============================
+*/
+
+void MyPrintf( const char* header, const char* fmt, ... )
 {
     va_list arg;
 
@@ -18,7 +24,15 @@ void myPrintf( const char* header, const char* fmt, ... )
     va_end( arg );
 }
 
-void myFPrintF( FILE* f, const char* header, const char* fmt, ... )
+/*
+===============================
+
+MyFprintf
+
+===============================
+*/
+
+void MyFprintf( FILE* f, const char* header, const char* fmt, ... )
 {
     va_list arg;
 
@@ -29,7 +43,15 @@ void myFPrintF( FILE* f, const char* header, const char* fmt, ... )
     va_end( arg );
 }
 
-void myDateTime( const char* format, char* outBuffer, int length )
+/*
+===============================
+
+MyDateTime
+
+===============================
+*/
+
+void MyDateTime( const char* format, char* outBuffer, int length )
 {
     time_t timer;
     struct tm* info;
@@ -41,7 +63,19 @@ void myDateTime( const char* format, char* outBuffer, int length )
     strftime( outBuffer, length, format, info );
 }
 
-void exitOnGLError( const char* caller )
+/*
+===============================
+
+ExitOnGLError
+
+    Perform a manual check for an OpenGL error
+    and exit if that is the case. Useful in tracking down
+    specific kinds of GL-related issues.
+
+===============================
+*/
+
+void ExitOnGLError( const char* caller )
 {
     GLenum error = glGetError();
 
@@ -49,18 +83,20 @@ void exitOnGLError( const char* caller )
     {
         const char* errorString = ( const char* ) gluErrorString( error );
 
-        myPrintf( caller, "GL ERROR: %s", errorString );
+        MyPrintf( caller, "GL ERROR: %s", errorString );
         flagExit();
     }
 }
 
-void initLogBaseData( Quake3Map* map )
-{
-    meshVertexOffsets = ( int* )malloc( sizeof( int ) * map->numMeshVertexes );
-    memset( meshVertexOffsets, 0, sizeof( int ) * map->numFaces );
-}
+/*
+===============================
 
-void logDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const face, const Quake3Map* const map )
+LogDrawCall
+
+===============================
+*/
+
+void LogDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const face, const Quake3Map* const map )
 {
     std::stringstream ss;
 
@@ -79,14 +115,22 @@ void logDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const f
 
     ss << "\n } \n";
 
-    myPrintf( "YOU HAS A DRAW",
+    MyPrintf( "YOU HAS A DRAW",
               "%s",
               ss.str().c_str() );
 }
 
-void logBspData( BspDataType type, void* data, int length )
+/*
+===============================
+
+LogBSPData
+
+===============================
+*/
+
+void LogBSPData( BSPLogType type, void* data, int length )
 {
-    if ( !bspDataLog )
+    if ( !globalBspDataLog )
         return;
 
     std::stringstream ss;
@@ -151,33 +195,30 @@ void logBspData( BspDataType type, void* data, int length )
 
     }
 
-    myFPrintF( bspDataLog, header.c_str(), ss.str().c_str() );
+    MyFprintf( globalBspDataLog, header.c_str(), ss.str().c_str() );
 }
 
-void initLog( void )
+void InitLog( void )
 {
-    drawLog = fopen( "log/drawLog.log", "w" );
-    bspDataLog = fopen( "log/bspData.log", "w" );
+    globalDrawLog = fopen( "log/drawLog.log", "w" );
+    globalBspDataLog = fopen( "log/bspData.log", "w" );
 
-    if ( !drawLog )
+    if ( !globalDrawLog )
         ERROR( "could not open gDrawLog" );
 
-    if ( !bspDataLog )
+    if ( !globalBspDataLog )
         ERROR( "could not open gBspDataLog" );
 
     glDebugInit();
 }
 
-void killLog( void )
+void KillLog( void )
 {
-    if ( drawLog )
-        fclose( drawLog );
+    if ( globalDrawLog )
+        fclose( globalDrawLog );
 
-    if ( bspDataLog )
-        fclose( bspDataLog );
-
-    if ( meshVertexOffsets )
-        free( meshVertexOffsets );
+    if ( globalBspDataLog )
+        fclose( globalBspDataLog );
 
     glDebugKill();
 }
