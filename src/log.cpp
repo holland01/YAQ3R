@@ -60,18 +60,28 @@ void initLogBaseData( Quake3Map* map )
     memset( meshVertexOffsets, 0, sizeof( int ) * map->mTotalFaces );
 }
 
-void logDrawCall( int faceIndex, const BspFace* const face, const BspMeshVertex* meshVertexBuffer )
+void logDrawCall( int faceIndex, const glm::vec3& camPos, const BspFace* const face, const Quake3Map* const map )
 {
-    // Check to see if we've already logged this
-    if ( meshVertexOffsets[ face->meshVertexOffset ] == 1 )
-        return;
+    std::stringstream ss;
 
-    meshVertexOffsets[ face->meshVertexOffset ] = 1;
+    ss << "Camera Pos: { " << camPos.x << ", " << camPos.y << ", " << camPos.z << " }"
+       << "face: " << faceIndex << ",\n"
+       << "numMeshVertices: " << face->numMeshVertexes << ", \n"
+       << "meshVertexOffset: " << face->meshVertexOffset << ", \n"
+       << "( vertexes + meshVertexOffset )...( vertexes + meshVertexOffset + numMeshVertexes ): { \n\n";
 
-    myFPrintF( drawLog,
-              "Draw Call Data",
-              "face: %i,\n face->numMeshVertices: %i,\n face->meshVertexOffset: %i,\n mMap->mMeshVertexes[ face->meshVertexOffset ].offset: %i",
-              faceIndex, face->numMeshVertexes, face->meshVertexOffset, ( meshVertexBuffer + face->meshVertexOffset )->offset );
+    for ( int i = face->meshVertexOffset; i < face->meshVertexOffset + face->numMeshVertexes; ++i )
+    {
+        ss << "[ " << i << "]: { " << map->mVertexes[ i ].position.x << ", "
+                                   << map->mVertexes[ i ].position.y << ", "
+                                   << map->mVertexes[ i ].position.z << " }\n";
+    }
+
+    ss << "\n } \n";
+
+    myPrintf( "YOU HAS A DRAW",
+              "%s",
+              ss.str().c_str() );
 }
 
 void logBspData( BspDataType type, void* data, int length )

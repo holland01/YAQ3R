@@ -39,23 +39,28 @@ void GLCamera::evalKeyPress( int key )
     {
         walk( CAM_STEP_SPEED );
     }
-    else if ( key == GLFW_KEY_S )
+
+    if ( key == GLFW_KEY_S )
     {
         walk( -CAM_STEP_SPEED );
     }
-    else if ( key == GLFW_KEY_A )
+
+    if ( key == GLFW_KEY_A )
     {
         strafe( -CAM_STEP_SPEED );
     }
-    else if ( key == GLFW_KEY_D )
+
+    if ( key == GLFW_KEY_D )
     {
         strafe( CAM_STEP_SPEED );
     }
-    else if ( key == GLFW_KEY_SPACE )
+
+    if ( key == GLFW_KEY_SPACE )
     {
         raise( CAM_STEP_SPEED );
     }
-    else if ( key == GLFW_KEY_C )
+
+    if ( key == GLFW_KEY_C )
     {
         raise( -CAM_STEP_SPEED );
     }
@@ -177,32 +182,28 @@ void BSPRenderer::loadMap( const std::string& filepath )
     glGenVertexArrays( 1, &mVao );
     glBindVertexArray( mVao );
 
-    glGenBuffers( 2, mBuffers );
+    glGenBuffers( 1, mBuffers );
     glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
     glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, mMap->mVertexes, GL_STATIC_DRAW );
-
-    //glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mBuffers[ 1 ] );
-    //glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( int ) * mMap->mTotalMeshVertexes, ( void* ) NULL, GL_DYNAMIC_DRAW );
 
     GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
 
     glEnableVertexAttribArray( positionAttrib );
-    glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( BspVertex ), ( void* )offsetof( BspVertex, BspVertex::position ) );
+    glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, 0, ( void* )0 );
 
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    //glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
     mCamera.setPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 800.0f );
 }
 
-static glm::mat4 _tempModel( 1.0f ); //glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f ) );
+static glm::mat4 testModel( 1.0f );
+const glm::mat4& rotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
 void BSPRenderer::draw( void )
 {
     glBindVertexArray( mVao );
     glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mBuffers[ 1 ] );
     glUseProgram( mBspProgram );
 
     for ( int i = 0; i < mMap->mTotalFaces; ++i )
@@ -212,30 +213,22 @@ void BSPRenderer::draw( void )
 
         const BspFace* const face = &mMap->mFaces[ i ];
 
-        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( _tempModel ) );
+        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( testModel ) );
 
-        int buffer[ face->numMeshVertexes ];
-
-        int j = face->meshVertexOffset;
-        for ( int i = 0; j < face->numMeshVertexes + face->meshVertexOffset; j++, i++ )
-        {
-            buffer[ i ] = mMap->mMeshVertexes[ j ].offset;
-        }
-
-        logDrawCall( i, face, mMap->mMeshVertexes );
-
-        glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( int ) * face->numMeshVertexes, ( void* ) buffer, GL_STREAM_DRAW );
-
-        glDrawElements( GL_TRIANGLE_STRIP, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* )0 );
-
-        //myPrintf( "Draw", "%s", "You have a draw call!" );
+        glDrawArrays( GL_TRIANGLES, face->meshVertexOffset, face->numMeshVertexes );
+        logDrawCall( i, mCamera.mPosition, face, mMap );
     }
+
+    memset( mVisibleFaces, 0, sizeof( byte ) * mMap->mTotalFaces );
 
     glUseProgram( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
     glBindVertexArray( 0 );
+
+    testModel *= rotMatrix;
 }
+
+static int debug_visibleFaceCount = 0;
 
 void BSPRenderer::update( void )
 {
@@ -253,7 +246,7 @@ void BSPRenderer::update( void )
                     {
                         mVisibleFaces[ f ] = 1;
 
-                        myPrintf( "Visible Faces", "Face Found!" );
+                        myPrintf( "Visible Faces", "Face Found! Num visible faces: %i", ++debug_visibleFaceCount );
                     }
                 }
             }

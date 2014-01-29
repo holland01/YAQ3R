@@ -14,8 +14,6 @@ void flagExit( void )
     killLog();
 }
 
-
-
 bool appInit( void )
 {
     if ( !glfwInit() )
@@ -43,6 +41,9 @@ bool appInit( void )
         printf( "Could not initialize GLEW! %s", glewGetErrorString( response ) );
         return false;
     }
+    // GLEW-dependent OpenGL error is thrown on init. This is a temporary hack to get rid of it,
+    // so calls to "exitOnGLError" can be made.
+    glGetError();
 
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );

@@ -43,7 +43,7 @@ class BspFace;
 class BspMeshVertex;
 class Quake3Map;
 
-void logDrawCall( int faceIndex, const BspFace* const face, const BspMeshVertex* meshVertexBuffer );
+void logDrawCall( int faceIndex, const glm::vec3& camPos, const BspFace* const face, const Quake3Map* const map );
 void logBspData( BspDataType type, void* data, int length );
 
 void myPrintf( const char* header, const char* fmt, ... );

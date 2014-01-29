@@ -48,6 +48,8 @@ void glDebugInit( void )
     glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
 
     glDebugMessageCallbackARB( glDebugOutProc, NULL );
+
+    //exitOnGLError( "glDebugInit" );
 }
 
 /*

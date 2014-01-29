@@ -135,27 +135,12 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < mTotalVertexes; ++i )
     {
-        /*
-        float& vx = mVertexes[ i ].position.x;
-        float& vy = mVertexes[ i ].position.y;
-        float& vz = mVertexes[ i ].position.z;
-        */
-        //x /= ( float ) divisionScale;
-        //y /= ( float ) divisionScale;
-        //z /= ( float ) divisionScale;
-
         mVertexes[ i ].normal.x /= ( float ) divisionScale;
         mVertexes[ i ].normal.y /= ( float ) divisionScale;
         mVertexes[ i ].normal.z /= ( float ) divisionScale;
 
         swizzleCoords( mVertexes[ i ].position );
         swizzleCoords( mVertexes[ i ].normal );
-
-        /*
-        glm::vec3 pos( mVertexes[ i ].position.x, mVertexes[ i ].position.y, mVertexes[ i ].position.z );
-        pos = glm::normalize( pos );
-        mVertexes[ i ].position = { pos.x, pos.y, pos.z };
-        */
     }
 
     mModels = ( BspModel* )malloc( mHeader.directories[ BSP_LUMP_MODELS ].length );
@@ -229,7 +214,7 @@ void Quake3Map::read( const std::string& filepath, int divisionScale )
     fclose( file );
 
     logBspData( BSP_LOG_VERTEXES, ( void* ) mVertexes, mTotalVertexes );
-    //logBspData( BSP_LOG_MESH_VERTEXES, ( void* ) mMeshVertexes, mTotalMeshVertexes );
+    logBspData( BSP_LOG_MESH_VERTEXES, ( void* ) mMeshVertexes, mTotalMeshVertexes );
 }
 
 BspLeaf* Quake3Map::findClosestLeaf( const glm::vec3& camPos )

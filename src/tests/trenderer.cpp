@@ -4,18 +4,17 @@ BSPRenderer renderer;
 
 void handleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
-    if ( action == GLFW_PRESS )
+
+    switch ( key )
     {
-        switch ( key )
-        {
-            case GLFW_KEY_ESCAPE:
-                flagExit();
-                break;
-            default:
-                renderer.mCamera.evalKeyPress( key );
-                break;
-        }
+        case GLFW_KEY_ESCAPE:
+            flagExit();
+            break;
+        default:
+            renderer.mCamera.evalKeyPress( key );
+            break;
     }
+
 }
 
 void handleMousePosTestRenderer( GLFWwindow* w, double x, double y )
