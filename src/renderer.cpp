@@ -219,6 +219,7 @@ void BSPRenderer::draw( void )
         logDrawCall( i, mCamera.mPosition, face, mMap );
     }
 
+    // Zero this out to reset visibility on the next update.
     memset( mVisibleFaces, 0, sizeof( byte ) * mMap->mTotalFaces );
 
     glUseProgram( 0 );
