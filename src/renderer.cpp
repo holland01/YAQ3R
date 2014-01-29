@@ -6,154 +6,243 @@
 /*
 =====================================================
 
-                    GLCamera
+Camera::Camera
 
 =====================================================
 */
 
-
-GLCamera::GLCamera( void )
-    : mPosition( 0.0f, 0.0f, 0.0f ),
-      mRotation( 0.0f, 0.0f, 0.0f ),
-      mView( 1.0f ),
-      mProjection( 1.0f ),
-      mLastMouse( 0.0f, 0.0f )
+Camera::Camera( void )
+    : position( 0.0f, 0.0f, 0.0f ),
+      rotation( 0.0f, 0.0f, 0.0f ),
+      view( 1.0f ),
+      projection( glm::perspective( 45.0f, 16.0f / 9.0f, 0.1f, 100.0f ) ),
+      lastMouse( 0.0f, 0.0f )
 {
-}
-
-glm::mat4 GLCamera::orientation( void )
-{
-    glm::mat4 orient( 1.0f );
-
-    orient = glm::rotate( orient, mRotation.x, glm::vec3( 1.0f, 0.0f, 0.0f ) );
-    orient = glm::rotate( orient, mRotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
-
-    return orient;
-}
-
-const float CAM_STEP_SPEED = 2.0f;
-
-void GLCamera::evalKeyPress( int key )
-{
-    if ( key == GLFW_KEY_W )
-    {
-        walk( CAM_STEP_SPEED );
-    }
-
-    if ( key == GLFW_KEY_S )
-    {
-        walk( -CAM_STEP_SPEED );
-    }
-
-    if ( key == GLFW_KEY_A )
-    {
-        strafe( -CAM_STEP_SPEED );
-    }
-
-    if ( key == GLFW_KEY_D )
-    {
-        strafe( CAM_STEP_SPEED );
-    }
-
-    if ( key == GLFW_KEY_SPACE )
-    {
-        raise( CAM_STEP_SPEED );
-    }
-
-    if ( key == GLFW_KEY_C )
-    {
-        raise( -CAM_STEP_SPEED );
-    }
-}
-
-const float MOUSE_CAM_ROT_FACTOR = 0.01f;
-
-void GLCamera::evalMouseCoords( float x, float y )
-{
-    mRotation.x += -( mLastMouse.y - y ) * MOUSE_CAM_ROT_FACTOR;
-    mRotation.y += ( mLastMouse.x - x ) * MOUSE_CAM_ROT_FACTOR;
-
-    mLastMouse.x = x;
-    mLastMouse.y = y;
-}
-
-void GLCamera::walk( float step )
-{
-    glm::vec4 forward = glm::inverse( orientation() ) * glm::vec4( 0.0f, 0.0f, -step, 1.0f );
-
-    mPosition += glm::vec3( forward );
-}
-
-void GLCamera::strafe( float step )
-{
-    glm::vec4 right = glm::inverse( orientation() ) * glm::vec4( step, 0.0f, 0.0f, 1.0f );
-
-    mPosition += glm::vec3( right );
-}
-
-void GLCamera::raise( float step )
-{
-    glm::vec4 up = glm::inverse( orientation() ) * glm::vec4( 0.0f, step, 0.0f, 1.0f );
-
-    mPosition += glm::vec3( up );
-}
-
-void GLCamera::updateView( void )
-{
-    mView = orientation() * glm::translate( glm::mat4( 1.0f ), -mPosition );
-}
-
-void GLCamera::setPerspective( float fovy, float aspect, float zNear, float zFar )
-{
-    mProjection = glm::perspective( fovy, aspect, zNear, zFar );
-}
-
-void GLCamera::reset( void )
-{
-    mPosition = glm::vec3( 0.0f, 0.0f, 0.0f );
-    mRotation = glm::vec3( 0.0f, 0.0f, 0.0f );
-
-    mView = glm::mat4( 1.0f );
 }
 
 /*
 =====================================================
 
-                    GLRenderer
+Camera::~Camera
+
+=====================================================
+*/
+
+glm::mat4 Camera::orientation( void )
+{
+    glm::mat4 orient( 1.0f );
+
+    orient = glm::rotate( orient, rotation.x, glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    orient = glm::rotate( orient, rotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+
+    return orient;
+}
+
+/*
+=====================================================
+
+Camera::EvalKeyPress
+
+=====================================================
+*/
+
+const float CAM_STEP_SPEED = 2.0f;
+
+void Camera::EvalKeyPress( int key )
+{
+    if ( key == GLFW_KEY_W )
+    {
+        Walk( CAM_STEP_SPEED );
+    }
+
+    if ( key == GLFW_KEY_S )
+    {
+        Walk( -CAM_STEP_SPEED );
+    }
+
+    if ( key == GLFW_KEY_A )
+    {
+        Strafe( -CAM_STEP_SPEED );
+    }
+
+    if ( key == GLFW_KEY_D )
+    {
+        Strafe( CAM_STEP_SPEED );
+    }
+
+    if ( key == GLFW_KEY_SPACE )
+    {
+        Raise( CAM_STEP_SPEED );
+    }
+
+    if ( key == GLFW_KEY_C )
+    {
+        Raise( -CAM_STEP_SPEED );
+    }
+}
+
+/*
+=====================================================
+
+Camera::EvalMouseMove
+
+=====================================================
+*/
+
+const float MOUSE_CAM_ROT_FACTOR = 0.01f;
+
+void Camera::EvalMouseMove( float x, float y )
+{
+    rotation.x += -( lastMouse.y - y ) * MOUSE_CAM_ROT_FACTOR;
+    rotation.y += ( lastMouse.x - x ) * MOUSE_CAM_ROT_FACTOR;
+
+    lastMouse.x = x;
+    lastMouse.y = y;
+}
+
+/*
+=====================================================
+
+Camera::Walk
+
+=====================================================
+*/
+
+void Camera::Walk( float step )
+{
+    glm::vec4 forward = glm::inverse( orientation() ) * glm::vec4( 0.0f, 0.0f, -step, 1.0f );
+
+    position += glm::vec3( forward );
+}
+
+/*
+=====================================================
+
+Camera::Strafe
+
+=====================================================
+*/
+
+void Camera::Strafe( float step )
+{
+    glm::vec4 right = glm::inverse( orientation() ) * glm::vec4( step, 0.0f, 0.0f, 1.0f );
+
+    position += glm::vec3( right );
+}
+
+/*
+=====================================================
+
+Camera::Raise
+
+=====================================================
+*/
+
+void Camera::Raise( float step )
+{
+    glm::vec4 up = glm::inverse( orientation() ) * glm::vec4( 0.0f, step, 0.0f, 1.0f );
+
+    position += glm::vec3( up );
+}
+
+/*
+=====================================================
+
+Camera::UpdateView
+
+=====================================================
+*/
+
+void Camera::UpdateView( void )
+{
+    view = orientation() * glm::translate( glm::mat4( 1.0f ), -position );
+}
+
+/*
+=====================================================
+
+Camera::SetPerspective
+
+=====================================================
+*/
+
+void Camera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
+{
+    projection = glm::perspective( fovy, aspect, zNear, zFar );
+}
+
+/*
+=====================================================
+
+Camera::Reset
+
+=====================================================
+*/
+
+void Camera::Reset( void )
+{
+    position = glm::vec3( 0.0f, 0.0f, 0.0f );
+    rotation = glm::vec3( 0.0f, 0.0f, 0.0f );
+
+    view = glm::mat4( 1.0f );
+}
+
+/*
+=====================================================
+
+BSPRenderer::BSPRenderer
 
 =====================================================
 */
 
 BSPRenderer::BSPRenderer( void )
-    : mVao( 0 ),
-      mMap( NULL ),
-      mLastCameraPosition( 0.0f, 0.0f, 0.0f ),
-      mVisibleFaces( NULL ),
-      mBspProgram( 0 )
+    : vao( 0 ),
+      map( NULL ),
+      lastCameraPosition( 0.0f, 0.0f, 0.0f ),
+      visibleFaces( NULL ),
+      bspProgram( 0 )
 {
 }
+
+/*
+=====================================================
+
+BSPRenderer::~BSPRenderer
+
+=====================================================
+*/
 
 BSPRenderer::~BSPRenderer( void )
 {
-    if ( mMap )
+    if ( map )
     {
-        glDeleteVertexArrays( 1, &mVao );
+        glDeleteVertexArrays( 1, &vao );
 
-        delete mMap;
+        delete map;
+
+        if ( visibleFaces )
+        {
+            free( visibleFaces );
+        }
     }
 
-    if ( mVisibleFaces )
+    if ( bspProgram != 0 )
     {
-        delete mVisibleFaces;
-    }
-
-    if ( mBspProgram != 0 )
-    {
-        glDeleteProgram( mBspProgram );
+        glDeleteProgram( bspProgram );
     }
 }
 
-void BSPRenderer::allocBase( void )
+/*
+=====================================================
+
+BSPRenderer::Prep
+
+Load static, independent data which need not be re-initialized if multiple maps are created.
+
+=====================================================
+*/
+
+void BSPRenderer::Prep( void )
 {
     GLuint shaders[] =
     {
@@ -161,32 +250,40 @@ void BSPRenderer::allocBase( void )
         loadShader( "src/test.frag", GL_FRAGMENT_SHADER )
     };
 
-    mBspProgram = makeProgram( shaders, 2 );
+    bspProgram = makeProgram( shaders, 2 );
 }
 
-void BSPRenderer::loadMap( const std::string& filepath )
+/*
+=====================================================
+
+BSPRenderer::Load
+
+=====================================================
+*/
+
+void BSPRenderer::Load( const std::string& filepath )
 {
-    if ( mMap )
+    if ( map )
     {
-        delete mMap;
+        delete map;
     }
 
-    mMap = new Quake3Map;
+    map = new Quake3Map;
 
-    mMap->read( filepath, 1 );
-    initLogBaseData( mMap );
+    map->Read( filepath, 1 );
+    initLogBaseData( map );
 
-    mVisibleFaces = ( byte* )malloc( mMap->mTotalFaces );
-    memset( mVisibleFaces, 0, mMap->mTotalFaces );
+    visibleFaces = ( byte* )malloc( map->numFaces );
+    memset( visibleFaces, 0, map->numFaces );
 
-    glGenVertexArrays( 1, &mVao );
-    glBindVertexArray( mVao );
+    glGenVertexArrays( 1, &vao );
+    glBindVertexArray( vao );
 
-    glGenBuffers( 1, mBuffers );
-    glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( BspVertex ) * mMap->mTotalVertexes, mMap->mVertexes, GL_STATIC_DRAW );
+    glGenBuffers( 1, bufferObjects );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ 0 ] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( BSPVertex ) * map->numVertexes, map->vertexes, GL_STATIC_DRAW );
 
-    GLint positionAttrib = glGetAttribLocation( mBspProgram, "position" );
+    GLint positionAttrib = glGetAttribLocation( bspProgram, "position" );
 
     glEnableVertexAttribArray( positionAttrib );
     glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, 0, ( void* )0 );
@@ -194,33 +291,33 @@ void BSPRenderer::loadMap( const std::string& filepath )
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
-    mCamera.setPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 800.0f );
+    camera.SetPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 800.0f );
 }
 
 static glm::mat4 testModel( 1.0f );
 const glm::mat4& rotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
-void BSPRenderer::draw( void )
+void BSPRenderer::Draw( void )
 {
-    glBindVertexArray( mVao );
-    glBindBuffer( GL_ARRAY_BUFFER, mBuffers[ 0 ] );
-    glUseProgram( mBspProgram );
+    glBindVertexArray( vao );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ 0 ] );
+    glUseProgram( bspProgram );
 
-    for ( int i = 0; i < mMap->mTotalFaces; ++i )
+    for ( int i = 0; i < map->numFaces; ++i )
     {
-        if ( mVisibleFaces[ i ] == 0 || ( mMap->mFaces[ i ].type != 3 && mMap->mFaces[ i ].type != 1 ) )
+        if ( visibleFaces[ i ] == 0 || ( map->faces[ i ].type != 3 && map->faces[ i ].type != 1 ) )
             continue;
 
-        const BspFace* const face = &mMap->mFaces[ i ];
+        const BSPFace* const face = &map->faces[ i ];
 
-        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( testModel ) );
+        glUniformMatrix4fv( glGetUniformLocation( bspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( testModel ) );
 
         glDrawArrays( GL_TRIANGLES, face->meshVertexOffset, face->numMeshVertexes );
-        logDrawCall( i, mCamera.mPosition, face, mMap );
+        logDrawCall( i, camera.position, face, map );
     }
 
     // Zero this out to reset visibility on the next update.
-    memset( mVisibleFaces, 0, sizeof( byte ) * mMap->mTotalFaces );
+    memset( visibleFaces, 0, sizeof( byte ) * map->numFaces );
 
     glUseProgram( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
@@ -229,23 +326,21 @@ void BSPRenderer::draw( void )
     testModel *= rotMatrix;
 }
 
-static int debug_visibleFaceCount = 0;
-
-void BSPRenderer::update( void )
+void BSPRenderer::Update( void )
 {
-    if ( mCamera.mPosition != mLastCameraPosition )
+    if ( camera.position != lastCameraPosition )
     {
-        BspLeaf* leaf = mMap->findClosestLeaf( mCamera.mPosition );
+        BSPLeaf* leaf = map->FindClosestLeaf( camera.position );
 
-        for ( int i = 0; i < mMap->mVisData->numVectors; ++i )
+        for ( int i = 0; i < map->visdata->numVectors; ++i )
         {
-            if ( mMap->isClusterVisible( leaf->clusterIndex, i ) )
+            if ( map->IsClusterVisible( leaf->clusterIndex, i ) )
             {
                 for ( int f = leaf->leafFaceOffset; f < leaf->leafFaceOffset + leaf->numLeafFaces; ++f )
                 {
-                    if ( mVisibleFaces[ f ] == 0 )
+                    if ( visibleFaces[ f ] == 0 )
                     {
-                        mVisibleFaces[ f ] = 1;
+                        visibleFaces[ f ] = 1;
 
                         myPrintf( "Visible Faces", "Face Found! Num visible faces: %i", ++debug_visibleFaceCount );
                     }
@@ -253,14 +348,14 @@ void BSPRenderer::update( void )
             }
         }
 
-        mCamera.updateView();
+        camera.UpdateView();
 
-        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "view" ), 1, GL_FALSE, glm::value_ptr( mCamera.view() ) );
-        glUniformMatrix4fv( glGetUniformLocation( mBspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( mCamera.projection() ) );
+        glUniformMatrix4fv( glGetUniformLocation( bspProgram, "view" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
+        glUniformMatrix4fv( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
 
-        mLastCameraPosition = mCamera.mPosition;
+        lastCameraPosition = camera.position;
 
-        myPrintf( "Camera Position", "x => %f, y => %f z => %f", mCamera.mPosition.x, mCamera.mPosition.y, mCamera.mPosition.z );
+        myPrintf( "Camera Position", "x => %f, y => %f z => %f", camera.position.x, camera.position.y, camera.position.z );
     }
 }
 

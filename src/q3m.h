@@ -2,6 +2,26 @@
 
 #include "common.h"
 
+/*
+=====================================================
+
+                    q3m.h
+
+        Contains data structure definitions
+        for ID's IBSP map format, along with
+        a map loader and parser.
+
+        Readers of this file should be familiar with
+        documentation on ID's BSP file format if they
+        are to understand this.
+
+        Basic documentation can be found at http://www.mralligator.com/q3/
+
+=====================================================
+*/
+
+
+// BSP file meta-data
 enum
 {
     BSP_HEX_ID = 0x49425350,
@@ -33,29 +53,36 @@ enum
 
 };
 
-struct BspLump
+/*
+=====================================================
+
+                BSP Map Structs
+
+=====================================================
+*/
+
+struct BSPLump
 {
     int offset;
     int length;
 };
 
-struct BspHeader
+struct BSPHeader
 {
     char        id[ 4 ];
 
     int         version;
 
-    BspLump     directories[ 17 ];
+    BSPLump     directories[ 17 ];
 };
 
-
-struct BspPlane
+struct BSPPlane
 {
     vec3f       normal;
     float       distance;
 };
 
-struct BspNode
+struct BSPNode
 {
     int     plane;
     int     children[ 2 ];
@@ -64,7 +91,7 @@ struct BspNode
     vec3i   boxMax;
 };
 
-struct BspLeaf
+struct BSPLeaf
 {
     int clusterIndex;
     int areaPortal;
@@ -79,12 +106,12 @@ struct BspLeaf
     int numLeafBrushes;
 };
 
-struct BspLeafFace
+struct BSPLeafFace
 {
     int index;
 };
 
-struct BspModel
+struct BSPModel
 {
     vec3f boxMax;
     vec3f boxMin;
@@ -96,7 +123,7 @@ struct BspModel
     int numBrushes;
 };
 
-struct BspVertex
+struct BSPVertex
 {
     vec3f position;
     vec2f texcoords[ 2 ];
@@ -105,12 +132,12 @@ struct BspVertex
     byte color[ 4 ];
 };
 
-struct BspMeshVertex
+struct BSPMeshVertex
 {
     int offset;
 };
 
-struct BspFace
+struct BSPFace
 {
     int texture;
     int effect;
@@ -133,13 +160,21 @@ struct BspFace
     int     size[ 2 ];
 };
 
-struct BspVisData
+struct BSPVisdata
 {
     int     numVectors;
     int     sizeVector;
 
     byte*   bitsets;
 };
+
+/*
+=====================================================
+
+        Quake3Map: map loader and parser.
+
+=====================================================
+*/
 
 class Quake3Map
 {
@@ -149,37 +184,35 @@ public:
 
     ~Quake3Map( void );
 
-    void read( const std::string& filepath, int divisionScale );
+    void            Read( const std::string& filepath, int divisionScale );
 
-    BspLeaf* findClosestLeaf( const glm::vec3& camPos );
+    BSPLeaf*        FindClosestLeaf( const glm::vec3& camPos );
 
-    bool isClusterVisible( int visCluster, int testCluster );
+    bool            IsClusterVisible( int sourceCluster, int testCluster );
 
-    BspNode*        mNodes;
-    BspLeaf*        mLeaves;
-    BspPlane*       mPlanes;
-    BspVertex*      mVertexes;
-    BspModel*       mModels;
-    BspFace*        mFaces;
-    BspLeafFace*    mLeafFaces;
-    BspMeshVertex*  mMeshVertexes;
-    BspVisData*     mVisData;
+    BSPNode*        nodes;
+    BSPLeaf*        leaves;
+    BSPPlane*       planes;
+    BSPVertex*      vertexes;
+    BSPModel*       models;
+    BSPFace*        faces;
+    BSPLeafFace*    leafFaces;
+    BSPMeshVertex*  meshVertexes;
+    BSPVisdata*     visdata;
 
-    int          mTotalNodes;
-    int          mTotalLeaves;
-    int          mTotalPlanes;
-    int          mTotalVertexes;
-    int          mTotalModels;
-    int          mTotalFaces;
-    int          mTotalLeafFaces;
-    int          mTotalMeshVertexes;
-    int          mTotalVisVecs;
+    int             numNodes;
+    int             numLeaves;
+    int             numPlanes;
+    int             numVertexes;
+    int             numModels;
+    int             numFaces;
+    int             numLeafFaces;
+    int             numMeshVertexes;
+    int             numVisdataVecs;
 
 private:
 
-    void convertFaceRangeToRHC( size_t start, size_t end );
+    BSPHeader       header;
 
-    BspHeader       mHeader;
-
-    bool            mMapAllocd;
+    bool            mapAllocated;
 };

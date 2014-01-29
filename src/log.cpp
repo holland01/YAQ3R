@@ -56,11 +56,11 @@ void exitOnGLError( const char* caller )
 
 void initLogBaseData( Quake3Map* map )
 {
-    meshVertexOffsets = ( int* )malloc( sizeof( int ) * map->mTotalMeshVertexes );
-    memset( meshVertexOffsets, 0, sizeof( int ) * map->mTotalFaces );
+    meshVertexOffsets = ( int* )malloc( sizeof( int ) * map->numMeshVertexes );
+    memset( meshVertexOffsets, 0, sizeof( int ) * map->numFaces );
 }
 
-void logDrawCall( int faceIndex, const glm::vec3& camPos, const BspFace* const face, const Quake3Map* const map )
+void logDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const face, const Quake3Map* const map )
 {
     std::stringstream ss;
 
@@ -72,9 +72,9 @@ void logDrawCall( int faceIndex, const glm::vec3& camPos, const BspFace* const f
 
     for ( int i = face->meshVertexOffset; i < face->meshVertexOffset + face->numMeshVertexes; ++i )
     {
-        ss << "[ " << i << "]: { " << map->mVertexes[ i ].position.x << ", "
-                                   << map->mVertexes[ i ].position.y << ", "
-                                   << map->mVertexes[ i ].position.z << " }\n";
+        ss << "[ " << i << "]: { " << map->vertexes[ i ].position.x << ", "
+                                   << map->vertexes[ i ].position.y << ", "
+                                   << map->vertexes[ i ].position.z << " }\n";
     }
 
     ss << "\n } \n";
@@ -98,7 +98,7 @@ void logBspData( BspDataType type, void* data, int length )
         case BSP_LOG_VERTEXES:
         {
 
-            BspVertex* vertexes = ( BspVertex* ) data;
+            BSPVertex* vertexes = ( BSPVertex* ) data;
 
             header = "VERTEXES";
 
@@ -134,7 +134,7 @@ void logBspData( BspDataType type, void* data, int length )
         case BSP_LOG_MESH_VERTEXES:
         {
 
-            BspMeshVertex* meshVertexes = ( BspMeshVertex* ) data;
+            BSPMeshVertex* meshVertexes = ( BSPMeshVertex* ) data;
 
             header = "MESH_VERTEXES";
 

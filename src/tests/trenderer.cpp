@@ -11,7 +11,7 @@ void handleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
             flagExit();
             break;
         default:
-            renderer.mCamera.evalKeyPress( key );
+            renderer.camera.EvalKeyPress( key );
             break;
     }
 
@@ -27,12 +27,12 @@ void loadTestRenderer( GLFWwindow* window )
     glfwSetKeyCallback( window, handleInputTestRenderer );
     glfwSetCursorPosCallback( window, handleMousePosTestRenderer );
 
-    renderer.allocBase();
-    renderer.loadMap( "asset/quake/aty3dm1v2.bsp" );
+    renderer.Prep();
+    renderer.Load( "asset/quake/aty3dm1v2.bsp" );
 }
 
 void drawTestRenderer( void )
 {
-    renderer.update();
-    renderer.draw();
+    renderer.Update();
+    renderer.Draw();
 }

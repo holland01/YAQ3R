@@ -39,11 +39,11 @@ enum BspDataType
     BSP_LOG_MESH_VERTEXES
 };
 
-class BspFace;
-class BspMeshVertex;
+class BSPFace;
+class BSPMeshVertex;
 class Quake3Map;
 
-void logDrawCall( int faceIndex, const glm::vec3& camPos, const BspFace* const face, const Quake3Map* const map );
+void logDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const face, const Quake3Map* const map );
 void logBspData( BspDataType type, void* data, int length );
 
 void myPrintf( const char* header, const char* fmt, ... );

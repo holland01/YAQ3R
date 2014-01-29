@@ -17,7 +17,7 @@ glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
 
 static const glm::mat4& rotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
-GLCamera camera;
+Camera camera;
 
 void handleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
@@ -29,7 +29,7 @@ void handleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, i
                 flagExit();
                 break;
             default:
-                camera.evalKeyPress( key );
+                camera.EvalKeyPress( key );
                 break;
         }
     }
@@ -39,7 +39,7 @@ void handleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, i
 
 void handleMousePosTestTexture( GLFWwindow* w, double x, double y )
 {
-    camera.evalMouseCoords( ( float ) x, ( float ) y );
+    camera.EvalMouseMove( ( float ) x, ( float ) y );
 }
 
 void loadTestTexture( GLFWwindow* window )
@@ -151,7 +151,7 @@ void loadTestTexture( GLFWwindow* window )
 
     glBindTexture( GL_TEXTURE_2D, 0 );
 
-    camera.setPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 100.0f );
+    camera.SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 100.0f );
 }
 
 void drawTestTexture( void )
@@ -167,8 +167,8 @@ void drawTestTexture( void )
     glUniform1i( glGetUniformLocation( program, "sampler" ), 0 );
 
     glUniformMatrix4fv( glGetUniformLocation( program, "model" ), 1, GL_FALSE, glm::value_ptr( cubeModel ) );
-    glUniformMatrix4fv( glGetUniformLocation( program, "view" ), 1, GL_FALSE, glm::value_ptr( camera.view() ) );
-    glUniformMatrix4fv( glGetUniformLocation( program, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.projection() ) );
+    glUniformMatrix4fv( glGetUniformLocation( program, "view" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
+    glUniformMatrix4fv( glGetUniformLocation( program, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
 
     glDrawArrays( GL_TRIANGLES, 0, 36 );
 
@@ -178,6 +178,6 @@ void drawTestTexture( void )
     glBindVertexArray( 0 );
     glUseProgram( 0 );
 
-    camera.updateView();
+    camera.UpdateView();
     cubeModel *= rotMatrix;
 }

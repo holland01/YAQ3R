@@ -1,54 +1,57 @@
 #pragma once
 
 #include "common.h"
+
+#define BSP_RENDERER_NUM_VBOS 2
+
 /*
 =====================================================
 
-                    GLCamera
+                    Camera
 
 =====================================================
 */
 
-class GLCamera
+class Camera
 {
 public:
-    GLCamera( void );
+    Camera( void );
 
-    void evalKeyPress( int key );
+    void EvalKeyPress( int key );
 
-    void evalMouseCoords( float x, float y );
+    void EvalMouseMove( float x, float y );
 
-    void walk( float step );
-    void strafe( float step );
-    void raise ( float step );
+    void Walk( float step );
+    void Strafe( float step );
+    void Raise( float step );
 
-    void updateView( void );
+    void UpdateView( void );
 
-    void setPerspective( float fovy, float aspect, float zNear, float zFar );
+    void SetPerspective( float fovy, float aspect, float zNear, float zFar );
 
-    void reset( void );
+    void Reset( void );
 
-    const glm::mat4& view( void ) const { return mView; }
-    const glm::mat4& projection( void ) const { return mProjection; }
+    const glm::mat4& View( void ) const { return view; }
+    const glm::mat4& Projection( void ) const { return projection; }
 
-    glm::mat4 orientation( void );
+    glm::mat4   orientation( void );
 
-    glm::vec3   mPosition;
+    glm::vec3   position;
 
-    glm::vec3   mRotation;
+    glm::vec3   rotation;
 
 private:
 
-    glm::mat4   mView, mProjection;
+    glm::mat4   view, projection;
 
-    glm::vec2   mLastMouse;
+    glm::vec2   lastMouse;
 };
 
 
 /*
 =====================================================
 
-                    GLRenderer
+                    BSPRenderer
 
 =====================================================
 */
@@ -59,30 +62,30 @@ class BSPRenderer
 {
 public:
 
-    GLCamera   mCamera;
+    Camera   camera;
 
     BSPRenderer( void );
 
     ~BSPRenderer( void );
 
-    void allocBase( void );
+    void Prep( void );
 
-    void loadMap( const std::string& filepath );
+    void Load( const std::string& filepath );
 
-    void draw( void );
+    void Draw( void );
 
-    void update( void );
+    void Update( void );
 
 private:
 
-    GLuint              mVao, mBuffers[ 2 ];
+    GLuint              vao, bufferObjects[ BSP_RENDERER_NUM_VBOS ];
 
-    Quake3Map*          mMap;
+    Quake3Map*          map;
 
-    glm::vec3           mLastCameraPosition;
+    glm::vec3           lastCameraPosition;
 
-    byte*               mVisibleFaces;
+    byte*               visibleFaces;
 
-    GLuint              mBspProgram;
+    GLuint              bspProgram;
 
 };
