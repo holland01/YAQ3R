@@ -10,18 +10,18 @@ GLuint LinkProgram( GLuint shaders[], int len )
 
     glLinkProgram( program );
 
-    GLint link_success;
-    glGetProgramiv( program, GL_LINK_STATUS, &link_success );
+    GLint linkSuccess;
+    glGetProgramiv( program, GL_LINK_STATUS, &linkSuccess );
 
-    if ( !link_success )
+    if ( !linkSuccess )
     {
-        GLint log_len;
-        glGetProgramiv( program, GL_INFO_LOG_LENGTH, &log_len );
+        GLint logLen;
+        glGetProgramiv( program, GL_INFO_LOG_LENGTH, &logLen );
 
-        char info_log[ log_len ];
-        glGetProgramInfoLog( program, log_len, NULL, info_log );
+        char infoLog[ logLen ];
+        glGetProgramInfoLog( program, logLen, NULL, infoLog );
 
-        ERROR( "GLSL LINK ERROR: %s", info_log );
+        ERROR( "GLSL LINK ERROR: %s", infoLog );
     }
 
     for ( int i = 0; i < len; ++i )

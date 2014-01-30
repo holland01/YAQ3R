@@ -84,7 +84,7 @@ void ExitOnGLError( const char* caller )
         const char* errorString = ( const char* ) gluErrorString( error );
 
         MyPrintf( caller, "GL ERROR: %s", errorString );
-        flagExit();
+        FlagExit();
     }
 }
 
@@ -96,11 +96,13 @@ LogDrawCall
 ===============================
 */
 
-void LogDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const face, const Quake3Map* const map )
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const BSPFace* const face, const Quake3Map* const map )
 {
     std::stringstream ss;
 
-    ss << "Camera Pos: { " << camPos.x << ", " << camPos.y << ", " << camPos.z << " }"
+    ss << "Camera Pos: { " << camPos.x << ", " << camPos.y << ", " << camPos.z << " }, \n"
+       << "leafBoundsCenter: { " << leafBoundsCenter.x << ", " << leafBoundsCenter.y << ", " << leafBoundsCenter.z << " }, \n"
+       << "Translation Vector: { " << faceTransform[ 3 ][ 0 ] << ", " << faceTransform[ 3 ][ 1 ] << ", " << faceTransform[ 3 ][ 2 ] << " }, \n"
        << "face: " << faceIndex << ",\n"
        << "numMeshVertices: " << face->numMeshVertexes << ", \n"
        << "meshVertexOffset: " << face->meshVertexOffset << ", \n"
@@ -118,6 +120,8 @@ void LogDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const f
     MyPrintf( "YOU HAS A DRAW",
               "%s",
               ss.str().c_str() );
+
+
 }
 
 /*

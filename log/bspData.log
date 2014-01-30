@@ -16,7 +16,7 @@ Vertex [ 0 ]
 		 y: 0.214844
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -38,8 +38,8 @@ Vertex [ 1 ]
 		 y: 0.214844
 	 normal:
 		 x: 0
-		 y: -0.707107
-		 z: -0.707107
+		 y: -0.235702
+		 z: -0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -61,7 +61,7 @@ Vertex [ 2 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: -1
+		 z: -0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -82,7 +82,7 @@ Vertex [ 3 ]
 		 y: 0.300781
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -104,8 +104,8 @@ Vertex [ 4 ]
 		 y: 0.300781
 	 normal:
 		 x: 0
-		 y: -0.707107
-		 z: -0.707107
+		 y: -0.235702
+		 z: -0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -127,7 +127,7 @@ Vertex [ 5 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: -1
+		 z: -0.333333
 	 color byte:
 		 r: 
 
@@ -149,7 +149,7 @@ Vertex [ 6 ]
 		 y: 0.386719
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -171,8 +171,8 @@ Vertex [ 7 ]
 		 y: 0.386719
 	 normal:
 		 x: 0
-		 y: -0.707107
-		 z: -0.707107
+		 y: -0.235702
+		 z: -0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -194,7 +194,7 @@ Vertex [ 8 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: -1
+		 z: -0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -216,7 +216,7 @@ Vertex [ 9 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -236,9 +236,9 @@ Vertex [ 10 ]
 		 x: 0.882812
 		 y: 0.121094
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -258,7 +258,7 @@ Vertex [ 11 ]
 		 x: 0.910156
 		 y: 0.121094
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -282,7 +282,7 @@ Vertex [ 12 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: L
 		 g: A
@@ -302,9 +302,9 @@ Vertex [ 13 ]
 		 x: 0.882812
 		 y: 0.175781
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 4
 		 g: .
@@ -324,7 +324,7 @@ Vertex [ 14 ]
 		 x: 0.910156
 		 y: 0.175781
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -348,7 +348,7 @@ Vertex [ 15 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -368,9 +368,9 @@ Vertex [ 16 ]
 		 x: 0.882812
 		 y: 0.230469
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -390,7 +390,7 @@ Vertex [ 17 ]
 		 x: 0.910156
 		 y: 0.230469
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -414,7 +414,7 @@ Vertex [ 18 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -434,9 +434,9 @@ Vertex [ 19 ]
 		 x: 0.15625
 		 y: 0.519531
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -456,7 +456,7 @@ Vertex [ 20 ]
 		 x: 0.183594
 		 y: 0.519531
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -480,7 +480,7 @@ Vertex [ 21 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -500,9 +500,9 @@ Vertex [ 22 ]
 		 x: 0.15625
 		 y: 0.527344
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -522,7 +522,7 @@ Vertex [ 23 ]
 		 x: 0.183594
 		 y: 0.527344
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -546,7 +546,7 @@ Vertex [ 24 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -566,9 +566,9 @@ Vertex [ 25 ]
 		 x: 0.15625
 		 y: 0.535156
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -588,7 +588,7 @@ Vertex [ 26 ]
 		 x: 0.183594
 		 y: 0.535156
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -612,7 +612,7 @@ Vertex [ 27 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -632,9 +632,9 @@ Vertex [ 28 ]
 		 x: 0.15625
 		 y: 0.542969
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -654,7 +654,7 @@ Vertex [ 29 ]
 		 x: 0.183594
 		 y: 0.542969
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -678,7 +678,7 @@ Vertex [ 30 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -698,9 +698,9 @@ Vertex [ 31 ]
 		 x: 0.15625
 		 y: 0.550781
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -720,7 +720,7 @@ Vertex [ 32 ]
 		 x: 0.183594
 		 y: 0.550781
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -744,7 +744,7 @@ Vertex [ 33 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -764,9 +764,9 @@ Vertex [ 34 ]
 		 x: 0.15625
 		 y: 0.558594
 	 normal:
-		 x: 0.707107
+		 x: 0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -786,7 +786,7 @@ Vertex [ 35 ]
 		 x: 0.183594
 		 y: 0.558594
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -808,7 +808,7 @@ Vertex [ 36 ]
 		 x: 0.917969
 		 y: 0.121094
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -830,9 +830,9 @@ Vertex [ 37 ]
 		 x: 0.945312
 		 y: 0.121094
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -854,7 +854,7 @@ Vertex [ 38 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -874,7 +874,7 @@ Vertex [ 39 ]
 		 x: 0.917969
 		 y: 0.175781
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -896,9 +896,9 @@ Vertex [ 40 ]
 		 x: 0.945312
 		 y: 0.175781
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 5
 		 g: /
@@ -920,7 +920,7 @@ Vertex [ 41 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: M
 		 g: A
@@ -940,7 +940,7 @@ Vertex [ 42 ]
 		 x: 0.917969
 		 y: 0.230469
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -962,9 +962,9 @@ Vertex [ 43 ]
 		 x: 0.945312
 		 y: 0.230469
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -986,7 +986,7 @@ Vertex [ 44 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1006,7 +1006,7 @@ Vertex [ 45 ]
 		 x: 0.378906
 		 y: 0.566406
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1028,9 +1028,9 @@ Vertex [ 46 ]
 		 x: 0.40625
 		 y: 0.566406
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -1052,7 +1052,7 @@ Vertex [ 47 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1072,7 +1072,7 @@ Vertex [ 48 ]
 		 x: 0.378906
 		 y: 0.574219
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1094,9 +1094,9 @@ Vertex [ 49 ]
 		 x: 0.40625
 		 y: 0.574219
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -1118,7 +1118,7 @@ Vertex [ 50 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1138,7 +1138,7 @@ Vertex [ 51 ]
 		 x: 0.378906
 		 y: 0.582031
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1160,9 +1160,9 @@ Vertex [ 52 ]
 		 x: 0.40625
 		 y: 0.582031
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -1184,7 +1184,7 @@ Vertex [ 53 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1204,7 +1204,7 @@ Vertex [ 54 ]
 		 x: 0.191406
 		 y: 0.566406
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1226,9 +1226,9 @@ Vertex [ 55 ]
 		 x: 0.21875
 		 y: 0.566406
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -1250,7 +1250,7 @@ Vertex [ 56 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1270,7 +1270,7 @@ Vertex [ 57 ]
 		 x: 0.191406
 		 y: 0.574219
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1294,9 +1294,9 @@ Vertex [ 58 ]
 		 x: 0.21875
 		 y: 0.574219
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -1318,7 +1318,7 @@ Vertex [ 59 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1338,7 +1338,7 @@ Vertex [ 60 ]
 		 x: 0.191406
 		 y: 0.582031
 	 normal:
-		 x: -1
+		 x: -0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1360,9 +1360,9 @@ Vertex [ 61 ]
 		 x: 0.21875
 		 y: 0.582031
 	 normal:
-		 x: -0.707107
+		 x: -0.235702
 		 y: 0
-		 z: 0.707107
+		 z: 0.235702
 	 color byte:
 		 r: 
 		 g: 
@@ -1384,7 +1384,7 @@ Vertex [ 62 ]
 	 normal:
 		 x: 0
 		 y: 0
-		 z: 1
+		 z: 0.333333
 	 color byte:
 		 r: 
 		 g: 
@@ -1405,7 +1405,7 @@ Vertex [ 63 ]
 		 y: 0.261719
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1426,8 +1426,8 @@ Vertex [ 64 ]
 		 x: 0.453125
 		 y: 0.261719
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1448,7 +1448,7 @@ Vertex [ 65 ]
 		 x: 0.503906
 		 y: 0.261719
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1471,7 +1471,7 @@ Vertex [ 66 ]
 		 y: 0.347656
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: "
@@ -1492,8 +1492,8 @@ Vertex [ 67 ]
 		 x: 0.453125
 		 y: 0.347656
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1514,7 +1514,7 @@ Vertex [ 68 ]
 		 x: 0.503906
 		 y: 0.347656
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1537,7 +1537,7 @@ Vertex [ 69 ]
 		 y: 0.433594
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1558,8 +1558,8 @@ Vertex [ 70 ]
 		 x: 0.453125
 		 y: 0.433594
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1580,7 +1580,7 @@ Vertex [ 71 ]
 		 x: 0.503906
 		 y: 0.433594
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1604,7 +1604,7 @@ Vertex [ 72 ]
 		 y: 0.417969
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1625,8 +1625,8 @@ Vertex [ 73 ]
 		 x: 0.445312
 		 y: 0.417969
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1647,7 +1647,7 @@ Vertex [ 74 ]
 		 x: 0.496094
 		 y: 0.417969
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1671,7 +1671,7 @@ Vertex [ 75 ]
 		 y: 0.425781
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1693,8 +1693,8 @@ Vertex [ 76 ]
 		 x: 0.445312
 		 y: 0.425781
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1715,7 +1715,7 @@ Vertex [ 77 ]
 		 x: 0.496094
 		 y: 0.425781
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1738,7 +1738,7 @@ Vertex [ 78 ]
 		 y: 0.433594
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1760,8 +1760,8 @@ Vertex [ 79 ]
 		 x: 0.445312
 		 y: 0.433594
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1782,7 +1782,7 @@ Vertex [ 80 ]
 		 x: 0.496094
 		 y: 0.433594
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1804,7 +1804,7 @@ Vertex [ 81 ]
 		 x: 0.535156
 		 y: 0.472656
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1826,8 +1826,8 @@ Vertex [ 82 ]
 		 x: 0.585938
 		 y: 0.472656
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1849,7 +1849,7 @@ Vertex [ 83 ]
 		 y: 0.472656
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1870,7 +1870,7 @@ Vertex [ 84 ]
 		 x: 0.535156
 		 y: 0.480469
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:
@@ -1892,8 +1892,8 @@ Vertex [ 85 ]
 		 x: 0.585938
 		 y: 0.480469
 	 normal:
-		 x: 0.707107
-		 y: -0.707107
+		 x: 0.235702
+		 y: -0.235702
 		 z: -0
 	 color byte:
 		 r: 
@@ -1915,7 +1915,7 @@ Vertex [ 86 ]
 		 y: 0.480469
 	 normal:
 		 x: 0
-		 y: -1
+		 y: -0.333333
 		 z: -0
 	 color byte:
 		 r: 
@@ -1936,7 +1936,7 @@ Vertex [ 87 ]
 		 x: 0.535156
 		 y: 0.488281
 	 normal:
-		 x: 1
+		 x: 0.333333
 		 y: 0
 		 z: -0
 	 color byte:

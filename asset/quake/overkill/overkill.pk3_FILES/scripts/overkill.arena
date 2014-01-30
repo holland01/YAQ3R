@@ -1,0 +1,7 @@
+{
+map	"overkill"
+longname	"Overkill!"
+bots	"stripe ranger anarki biker crash bones bitterman"
+fraglimit	20
+type	"ffa tourney"
+}

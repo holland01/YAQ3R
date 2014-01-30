@@ -8,7 +8,7 @@ void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
     switch ( key )
     {
         case GLFW_KEY_ESCAPE:
-            flagExit();
+            FlagExit();
             break;
         default:
             renderer.camera.EvalKeyPress( key );

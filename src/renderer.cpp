@@ -2,6 +2,7 @@
 #include "q3m.h"
 #include "shader.h"
 #include "log.h"
+#include "math_util.h"
 
 /*
 =====================================================
@@ -46,7 +47,7 @@ Camera::EvalKeyPress
 =====================================================
 */
 
-const float CAM_STEP_SPEED = 2.0f;
+const float CAM_STEP_SPEED = 1.0f;
 
 void Camera::EvalKeyPress( int key )
 {
@@ -200,7 +201,8 @@ BSPRenderer::BSPRenderer( void )
       map( NULL ),
       lastCameraPosition( 0.0f, 0.0f, 0.0f ),
       visibleFaces( NULL ),
-      bspProgram( 0 )
+      bspProgram( 0 ),
+      currentLeaf( NULL )
 {
 }
 
@@ -236,7 +238,7 @@ BSPRenderer::~BSPRenderer( void )
 =====================================================
 
 BSPRenderer::Prep
-
+info_log
 Load static, independent data which need not be re-initialized if multiple maps are created.
 
 =====================================================
@@ -272,7 +274,7 @@ void BSPRenderer::Load( const std::string& filepath )
 
     map = new Quake3Map;
 
-    map->Read( filepath, 1 );
+    map->Read( filepath, 3 );
 
     visibleFaces = ( byte* )malloc( map->numFaces );
     memset( visibleFaces, 0, map->numFaces );
@@ -303,11 +305,13 @@ BSPRenderer::Draw
 =====================================================
 */
 
-static glm::mat4 testModel( 1.0f );
-static const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
-
 void BSPRenderer::Draw( void )
 {
+    if ( !currentLeaf )
+    {
+        return;
+    }
+
     glBindVertexArray( vao );
     glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ 0 ] );
     glUseProgram( bspProgram );
@@ -319,20 +323,17 @@ void BSPRenderer::Draw( void )
 
         const BSPFace* const face = &map->faces[ i ];
 
-        glUniformMatrix4fv( glGetUniformLocation( bspProgram, "model" ), 1, GL_FALSE, glm::value_ptr( testModel ) );
 
-        glDrawArrays( GL_TRIANGLES, face->meshVertexOffset, face->numMeshVertexes );
-        LogDrawCall( i, camera.position, face, map );
+        glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ].offset );
+       // LogDrawCall( i, boundsCenter, camera.position, faceTransform, face, map );
     }
 
     // Zero this out to reset visibility on the next update.
-    memset( visibleFaces, 0, sizeof( byte ) * map->numFaces );
+   // memset( visibleFaces, 0, sizeof( byte ) * map->numFaces );
 
     glUseProgram( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindVertexArray( 0 );
-
-    testModel *= testRotMatrix;
 }
 
 /*
@@ -350,19 +351,19 @@ BSPRenderer::Update
 void BSPRenderer::Update( void )
 {
 
-    BSPLeaf* leaf = map->FindClosestLeaf( camera.position );
+    currentLeaf = map->FindClosestLeaf( camera.position );
 
-    for ( int i = 0; i < map->visdata->numVectors; ++i )
+    for ( int i = 0; i < map->numLeaves; ++i )
     {
-        if ( map->IsClusterVisible( leaf->clusterIndex, i ) )
+        if ( map->IsClusterVisible( currentLeaf->clusterIndex, map->leaves[ i ].clusterIndex ) )
         {
-            for ( int f = leaf->leafFaceOffset; f < leaf->leafFaceOffset + leaf->numLeafFaces; ++f )
+            for ( int f = currentLeaf->leafFaceOffset; f < currentLeaf->leafFaceOffset + currentLeaf->numLeafFaces; ++f )
             {
                 if ( visibleFaces[ f ] == 0 )
                 {
                     visibleFaces[ f ] = 1;
 
-                    MyPrintf( "Visible Faces", "Face Found! Num visible faces: %i", ++debug_visibleFaceCount );
+                    MyPrintf( "Visible Faces", "Face Found!" );
                 }
             }
         }
@@ -370,11 +371,16 @@ void BSPRenderer::Update( void )
 
     camera.UpdateView();
 
-    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "view" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
+    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "modelview" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
     glUniformMatrix4fv( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
+
+    if ( lastCameraPosition != camera.position )
+    {
+        MyPrintf( "Camera Position", "x => %f, y => %f z => %f", camera.position.x, camera.position.y, camera.position.z );
+    }
 
     lastCameraPosition = camera.position;
 
-    MyPrintf( "Camera Position", "x => %f, y => %f z => %f", camera.position.x, camera.position.y, camera.position.z );
+
 }
 

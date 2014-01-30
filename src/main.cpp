@@ -8,7 +8,7 @@ GLFWwindow* window = NULL;
 
 bool running = false;
 
-void flagExit( void )
+void FlagExit( void )
 {
     running = false;
     KillLog();

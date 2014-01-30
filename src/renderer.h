@@ -74,6 +74,7 @@ private:
 */
 
 class Quake3Map;
+class BSPLeaf;
 
 class BSPRenderer
 {
@@ -104,5 +105,7 @@ private:
     byte*               visibleFaces;
 
     GLuint              bspProgram;
+
+    BSPLeaf*            currentLeaf;
 
 };

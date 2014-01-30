@@ -26,7 +26,7 @@ void HandleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, i
         switch ( key )
         {
             case GLFW_KEY_ESCAPE:
-                flagExit();
+                FlagExit();
                 break;
             default:
                 camera.EvalKeyPress( key );

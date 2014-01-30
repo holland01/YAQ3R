@@ -26,7 +26,7 @@ enum BSPLogType
     BSP_LOG_MESH_VERTEXES
 };
 
-void LogDrawCall( int faceIndex, const glm::vec3& camPos, const BSPFace* const face, const Quake3Map* const map );
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const BSPFace* const face, const Quake3Map* const map );
 void LogBSPData( BSPLogType type, void* data, int length );
 
 void MyPrintf( const char* header, const char* fmt, ... );
@@ -45,9 +45,9 @@ void KillLog( void );
     do                                                      \
     {                                                       \
         puts("======== ERROR ========");                    \
-        myPrintf( ( __func__ ), args );                   \
+        MyPrintf( ( __func__ ), args );                   \
         puts("=======================");                    \
-        flagExit();                                         \
+        FlagExit();                                         \
     }                                                       \
     while( 0 )
 
@@ -55,7 +55,7 @@ void KillLog( void );
     do                                                      \
     {                                                       \
         puts("======== WARNING ========");                  \
-        myPrintf( ( __func__ ), args );                   \
+        MyPrintf( ( __func__ ), args );                   \
         puts("=======================");                    \
     }                                                       \
     while( 0 )

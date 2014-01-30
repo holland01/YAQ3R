@@ -19,7 +19,9 @@ HEADERS += \
     src/gldebug.h \
     src/tests/texture.h \
     src/tests/trenderer.h \
-    src/def.h
+    src/def.h \
+    src/q3m_model.h \
+    src/math_util.h
 
 OTHER_FILES += \
     src/test.vert \
@@ -31,7 +33,8 @@ OTHER_FILES += \
     log/bspData.log \
     log/gl.log \
     src/tex2D.vert \
-    src/tex2D.frag
+    src/tex2D.frag \
+    asset/quake/overkill.bsp
 
 SOURCES += \
     src/shader.cpp \
@@ -41,5 +44,7 @@ SOURCES += \
     src/main.cpp \
     src/gldebug.cpp \
     src/tests/texture.cpp \
-    src/tests/trenderer.cpp
+    src/tests/trenderer.cpp \
+    src/q3m_model.cpp \
+    src/math_util.cpp
 

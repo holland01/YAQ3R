@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-void flagExit( void );
+void FlagExit( void );
 
 extern FILE* globalDrawLog;
 extern FILE* globalBspDataLog;
