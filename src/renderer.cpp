@@ -32,7 +32,10 @@ Camera::Camera( void )
       view( 1.0f ),
       projection( glm::perspective( 45.0f, 16.0f / 9.0f, 0.1f, 500.0f ) )
 {
-    ZeroOutKeys();
+    for ( int i = 0; i < KEY_COUNT; ++i )
+    {
+        keysPressed[ i ] = KEY_NOT_PRESSED;
+    }
 }
 
 /*
@@ -173,6 +176,10 @@ void Camera::UpdateView( void )
     const glm::mat4& orient = Orientation();
     const glm::mat4& inverseOrient = glm::inverse( orient );
 
+    // Each vector component is computed with one vector and then extracted individually.
+    // This is because the inverseOrient transform can manipulate values in the vector
+    // inadvertently for keys which haven't been pressed.
+
     if ( keysPressed[ KEY_FORWARD ] == KEY_PRESSED )
     {
         moveVec.z += ( inverseOrient * glm::vec4( 0.0f, 0.0f, -CAM_STEP_SPEED, 1.0f ) ).z;
@@ -203,24 +210,6 @@ void Camera::UpdateView( void )
     position += glm::vec3( moveVec );
 
     view = orient * glm::translate( glm::mat4( 1.0f ), -position );
-}
-
-/*
-=====================================================
-
-Camera::ZeroOutKeys
-
-Set all bools in the 'keysPressed' array to false
-
-=====================================================
-*/
-
-void Camera::ZeroOutKeys( void )
-{
-    for ( int i = 0; i < KEY_COUNT; ++i )
-    {
-        keysPressed[ i ] = KEY_NOT_PRESSED;
-    }
 }
 
 /*
@@ -261,12 +250,11 @@ BSPRenderer::BSPRenderer
 */
 
 BSPRenderer::BSPRenderer( void )
-    : vao( 0 ),
-      map( NULL ),
-      lastCameraPosition( 0.0f, 0.0f, 0.0f ),
-      visibleFaces( NULL ),
-      bspProgram( 0 ),
-      currentLeaf( NULL )
+    : bspProgram( 0 ),
+      vao( 0 ),
+      vbo( 0 ),
+      lastCameraPosition( 0.0f ),
+      visibleFaces( NULL )
 {
 }
 
@@ -280,22 +268,14 @@ BSPRenderer::~BSPRenderer
 
 BSPRenderer::~BSPRenderer( void )
 {
-    if ( map )
+    if ( visibleFaces )
     {
-        glDeleteVertexArrays( 1, &vao );
-
-        delete map;
-
-        if ( visibleFaces )
-        {
-            free( visibleFaces );
-        }
+        free( visibleFaces );
     }
 
-    if ( bspProgram != 0 )
-    {
-        glDeleteProgram( bspProgram );
-    }
+    glDeleteVertexArrays( 1, &vao );
+    glDeleteProgram( bspProgram );
+    glDeleteBuffers( 1, &vbo );
 }
 
 /*
@@ -310,6 +290,9 @@ Load static, independent data which need not be re-initialized if multiple maps 
 
 void BSPRenderer::Prep( void )
 {
+    glGenBuffers( 1, &vbo );
+    glGenVertexArrays( 1, &vao );
+
     GLuint shaders[] =
     {
         CompileShader( "src/main.vert", GL_VERTEX_SHADER ),
@@ -317,6 +300,8 @@ void BSPRenderer::Prep( void )
     };
 
     bspProgram = LinkProgram( shaders, 2 );
+
+    glUseProgram( bspProgram );
 }
 
 /*
@@ -331,38 +316,35 @@ BSPRenderer::Load
 
 void BSPRenderer::Load( const std::string& filepath )
 {
-    if ( map )
+    if ( map.IsAllocated() )
     {
-        delete map;
+        map.DestroyMap();
+
+        if ( visibleFaces )
+        {
+            free( visibleFaces );
+        }
     }
 
-    map = new Quake3Map;
+    map.Read( filepath, 1 );
 
-    map->Read( filepath, 1 );
+    visibleFaces = ( byte* )malloc( map.numFaces );
+    memset( visibleFaces, 0, map.numFaces );
 
-    visibleFaces = ( byte* )malloc( map->numFaces );
-    memset( visibleFaces, 0, map->numFaces );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( BSPVertex ) * map.numVertexes, map.vertexes, GL_STATIC_DRAW );
 
-    glGenBuffers( 1, bufferObjects );
-    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ 0 ] );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( BSPVertex ) * map->numVertexes, map->vertexes, GL_STATIC_DRAW );
-
-    glGenVertexArrays( 1, &vao );
     glBindVertexArray( vao );
 
     glBindAttribLocation( bspProgram, 0, "position" );
     glBindAttribLocation( bspProgram, 1, "color" );
 
     glEnableVertexAttribArray( 0 );
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( BSPVertex ), ( void* )offsetof( BSPVertex, position ) );
-    glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( BSPVertex ), ( void* )offsetof( BSPVertex, color ) );
-
-    //glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    //glBindVertexArray( 0 );
+    glEnableVertexAttribArray( 1 );
+    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( BSPVertex ), ( void* ) offsetof( BSPVertex, position ) );
+    glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( BSPVertex ), ( void* ) offsetof( BSPVertex, color ) );
 
     camera.SetPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 9000.0f );
-
-    glUseProgram( bspProgram );
 }
 
 /*
@@ -375,20 +357,14 @@ BSPRenderer::Draw
 
 void BSPRenderer::Draw( void )
 {
-    if ( !currentLeaf )
+    for ( int i = 0; i < map.numFaces; ++i )
     {
-        return;
-    }
-
-
-    for ( int i = 0; i < map->numFaces; ++i )
-    {
-        if ( visibleFaces[ i ] == 0 || ( map->faces[ i ].type != 3 && map->faces[ i ].type != 1 ) )
+        if ( visibleFaces[ i ] == 0 || ( map.faces[ i ].type != 3 && map.faces[ i ].type != 1 ) )
             continue;
 
-        const BSPFace* const face = &map->faces[ i ];
+        const BSPFace* const face = &map.faces[ i ];
 
-        glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ].offset );
+        glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
         ExitOnGLError( "Draw" );
     }
 }
@@ -407,12 +383,11 @@ BSPRenderer::Update
 
 void BSPRenderer::Update( void )
 {
+    BSPLeaf* currentLeaf = map.FindClosestLeaf( camera.position );
 
-    currentLeaf = map->FindClosestLeaf( camera.position );
-
-    for ( int i = 0; i < map->numLeaves; ++i )
+    for ( int i = 0; i < map.numLeaves; ++i )
     {
-        if ( map->IsClusterVisible( currentLeaf->clusterIndex, map->leaves[ i ].clusterIndex ) )
+        if ( map.IsClusterVisible( currentLeaf->clusterIndex, map.leaves[ i ].clusterIndex ) )
         {
             for ( int f = currentLeaf->leafFaceOffset; f < currentLeaf->leafFaceOffset + currentLeaf->numLeafFaces; ++f )
             {

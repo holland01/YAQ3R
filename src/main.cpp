@@ -12,17 +12,12 @@ void FlagExit( void )
 {
     running = false;
     KillLog();
-
 }
 
-bool appInit( void )
+bool AppInit( void )
 {
     if ( !glfwInit() )
         return false;
-
-    //glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-    //glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-    //glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 
     window = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
 
@@ -42,8 +37,9 @@ bool appInit( void )
         printf( "Could not initialize GLEW! %s", glewGetErrorString( response ) );
         return false;
     }
-    // GLEW-dependent OpenGL error is thrown on init. This is a temporary hack to get rid of it,
-    // so calls to "exitOnGLError" can be made.
+
+    // GLEW-dependent OpenGL error is pushed on init. This is a temporary hack to just pop
+    // that error off the error stack.
     glGetError();
 
     glEnable( GL_DEPTH_TEST );
@@ -63,7 +59,7 @@ bool appInit( void )
 
 int main( int argc, char** argv )
 {
-    if ( !appInit() )
+    if ( !AppInit() )
         return 1;
 
     LoadTestRenderer( window );

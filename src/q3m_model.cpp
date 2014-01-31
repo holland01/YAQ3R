@@ -3,7 +3,7 @@
 
 Q3MModel* GenModelTransform( int face, Quake3Map* map )
 {
-    //BSPModel* baseModel = &map->models[ 0 ]
+    // TODO
 
     return NULL;
 }

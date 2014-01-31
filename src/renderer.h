@@ -1,8 +1,7 @@
 #pragma once
 
 #include "common.h"
-
-#define BSP_RENDERER_NUM_VBOS 2
+#include "q3m.h"
 
 /*
 =====================================================
@@ -56,8 +55,6 @@ public:
 
 private:
 
-    void        ZeroOutKeys( void );
-
     glm::mat4   view, projection;
 
     int         keysPressed[ 6 ];
@@ -71,9 +68,6 @@ private:
 
 =====================================================
 */
-
-class Quake3Map;
-class BSPLeaf;
 
 class BSPRenderer
 {
@@ -95,16 +89,14 @@ public:
 
 private:
 
-    GLuint              vao, bufferObjects[ BSP_RENDERER_NUM_VBOS ];
+    GLuint              bspProgram;
+    GLuint              vao;
+    GLuint              vbo;
 
-    Quake3Map*          map;
+    Quake3Map           map;
 
     glm::vec3           lastCameraPosition;
 
     byte*               visibleFaces;
-
-    GLuint              bspProgram;
-
-    BSPLeaf*            currentLeaf;
 
 };

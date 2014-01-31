@@ -193,6 +193,10 @@ public:
 
     bool            IsClusterVisible( int sourceCluster, int testCluster );
 
+    bool            IsAllocated( void ) const { return mapAllocated; }
+
+    void            DestroyMap( void );
+
     BSPNode*        nodes;
     BSPLeaf*        leaves;
     BSPPlane*       planes;

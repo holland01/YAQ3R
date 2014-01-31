@@ -2,8 +2,6 @@
 #include "../renderer.h"
 #include "../shader.h"
 
-const unsigned char COLOR_A = 0xFF;
-const unsigned char COLOR_B = 0x88;
 const int TEX_WIDTH = 64;
 const int TEX_HEIGHT = 64;
 
@@ -59,6 +57,7 @@ void LoadTestTexture( GLFWwindow* window )
     glfwSetCursorPosCallback( window, HandleMousePosTestTexture );
     glfwSetInputMode( window, GLFW_CURSOR_DISABLED, GL_TRUE );
 
+    // Generate our texture colors
     for ( int i = 0; i < TEX_WIDTH; ++i )
     {
         for ( int j = 0; j < TEX_HEIGHT; ++j )
@@ -71,12 +70,6 @@ void LoadTestTexture( GLFWwindow* window )
             checkerboard[ i ][ j ][ 3 ] = v;
         }
     }
-
-     GLuint shaders[] =
-    {
-        CompileShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
-        CompileShader( "src/tex2D.frag", GL_FRAGMENT_SHADER )
-    };
 
     GLfloat vertexData[] =
     {
@@ -130,7 +123,16 @@ void LoadTestTexture( GLFWwindow* window )
         -1.0f, -1.0f, -0.5f, 0.0f, 0.0f
     };
 
-    program = LinkProgram( shaders, 2 );
+    program = []( void ) -> GLuint
+    {
+        GLuint shaders[] =
+        {
+            CompileShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
+            CompileShader( "src/tex2D.frag", GL_FRAGMENT_SHADER )
+        };
+
+        return LinkProgram( shaders, 2 );
+    }();
 
     glBindAttribLocation( program, 0, "position" );
     glBindAttribLocation( program, 1, "uv" );

@@ -61,6 +61,21 @@ Quake3Map::~Quake3Map
 
 Quake3Map::~Quake3Map( void )
 {
+    DestroyMap();
+}
+
+/*
+=====================================================
+
+Quake3Map::DestroyMap
+
+Free all dynamically allocated data
+
+=====================================================
+*/
+
+void Quake3Map::DestroyMap( void )
+{
     if ( mapAllocated )
     {
         free( nodes );
@@ -74,6 +89,18 @@ Quake3Map::~Quake3Map( void )
         free( meshVertexes );
 
         free( visdata );
+
+        numFaces = 0;
+        numLeafFaces = 0;
+        numLeaves = 0;
+        numMeshVertexes = 0;
+        numModels = 0;
+        numNodes = 0;
+        numPlanes = 0;
+        numVertexes = 0;
+        numVisdataVecs = 0;
+
+        mapAllocated = false;
     }
 }
 
