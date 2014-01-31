@@ -1,4 +1,4 @@
-#version 420
+#version 130
 
 in vec2 frag_UV;
 

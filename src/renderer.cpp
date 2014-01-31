@@ -4,6 +4,19 @@
 #include "log.h"
 #include "math_util.h"
 
+enum
+{
+    KEY_PRESSED = 1,
+    KEY_NOT_PRESSED = 0,
+    KEY_COUNT = 6,
+    KEY_FORWARD = 0,
+    KEY_BACKWARD = 1,
+    KEY_LEFT = 2,
+    KEY_RIGHT = 3,
+    KEY_UP = 4,
+    KEY_DOWN = 5
+};
+
 /*
 =====================================================
 
@@ -15,10 +28,11 @@ Camera::Camera
 Camera::Camera( void )
     : position( 0.0f, 0.0f, 0.0f ),
       rotation( 0.0f, 0.0f, 0.0f ),
+      mouseBoundries( 1366.0f, 768.0f ),
       view( 1.0f ),
-      projection( glm::perspective( 45.0f, 16.0f / 9.0f, 0.1f, 100.0f ) ),
-      lastMouse( 0.0f, 0.0f )
+      projection( glm::perspective( 45.0f, 16.0f / 9.0f, 0.1f, 500.0f ) )
 {
+    ZeroOutKeys();
 }
 
 /*
@@ -29,7 +43,7 @@ Camera::~Camera
 =====================================================
 */
 
-glm::mat4 Camera::orientation( void )
+glm::mat4 Camera::Orientation( void )
 {
     glm::mat4 orient( 1.0f );
 
@@ -47,38 +61,58 @@ Camera::EvalKeyPress
 =====================================================
 */
 
-const float CAM_STEP_SPEED = 1.0f;
-
 void Camera::EvalKeyPress( int key )
 {
-    if ( key == GLFW_KEY_W )
+    switch( key )
     {
-        Walk( CAM_STEP_SPEED );
-    }
+        case GLFW_KEY_W:
+            keysPressed[ KEY_FORWARD ] = KEY_PRESSED;
+            break;
 
-    if ( key == GLFW_KEY_S )
-    {
-        Walk( -CAM_STEP_SPEED );
-    }
+        case GLFW_KEY_S:
+            keysPressed[ KEY_BACKWARD ] = KEY_PRESSED;
+            break;
 
-    if ( key == GLFW_KEY_A )
-    {
-        Strafe( -CAM_STEP_SPEED );
-    }
+        case GLFW_KEY_A:
+            keysPressed[ KEY_LEFT ] = KEY_PRESSED;
+            break;
 
-    if ( key == GLFW_KEY_D )
-    {
-        Strafe( CAM_STEP_SPEED );
-    }
+        case GLFW_KEY_D:
+            keysPressed[ KEY_RIGHT ] = KEY_PRESSED;
+            break;
 
-    if ( key == GLFW_KEY_SPACE )
-    {
-        Raise( CAM_STEP_SPEED );
-    }
+        case GLFW_KEY_LEFT_SHIFT:
+            keysPressed[ KEY_DOWN ] = KEY_PRESSED;
+            break;
 
-    if ( key == GLFW_KEY_C )
+        case GLFW_KEY_SPACE:
+            keysPressed[ KEY_UP ] = KEY_PRESSED;
+            break;
+    }
+}
+
+void Camera::EvalKeyRelease( int key )
+{
+    switch( key )
     {
-        Raise( -CAM_STEP_SPEED );
+        case GLFW_KEY_W:
+            keysPressed[ KEY_FORWARD ] = KEY_NOT_PRESSED;
+            break;
+        case GLFW_KEY_S:
+            keysPressed[ KEY_BACKWARD ] = KEY_NOT_PRESSED;
+            break;
+        case GLFW_KEY_A:
+            keysPressed[ KEY_LEFT ] = KEY_NOT_PRESSED;
+            break;
+        case GLFW_KEY_D:
+            keysPressed[ KEY_RIGHT ] = KEY_NOT_PRESSED;
+            break;
+        case GLFW_KEY_LEFT_SHIFT:
+            keysPressed[ KEY_DOWN ] = KEY_NOT_PRESSED;
+            break;
+        case GLFW_KEY_SPACE:
+            keysPressed[ KEY_UP ] = KEY_NOT_PRESSED;
+            break;
     }
 }
 
@@ -90,60 +124,36 @@ Camera::EvalMouseMove
 =====================================================
 */
 
-const float MOUSE_CAM_ROT_FACTOR = 0.01f;
+const float MOUSE_CAM_ROT_FACTOR = 0.1f;
+
+const float MOUSE_THRESHOLD = 2.0f * glm::pi< float >();
+const float MOUSE_BOUNDS = glm::pi< float >();
 
 void Camera::EvalMouseMove( float x, float y )
 {
-    rotation.x += -( lastMouse.y - y ) * MOUSE_CAM_ROT_FACTOR;
-    rotation.y += ( lastMouse.x - x ) * MOUSE_CAM_ROT_FACTOR;
+    rotation.x = -glm::cos( glm::radians( y ) );
+    rotation.y = glm::sin( glm::radians( x ) );
 
-    lastMouse.x = x;
-    lastMouse.y = y;
-}
+    if ( rotation.x > MOUSE_BOUNDS )
+    {
+        rotation.x -= MOUSE_THRESHOLD;
+    }
 
-/*
-=====================================================
+    if ( rotation.x < -MOUSE_BOUNDS )
+    {
+        rotation.x += MOUSE_THRESHOLD;
+    }
 
-Camera::Walk
+    if ( rotation.y > MOUSE_BOUNDS )
+    {
+        rotation.y -= MOUSE_THRESHOLD;
+    }
 
-=====================================================
-*/
+    if ( rotation.y < -MOUSE_BOUNDS )
+    {
+        rotation.y += MOUSE_THRESHOLD;
 
-void Camera::Walk( float step )
-{
-    glm::vec4 forward = glm::inverse( orientation() ) * glm::vec4( 0.0f, 0.0f, -step, 1.0f );
-
-    position += glm::vec3( forward );
-}
-
-/*
-=====================================================
-
-Camera::Strafe
-
-=====================================================
-*/
-
-void Camera::Strafe( float step )
-{
-    glm::vec4 right = glm::inverse( orientation() ) * glm::vec4( step, 0.0f, 0.0f, 1.0f );
-
-    position += glm::vec3( right );
-}
-
-/*
-=====================================================
-
-Camera::Raise
-
-=====================================================
-*/
-
-void Camera::Raise( float step )
-{
-    glm::vec4 up = glm::inverse( orientation() ) * glm::vec4( 0.0f, step, 0.0f, 1.0f );
-
-    position += glm::vec3( up );
+    }
 }
 
 /*
@@ -154,9 +164,63 @@ Camera::UpdateView
 =====================================================
 */
 
+const float CAM_STEP_SPEED = 1.0f;
+
 void Camera::UpdateView( void )
 {
-    view = orientation() * glm::translate( glm::mat4( 1.0f ), -position );
+    glm::vec4 moveVec( 0.0f, 0.0f, 0.0f, 0.0f );
+
+    const glm::mat4& orient = Orientation();
+    const glm::mat4& inverseOrient = glm::inverse( orient );
+
+    if ( keysPressed[ KEY_FORWARD ] == KEY_PRESSED )
+    {
+        moveVec.z += ( inverseOrient * glm::vec4( 0.0f, 0.0f, -CAM_STEP_SPEED, 1.0f ) ).z;
+    }
+    else if ( keysPressed[ KEY_BACKWARD ] == KEY_PRESSED )
+    {
+        moveVec.z += ( inverseOrient * glm::vec4( 0.0f, 0.0f, CAM_STEP_SPEED, 1.0f ) ).z;
+    }
+
+    if ( keysPressed[ KEY_RIGHT ] == KEY_PRESSED )
+    {
+        moveVec.x += ( inverseOrient * glm::vec4( CAM_STEP_SPEED, 0.0f, 0.0f, 1.0f ) ).x;
+    }
+    else if ( keysPressed[ KEY_LEFT ] == KEY_PRESSED )
+    {
+        moveVec.x += ( inverseOrient * glm::vec4( -CAM_STEP_SPEED, 0.0f, 0.0f, 1.0f ) ).x;
+    }
+
+    if ( keysPressed[ KEY_UP ] == KEY_PRESSED )
+    {
+        moveVec.y += ( inverseOrient * glm::vec4( 0.0f, CAM_STEP_SPEED, 0.0f, 1.0f ) ).y;
+    }
+    else if ( keysPressed[ KEY_DOWN ] == KEY_PRESSED )
+    {
+        moveVec.y += ( inverseOrient * glm::vec4( 0.0f, -CAM_STEP_SPEED, 0.0f, 1.0f ) ).y;
+    }
+
+    position += glm::vec3( moveVec );
+
+    view = orient * glm::translate( glm::mat4( 1.0f ), -position );
+}
+
+/*
+=====================================================
+
+Camera::ZeroOutKeys
+
+Set all bools in the 'keysPressed' array to false
+
+=====================================================
+*/
+
+void Camera::ZeroOutKeys( void )
+{
+    for ( int i = 0; i < KEY_COUNT; ++i )
+    {
+        keysPressed[ i ] = KEY_NOT_PRESSED;
+    }
 }
 
 /*
@@ -238,7 +302,7 @@ BSPRenderer::~BSPRenderer( void )
 =====================================================
 
 BSPRenderer::Prep
-info_log
+
 Load static, independent data which need not be re-initialized if multiple maps are created.
 
 =====================================================
@@ -248,8 +312,8 @@ void BSPRenderer::Prep( void )
 {
     GLuint shaders[] =
     {
-        CompileShader( "src/test.vert", GL_VERTEX_SHADER ),
-        CompileShader( "src/test.frag", GL_FRAGMENT_SHADER )
+        CompileShader( "src/main.vert", GL_VERTEX_SHADER ),
+        CompileShader( "src/main.frag", GL_FRAGMENT_SHADER )
     };
 
     bspProgram = LinkProgram( shaders, 2 );
@@ -274,27 +338,31 @@ void BSPRenderer::Load( const std::string& filepath )
 
     map = new Quake3Map;
 
-    map->Read( filepath, 3 );
+    map->Read( filepath, 1 );
 
     visibleFaces = ( byte* )malloc( map->numFaces );
     memset( visibleFaces, 0, map->numFaces );
-
-    glGenVertexArrays( 1, &vao );
-    glBindVertexArray( vao );
 
     glGenBuffers( 1, bufferObjects );
     glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ 0 ] );
     glBufferData( GL_ARRAY_BUFFER, sizeof( BSPVertex ) * map->numVertexes, map->vertexes, GL_STATIC_DRAW );
 
-    GLint positionAttrib = glGetAttribLocation( bspProgram, "position" );
+    glGenVertexArrays( 1, &vao );
+    glBindVertexArray( vao );
 
-    glEnableVertexAttribArray( positionAttrib );
-    glVertexAttribPointer( positionAttrib, 3, GL_FLOAT, GL_FALSE, 0, ( void* )0 );
+    glBindAttribLocation( bspProgram, 0, "position" );
+    glBindAttribLocation( bspProgram, 1, "color" );
 
-    glBindVertexArray( 0 );
-    glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    glEnableVertexAttribArray( 0 );
+    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( BSPVertex ), ( void* )offsetof( BSPVertex, position ) );
+    glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( BSPVertex ), ( void* )offsetof( BSPVertex, color ) );
 
-    camera.SetPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 800.0f );
+    //glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    //glBindVertexArray( 0 );
+
+    camera.SetPerspective( 75.0f, 16.0f / 9.0f, 0.1f, 9000.0f );
+
+    glUseProgram( bspProgram );
 }
 
 /*
@@ -312,9 +380,6 @@ void BSPRenderer::Draw( void )
         return;
     }
 
-    glBindVertexArray( vao );
-    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ 0 ] );
-    glUseProgram( bspProgram );
 
     for ( int i = 0; i < map->numFaces; ++i )
     {
@@ -323,17 +388,9 @@ void BSPRenderer::Draw( void )
 
         const BSPFace* const face = &map->faces[ i ];
 
-
         glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ].offset );
-       // LogDrawCall( i, boundsCenter, camera.position, faceTransform, face, map );
+        ExitOnGLError( "Draw" );
     }
-
-    // Zero this out to reset visibility on the next update.
-   // memset( visibleFaces, 0, sizeof( byte ) * map->numFaces );
-
-    glUseProgram( 0 );
-    glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    glBindVertexArray( 0 );
 }
 
 /*
@@ -371,8 +428,8 @@ void BSPRenderer::Update( void )
 
     camera.UpdateView();
 
-    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "modelview" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
-    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
+    glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "modelview" ), 1, GL_FALSE, glm::value_ptr( camera.View() ) );
+    glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.Projection() ) );
 
     if ( lastCameraPosition != camera.position )
     {
@@ -380,7 +437,5 @@ void BSPRenderer::Update( void )
     }
 
     lastCameraPosition = camera.position;
-
-
 }
 

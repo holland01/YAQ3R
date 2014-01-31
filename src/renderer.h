@@ -35,12 +35,8 @@ public:
     Camera( void );
 
     void EvalKeyPress( int key );
-
+    void EvalKeyRelease( int key );
     void EvalMouseMove( float x, float y );
-
-    void Walk( float step );
-    void Strafe( float step );
-    void Raise( float step );
 
     void UpdateView( void );
 
@@ -51,17 +47,20 @@ public:
     const glm::mat4& View( void ) const { return view; }
     const glm::mat4& Projection( void ) const { return projection; }
 
-    glm::mat4   orientation( void );
+    glm::mat4   Orientation( void );
 
     glm::vec3   position;
-
     glm::vec3   rotation;
+
+    glm::vec2   mouseBoundries;
 
 private:
 
+    void        ZeroOutKeys( void );
+
     glm::mat4   view, projection;
 
-    glm::vec2   lastMouse;
+    int         keysPressed[ 6 ];
 };
 
 

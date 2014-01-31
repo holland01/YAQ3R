@@ -1,7 +1,7 @@
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror
 
 debug {
-   QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter
+   QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
 }
 
 unix {
@@ -24,8 +24,6 @@ HEADERS += \
     src/math_util.h
 
 OTHER_FILES += \
-    src/test.vert \
-    src/test.frag \
     asset/quake/aty3dm1v2.bsp \
     asset/quake/cp_towers_a4_5.bsp \
     log/drawLog.log \
@@ -34,7 +32,9 @@ OTHER_FILES += \
     log/gl.log \
     src/tex2D.vert \
     src/tex2D.frag \
-    asset/quake/overkill.bsp
+    asset/quake/overkill.bsp \
+    src/main.frag \
+    src/main.vert
 
 SOURCES += \
     src/shader.cpp \

@@ -21,17 +21,27 @@ Camera camera;
 
 void HandleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
-    if ( action == GLFW_PRESS )
+    switch ( action )
     {
-        switch ( key )
-        {
-            case GLFW_KEY_ESCAPE:
+
+        case GLFW_PRESS:
+            if ( key == GLFW_KEY_ESCAPE )
+            {
                 FlagExit();
-                break;
-            default:
+            }
+            else
+            {
                 camera.EvalKeyPress( key );
-                break;
-        }
+            }
+            break;
+
+        case GLFW_RELEASE:
+            camera.EvalKeyRelease( key );
+            break;
+
+        default:
+
+            break;
     }
 
 
@@ -47,6 +57,7 @@ void LoadTestTexture( GLFWwindow* window )
 
     glfwSetKeyCallback( window, HandleInputTestTexture );
     glfwSetCursorPosCallback( window, HandleMousePosTestTexture );
+    glfwSetInputMode( window, GLFW_CURSOR_DISABLED, GL_TRUE );
 
     for ( int i = 0; i < TEX_WIDTH; ++i )
     {
@@ -121,6 +132,9 @@ void LoadTestTexture( GLFWwindow* window )
 
     program = LinkProgram( shaders, 2 );
 
+    glBindAttribLocation( program, 0, "position" );
+    glBindAttribLocation( program, 1, "uv" );
+
     glGenVertexArrays( 1, &vao );
     glBindVertexArray( vao );
 
@@ -128,13 +142,10 @@ void LoadTestTexture( GLFWwindow* window )
     glBindBuffer( GL_ARRAY_BUFFER, vbo );
     glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData ), vertexData, GL_STATIC_DRAW );
 
-    GLint attribPosition = glGetAttribLocation( program, "position" );
-    GLint attribUV       = glGetAttribLocation( program, "uv" );
-
-    glEnableVertexAttribArray( attribPosition );
-    glEnableVertexAttribArray( attribUV );
-    glVertexAttribPointer( attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, 0 );
-    glVertexAttribPointer( attribUV, 2, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, ( void* )( sizeof( float ) * 3 ) );
+    glEnableVertexAttribArray( 0 );
+    glEnableVertexAttribArray( 1 );
+    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, 0 );
+    glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, ( void* )( sizeof( float ) * 3 ) );
 
     glBindVertexArray( 0 );
 

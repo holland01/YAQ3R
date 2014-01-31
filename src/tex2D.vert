@@ -1,7 +1,7 @@
-#version 420
+#version 130
 
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 uv;
+in vec3 position;
+in vec2 uv;
 
 uniform mat4 model;
 uniform mat4 view;

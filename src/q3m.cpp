@@ -249,10 +249,10 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
     visdata = ( BSPVisdata* )malloc( header.directories[ BSP_LUMP_VISDATA ].length );
     numVisdataVecs = header.directories[ BSP_LUMP_VISDATA ].length;
     fseek( file, header.directories[ BSP_LUMP_VISDATA ].offset, SEEK_SET );
-    fread( visdata, 2, sizeof( int ), file );
+    fread( visdata, sizeof( int ), 2, file );
     int size = visdata->numVectors * visdata->sizeVector;
     visdata->bitsets = ( byte* )malloc( size );
-    fread( visdata->bitsets, 1, size, file );
+    fread( visdata->bitsets, size, 1, file );
 
     mapAllocated = true;
 

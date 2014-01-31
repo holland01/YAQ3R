@@ -12,6 +12,7 @@ void FlagExit( void )
 {
     running = false;
     KillLog();
+
 }
 
 bool appInit( void )
@@ -19,15 +20,15 @@ bool appInit( void )
     if ( !glfwInit() )
         return false;
 
-    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
+    //glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+    //glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+    //glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 
     window = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
 
     if ( !window )
     {
-        glfwTerminate();
+        FlagExit();
         return false;
     }
 
@@ -49,6 +50,10 @@ bool appInit( void )
     glDepthFunc( GL_LEQUAL );
 
     InitLog();
+
+    MyPrintf( "Init", "OpenGL Version: %i.%i",
+              glfwGetWindowAttrib( window, GLFW_CONTEXT_VERSION_MAJOR ),
+              glfwGetWindowAttrib( window, GLFW_CONTEXT_VERSION_MINOR ) );
 
     running = true;
 
