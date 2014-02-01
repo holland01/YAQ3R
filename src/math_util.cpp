@@ -7,3 +7,17 @@ glm::vec3 GetBoundsCenter( vec3i& max, vec3i& min )
 
     return vmin + ( vmax - vmin ) / 2.0f;
 }
+
+glm::quat GenQuat( float angRad, const glm::vec3& axis )
+{
+    float halfTheta = angRad * 0.5f;
+    float sinTheta = glm::sin( halfTheta );
+
+    float w = glm::cos( halfTheta );
+
+    float x = sinTheta * axis.x;
+    float y = sinTheta * axis.y;
+    float z = sinTheta * axis.z;
+
+    return glm::quat( w, x, y, z );
+}

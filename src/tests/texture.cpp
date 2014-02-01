@@ -55,7 +55,7 @@ void LoadTestTexture( GLFWwindow* window )
 
     glfwSetKeyCallback( window, HandleInputTestTexture );
     glfwSetCursorPosCallback( window, HandleMousePosTestTexture );
-    glfwSetInputMode( window, GLFW_CURSOR_DISABLED, GL_TRUE );
+    glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
 
     // Generate our texture colors
     for ( int i = 0; i < TEX_WIDTH; ++i )
@@ -192,5 +192,5 @@ void DrawTestTexture( void )
     glUseProgram( 0 );
 
     camera.UpdateView();
-    cubeModel *= testRotMatrix;
+    //cubeModel *= testRotMatrix;
 }

@@ -85,9 +85,11 @@ public:
 
     void Draw( void );
 
-    void Update( void );
+    void Update( float dt );
 
 private:
+
+    void                DrawTree( int index, const glm::vec3& cameraPos );
 
     GLuint              bspProgram;
     GLuint              vao;
@@ -98,5 +100,7 @@ private:
     glm::vec3           lastCameraPosition;
 
     byte*               visibleFaces;
+
+    float               deltaTime;
 
 };

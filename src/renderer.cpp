@@ -17,6 +17,15 @@ enum
     KEY_DOWN = 5
 };
 
+enum
+{
+    FACE_TYPE_BILLBOAD = 4,
+    FACE_TYPE_MESH = 3,
+    FACE_TYPE_PATCH = 2,
+    FACE_TYPE_POLYGON = 1
+};
+
+
 /*
 =====================================================
 
@@ -48,12 +57,17 @@ Camera::~Camera
 
 glm::mat4 Camera::Orientation( void )
 {
+    /*
     glm::mat4 orient( 1.0f );
 
     orient = glm::rotate( orient, rotation.x, glm::vec3( 1.0f, 0.0f, 0.0f ) );
     orient = glm::rotate( orient, rotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+    */
 
-    return orient;
+    glm::quat rot = GenQuat( rotation.x, glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    rot *= GenQuat( rotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+
+    return glm::mat4_cast( rot );
 }
 
 /*
@@ -134,29 +148,8 @@ const float MOUSE_BOUNDS = glm::pi< float >();
 
 void Camera::EvalMouseMove( float x, float y )
 {
-    rotation.x = -glm::cos( glm::radians( y ) );
-    rotation.y = glm::sin( glm::radians( x ) );
-
-    if ( rotation.x > MOUSE_BOUNDS )
-    {
-        rotation.x -= MOUSE_THRESHOLD;
-    }
-
-    if ( rotation.x < -MOUSE_BOUNDS )
-    {
-        rotation.x += MOUSE_THRESHOLD;
-    }
-
-    if ( rotation.y > MOUSE_BOUNDS )
-    {
-        rotation.y -= MOUSE_THRESHOLD;
-    }
-
-    if ( rotation.y < -MOUSE_BOUNDS )
-    {
-        rotation.y += MOUSE_THRESHOLD;
-
-    }
+    rotation.x = glm::radians( y ) * MOUSE_CAM_ROT_FACTOR;
+    rotation.y = glm::radians( x ) * MOUSE_CAM_ROT_FACTOR;
 }
 
 /*
@@ -167,11 +160,11 @@ Camera::UpdateView
 =====================================================
 */
 
-const float CAM_STEP_SPEED = 1.0f;
+const float CAM_STEP_SPEED = 3.0f;
 
 void Camera::UpdateView( void )
 {
-    glm::vec4 moveVec( 0.0f, 0.0f, 0.0f, 0.0f );
+    glm::vec4 moveVec( CAM_STEP_SPEED, CAM_STEP_SPEED, -CAM_STEP_SPEED, 1.0f );
 
     const glm::mat4& orient = Orientation();
     const glm::mat4& inverseOrient = glm::inverse( orient );
@@ -180,32 +173,15 @@ void Camera::UpdateView( void )
     // This is because the inverseOrient transform can manipulate values in the vector
     // inadvertently for keys which haven't been pressed.
 
-    if ( keysPressed[ KEY_FORWARD ] == KEY_PRESSED )
-    {
-        moveVec.z += ( inverseOrient * glm::vec4( 0.0f, 0.0f, -CAM_STEP_SPEED, 1.0f ) ).z;
-    }
-    else if ( keysPressed[ KEY_BACKWARD ] == KEY_PRESSED )
-    {
-        moveVec.z += ( inverseOrient * glm::vec4( 0.0f, 0.0f, CAM_STEP_SPEED, 1.0f ) ).z;
-    }
+    moveVec = inverseOrient * moveVec;
 
-    if ( keysPressed[ KEY_RIGHT ] == KEY_PRESSED )
-    {
-        moveVec.x += ( inverseOrient * glm::vec4( CAM_STEP_SPEED, 0.0f, 0.0f, 1.0f ) ).x;
-    }
-    else if ( keysPressed[ KEY_LEFT ] == KEY_PRESSED )
-    {
-        moveVec.x += ( inverseOrient * glm::vec4( -CAM_STEP_SPEED, 0.0f, 0.0f, 1.0f ) ).x;
-    }
+    float& x = moveVec.x;
+    float& y = moveVec.y;
+    float& z = moveVec.z;
 
-    if ( keysPressed[ KEY_UP ] == KEY_PRESSED )
-    {
-        moveVec.y += ( inverseOrient * glm::vec4( 0.0f, CAM_STEP_SPEED, 0.0f, 1.0f ) ).y;
-    }
-    else if ( keysPressed[ KEY_DOWN ] == KEY_PRESSED )
-    {
-        moveVec.y += ( inverseOrient * glm::vec4( 0.0f, -CAM_STEP_SPEED, 0.0f, 1.0f ) ).y;
-    }
+    x = keysPressed[ KEY_LEFT ] ? -x : keysPressed[ KEY_RIGHT ] ? x : 0.0f;
+    y = keysPressed[ KEY_DOWN ] ? -y : keysPressed[ KEY_UP ] ? y : 0.0f;
+    z = keysPressed[ KEY_BACKWARD ] ? -z : keysPressed[ KEY_FORWARD ] ? z : 0.0f;
 
     position += glm::vec3( moveVec );
 
@@ -323,10 +299,11 @@ void BSPRenderer::Load( const std::string& filepath )
         if ( visibleFaces )
         {
             free( visibleFaces );
+            visibleFaces = NULL;
         }
     }
 
-    map.Read( filepath, 1 );
+    map.Read( filepath, 4 );
 
     visibleFaces = ( byte* )malloc( map.numFaces );
     memset( visibleFaces, 0, map.numFaces );
@@ -357,16 +334,44 @@ BSPRenderer::Draw
 
 void BSPRenderer::Draw( void )
 {
+    glUniform4f( glGetUniformLocation( bspProgram, "color0" ), 1.0f, 0.0f, 1.0f, 0.5f );
+    glUniform4f( glGetUniformLocation( bspProgram, "color1" ), 0.0f, 0.5f, 1.0f, 1.0f );
+    glUniform1f( glGetUniformLocation( bspProgram, "interp" ), deltaTime * ( ( float )random() / 100.0f ) );
+
     for ( int i = 0; i < map.numFaces; ++i )
     {
-        if ( visibleFaces[ i ] == 0 || ( map.faces[ i ].type != 3 && map.faces[ i ].type != 1 ) )
+        if ( visibleFaces[ i ] == 0 )
             continue;
 
         const BSPFace* const face = &map.faces[ i ];
 
+        /*
+        switch( face->type )
+        {
+            case FACE_TYPE_MESH:
+                glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
+                glDraw
+                break;
+
+            case FACE_TYPE_POLYGON:
+
+                break;
+        }
+        */
+
+        glDrawElements( GL_TRIANGLES, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->meshVertexOffset );
         glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
+
+        glUniform4f( glGetUniformLocation( bspProgram, "color0" ), 1.0f, 1.0f, 1.0f, 1.0f );
+        glUniform4f( glGetUniformLocation( bspProgram, "color1" ), 0.0f, 0.0f, 0.0f, 0.0f );
+
+        glDrawElements( GL_LINE_LOOP, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->meshVertexOffset );
+        glDrawElements( GL_LINE_LOOP, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
+
         ExitOnGLError( "Draw" );
     }
+
+    //memset( visibleFaces, 0, sizeof( byte ) * map.numFaces );
 }
 
 /*
@@ -381,8 +386,10 @@ BSPRenderer::Update
 =====================================================
 */
 
-void BSPRenderer::Update( void )
+void BSPRenderer::Update( float dt )
 {
+    deltaTime = dt;
+
     BSPLeaf* currentLeaf = map.FindClosestLeaf( camera.position );
 
     for ( int i = 0; i < map.numLeaves; ++i )

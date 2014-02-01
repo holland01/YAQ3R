@@ -56,13 +56,29 @@ bool AppInit( void )
     return true;
 }
 
+typedef  void( *DrawFunc )( void );
+
+DrawFunc drawFunction;
 
 int main( int argc, char** argv )
 {
     if ( !AppInit() )
         return 1;
 
-    LoadTestRenderer( window );
+    if ( strcmp( argv[ 1 ], "--texture" ) == 0 )
+    {
+        LoadTestTexture( window );
+        drawFunction = &DrawTestTexture;
+    }
+    else if ( strcmp( argv[ 1 ], "--bsp" ) == 0 )
+    {
+        LoadTestRenderer( window );
+        drawFunction = &DrawTestRenderer;
+    }
+    else
+    {
+        ERROR( "No argument specified for test to run" );
+    }
 
     glClearColor( 0.3f, 0.0f, 0.0f, 1.0f );
 
@@ -70,7 +86,7 @@ int main( int argc, char** argv )
     {
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-        DrawTestRenderer();
+        ( *drawFunction )();
 
         glfwSwapBuffers( window );
         glfwPollEvents();

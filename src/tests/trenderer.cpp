@@ -2,6 +2,8 @@
 
 BSPRenderer renderer;
 
+double currTime, prevTime;
+
 void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
 
@@ -23,7 +25,6 @@ void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
                 default:
                     renderer.camera.EvalKeyPress( key );
                     break;
-
             }
             break;
 
@@ -45,9 +46,12 @@ void HandleMousePosTestRenderer( GLFWwindow* w, double x, double y )
 
 void LoadTestRenderer( GLFWwindow* window )
 {
+    prevTime = glfwGetTime();
+
     glfwSetKeyCallback( window, HandleInputTestRenderer );
     glfwSetCursorPosCallback( window, HandleMousePosTestRenderer );
     glfwSetInputMode( window, GLFW_STICKY_KEYS, GL_FALSE );
+    glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
 
     renderer.Prep();
     renderer.Load( "asset/quake/railgun_arena/map.bsp" );
@@ -56,6 +60,10 @@ void LoadTestRenderer( GLFWwindow* window )
 
 void DrawTestRenderer( void )
 {
-    renderer.Update();
+    currTime = glfwGetTime();
+
+    renderer.Update( currTime - prevTime );
     renderer.Draw();
+
+    prevTime = currTime;
 }
