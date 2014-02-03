@@ -18,46 +18,40 @@ License: WTFPL
 =====================================================
 */
 
-
-
 /*
 =====================================================
 
-                    Camera
+                    RenderPass
 
 =====================================================
 */
 
-class Camera
+class Input;
+
+class RenderPass
 {
 public:
-    Camera( void );
+    friend class Input;
 
-    void EvalKeyPress( int key );
-    void EvalKeyRelease( int key );
-    void EvalMouseMove( float x, float y );
+    RenderPass( void );
+    RenderPass( const RenderPass& copy );
+    ~RenderPass( void );
 
-    void UpdateView( void );
-
-    void SetPerspective( float fovy, float aspect, float zNear, float zFar );
+    RenderPass& operator =( RenderPass copy );
 
     void Reset( void );
 
     const glm::mat4& View( void ) const { return view; }
     const glm::mat4& Projection( void ) const { return projection; }
 
-    glm::mat4   Orientation( void );
+    glm::mat4       Orientation( void );
 
-    glm::vec3   position;
-    glm::vec3   rotation;
-
-    glm::vec2   mouseBoundries;
+    glm::vec3       position;
+    glm::vec3       rotation;
 
 private:
 
-    glm::mat4   view, projection;
-
-    int         keysPressed[ 6 ];
+    glm::mat4 view, projection;
 };
 
 
@@ -73,23 +67,19 @@ class BSPRenderer
 {
 public:
 
-    Camera   camera;
-
     BSPRenderer( void );
-
     ~BSPRenderer( void );
 
-    void Prep( void );
+    void    Prep( void );
+    void    Load( const std::string& filepath );
 
-    void Load( const std::string& filepath );
-
-    void Draw( void );
-
-    void Update( float dt );
+    void    Draw( const RenderPass& pass );
+    void    Update( float dt, const RenderPass& pass );
 
 private:
 
-    void                DrawTree( int index, const glm::vec3& cameraPos );
+    void                DrawTree( int index, const RenderPass& pass );
+    void                DrawLeafNode( int index, const RenderPass& pass );
 
     GLuint              bspProgram;
     GLuint              vao;

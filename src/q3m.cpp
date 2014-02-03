@@ -1,5 +1,6 @@
 #include "q3m.h"
 #include "log.h"
+#include "mtrand.h"
 
 /*
 =====================================================
@@ -49,6 +50,7 @@ Quake3Map::Quake3Map( void )
        faces( NULL ),
        mapAllocated( false )
 {
+    entities.infoString = NULL;
 }
 
 /*
@@ -87,6 +89,7 @@ void Quake3Map::DestroyMap( void )
         free( vertexes );
         free( leafFaces );
         free( meshVertexes );
+        free( entities.infoString );
 
         free( visdata );
 
@@ -145,6 +148,11 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
     {
         ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, header.version );
     }
+
+    entities.infoString = ( char* ) malloc( header.directories[ BSP_LUMP_ENTITIES ].length );
+    entityStringLen = header.directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
+    fseek( file, header.directories[ BSP_LUMP_ENTITIES ].offset, SEEK_SET );
+    fread( entities.infoString, header.directories[ BSP_LUMP_ENTITIES ].length, 1, file );
 
     nodes = ( BSPNode* )malloc( header.directories[ BSP_LUMP_NODES ].length );
     numNodes = header.directories[ BSP_LUMP_NODES ].length / sizeof( BSPNode );
@@ -210,6 +218,11 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
         vertexes[ i ].normal.x /= ( float ) divisionScale;
         vertexes[ i ].normal.y /= ( float ) divisionScale;
         vertexes[ i ].normal.z /= ( float ) divisionScale;
+
+        vertexes[ i ].color[ 0 ] = mtrand_range( 0, 255 );
+        vertexes[ i ].color[ 1 ] = mtrand_range( 0, 255 );
+        vertexes[ i ].color[ 2 ] = mtrand_range( 0, 255 );
+        vertexes[ i ].color[ 3 ] = mtrand_range( 0, 255 );
 
         SwizzleCoords( vertexes[ i ].position );
         SwizzleCoords( vertexes[ i ].normal );
@@ -285,8 +298,9 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     fclose( file );
 
-    LogBSPData( BSP_LOG_VERTEXES, ( void* ) vertexes, numVertexes );
-    LogBSPData( BSP_LOG_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
+    LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
+    LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
+    LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
 }
 
 /*

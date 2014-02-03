@@ -1,8 +1,14 @@
 #include "trenderer.h"
+#include "../input.h"
 
 BSPRenderer renderer;
+Input input;
+
+GLFWwindow* windowPtr = NULL;
 
 double currTime, prevTime;
+
+static bool cursorVisible;
 
 void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
@@ -16,20 +22,27 @@ void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
                 case GLFW_KEY_ESCAPE:
                     FlagExit();
                     break;
-                case GLFW_KEY_R:
-                    renderer.camera.rotation = glm::vec3( 0.0f );
-                    break;
-                case GLFW_KEY_P:
-                    renderer.camera.position = glm::vec3( 0.0f );
+                case GLFW_KEY_F1:
+                    cursorVisible = !cursorVisible;
+
+                    if ( cursorVisible )
+                    {
+                        glfwSetInputMode( windowPtr, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                    }
+                    else
+                    {
+                        glfwSetInputMode( windowPtr, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                    }
+
                     break;
                 default:
-                    renderer.camera.EvalKeyPress( key );
+                    input.EvalKeyPress( key );
                     break;
             }
             break;
 
         case GLFW_RELEASE:
-            renderer.camera.EvalKeyRelease( key );
+            input.EvalKeyRelease( key );
             break;
 
         default:
@@ -41,7 +54,7 @@ void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
 
 void HandleMousePosTestRenderer( GLFWwindow* w, double x, double y )
 {
-    renderer.camera.EvalMouseMove( ( float ) x, ( float ) y );
+    input.EvalMouseMove( ( float ) x, ( float ) y );
 }
 
 void LoadTestRenderer( GLFWwindow* window )
@@ -55,15 +68,21 @@ void LoadTestRenderer( GLFWwindow* window )
 
     renderer.Prep();
     renderer.Load( "asset/quake/railgun_arena/map.bsp" );
-    renderer.camera.position = glm::vec3( -216.0f, 288.0f, 50.0f );
+
+    cursorVisible = false;
+    windowPtr = window;
 }
 
 void DrawTestRenderer( void )
 {
+    RenderPass pass( input.LastPass() );
+
     currTime = glfwGetTime();
 
-    renderer.Update( currTime - prevTime );
-    renderer.Draw();
+    renderer.Update( currTime - prevTime, pass );
+    renderer.Draw( pass );
+
+    input.UpdatePass( pass );
 
     prevTime = currTime;
 }

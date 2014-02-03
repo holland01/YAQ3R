@@ -132,7 +132,7 @@ LogBSPData
 ===============================
 */
 
-void LogBSPData( BSPLogType type, void* data, int length )
+void LogBSPData( int type, void* data, int length )
 {
     if ( !globalBspDataLog )
         return;
@@ -143,7 +143,7 @@ void LogBSPData( BSPLogType type, void* data, int length )
 
     switch( type )
     {
-        case BSP_LOG_VERTEXES:
+        case BSP_LUMP_VERTEXES:
         {
 
             BSPVertex* vertexes = ( BSPVertex* ) data;
@@ -179,7 +179,7 @@ void LogBSPData( BSPLogType type, void* data, int length )
         }
             break;
 
-        case BSP_LOG_MESH_VERTEXES:
+        case BSP_LUMP_MESH_VERTEXES:
         {
 
             BSPMeshVertex* meshVertexes = ( BSPMeshVertex* ) data;
@@ -194,6 +194,16 @@ void LogBSPData( BSPLogType type, void* data, int length )
                    << "\t offset: " << meshVertexes[ i ].offset << "\n"
                    << "End Mesh Vertex\n\n";
             }
+        }
+            break;
+
+        case BSP_LUMP_ENTITIES:
+        {
+            header = "ENTITIES_LUMP";
+
+            ss << "NUM CHARS: " << length << "\n\n";
+
+            ss << ( char* )data;
         }
             break;
 

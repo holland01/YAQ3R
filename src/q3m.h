@@ -53,7 +53,6 @@ enum
     BSP_FACE_TYPE_PATCH = 0x2,
     BSP_FACE_TYPE_MESH = 0x3,
     BSP_FACE_TYPE_BILLBOARD = 0x4
-
 };
 
 /*
@@ -63,6 +62,11 @@ enum
 
 =====================================================
 */
+
+struct BSPEntity
+{
+    char* infoString;
+};
 
 struct BSPLump
 {
@@ -197,6 +201,8 @@ public:
 
     void            DestroyMap( void );
 
+    BSPEntity       entities;
+
     BSPNode*        nodes;
     BSPLeaf*        leaves;
     BSPPlane*       planes;
@@ -206,6 +212,8 @@ public:
     BSPLeafFace*    leafFaces;
     BSPMeshVertex*  meshVertexes;
     BSPVisdata*     visdata;
+
+    int             entityStringLen;
 
     int             numNodes;
     int             numLeaves;

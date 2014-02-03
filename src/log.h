@@ -20,14 +20,8 @@ class BSPFace;
 class BSPMeshVertex;
 class Quake3Map;
 
-enum BSPLogType
-{
-    BSP_LOG_VERTEXES,
-    BSP_LOG_MESH_VERTEXES
-};
-
 void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const BSPFace* const face, const Quake3Map* const map );
-void LogBSPData( BSPLogType type, void* data, int length );
+void LogBSPData( int bspDataType, void* data, int length );
 
 void MyPrintf( const char* header, const char* fmt, ... );
 void MyFprintf( FILE* f, const char* header, const char* fmt, ... );

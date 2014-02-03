@@ -21,7 +21,9 @@ HEADERS += \
     src/tests/trenderer.h \
     src/def.h \
     src/q3m_model.h \
-    src/math_util.h
+    src/math_util.h \
+    src/mtrand.h \
+    src/input.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -46,5 +48,7 @@ SOURCES += \
     src/tests/texture.cpp \
     src/tests/trenderer.cpp \
     src/q3m_model.cpp \
-    src/math_util.cpp
+    src/math_util.cpp \
+    src/mtrand.cpp \
+    src/input.cpp
 
