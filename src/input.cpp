@@ -1,5 +1,6 @@
 #include "input.h"
 #include "renderer.h"
+#include "log.h"
 
 enum
 {
@@ -23,7 +24,7 @@ Input::Input
 
 Input::Input( void )
 {
-    lastPass.position = glm::vec3( 1184.0f, -1440.0f, 3280.0f );
+    lastPass.position = glm::vec3( 0.0f );
 
     for ( int i = 0; i < KEY_COUNT; ++i )
     {
@@ -126,7 +127,7 @@ Input::UpdatePass
 =====================================================
 */
 
-const float VIEW_STEP_SPEED = 3.0f;
+const float VIEW_STEP_SPEED = 8.0f;
 
 void Input::UpdatePass( RenderPass& pass )
 {
@@ -157,4 +158,6 @@ void Input::UpdatePass( RenderPass& pass )
     pass.view = orient * glm::translate( glm::mat4( 1.0f ), -pass.position );
 
     lastPass = pass;
+
+    MyPrintf( "Position", "x: %f\n y: %f\n z: %f", pass.position.x, pass.position.y, pass.position.z );
 }

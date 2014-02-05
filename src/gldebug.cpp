@@ -44,8 +44,8 @@ const int DATE_TIME_STR_SIZE = 40;
 
 void glDebugInit( void )
 {
-    dateTime = ( char* )malloc( sizeof( char ) * DATE_TIME_STR_SIZE );
     MyDateTime( "%Y/%m/%d %H:%M:%S", dateTime, DATE_TIME_STR_SIZE );
+    dateTime = ( char* )malloc( sizeof( char ) * DATE_TIME_STR_SIZE );
     glLog    = fopen( "log/gl.log", "w" );
 
     if ( !glLog )

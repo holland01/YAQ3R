@@ -1,3 +1,5 @@
+QT -= core gui
+
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror
 
 debug {

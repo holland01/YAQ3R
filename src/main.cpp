@@ -4,14 +4,13 @@
 #include "tests/texture.h"
 #include "tests/trenderer.h"
 
-GLFWwindow* window = NULL;
+static GLFWwindow* window = NULL;
 
-bool running = false;
+static bool running = false;
 
 void FlagExit( void )
 {
     running = false;
-    KillLog();
 }
 
 bool AppInit( void )
@@ -23,7 +22,6 @@ bool AppInit( void )
 
     if ( !window )
     {
-        FlagExit();
         return false;
     }
 
@@ -58,10 +56,10 @@ bool AppInit( void )
 
 typedef  void( *DrawFunc )( void );
 
-DrawFunc drawFunction;
-
 int main( int argc, char** argv )
 {
+    DrawFunc drawFunction;
+
     if ( !AppInit() )
         return 1;
 
@@ -92,8 +90,9 @@ int main( int argc, char** argv )
         glfwPollEvents();
     }
 
-    glfwDestroyWindow( window );
     glfwTerminate();
+    glfwDestroyWindow( window );
+    KillLog();
 
     return 0;
 }

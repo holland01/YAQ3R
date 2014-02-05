@@ -109,9 +109,15 @@ BSPRenderer::BSPRenderer
 BSPRenderer::BSPRenderer( void )
     : bspProgram( 0 ),
       vao( 0 ),
-      vbo( 0 ),
-      lastCameraPosition( 0.0f ),
-      visibleFaces( NULL )
+      vbo( 0 )
+{
+}
+
+BSPRenderer::BSPRenderer( const BSPRenderer& copy )
+    : bspProgram( copy.bspProgram ),
+      vao( copy.vao ),
+      vbo( copy.vbo ),
+      visibleFaces( copy.visibleFaces )
 {
 }
 
@@ -125,11 +131,6 @@ BSPRenderer::~BSPRenderer
 
 BSPRenderer::~BSPRenderer( void )
 {
-    if ( visibleFaces )
-    {
-        free( visibleFaces );
-    }
-
     glDeleteVertexArrays( 1, &vao );
     glDeleteProgram( bspProgram );
     glDeleteBuffers( 1, &vbo );
@@ -151,6 +152,9 @@ void BSPRenderer::Prep( void )
 {
     glGenBuffers( 1, &vbo );
     glGenVertexArrays( 1, &vao );
+
+    glBindVertexArray( vao );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo );
 
     GLuint shaders[] =
     {
@@ -179,21 +183,16 @@ void BSPRenderer::Load( const std::string& filepath )
     {
         map.DestroyMap();
 
-        if ( visibleFaces )
-        {
-            free( visibleFaces );
-        }
+        visibleFaces.clear();
     }
 
     map.Read( filepath, 1 );
+    visibleFaces.reserve( map.numFaces );
 
-    visibleFaces = ( byte* )malloc( map.numFaces );
-    memset( visibleFaces, 0, map.numFaces );
+    for ( int i = 0; i < map.numFaces; ++i )
+        visibleFaces.push_back( 0 );
 
-    glBindBuffer( GL_ARRAY_BUFFER, vbo );
     glBufferData( GL_ARRAY_BUFFER, sizeof( BSPVertex ) * map.numVertexes, map.vertexes, GL_STATIC_DRAW );
-
-    glBindVertexArray( vao );
 
     glBindAttribLocation( bspProgram, 0, "position" );
     glBindAttribLocation( bspProgram, 1, "color" );
@@ -255,26 +254,25 @@ void BSPRenderer::DrawLeafNode( int index, const RenderPass& pass )
 {
     BSPLeaf* leaf = &map.leaves[ index ];
 
-    for ( int i = 0; i < leaf->numLeafFaces; ++i )
+    for ( int i = leaf->leafFaceOffset; i < leaf->leafFaceOffset + leaf->numLeafFaces; ++i )
     {
-        int f = leaf->leafFaceOffset + i;
-
-        if ( visibleFaces[ f ] == 1 )
+        if ( visibleFaces[ map.leafFaces[ i ].index ] == 1 )
         {
-            BSPFace* face = map.faces + f;
+            BSPFace* face = map.faces + map.leafFaces[ i ].index;
 
             switch ( face->type )
             {
                 case FACE_TYPE_MESH:
-                    glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
+                    glDrawElements( GL_LINES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
+                    glDrawElements( GL_TRIANGLES, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->vertexOffset );
                     break;
 
                 case FACE_TYPE_POLYGON:
-                    glDrawElements( GL_TRIANGLE_FAN, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->vertexOffset );
+                    //glDrawElements( GL_LINE_STRIP, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->vertexOffset );
                     break;
             }
 
-            visibleFaces[ f ] = 0;
+            visibleFaces[ map.leafFaces[ i ].index ] = 0;
         }
     }
 }
@@ -295,25 +293,32 @@ void BSPRenderer::Update( float dt, const RenderPass& pass )
 {
     deltaTime = dt;
 
+    glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "modelview" ), 1, GL_FALSE, glm::value_ptr( pass.View() ) );
+    glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( pass.Projection() ) );
+
+    if ( lastCameraPosition == pass.position )
+        return;
+
+    visibleFaces.assign( visibleFaces.size(), 0 );
+
     BSPLeaf* currentLeaf = map.FindClosestLeaf( pass.position );
 
     for ( int i = 0; i < map.numLeaves; ++i )
     {
-        if ( map.IsClusterVisible( currentLeaf->clusterIndex, map.leaves[ i ].clusterIndex ) )
+        BSPLeaf* testLeaf = map.leaves + i;
+
+        if ( map.IsClusterVisible( currentLeaf->clusterIndex, testLeaf->clusterIndex ) )
         {
-            for ( int f = currentLeaf->leafFaceOffset; f < currentLeaf->leafFaceOffset + currentLeaf->numLeafFaces; ++f )
-            {
-                if ( visibleFaces[ f ] == 0 )
+            for ( int j = testLeaf->leafFaceOffset; j < testLeaf->leafFaceOffset + testLeaf->numLeafFaces; ++j )
+            {   
+                if ( visibleFaces[ map.leafFaces[ j ].index ] == 0 )
                 {
-                    visibleFaces[ f ] = 1;
+                    visibleFaces[ map.leafFaces[ j ].index ] = 1;
 
                     MyPrintf( "Visible Faces", "Face Found!" );
                 }
             }
         }
     }
-
-    glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "modelview" ), 1, GL_FALSE, glm::value_ptr( pass.View() ) );
-    glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( pass.Projection() ) );
 }
 

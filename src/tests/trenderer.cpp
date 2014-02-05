@@ -1,13 +1,10 @@
 #include "trenderer.h"
 #include "../input.h"
 
-BSPRenderer renderer;
-Input input;
+static BSPRenderer renderer;
+static Input input;
 
-GLFWwindow* windowPtr = NULL;
-
-double currTime, prevTime;
-
+static double currTime, prevTime;
 static bool cursorVisible;
 
 void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
@@ -27,11 +24,11 @@ void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, 
 
                     if ( cursorVisible )
                     {
-                        glfwSetInputMode( windowPtr, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                        glfwSetInputMode( w, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
                     }
                     else
                     {
-                        glfwSetInputMode( windowPtr, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                        glfwSetInputMode( w, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
                     }
 
                     break;
@@ -64,13 +61,12 @@ void LoadTestRenderer( GLFWwindow* window )
     glfwSetKeyCallback( window, HandleInputTestRenderer );
     glfwSetCursorPosCallback( window, HandleMousePosTestRenderer );
     glfwSetInputMode( window, GLFW_STICKY_KEYS, GL_FALSE );
-    glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+   // glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
 
     renderer.Prep();
     renderer.Load( "asset/quake/railgun_arena/map.bsp" );
 
-    cursorVisible = false;
-    windowPtr = window;
+    cursorVisible = true;
 }
 
 void DrawTestRenderer( void )

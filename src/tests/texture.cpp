@@ -3,17 +3,17 @@
 #include "../shader.h"
 #include "../input.h"
 
-const int TEX_WIDTH = 64;
-const int TEX_HEIGHT = 64;
+static const int TEX_WIDTH = 64;
+static const int TEX_HEIGHT = 64;
 
-unsigned char checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
+static unsigned char checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
 
-GLuint vao, vbo, texture;
+static GLuint vao, vbo, texture;
 
-GLuint program;
+static GLuint program;
 static GLFWwindow* windowPtr = NULL;
 
-glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
+static glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
 
 static const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 

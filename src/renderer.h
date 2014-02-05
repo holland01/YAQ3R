@@ -68,6 +68,9 @@ class BSPRenderer
 public:
 
     BSPRenderer( void );
+
+    BSPRenderer( const BSPRenderer& copy );
+
     ~BSPRenderer( void );
 
     void    Prep( void );
@@ -89,7 +92,7 @@ private:
 
     glm::vec3           lastCameraPosition;
 
-    byte*               visibleFaces;
+    std::vector< int >  visibleFaces;
 
     float               deltaTime;
 

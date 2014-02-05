@@ -148,12 +148,13 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
     {
         ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, header.version );
     }
+    /*
 
     entities.infoString = ( char* ) malloc( header.directories[ BSP_LUMP_ENTITIES ].length );
     entityStringLen = header.directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
     fseek( file, header.directories[ BSP_LUMP_ENTITIES ].offset, SEEK_SET );
     fread( entities.infoString, header.directories[ BSP_LUMP_ENTITIES ].length, 1, file );
-
+*/
     nodes = ( BSPNode* )malloc( header.directories[ BSP_LUMP_NODES ].length );
     numNodes = header.directories[ BSP_LUMP_NODES ].length / sizeof( BSPNode );
     fseek( file, header.directories[ BSP_LUMP_NODES ].offset, SEEK_SET );
@@ -215,6 +216,10 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numVertexes; ++i )
     {
+        vertexes[ i ].position.x /= ( float ) divisionScale;
+        vertexes[ i ].position.y /= ( float ) divisionScale;
+        vertexes[ i ].position.z /= ( float ) divisionScale;
+
         vertexes[ i ].normal.x /= ( float ) divisionScale;
         vertexes[ i ].normal.y /= ( float ) divisionScale;
         vertexes[ i ].normal.z /= ( float ) divisionScale;
@@ -298,9 +303,9 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     fclose( file );
 
-    LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
-    LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
-    LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
+   // LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
+   // LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
+    //LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
 }
 
 /*
