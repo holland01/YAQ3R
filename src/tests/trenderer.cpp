@@ -76,7 +76,7 @@ void DrawTestRenderer( void )
     currTime = glfwGetTime();
 
     renderer.Update( currTime - prevTime, pass );
-    renderer.Draw( pass );
+    renderer.Draw();
 
     input.UpdatePass( pass );
 

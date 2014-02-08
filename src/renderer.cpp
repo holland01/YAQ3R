@@ -69,6 +69,7 @@ RenderPass::Orientation
 
 glm::mat4 RenderPass::Orientation( void )
 {
+
     /*
     glm::mat4 orient( 1.0f );
 
@@ -80,6 +81,10 @@ glm::mat4 RenderPass::Orientation( void )
     rot *= GenQuat( rotation.y, glm::vec3( 0.0f, 1.0f, 0.0f ) );
 
     return glm::mat4_cast( rot );
+
+    //*/
+
+    //return orient;
 }
 
 /*
@@ -109,7 +114,8 @@ BSPRenderer::BSPRenderer
 BSPRenderer::BSPRenderer( void )
     : bspProgram( 0 ),
       vao( 0 ),
-      vbo( 0 )
+      vbo( 0 ),
+      deltaTime( 0 )
 {
 }
 
@@ -117,7 +123,9 @@ BSPRenderer::BSPRenderer( const BSPRenderer& copy )
     : bspProgram( copy.bspProgram ),
       vao( copy.vao ),
       vbo( copy.vbo ),
-      visibleFaces( copy.visibleFaces )
+      deltaTime( copy.deltaTime ),
+      visibleFaces( copy.visibleFaces ),
+      transparentFaces( copy.transparentFaces ), opaqueFaces( copy.opaqueFaces )
 {
 }
 
@@ -182,15 +190,10 @@ void BSPRenderer::Load( const std::string& filepath )
     if ( map.IsAllocated() )
     {
         map.DestroyMap();
-
         visibleFaces.clear();
     }
 
     map.Read( filepath, 1 );
-    visibleFaces.reserve( map.numFaces );
-
-    for ( int i = 0; i < map.numFaces; ++i )
-        visibleFaces.push_back( 0 );
 
     glBufferData( GL_ARRAY_BUFFER, sizeof( BSPVertex ) * map.numVertexes, map.vertexes, GL_STATIC_DRAW );
 
@@ -212,69 +215,41 @@ BSPRenderer::Draw
 =====================================================
 */
 
-void BSPRenderer::Draw( const RenderPass& pass )
+void BSPRenderer::Draw( void )
 {
-    DrawTree( 0, pass );
-}
-
-/*
-=====================================================
-
-BSPRenderer::DrawTree
-
-=====================================================
-*/
-
-void BSPRenderer::DrawTree( int index, const RenderPass& pass )
-{
-    if ( index < 0 )
+    for ( int i = 0; i < ( int ) visibleFaces.size(); ++i )
     {
-        DrawLeafNode( -( index + 1 ), pass );
-        return;
-    }
+        BSPFace* face = map.faces + visibleFaces[ i ];
 
-    BSPNode* node = &map.nodes[ index ];
-    BSPPlane* plane = &map.planes[ node->plane ];
-
-    float d = glm::dot( pass.position, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) ) - plane->distance;
-
-    if ( d >= 0 )
-    {
-        DrawTree( node->children[ 0 ], pass );
-        DrawTree( node->children[ 1 ], pass );
-    }
-    else
-    {
-        DrawTree( node->children[ 1 ], pass );
-        DrawTree( node->children[ 0 ], pass );
-    }
-}
-
-void BSPRenderer::DrawLeafNode( int index, const RenderPass& pass )
-{
-    BSPLeaf* leaf = &map.leaves[ index ];
-
-    for ( int i = leaf->leafFaceOffset; i < leaf->leafFaceOffset + leaf->numLeafFaces; ++i )
-    {
-        if ( visibleFaces[ map.leafFaces[ i ].index ] == 1 )
+        switch ( face->type )
         {
-            BSPFace* face = map.faces + map.leafFaces[ i ].index;
-
-            switch ( face->type )
+            case FACE_TYPE_POLYGON:
+            case FACE_TYPE_MESH:
             {
-                case FACE_TYPE_MESH:
-                    glDrawElements( GL_LINES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
-                    glDrawElements( GL_TRIANGLES, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->vertexOffset );
-                    break;
+                //glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
 
-                case FACE_TYPE_POLYGON:
-                    //glDrawElements( GL_LINE_STRIP, face->numVertexes, GL_UNSIGNED_INT, ( void* ) &face->vertexOffset );
-                    break;
+                std::vector< int >& transMeshVerts = transparentFaces[ i ];
+
+                if ( !transMeshVerts.empty() )
+                {
+                    glDrawElements( GL_TRIANGLES, transMeshVerts.size(), GL_UNSIGNED_INT, ( void* ) &transMeshVerts[ 0 ] );
+                    transMeshVerts.clear();
+                }
+
+                std::vector< int >& opaqueMeshVerts = opaqueFaces[ i ];
+
+                if ( !opaqueMeshVerts.empty() )
+                {
+                    glDrawElements( GL_TRIANGLES, opaqueMeshVerts.size(), GL_UNSIGNED_INT, ( void* ) &opaqueMeshVerts[ 0 ] );
+                    opaqueMeshVerts.clear();
+                }
             }
-
-            visibleFaces[ map.leafFaces[ i ].index ] = 0;
+                break;
         }
     }
+
+    opaqueFaces.clear();
+    transparentFaces.clear();
 }
 
 /*
@@ -296,10 +271,7 @@ void BSPRenderer::Update( float dt, const RenderPass& pass )
     glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "modelview" ), 1, GL_FALSE, glm::value_ptr( pass.View() ) );
     glUniformMatrix4fvARB( glGetUniformLocation( bspProgram, "projection" ), 1, GL_FALSE, glm::value_ptr( pass.Projection() ) );
 
-    if ( lastCameraPosition == pass.position )
-        return;
-
-    visibleFaces.assign( visibleFaces.size(), 0 );
+    visibleFaces.clear();
 
     BSPLeaf* currentLeaf = map.FindClosestLeaf( pass.position );
 
@@ -311,14 +283,29 @@ void BSPRenderer::Update( float dt, const RenderPass& pass )
         {
             for ( int j = testLeaf->leafFaceOffset; j < testLeaf->leafFaceOffset + testLeaf->numLeafFaces; ++j )
             {   
-                if ( visibleFaces[ map.leafFaces[ j ].index ] == 0 )
-                {
-                    visibleFaces[ map.leafFaces[ j ].index ] = 1;
+                visibleFaces.push_back( map.leafFaces[ j ].index );
 
-                    MyPrintf( "Visible Faces", "Face Found!" );
+                BSPFace* face = map.faces + map.leafFaces[ j ].index;
+
+                std::vector< int > transparentVerts, opaqueVerts;
+
+                for ( int k = face->meshVertexOffset; k < face->meshVertexOffset + face->numMeshVertexes; ++k )
+                {
+                    BSPVertex* vertex = map.vertexes + k;
+
+                    if ( vertex->color[ 3 ] == 0 )
+                    {
+                        transparentVerts.push_back( map.meshVertexes[ k ].offset );
+                    }
+                    else
+                    {
+                        opaqueVerts.push_back( map.meshVertexes[ k ].offset );
+                    }
                 }
+
+                transparentFaces.push_back( transparentVerts );
+                opaqueFaces.push_back( opaqueVerts );
             }
         }
     }
 }
-

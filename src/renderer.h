@@ -76,24 +76,21 @@ public:
     void    Prep( void );
     void    Load( const std::string& filepath );
 
-    void    Draw( const RenderPass& pass );
+    void    Draw( void );
     void    Update( float dt, const RenderPass& pass );
 
 private:
 
-    void                DrawTree( int index, const RenderPass& pass );
-    void                DrawLeafNode( int index, const RenderPass& pass );
+    typedef bool        ( *PredicateFunc )( const BSPVertex&, const BSPVertex& );
 
     GLuint              bspProgram;
     GLuint              vao;
     GLuint              vbo;
 
-    Quake3Map           map;
-
-    glm::vec3           lastCameraPosition;
-
-    std::vector< int >  visibleFaces;
-
     float               deltaTime;
 
+    Quake3Map           map;
+
+    std::vector< int >  visibleFaces;    
+    std::vector< std::vector< int > > transparentFaces, opaqueFaces;
 };

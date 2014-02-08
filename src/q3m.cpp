@@ -148,13 +148,12 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
     {
         ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, header.version );
     }
-    /*
 
     entities.infoString = ( char* ) malloc( header.directories[ BSP_LUMP_ENTITIES ].length );
     entityStringLen = header.directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
     fseek( file, header.directories[ BSP_LUMP_ENTITIES ].offset, SEEK_SET );
     fread( entities.infoString, header.directories[ BSP_LUMP_ENTITIES ].length, 1, file );
-*/
+
     nodes = ( BSPNode* )malloc( header.directories[ BSP_LUMP_NODES ].length );
     numNodes = header.directories[ BSP_LUMP_NODES ].length / sizeof( BSPNode );
     fseek( file, header.directories[ BSP_LUMP_NODES ].offset, SEEK_SET );
@@ -162,13 +161,13 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numNodes; ++i )
     {
-        nodes[ i ].boxMax.x /= divisionScale;
-        nodes[ i ].boxMax.y /= divisionScale;
-        nodes[ i ].boxMax.z /= divisionScale;
+        nodes[ i ].boxMax.x *= divisionScale;
+        nodes[ i ].boxMax.y *= divisionScale;
+        nodes[ i ].boxMax.z *= divisionScale;
 
-        nodes[ i ].boxMin.x /= divisionScale;
-        nodes[ i ].boxMin.y /= divisionScale;
-        nodes[ i ].boxMin.z /= divisionScale;
+        nodes[ i ].boxMin.x *= divisionScale;
+        nodes[ i ].boxMin.y *= divisionScale;
+        nodes[ i ].boxMin.z *= divisionScale;
 
         SwizzleCoords( nodes[ i ].boxMax );
         SwizzleCoords( nodes[ i ].boxMin );
@@ -181,13 +180,13 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numLeaves; ++i )
     {
-        leaves[ i ].boxMax.x /= divisionScale;
-        leaves[ i ].boxMax.y /= divisionScale;
-        leaves[ i ].boxMax.z /= divisionScale;
+        leaves[ i ].boxMax.x *= divisionScale;
+        leaves[ i ].boxMax.y *= divisionScale;
+        leaves[ i ].boxMax.z *= divisionScale;
 
-        leaves[ i ].boxMin.x /= divisionScale;
-        leaves[ i ].boxMin.y /= divisionScale;
-        leaves[ i ].boxMin.z /= divisionScale;
+        leaves[ i ].boxMin.x *= divisionScale;
+        leaves[ i ].boxMin.y *= divisionScale;
+        leaves[ i ].boxMin.z *= divisionScale;
 
         SwizzleCoords( leaves[ i ].boxMax );
         SwizzleCoords( leaves[ i ].boxMin );
@@ -200,11 +199,11 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numPlanes; ++i )
     {
-        planes[ i ].normal.x /= ( float ) divisionScale;
-        planes[ i ].normal.y /= ( float ) divisionScale;
-        planes[ i ].normal.z /= ( float ) divisionScale;
+        planes[ i ].normal.x *= ( float ) divisionScale;
+        planes[ i ].normal.y *= ( float ) divisionScale;
+        planes[ i ].normal.z *= ( float ) divisionScale;
 
-        planes[ i ].distance /= ( float ) divisionScale;
+        planes[ i ].distance *= ( float ) divisionScale;
 
         SwizzleCoords( planes[ i ].normal );
     }
@@ -216,18 +215,13 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numVertexes; ++i )
     {
-        vertexes[ i ].position.x /= ( float ) divisionScale;
-        vertexes[ i ].position.y /= ( float ) divisionScale;
-        vertexes[ i ].position.z /= ( float ) divisionScale;
+        vertexes[ i ].position.x *= ( float ) divisionScale;
+        vertexes[ i ].position.y *= ( float ) divisionScale;
+        vertexes[ i ].position.z *= ( float ) divisionScale;
 
-        vertexes[ i ].normal.x /= ( float ) divisionScale;
-        vertexes[ i ].normal.y /= ( float ) divisionScale;
-        vertexes[ i ].normal.z /= ( float ) divisionScale;
-
-        vertexes[ i ].color[ 0 ] = mtrand_range( 0, 255 );
-        vertexes[ i ].color[ 1 ] = mtrand_range( 0, 255 );
-        vertexes[ i ].color[ 2 ] = mtrand_range( 0, 255 );
-        vertexes[ i ].color[ 3 ] = mtrand_range( 0, 255 );
+        vertexes[ i ].normal.x *= ( float ) divisionScale;
+        vertexes[ i ].normal.y *= ( float ) divisionScale;
+        vertexes[ i ].normal.z *= ( float ) divisionScale;
 
         SwizzleCoords( vertexes[ i ].position );
         SwizzleCoords( vertexes[ i ].normal );
@@ -240,13 +234,13 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numModels; ++i )
     {
-        models[ i ].boxMax.x /= ( float ) divisionScale;
-        models[ i ].boxMax.y /= ( float ) divisionScale;
-        models[ i ].boxMax.z /= ( float ) divisionScale;
+        models[ i ].boxMax.x *= ( float ) divisionScale;
+        models[ i ].boxMax.y *= ( float ) divisionScale;
+        models[ i ].boxMax.z *= ( float ) divisionScale;
 
-        models[ i ].boxMin.x /= ( float ) divisionScale;
-        models[ i ].boxMin.y /= ( float ) divisionScale;
-        models[ i ].boxMin.z /= ( float ) divisionScale;
+        models[ i ].boxMin.x *= ( float ) divisionScale;
+        models[ i ].boxMin.y *= ( float ) divisionScale;
+        models[ i ].boxMin.z *= ( float ) divisionScale;
 
         SwizzleCoords( models[ i ].boxMax );
         SwizzleCoords( models[ i ].boxMin );
@@ -259,21 +253,21 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numFaces; ++i )
     {
-        faces[ i ].normal.x /= ( float ) divisionScale;
-        faces[ i ].normal.y /= ( float ) divisionScale;
-        faces[ i ].normal.z /= ( float ) divisionScale;
+        faces[ i ].normal.x *= ( float ) divisionScale;
+        faces[ i ].normal.y *= ( float ) divisionScale;
+        faces[ i ].normal.z *= ( float ) divisionScale;
 
-        faces[ i ].lightmapOrigin.x /= ( float ) divisionScale;
-        faces[ i ].lightmapOrigin.y /= ( float ) divisionScale;
-        faces[ i ].lightmapOrigin.z /= ( float ) divisionScale;
+        faces[ i ].lightmapOrigin.x *= ( float ) divisionScale;
+        faces[ i ].lightmapOrigin.y *= ( float ) divisionScale;
+        faces[ i ].lightmapOrigin.z *= ( float ) divisionScale;
 
-        faces[ i ].lightmapStVecs[ 0 ].x /= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 0 ].y /= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 0 ].z /= ( float ) divisionScale;
+        faces[ i ].lightmapStVecs[ 0 ].x *= ( float ) divisionScale;
+        faces[ i ].lightmapStVecs[ 0 ].y *= ( float ) divisionScale;
+        faces[ i ].lightmapStVecs[ 0 ].z *= ( float ) divisionScale;
 
-        faces[ i ].lightmapStVecs[ 1 ].x /= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 1 ].y /= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 1 ].z /= ( float ) divisionScale;
+        faces[ i ].lightmapStVecs[ 1 ].x *= ( float ) divisionScale;
+        faces[ i ].lightmapStVecs[ 1 ].y *= ( float ) divisionScale;
+        faces[ i ].lightmapStVecs[ 1 ].z *= ( float ) divisionScale;
 
         SwizzleCoords( faces[ i ].normal );
         SwizzleCoords( faces[ i ].lightmapOrigin );
