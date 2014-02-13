@@ -2,10 +2,13 @@
 
 in vec3 position;
 in vec2 uv;
+in vec3 normal;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
+uniform mat3 normalMatrix;
 
 out vec2 frag_UV;
 

@@ -8,18 +8,20 @@
 namespace {
 
 typedef void( *DrawFunc )( void );
+typedef void( *LoadFunc )( GLFWwindow* );
 
 struct ArgMap
 {
     const char* arg;
-    DrawFunc    func;
+    DrawFunc    drawFunc;
+    LoadFunc    loadFunc;
 };
 
 ArgMap tests[] =
 {
-    { "--texture", &TEX_DrawTest },
-    { "--bsp", &BSPR_DrawTest },
-    { "--jpeg", &JPEG_DrawTest }
+    { "--texture", &TEX_DrawTest, &TEX_LoadTest },
+    { "--bsp", &BSPR_DrawTest, &BSPR_LoadTest },
+    { "--jpeg", &JPEG_DrawTest, &JPEG_LoadTest }
 };
 
 GLFWwindow* appWindow = NULL;
@@ -105,7 +107,8 @@ int main( int argc, char** argv )
         {
             if ( strcmp( tests[ i ].arg, argv[ 1 ] ) == 0 )
             {
-                drawFunction = &tests[ i ].func;
+                ( *tests[ i ].loadFunc )( appWindow );
+                drawFunction = &tests[ i ].drawFunc;
                 break;
             }
         }
@@ -120,8 +123,6 @@ int main( int argc, char** argv )
     {
         ERROR( "No test argument specified. Stop." );
     }
-
-    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
     while( running && !glfwWindowShouldClose( appWindow ) )
     {

@@ -10,9 +10,11 @@ namespace {
 const int TEX_WIDTH = 64;
 const int TEX_HEIGHT = 64;
 
+const int NUM_BUFFS = 2;
+
 byte checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
 
-GLuint vao, vbo, texture;
+GLuint vao, buffObjs[ NUM_BUFFS ], texture;
 
 GLuint program;
 
@@ -38,6 +40,8 @@ void TEX_HandleMouseMove( GLFWwindow* w, double x, double y )
 
 void TEX_LoadTest( GLFWwindow* window )
 {
+    glClearColor( 0.0f, 0.0f, 0.3f, 1.0f );
+
     glfwSetKeyCallback( window, TEX_HandleKeyInput );
     glfwSetCursorPosCallback( window, TEX_HandleMouseMove );
     glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
@@ -110,6 +114,45 @@ void TEX_LoadTest( GLFWwindow* window )
         -1.0f, -1.0f, -0.5f, 0.0f, 0.0f
     };
 
+    int numNorms = 3 * 6 * 6;
+
+    float normalData[ numNorms ];
+
+    int i, j;
+
+    for ( i = 0, j = 0; i < SIGNED_LEN( vertexData ); i += 5, j += 3 )
+    {
+        int surfNormsPerBlock = i % 6;
+
+        glm::vec3 vertNorm( 0.0f );
+
+        float avg = 0.0f;
+
+        // Compute surface normals for every 3 verts
+        for ( int k = i; k < i + ( surfNormsPerBlock * 5 ); k += 5 )
+        {
+            if ( k % 3 == 0 )
+            {
+                glm::vec3
+
+                e1( vertexData[ ( k - 10 )   ], vertexData[ ( k - 10 ) + 1    ], vertexData[ ( k - 10 ) + 2    ] ),
+                e2( vertexData[ ( k - 5 )    ], vertexData[ ( k - 5 ) + 1     ], vertexData[ ( k - 5 ) + 2     ] ),
+                e3( vertexData[   k          ], vertexData[   k + 1           ], vertexData[   k + 2           ] );
+
+                const glm::vec3& surfNorm = glm::cross( e1 - e2, e3 - e2 );
+
+                vertNorm += surfNorm;
+                avg += glm::length( surfNorm );
+            }
+        }
+
+        vertNorm /= avg;
+
+        normalData[ j     ] = vertNorm.x;
+        normalData[ j + 1 ] = vertNorm.y;
+        normalData[ j + 2 ] = vertNorm.z;
+    }
+
     program = []( void ) -> GLuint
     {
         GLuint shaders[] =
@@ -123,18 +166,25 @@ void TEX_LoadTest( GLFWwindow* window )
 
     glBindAttribLocation( program, 0, "position" );
     glBindAttribLocation( program, 1, "uv" );
+    glBindAttribLocation( program, 2, "normal" );
 
     glGenVertexArrays( 1, &vao );
     glBindVertexArray( vao );
 
-    glGenBuffers( 1, &vbo );
-    glBindBuffer( GL_ARRAY_BUFFER, vbo );
+    glGenBuffers( NUM_BUFFS, buffObjs );
+    glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 0 ] );
     glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData ), vertexData, GL_STATIC_DRAW );
 
     glEnableVertexAttribArray( 0 );
     glEnableVertexAttribArray( 1 );
     glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, 0 );
     glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, ( void* )( sizeof( float ) * 3 ) );
+
+    glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 1 ] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( normalData ), normalData, GL_STATIC_DRAW );
+
+    glEnableVertexAttribArray( 2 );
+    glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, ( void* ) 0 );
 
     glBindVertexArray( 0 );
 
