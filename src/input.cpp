@@ -1,30 +1,41 @@
 #include "input.h"
-#include "renderer.h"
 #include "log.h"
+#include "math_util.h"
 
-enum
+namespace
 {
-    KEY_PRESSED = 1,
-    KEY_NOT_PRESSED = 0,
-    KEY_FORWARD = 0,
-    KEY_BACKWARD = 1,
-    KEY_LEFT = 2,
-    KEY_RIGHT = 3,
-    KEY_UP = 4,
-    KEY_DOWN = 5
-};
+    const float MOUSE_SENSE = 0.1f;
+
+    const float VIEW_STEP_SPEED = 1.0f;
+
+    enum
+    {
+        KEY_PRESSED = 1,
+        KEY_NOT_PRESSED = 0,
+        KEY_FORWARD = 0,
+        KEY_BACKWARD = 1,
+        KEY_LEFT = 2,
+        KEY_RIGHT = 3,
+        KEY_UP = 4,
+        KEY_DOWN = 5,
+        KEY_IN = 6,
+        KEY_OUT = 7
+    };
+}
 
 /*
 =====================================================
 
-Input::Input
+InputCamera::Input
 
 =====================================================
 */
 
-Input::Input( void )
+InputCamera::InputCamera( void )
+    :
+      lastMouse( 0.0f )
 {
-    lastPass.position = glm::vec3( 0.0f );
+    viewData.projection = glm::perspective( 45.0f, 16.0f / 9.0f, 0.1f, 9000.0f );
 
     for ( int i = 0; i < KEY_COUNT; ++i )
     {
@@ -35,28 +46,31 @@ Input::Input( void )
 /*
 =====================================================
 
-Input::EvalMouseMove
+InputCamera::EvalMouseMove
 
 =====================================================
 */
 
-const float MOUSE_CAM_ROT_FACTOR = 0.1f;
 
-void Input::EvalMouseMove( float x, float y )
+
+void InputCamera::EvalMouseMove( float x, float y )
 {
-    mouseX = glm::radians( x ) * MOUSE_CAM_ROT_FACTOR;
-    mouseY = glm::radians( y ) * MOUSE_CAM_ROT_FACTOR;
+    currRot.pitch += ( y - lastMouse.y ) * MOUSE_SENSE;
+    currRot.yaw += ( x - lastMouse.x ) * MOUSE_SENSE;
+
+    lastMouse.x = x;
+    lastMouse.y = y;
 }
 
 /*
 =====================================================
 
-Input::EvalKeyPress
+InputCamera::EvalKeyPress
 
 =====================================================
 */
 
-void Input::EvalKeyPress( int key )
+void InputCamera::EvalKeyPress( int key )
 {
     switch( key )
     {
@@ -83,18 +97,24 @@ void Input::EvalKeyPress( int key )
         case GLFW_KEY_SPACE:
             keysPressed[ KEY_UP ] = KEY_PRESSED;
             break;
+        case GLFW_KEY_E:
+            keysPressed[ KEY_IN ] = KEY_PRESSED;
+            break;
+        case GLFW_KEY_Q:
+            keysPressed[ KEY_OUT ] = KEY_PRESSED;
+            break;
     }
 }
 
 /*
 =====================================================
 
-Input::EvalKeyRelease
+InputCamera::EvalKeyRelease
 
 =====================================================
 */
 
-void Input::EvalKeyRelease( int key )
+void InputCamera::EvalKeyRelease( int key )
 {
     switch( key )
     {
@@ -116,48 +136,75 @@ void Input::EvalKeyRelease( int key )
         case GLFW_KEY_SPACE:
             keysPressed[ KEY_UP ] = KEY_NOT_PRESSED;
             break;
+        case GLFW_KEY_E:
+            keysPressed[ KEY_IN ] = KEY_NOT_PRESSED;
+            break;
+        case GLFW_KEY_Q:
+            keysPressed[ KEY_OUT ] = KEY_NOT_PRESSED;
+            break;
+
     }
 }
 
 /*
 =====================================================
 
-Input::UpdatePass
+InputCamera::Update
 
 =====================================================
 */
 
-const float VIEW_STEP_SPEED = 8.0f;
 
-void Input::UpdatePass( RenderPass& pass )
+void InputCamera::Update( void )
 {
-    pass.rotation.x = mouseY;
-    pass.rotation.y = mouseX;
+     currRot.Normalize();
 
-    glm::vec4 moveVec( VIEW_STEP_SPEED, VIEW_STEP_SPEED, -VIEW_STEP_SPEED, 1.0f );
+     lastRot = currRot;
 
-    const glm::mat4& orient = pass.Orientation();
-    const glm::mat4& inverseOrient = glm::inverse( orient );
+    if ( keysPressed[ KEY_FORWARD ] ) Walk( VIEW_STEP_SPEED );
+    if ( keysPressed[ KEY_BACKWARD ] ) Walk( -VIEW_STEP_SPEED );
+    if ( keysPressed[ KEY_RIGHT ] ) Strafe( VIEW_STEP_SPEED );
+    if ( keysPressed[ KEY_LEFT ] ) Strafe( -VIEW_STEP_SPEED );
+    if ( keysPressed[ KEY_UP ] ) Raise( VIEW_STEP_SPEED );
+    if ( keysPressed[ KEY_DOWN ] ) Raise( -VIEW_STEP_SPEED );
+    if ( keysPressed[ KEY_IN ] ) currRot.roll += VIEW_STEP_SPEED;
+    if ( keysPressed[ KEY_OUT ] ) currRot.roll -= VIEW_STEP_SPEED;
 
-    // Each vector component is computed with one vector and then extracted individually.
-    // This is because the inverseOrient transform can manipulate values in the vector
-    // inadvertently for keys which haven't been pressed.
+    currRot.Normalize();
 
-    moveVec = inverseOrient * moveVec;
+    viewData.orientation = glm::rotate( glm::mat4( 1.0f ), glm::radians( currRot.pitch ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    viewData.orientation = glm::rotate( viewData.orientation, glm::radians( currRot.yaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+    viewData.orientation = glm::rotate( viewData.orientation, glm::radians( currRot.roll ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
 
-    float& x = moveVec.x;
-    float& y = moveVec.y;
-    float& z = moveVec.z;
+    viewData.inverseOrient = glm::inverse( viewData.orientation );
 
-    x = keysPressed[ KEY_LEFT ] ? -x : keysPressed[ KEY_RIGHT ] ? x : 0.0f;
-    y = keysPressed[ KEY_DOWN ] ? -y : keysPressed[ KEY_UP ] ? y : 0.0f;
-    z = keysPressed[ KEY_BACKWARD ] ? -z : keysPressed[ KEY_FORWARD ] ? z : 0.0f;
+    viewData.transform = viewData.orientation * glm::translate( glm::mat4( 1.0f ), -viewData.origin );
 
-    pass.position += glm::vec3( moveVec );
-
-    pass.view = orient * glm::translate( glm::mat4( 1.0f ), -pass.position );
-
-    lastPass = pass;
-
-    MyPrintf( "Position", "x: %f\n y: %f\n z: %f", pass.position.x, pass.position.y, pass.position.z );
+    MyPrintf( "Camera Info", "pitch: %f, roll: %f, yaw: %f, position = { x: %f, y: %f, z: %f }", currRot.pitch, currRot.roll, currRot.yaw,
+              viewData.origin.x, viewData.origin.y, viewData.origin.z );
 }
+
+/*
+=====================================================
+
+InputCamera::RotateX
+
+=====================================================
+*/
+/*
+void InputCamera::RotateX( float angRad )
+{
+    if ( glm::length( viewData.rotation ) == 0 )
+    {
+        viewData.rotation = MakeQuat( angRad,  );
+        viewData.rotConj -=viewData.rotation;
+    }
+    else
+    {
+        view
+    }
+}
+
+void    InputCamera::RotateY( float angRad );
+void    InputCamera::RotateZ( float angRad );
+*/

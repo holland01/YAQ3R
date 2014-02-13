@@ -1,84 +1,49 @@
 #include "trenderer.h"
+#include "test_util.h"
 #include "../input.h"
 
-static BSPRenderer renderer;
-static Input input;
+namespace {
 
-static double currTime, prevTime;
-static bool cursorVisible;
+double currTime, prevTime;
 
-void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods )
-{
-
-    switch ( action )
-    {
-
-        case GLFW_PRESS:
-            switch( key )
-            {
-                case GLFW_KEY_ESCAPE:
-                    FlagExit();
-                    break;
-                case GLFW_KEY_F1:
-                    cursorVisible = !cursorVisible;
-
-                    if ( cursorVisible )
-                    {
-                        glfwSetInputMode( w, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
-                    }
-                    else
-                    {
-                        glfwSetInputMode( w, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
-                    }
-
-                    break;
-                default:
-                    input.EvalKeyPress( key );
-                    break;
-            }
-            break;
-
-        case GLFW_RELEASE:
-            input.EvalKeyRelease( key );
-            break;
-
-        default:
-
-            break;
-    }
+bool cursorVisible;
 
 }
 
-void HandleMousePosTestRenderer( GLFWwindow* w, double x, double y )
+BSPRenderer* renderer = NULL;
+
+void BSPR_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
-    input.EvalMouseMove( ( float ) x, ( float ) y );
+    OnKeyPress( w, key, scancode, action, mods, renderer->camera, cursorVisible );
 }
 
-void LoadTestRenderer( GLFWwindow* window )
+void BSPR_HandleMouseMove( GLFWwindow* w, double x, double y )
+{
+    renderer->camera.EvalMouseMove( ( float ) x, ( float ) y );
+}
+
+void BSPR_LoadTest( GLFWwindow* window )
 {
     prevTime = glfwGetTime();
 
-    glfwSetKeyCallback( window, HandleInputTestRenderer );
-    glfwSetCursorPosCallback( window, HandleMousePosTestRenderer );
+    glfwSetKeyCallback( window, BSPR_HandleKeyInput );
+    glfwSetCursorPosCallback( window, BSPR_HandleMouseMove );
     glfwSetInputMode( window, GLFW_STICKY_KEYS, GL_FALSE );
-   // glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
 
-    renderer.Prep();
-    renderer.Load( "asset/quake/railgun_arena/map.bsp" );
+    renderer->Prep();
+    renderer->Load( "asset/quake/aty3dm1v2.bsp" );
 
     cursorVisible = true;
+
+    renderer = new BSPRenderer;
 }
 
-void DrawTestRenderer( void )
+void BSPR_DrawTest( void )
 {
-    RenderPass pass( input.LastPass() );
-
     currTime = glfwGetTime();
 
-    renderer.Update( currTime - prevTime, pass );
-    renderer.Draw();
-
-    input.UpdatePass( pass );
+    renderer->DrawWorld();
+    renderer->Update( currTime - prevTime );
 
     prevTime = currTime;
 }

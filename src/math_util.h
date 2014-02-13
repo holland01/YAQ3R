@@ -2,4 +2,5 @@
 
 glm::vec3 GetBoundsCenter( vec3i& max, vec3i& min );
 
-glm::quat GenQuat( float angRad, const glm::vec3& axis );
+glm::fquat MakeQuat( float angRad, const glm::vec3& axis );
+

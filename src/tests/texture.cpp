@@ -1,76 +1,48 @@
 #include "texture.h"
+#include "test_util.h"
+
 #include "../renderer.h"
 #include "../shader.h"
 #include "../input.h"
 
-static const int TEX_WIDTH = 64;
-static const int TEX_HEIGHT = 64;
+namespace {
 
-static unsigned char checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
+const int TEX_WIDTH = 64;
+const int TEX_HEIGHT = 64;
 
-static GLuint vao, vbo, texture;
+byte checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
 
-static GLuint program;
-static GLFWwindow* windowPtr = NULL;
+GLuint vao, vbo, texture;
 
-static glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
+GLuint program;
 
-static const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
+glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
 
-static Input input;
-static bool cursorVisible;
+const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
-void HandleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, int mods )
-{
-    switch ( action )
-    {
-        case GLFW_PRESS:
-            switch ( key )
-            {
-                case GLFW_KEY_ESCAPE:
-                    FlagExit();
-                    break;
-                case GLFW_KEY_F1:
-                    cursorVisible = !cursorVisible;
+InputCamera camera;
 
-                    if ( cursorVisible )
-                    {
-                        glfwSetInputMode( windowPtr, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
-                    }
-                    else
-                    {
-                        glfwSetInputMode( windowPtr, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
-                    }
-                    break;
-                default:
-                    input.EvalKeyPress( key );
-                    break;
-            }
-            break;
+bool cursorVisible;
 
-        case GLFW_RELEASE:
-            input.EvalKeyRelease( key );
-            break;
-
-        default:
-            break;
-    }
 }
 
-void HandleMousePosTestTexture( GLFWwindow* w, double x, double y )
+void TEX_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
-    input.EvalMouseMove( ( float ) x, ( float ) y );
+    OnKeyPress( w, key, scancode, action, mods, camera, cursorVisible );
 }
 
-void LoadTestTexture( GLFWwindow* window )
+void TEX_HandleMouseMove( GLFWwindow* w, double x, double y )
 {
+    camera.EvalMouseMove( ( float ) x, ( float ) y );
+}
 
-    glfwSetKeyCallback( window, HandleInputTestTexture );
-    glfwSetCursorPosCallback( window, HandleMousePosTestTexture );
+void TEX_LoadTest( GLFWwindow* window )
+{
+    glfwSetKeyCallback( window, TEX_HandleKeyInput );
+    glfwSetCursorPosCallback( window, TEX_HandleMouseMove );
     glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 
     cursorVisible = true;
-    windowPtr = window;
 
     // Generate our texture colors
     for ( int i = 0; i < TEX_WIDTH; ++i )
@@ -178,12 +150,14 @@ void LoadTestTexture( GLFWwindow* window )
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
     glBindTexture( GL_TEXTURE_2D, 0 );
+
+    glUseProgram( program );
+    glUniformMatrix4fv( glGetUniformLocation( program, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().projection ) );
+    glUseProgram( 0 );
 }
 
-void DrawTestTexture( void )
+void TEX_DrawTest( void )
 {
-    RenderPass pass( input.LastPass() );
-
     glUseProgram( program );
     glBindVertexArray( vao );
     glBindBuffer( GL_ARRAY_BUFFER, vbo );
@@ -194,8 +168,7 @@ void DrawTestTexture( void )
     glUniform1i( glGetUniformLocation( program, "sampler" ), 0 );
 
     glUniformMatrix4fv( glGetUniformLocation( program, "model" ), 1, GL_FALSE, glm::value_ptr( cubeModel ) );
-    glUniformMatrix4fv( glGetUniformLocation( program, "view" ), 1, GL_FALSE, glm::value_ptr( pass.View() ) );
-    glUniformMatrix4fv( glGetUniformLocation( program, "projection" ), 1, GL_FALSE, glm::value_ptr( pass.Projection() ) );
+    glUniformMatrix4fv( glGetUniformLocation( program, "view" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().transform ) );
 
     glDrawArrays( GL_TRIANGLES, 0, 36 );
 
@@ -205,6 +178,8 @@ void DrawTestTexture( void )
     glBindVertexArray( 0 );
     glUseProgram( 0 );
 
-    input.UpdatePass( pass );
-    //cubeModel *= testRotMatrix;
+    cubeModel *= testRotMatrix;
+
+    camera.Update();
 }
+

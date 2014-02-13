@@ -133,7 +133,8 @@ struct BSPModel
 struct BSPVertex
 {
     vec3f position;
-    vec2f texcoords[ 2 ];
+    vec2f texcoord;
+    vec2f lightmapCoord;
     vec3f normal;
 
     byte color[ 4 ];
@@ -191,7 +192,9 @@ public:
 
     ~Quake3Map( void );
 
-    void            Read( const std::string& filepath, int divisionScale );
+    void            Read( const std::string& filepath );
+
+    void            SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 
     BSPLeaf*        FindClosestLeaf( const glm::vec3& camPos );
 

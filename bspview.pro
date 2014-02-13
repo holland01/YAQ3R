@@ -25,7 +25,10 @@ HEADERS += \
     src/q3m_model.h \
     src/math_util.h \
     src/mtrand.h \
-    src/input.h
+    src/input.h \
+    src/eu_ang.h \
+    src/tests/jpeg.h \
+    src/tests/test_util.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -37,8 +40,23 @@ OTHER_FILES += \
     src/tex2D.vert \
     src/tex2D.frag \
     asset/quake/overkill.bsp \
-    src/main.frag \
-    src/main.vert
+    src/main.vert \
+    src/targetDraw.vert \
+    src/vertexColor.frag \
+    asset/quake/railgun_arena/map.bsp \
+    asset/quake/railgun_arena/map.aas \
+    asset/quake/railgun_arena/textures/aedm7/aecell_decal_logo1.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_decal_spawn1.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_gl.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_lg.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_mh.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_pg.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_quad.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_ra.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_rg.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_rl.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_sg.tga \
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_ya.tga
 
 SOURCES += \
     src/shader.cpp \
@@ -52,5 +70,8 @@ SOURCES += \
     src/q3m_model.cpp \
     src/math_util.cpp \
     src/mtrand.cpp \
-    src/input.cpp
+    src/input.cpp \
+    src/eu_ang.cpp \
+    src/tests/jpeg.cpp \
+    src/tests/test_util.cpp
 

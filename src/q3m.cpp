@@ -122,13 +122,8 @@ Quake3Map::Read
 =====================================================
 */
 
-void Quake3Map::Read( const std::string& filepath, int divisionScale )
-{
-    if ( divisionScale <= 0 )
-    {
-        divisionScale = 1;
-    }
-
+void Quake3Map::Read( const std::string& filepath )
+{   
     FILE* file = fopen( filepath.c_str(), "rb" );
 
     if ( !file )
@@ -161,14 +156,6 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numNodes; ++i )
     {
-        nodes[ i ].boxMax.x *= divisionScale;
-        nodes[ i ].boxMax.y *= divisionScale;
-        nodes[ i ].boxMax.z *= divisionScale;
-
-        nodes[ i ].boxMin.x *= divisionScale;
-        nodes[ i ].boxMin.y *= divisionScale;
-        nodes[ i ].boxMin.z *= divisionScale;
-
         SwizzleCoords( nodes[ i ].boxMax );
         SwizzleCoords( nodes[ i ].boxMin );
     }
@@ -180,14 +167,6 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numLeaves; ++i )
     {
-        leaves[ i ].boxMax.x *= divisionScale;
-        leaves[ i ].boxMax.y *= divisionScale;
-        leaves[ i ].boxMax.z *= divisionScale;
-
-        leaves[ i ].boxMin.x *= divisionScale;
-        leaves[ i ].boxMin.y *= divisionScale;
-        leaves[ i ].boxMin.z *= divisionScale;
-
         SwizzleCoords( leaves[ i ].boxMax );
         SwizzleCoords( leaves[ i ].boxMin );
     }
@@ -199,12 +178,6 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numPlanes; ++i )
     {
-        planes[ i ].normal.x *= ( float ) divisionScale;
-        planes[ i ].normal.y *= ( float ) divisionScale;
-        planes[ i ].normal.z *= ( float ) divisionScale;
-
-        planes[ i ].distance *= ( float ) divisionScale;
-
         SwizzleCoords( planes[ i ].normal );
     }
 
@@ -215,14 +188,6 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numVertexes; ++i )
     {
-        vertexes[ i ].position.x *= ( float ) divisionScale;
-        vertexes[ i ].position.y *= ( float ) divisionScale;
-        vertexes[ i ].position.z *= ( float ) divisionScale;
-
-        vertexes[ i ].normal.x *= ( float ) divisionScale;
-        vertexes[ i ].normal.y *= ( float ) divisionScale;
-        vertexes[ i ].normal.z *= ( float ) divisionScale;
-
         SwizzleCoords( vertexes[ i ].position );
         SwizzleCoords( vertexes[ i ].normal );
     }
@@ -234,14 +199,6 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numModels; ++i )
     {
-        models[ i ].boxMax.x *= ( float ) divisionScale;
-        models[ i ].boxMax.y *= ( float ) divisionScale;
-        models[ i ].boxMax.z *= ( float ) divisionScale;
-
-        models[ i ].boxMin.x *= ( float ) divisionScale;
-        models[ i ].boxMin.y *= ( float ) divisionScale;
-        models[ i ].boxMin.z *= ( float ) divisionScale;
-
         SwizzleCoords( models[ i ].boxMax );
         SwizzleCoords( models[ i ].boxMin );
     }
@@ -253,22 +210,6 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
 
     for ( int i = 0; i < numFaces; ++i )
     {
-        faces[ i ].normal.x *= ( float ) divisionScale;
-        faces[ i ].normal.y *= ( float ) divisionScale;
-        faces[ i ].normal.z *= ( float ) divisionScale;
-
-        faces[ i ].lightmapOrigin.x *= ( float ) divisionScale;
-        faces[ i ].lightmapOrigin.y *= ( float ) divisionScale;
-        faces[ i ].lightmapOrigin.z *= ( float ) divisionScale;
-
-        faces[ i ].lightmapStVecs[ 0 ].x *= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 0 ].y *= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 0 ].z *= ( float ) divisionScale;
-
-        faces[ i ].lightmapStVecs[ 1 ].x *= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 1 ].y *= ( float ) divisionScale;
-        faces[ i ].lightmapStVecs[ 1 ].z *= ( float ) divisionScale;
-
         SwizzleCoords( faces[ i ].normal );
         SwizzleCoords( faces[ i ].lightmapOrigin );
         SwizzleCoords( faces[ i ].lightmapStVecs[ 0 ] );
@@ -300,6 +241,33 @@ void Quake3Map::Read( const std::string& filepath, int divisionScale )
    // LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
    // LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
     //LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
+}
+
+
+/*
+=====================================================
+
+Quake3Map::SetVertexGroupColor
+
+Set the color of all vertices with a given alpha channel value
+by a given RGB color.
+
+Color and channel specified are within the range [0, 255]
+
+=====================================================
+*/
+
+void Quake3Map::SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor )
+{
+    for ( int i = 0; i < numVertexes; ++i )
+    {
+        if ( ( *predicate )( vertexes[ i ].color ) )
+        {
+            vertexes[ i ].color[ 0 ] = rgbColor.r;
+            vertexes[ i ].color[ 1 ] = rgbColor.g;
+            vertexes[ i ].color[ 2 ] = rgbColor.b;
+        }
+    }
 }
 
 /*

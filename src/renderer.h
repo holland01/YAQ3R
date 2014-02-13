@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "q3m.h"
+#include "input.h"
 
 /*
 =====================================================
@@ -26,33 +27,24 @@ License: WTFPL
 =====================================================
 */
 
-class Input;
-
 class RenderPass
 {
 public:
-    friend class Input;
-
-    RenderPass( void );
-    RenderPass( const RenderPass& copy );
+    RenderPass( const Quake3Map* const map, const ViewParams& viewData );
     ~RenderPass( void );
 
-    RenderPass& operator =( RenderPass copy );
+    void                    SetFaceCount( int count );
 
-    void Reset( void );
+    const ViewParams&       view;
+    std::vector< bool >     facesRendered;
 
-    const glm::mat4& View( void ) const { return view; }
-    const glm::mat4& Projection( void ) const { return projection; }
-
-    glm::mat4       Orientation( void );
-
-    glm::vec3       position;
-    glm::vec3       rotation;
-
-private:
-
-    glm::mat4 view, projection;
 };
+
+INLINE void RenderPass::SetFaceCount( int count )
+{
+    facesRendered.reserve( count );
+    facesRendered.assign( count, false );
+}
 
 
 /*
@@ -67,30 +59,38 @@ class BSPRenderer
 {
 public:
 
-    BSPRenderer( void );
+    InputCamera camera;
 
-    BSPRenderer( const BSPRenderer& copy );
+    BSPRenderer( void );
 
     ~BSPRenderer( void );
 
     void    Prep( void );
     void    Load( const std::string& filepath );
 
-    void    Draw( void );
-    void    Update( float dt, const RenderPass& pass );
+    void    DrawWorld( void );
+
+    void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
+    void    DrawFace( int faceIndex, RenderPass& pass, bool isSolid );
+
+    void    Update( float dt );
 
 private:
 
     typedef bool        ( *PredicateFunc )( const BSPVertex&, const BSPVertex& );
 
     GLuint              bspProgram;
-    GLuint              vao;
-    GLuint              vbo;
+    GLuint              vao, vbo;
+    GLuint              texObj;
 
     float               deltaTime;
 
-    Quake3Map           map;
+    std::vector< int >  alreadyVisible;
 
-    std::vector< int >  visibleFaces;    
-    std::vector< std::vector< int > > transparentFaces, opaqueFaces;
+    std::vector< int >  visibleFaces;
+    std::vector< bool > visibleClusters;
+
+    int                 currClusterIndex;
+
+    Quake3Map           map;
 };

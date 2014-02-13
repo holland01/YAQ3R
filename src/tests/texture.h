@@ -2,11 +2,11 @@
 
 #include "../common.h"
 
-void LoadTestTexture( GLFWwindow* window );
+void TEX_LoadTest( GLFWwindow* window );
 
-void DrawTestTexture( void );
+void TEX_DrawTest( void );
 
-void HandleInputTestTexture( GLFWwindow* w, int key, int scancode, int action, int mods );
+void TEX_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods );
 
-void HandleMousePosTestTexture( GLFWwindow* w, double x, double y );
+void TEX_HandleMouseMove( GLFWwindow* w, double x, double y );
 

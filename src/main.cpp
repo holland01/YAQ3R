@@ -3,29 +3,45 @@
 #include "log.h"
 #include "tests/texture.h"
 #include "tests/trenderer.h"
+#include "tests/jpeg.h"
 
-static GLFWwindow* window = NULL;
+namespace {
 
-static bool running = false;
+typedef void( *DrawFunc )( void );
 
-void FlagExit( void )
+struct ArgMap
 {
-    running = false;
-}
+    const char* arg;
+    DrawFunc    func;
+};
+
+ArgMap tests[] =
+{
+    { "--texture", &TEX_DrawTest },
+    { "--bsp", &BSPR_DrawTest },
+    { "--jpeg", &JPEG_DrawTest }
+};
+
+GLFWwindow* appWindow = NULL;
+
+bool running = false;
 
 bool AppInit( void )
 {
     if ( !glfwInit() )
         return false;
 
-    window = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 
-    if ( !window )
+    appWindow = glfwCreateWindow( 1366, 768, "BSP View", NULL, NULL );
+
+    if ( !appWindow )
     {
         return false;
     }
 
-    glfwMakeContextCurrent( window );
+    glfwMakeContextCurrent( appWindow );
 
     glewExperimental = true;
     GLenum response = glewInit();
@@ -46,52 +62,79 @@ bool AppInit( void )
     InitLog();
 
     MyPrintf( "Init", "OpenGL Version: %i.%i",
-              glfwGetWindowAttrib( window, GLFW_CONTEXT_VERSION_MAJOR ),
-              glfwGetWindowAttrib( window, GLFW_CONTEXT_VERSION_MINOR ) );
-
-    running = true;
+              glfwGetWindowAttrib( appWindow, GLFW_CONTEXT_VERSION_MAJOR ),
+              glfwGetWindowAttrib( appWindow, GLFW_CONTEXT_VERSION_MINOR ) );
 
     return true;
 }
 
-typedef  void( *DrawFunc )( void );
+std::string ArgTableString( void )
+{
+    std::stringstream out;
+
+    for ( int i = 0; i < SIGNED_LEN( tests ); ++i )
+    {
+        out << "\t[ " << i << " ]" << tests[ i ].arg << " \n";
+    }
+
+    return out.str();
+}
+
+}
+
+// Is global
+void FlagExit( void )
+{
+    running = false;
+}
 
 int main( int argc, char** argv )
 {
-    DrawFunc drawFunction;
+    DrawFunc* drawFunction;
 
     if ( !AppInit() )
         return 1;
 
-    if ( strcmp( argv[ 1 ], "--texture" ) == 0 )
+    running = true;
+
+    if ( argc > 1 )
     {
-        LoadTestTexture( window );
-        drawFunction = &DrawTestTexture;
-    }
-    else if ( strcmp( argv[ 1 ], "--bsp" ) == 0 )
-    {
-        LoadTestRenderer( window );
-        drawFunction = &DrawTestRenderer;
+        int i;
+
+        for ( i = 0; i < SIGNED_LEN( tests ); ++i )
+        {
+            if ( strcmp( tests[ i ].arg, argv[ 1 ] ) == 0 )
+            {
+                drawFunction = &tests[ i ].func;
+                break;
+            }
+        }
+
+        // No valid argument specified
+        if ( i == SIGNED_LEN( tests ) - 1 )
+        {
+            ERROR( "Error! '%s' is invalid.\n Valid Arguments:\n %s", argv[ 1 ], ArgTableString().c_str() );
+        }
     }
     else
     {
-        ERROR( "No argument specified for test to run" );
+        ERROR( "No test argument specified. Stop." );
     }
 
-    glClearColor( 0.3f, 0.0f, 0.0f, 1.0f );
+    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
-    while( running && !glfwWindowShouldClose( window ) )
+    while( running && !glfwWindowShouldClose( appWindow ) )
     {
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-        ( *drawFunction )();
+        ( **drawFunction )();
 
-        glfwSwapBuffers( window );
+        glfwSwapBuffers( appWindow );
         glfwPollEvents();
     }
 
     glfwTerminate();
-    glfwDestroyWindow( window );
+    glfwDestroyWindow( appWindow );
     KillLog();
 
     return 0;

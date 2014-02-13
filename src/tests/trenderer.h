@@ -3,10 +3,10 @@
 #include "../common.h"
 #include "../renderer.h"
 
-void LoadTestRenderer( GLFWwindow* window );
+void BSPR_LoadTest( GLFWwindow* window );
 
-void DrawTestRenderer( void );
+void BSPR_DrawTest( void );
 
-void HandleInputTestRenderer( GLFWwindow* w, int key, int scancode, int action, int mods );
+void BSPR_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods );
 
-void HandleMousePosTestRenderer( GLFWwindow* w, double x, double y );
+void BSPR_HandleMouseMove( GLFWwindow* w, double x, double y );
