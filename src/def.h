@@ -32,3 +32,5 @@ typedef unsigned char byte;
 // From: http://stackoverflow.com/a/4415646/763053 (originally named "COUNT_OF")
 #define UNSIGNED_LEN(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #define SIGNED_LEN(x) ((int)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))
+
+#define cmalloc( s ) ( malloc( s ) )

@@ -28,7 +28,9 @@ HEADERS += \
     src/input.h \
     src/eu_ang.h \
     src/tests/jpeg.h \
-    src/tests/test_util.h
+    src/tests/test_util.h \
+    src/exp/spotlight.h \
+    src/exp/program_batch.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -56,7 +58,10 @@ OTHER_FILES += \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_rg.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_rl.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_sg.tga \
-    asset/quake/railgun_arena/textures/aedm7/aecell_pads_ya.tga
+    asset/quake/railgun_arena/textures/aedm7/aecell_pads_ya.tga \
+    src/shared_matrix.glsl \
+    src/baseVertex.vert \
+    src/singleColor.frag
 
 SOURCES += \
     src/shader.cpp \
@@ -73,5 +78,6 @@ SOURCES += \
     src/input.cpp \
     src/eu_ang.cpp \
     src/tests/jpeg.cpp \
-    src/tests/test_util.cpp
+    src/tests/test_util.cpp \
+    src/exp/program_batch.cpp
 

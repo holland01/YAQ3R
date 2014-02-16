@@ -1,36 +1,91 @@
 #include "texture.h"
 #include "test_util.h"
 
+#include "../log.h"
 #include "../renderer.h"
 #include "../shader.h"
 #include "../input.h"
+#include "../exp/program_batch.h"
 
 namespace {
+
+const int NUM_SPOTLIGHT_VBOS = 2;
+
+enum
+{
+    MODE_TEX_2D = 0,
+    MODE_RENDER_NORMALS
+};
 
 const int TEX_WIDTH = 64;
 const int TEX_HEIGHT = 64;
 
-const int NUM_BUFFS = 2;
+const int NUM_BUFFS = 3;
 
 byte checkerboard[ TEX_WIDTH ][ TEX_HEIGHT ][ 4 ];
 
-GLuint vao, buffObjs[ NUM_BUFFS ], texture;
+GLuint buffObjs[ NUM_BUFFS ], texture;
 
-GLuint program;
+GLuint vaos[] =
+{
+    0,
+    0
+};
+
+Pipeline pipeline;
 
 glm::mat4 cubeModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 10.0f ) );
 
 const glm::mat4& testRotMatrix = glm::rotate( glm::mat4( 1.0f ), glm::radians( 1.0f ), glm::vec3( 1.0f, 1.0f, 0.0f ) );
 
+const float LIGHT_POS_STEP = 3.0f;
+glm::vec3 lightPos( 5.0f, 5.0f, 0.0f );
+
 InputCamera camera;
 
-bool cursorVisible;
+bool cursorVisible, drawNormals;
 
+inline void UpdateMatrices( GLuint program )
+{
+    glUniformMatrix4fv( glGetUniformLocation( program, "model" ), 1, GL_FALSE, glm::value_ptr( cubeModel ) );
+    glUniformMatrix4fv( glGetUniformLocation( program, "view" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().transform ) );
 }
+
+} // end namespace
 
 void TEX_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
     OnKeyPress( w, key, scancode, action, mods, camera, cursorVisible );
+
+    if ( action == GLFW_PRESS )
+    {
+        switch( key )
+        {
+            case GLFW_KEY_J:
+                lightPos.y += LIGHT_POS_STEP;
+                break;
+            case GLFW_KEY_K:
+                lightPos.y -= LIGHT_POS_STEP;
+                break;
+            case GLFW_KEY_L:
+                lightPos.x += LIGHT_POS_STEP;
+                break;
+            case GLFW_KEY_H:
+                lightPos.x -= LIGHT_POS_STEP;
+                break;
+            case GLFW_KEY_I:
+                lightPos.z -= LIGHT_POS_STEP;
+                break;
+            case GLFW_KEY_O:
+                lightPos.z += LIGHT_POS_STEP;
+                break;
+        }
+
+        if ( ( key >= 74 && key <= 76 ) || key == 72 )
+        {
+            MyPrintf( "Light Position", "x: %f\n y: %f\n z: %f", lightPos.x, lightPos.y, lightPos.z );
+        }
+    }
 }
 
 void TEX_HandleMouseMove( GLFWwindow* w, double x, double y )
@@ -47,6 +102,9 @@ void TEX_LoadTest( GLFWwindow* window )
     glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 
     cursorVisible = true;
+    drawNormals = true;
+
+    pipeline.Alloc();
 
     // Generate our texture colors
     for ( int i = 0; i < TEX_WIDTH; ++i )
@@ -120,116 +178,177 @@ void TEX_LoadTest( GLFWwindow* window )
 
     int i, j;
 
-    for ( i = 0, j = 0; i < SIGNED_LEN( vertexData ); i += 5, j += 3 )
-    {
-        int surfNormsPerBlock = i % 6;
 
+    // Compute vertex normals
+    for ( i = 0, j = 0; i < SIGNED_LEN( vertexData ); i += 15, j += 3 )
+    {
         glm::vec3 vertNorm( 0.0f );
 
-        float avg = 0.0f;
+        //float avg = 0.0f;
 
-        // Compute surface normals for every 3 verts
-        for ( int k = i; k < i + ( surfNormsPerBlock * 5 ); k += 5 )
-        {
-            if ( k % 3 == 0 )
-            {
-                glm::vec3
+        // First get surface normals for every 3 verts.
+        // This is performed so we can add the surface normal to our current vertex normal
 
-                e1( vertexData[ ( k - 10 )   ], vertexData[ ( k - 10 ) + 1    ], vertexData[ ( k - 10 ) + 2    ] ),
-                e2( vertexData[ ( k - 5 )    ], vertexData[ ( k - 5 ) + 1     ], vertexData[ ( k - 5 ) + 2     ] ),
-                e3( vertexData[   k          ], vertexData[   k + 1           ], vertexData[   k + 2           ] );
+        glm::vec3
+            v1( vertexData[ i ], vertexData[ i + 1 ], vertexData[ i + 2 ] ),
+            v2( vertexData[ i + 5 ], vertexData[ i + 6], vertexData[ i + 7 ] ),
+            v3( vertexData[ i + 10 ], vertexData[ i + 11 ], vertexData[ i + 12 ] );
 
-                const glm::vec3& surfNorm = glm::cross( e1 - e2, e3 - e2 );
-
-                vertNorm += surfNorm;
-                avg += glm::length( surfNorm );
-            }
-        }
-
-        vertNorm /= avg;
+        vertNorm = glm::normalize( v1 + v2 + v3 );
 
         normalData[ j     ] = vertNorm.x;
         normalData[ j + 1 ] = vertNorm.y;
         normalData[ j + 2 ] = vertNorm.z;
     }
 
-    program = []( void ) -> GLuint
+    pipeline.SetGlobalMat( GM4_PROJECTION, camera.ViewData().projection );
+
     {
-        GLuint shaders[] =
+        GLuint tex2D = []( void ) -> GLuint
         {
-            CompileShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
-            CompileShader( "src/tex2D.frag", GL_FRAGMENT_SHADER )
-        };
+            GLuint shaders[] =
+            {
+                CompileShader( "src/tex2D.vert", GL_VERTEX_SHADER ),
+                CompileShader( "src/tex2D.frag", GL_FRAGMENT_SHADER ),
+                CompileShader( "src/shared_matrix.glsl", GL_VERTEX_SHADER ),
+                CompileShader( "src/shared_matrix.glsl", GL_FRAGMENT_SHADER )
+            };
 
-        return LinkProgram( shaders, 2 );
-    }();
+            return LinkProgram( shaders, 4 );
+        }();
 
-    glBindAttribLocation( program, 0, "position" );
-    glBindAttribLocation( program, 1, "uv" );
-    glBindAttribLocation( program, 2, "normal" );
+        GLuint singleColor = []( void ) -> GLuint
+        {
+            GLuint shaders[] =
+            {
+                CompileShader( "src/baseVertex.vert", GL_VERTEX_SHADER ),
+                CompileShader( "src/singleColor.frag", GL_FRAGMENT_SHADER ),
+                CompileShader( "src/shared_matrix.glsl", GL_VERTEX_SHADER )
+            };
 
-    glGenVertexArrays( 1, &vao );
-    glBindVertexArray( vao );
+            return LinkProgram( shaders, 3 );
+        }();
 
-    glGenBuffers( NUM_BUFFS, buffObjs );
-    glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 0 ] );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData ), vertexData, GL_STATIC_DRAW );
+        glBindAttribLocation( tex2D, 0, "position" );
+        glBindAttribLocation( tex2D, 1, "uv" );
+        glBindAttribLocation( tex2D, 2, "normal" );
 
-    glEnableVertexAttribArray( 0 );
-    glEnableVertexAttribArray( 1 );
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, 0 );
-    glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, ( void* )( sizeof( float ) * 3 ) );
+        pipeline.AddProgram( "tex2D", tex2D,
+                            { "position", "uv", "normal" },
+                            { "normalMatrix", "lightPosition", "lightIntensity", "lightColor", "sampler" } );
 
-    glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 1 ] );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( normalData ), normalData, GL_STATIC_DRAW );
+        glBindAttribLocation( singleColor, 0, "position" );
 
-    glEnableVertexAttribArray( 2 );
-    glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, ( void* ) 0 );
+        pipeline.AddProgram( "singleColor", singleColor,
+                            { "position" },
+                            { "fragmentColor" } );
+    }
 
+    glGenVertexArrays( 2, vaos );
+    glBindVertexArray( vaos[ MODE_TEX_2D ] );
+    {
+        pipeline.UseProgram( "tex2D" );
+
+        glGenBuffers( NUM_BUFFS, buffObjs );
+        glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 0 ] );
+        glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData ), vertexData, GL_STATIC_DRAW );
+
+        glEnableVertexAttribArray( pipeline.Attrib( "position" ) );
+        glEnableVertexAttribArray( pipeline.Attrib( "uv" ) );
+        glVertexAttribPointer( pipeline.Attrib( "position" ), 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, 0 );
+        glVertexAttribPointer( pipeline.Attrib( "uv" ), 2, GL_FLOAT, GL_FALSE, sizeof( float ) * 5, ( void* )( sizeof( float ) * 3 ) );
+
+        glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 1 ] );
+        glBufferData( GL_ARRAY_BUFFER, sizeof( normalData ), normalData, GL_STATIC_DRAW );
+
+        glEnableVertexAttribArray( pipeline.Attrib( "normal" ) );
+        glVertexAttribPointer( pipeline.Attrib( "normal" ), 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, ( void* ) 0 );
+
+        pipeline.SetUniformVec( "lightColor", glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+        pipeline.SetUniformScalar( "lightIntensity", 1.5f );
+    }
+    glBindVertexArray( 0 );
+
+    float normVertData[ numNorms ];
+
+    for ( j = 0; j < SIGNED_LEN( vertexData ); j += 3 )
+    {
+        normVertData[ j ] =     normalData[ j     ];
+        normVertData[ j + 1 ] = normalData[ j + 1 ];
+        normVertData[ j + 2 ] = normalData[ j + 2 ];
+
+        for ( int n = 0; n < 6; ++n )
+            normVertData[ n + j ] *= 1.5f;
+    }
+
+    glBindVertexArray( vaos[ MODE_RENDER_NORMALS ] );
+    {
+        pipeline.UseProgram( "singleColor" );
+
+        glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 2 ] );
+        glBufferData( GL_ARRAY_BUFFER, sizeof( normVertData ), normVertData, GL_STATIC_DRAW );
+
+        glEnableVertexAttribArray( pipeline.Attrib( "position" ) );
+        glVertexAttribPointer( pipeline.Attrib( "position" ), 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, ( void* ) 0 );
+
+        pipeline.SetUniformVec( "fragmentColor", glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f  ) );
+        pipeline.ReleaseProgram();
+    }
     glBindVertexArray( 0 );
 
     glGenTextures( 1, &texture);
     glBindTexture( GL_TEXTURE_2D, texture );
+    {
+        glTexStorage2D( GL_TEXTURE_2D, 4, GL_RGBA8, TEX_WIDTH, TEX_HEIGHT );
+        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, TEX_WIDTH, TEX_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, ( void* )checkerboard );
 
-    glTexStorage2D( GL_TEXTURE_2D, 4, GL_RGBA8, TEX_WIDTH, TEX_HEIGHT );
-    glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, TEX_WIDTH, TEX_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, ( void* )checkerboard );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-    glBindTexture( GL_TEXTURE_2D, 0 );
-
-    glUseProgram( program );
-    glUniformMatrix4fv( glGetUniformLocation( program, "projection" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().projection ) );
-    glUseProgram( 0 );
+        glBindTexture( GL_TEXTURE_2D, 0 );
+    }
 }
 
 void TEX_DrawTest( void )
 {
-    glUseProgram( program );
-    glBindVertexArray( vao );
-    glBindBuffer( GL_ARRAY_BUFFER, vbo );
-
-    glActiveTexture( GL_TEXTURE0 );
-    glBindTexture( GL_TEXTURE_2D, texture );
-
-    glUniform1i( glGetUniformLocation( program, "sampler" ), 0 );
-
-    glUniformMatrix4fv( glGetUniformLocation( program, "model" ), 1, GL_FALSE, glm::value_ptr( cubeModel ) );
-    glUniformMatrix4fv( glGetUniformLocation( program, "view" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().transform ) );
-
-    glDrawArrays( GL_TRIANGLES, 0, 36 );
-
-    glBindTexture( GL_TEXTURE_2D, 0 );
-    glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
-    glBindVertexArray( 0 );
-    glUseProgram( 0 );
-
-    cubeModel *= testRotMatrix;
-
     camera.Update();
+
+    pipeline.SetGlobalMat( GM4_MODELVIEW, camera.ViewData().transform * cubeModel );
+    pipeline.SetGlobalMat( GM3_MODELVIEW_NORM, cubeModel );
+
+    cubeModel = testRotMatrix * cubeModel;
+
+    pipeline.UseProgram( "tex2D" );
+    {
+        pipeline.SetUniformVec( "lightPosition", lightPos );
+        pipeline.SetUniformScalar( "sampler", 0 );
+
+        glBindVertexArray( vaos[ MODE_TEX_2D ] );
+        glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 2 ] );
+
+        glActiveTexture( GL_TEXTURE0 );
+        glBindTexture( GL_TEXTURE_2D, texture );
+
+        glDrawArrays( GL_TRIANGLES, 0, 36 );
+        glBindTexture( GL_TEXTURE_2D, 0 );
+    }
+
+    if ( drawNormals )
+    {
+        pipeline.UseProgram( "singleColor" );
+        {
+            glBindVertexArray( vaos[ MODE_RENDER_NORMALS ] );
+            glBindBuffer( GL_ARRAY_BUFFER, buffObjs[ 2 ] );
+
+            glDrawArrays( GL_POINTS, 0, 36 );
+        }
+    }
+
+    glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    glBindVertexArray( 0 );
+
+    pipeline.ReleaseProgram();
 }
 
