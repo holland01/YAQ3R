@@ -33,6 +33,8 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <functional>
 #include <map>
 #include <utility>
+#include <stack>
+
 
 #define GLM_FORCE_RADIANS
 

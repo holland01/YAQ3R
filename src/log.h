@@ -16,11 +16,11 @@ License: WTFPL
 =====================================================
 */
 
-class BSPFace;
-class BSPMeshVertex;
+class bspFace_t;
+class bspMeshVertex_t;
 class Quake3Map;
 
-void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const BSPFace* const face, const Quake3Map* const map );
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Quake3Map* const map );
 void LogBSPData( int bspDataType, void* data, int length );
 
 void MyPrintf( const char* header, const char* fmt, ... );
@@ -29,7 +29,7 @@ void MyDateTime( const char* format, char* outBuffer, int length );
 
 void ExitOnGLError( const char* caller );
 
-void InitLog( void );
+void InitSysLog( void );
 void InitLogBSPData( Quake3Map* map );
 
 void KillLog( void );

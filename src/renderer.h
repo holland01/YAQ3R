@@ -77,7 +77,7 @@ public:
 
 private:
 
-    typedef bool        ( *PredicateFunc )( const BSPVertex&, const BSPVertex& );
+    typedef bool        ( *PredicateFunc )( const bspVertex_t&, const bspVertex_t& );
 
     GLuint              bspProgram;
     GLuint              vao, vbo;

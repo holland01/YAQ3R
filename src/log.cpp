@@ -96,7 +96,7 @@ LogDrawCall
 ===============================
 */
 
-void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const BSPFace* const face, const Quake3Map* const map )
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Quake3Map* const map )
 {
     std::stringstream ss;
 
@@ -146,7 +146,7 @@ void LogBSPData( int type, void* data, int length )
         case BSP_LUMP_VERTEXES:
         {
 
-            BSPVertex* vertexes = ( BSPVertex* ) data;
+            bspVertex_t* vertexes = ( bspVertex_t* ) data;
 
             header = "VERTEXES";
 
@@ -182,7 +182,7 @@ void LogBSPData( int type, void* data, int length )
         case BSP_LUMP_MESH_VERTEXES:
         {
 
-            BSPMeshVertex* meshVertexes = ( BSPMeshVertex* ) data;
+            bspMeshVertex_t* meshVertexes = ( bspMeshVertex_t* ) data;
 
             header = "MESH_VERTEXES";
 
@@ -212,7 +212,7 @@ void LogBSPData( int type, void* data, int length )
     MyFprintf( globalBspDataLog, header.c_str(), ss.str().c_str() );
 }
 
-void InitLog( void )
+void InitSysLog( void )
 {
     globalDrawLog = fopen( "log/drawLog.log", "w" );
     globalBspDataLog = fopen( "log/bspData.log", "w" );

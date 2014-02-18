@@ -63,33 +63,33 @@ enum
 =====================================================
 */
 
-struct BSPEntity
+struct bspEntity_t
 {
     char* infoString;
 };
 
-struct BSPLump
+struct bspLump_t
 {
     int offset;
     int length;
 };
 
-struct BSPHeader
+struct bspHeader_t
 {
     char        id[ 4 ];
 
     int         version;
 
-    BSPLump     directories[ 17 ];
+    bspLump_t     directories[ 17 ];
 };
 
-struct BSPPlane
+struct bspPlane_t
 {
     vec3f       normal;
     float       distance;
 };
 
-struct BSPNode
+struct bspNode_t
 {
     int     plane;
     int     children[ 2 ];
@@ -98,7 +98,7 @@ struct BSPNode
     vec3i   boxMax;
 };
 
-struct BSPLeaf
+struct bspLeaf_t
 {
     int clusterIndex;
     int areaPortal;
@@ -113,12 +113,12 @@ struct BSPLeaf
     int numLeafBrushes;
 };
 
-struct BSPLeafFace
+struct bspLeafFace_t
 {
     int index;
 };
 
-struct BSPModel
+struct bspModel_t
 {
     vec3f boxMax;
     vec3f boxMin;
@@ -130,7 +130,7 @@ struct BSPModel
     int numBrushes;
 };
 
-struct BSPVertex
+struct bspVertex_t
 {
     vec3f position;
     vec2f texcoord;
@@ -140,12 +140,19 @@ struct BSPVertex
     byte color[ 4 ];
 };
 
-struct BSPMeshVertex
+struct bspTexture_t
+{
+    char    name[ 64 ];
+    int     surfaceFlags;
+    int     contentsFlags;
+};
+
+struct bspMeshVertex_t
 {
     int offset;
 };
 
-struct BSPFace
+struct bspFace_t
 {
     int texture;
     int effect;
@@ -168,7 +175,7 @@ struct BSPFace
     int     size[ 2 ];
 };
 
-struct BSPVisdata
+struct bspVisdata_t
 {
     int     numVectors;
     int     sizeVector;
@@ -196,7 +203,7 @@ public:
 
     void            SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 
-    BSPLeaf*        FindClosestLeaf( const glm::vec3& camPos );
+    bspLeaf_t*        FindClosestLeaf( const glm::vec3& camPos );
 
     bool            IsClusterVisible( int sourceCluster, int testCluster );
 
@@ -204,17 +211,18 @@ public:
 
     void            DestroyMap( void );
 
-    BSPEntity       entities;
+    bspEntity_t       entities;
 
-    BSPNode*        nodes;
-    BSPLeaf*        leaves;
-    BSPPlane*       planes;
-    BSPVertex*      vertexes;
-    BSPModel*       models;
-    BSPFace*        faces;
-    BSPLeafFace*    leafFaces;
-    BSPMeshVertex*  meshVertexes;
-    BSPVisdata*     visdata;
+    bspNode_t*          nodes;
+    bspLeaf_t*          leaves;
+    bspPlane_t*         planes;
+    bspVertex_t*        vertexes;
+    bspTexture_t*       textures;
+    bspModel_t*         models;
+    bspFace_t*          faces;
+    bspLeafFace_t*      leafFaces;
+    bspMeshVertex_t*    meshVertexes;
+    bspVisdata_t*       visdata;
 
     int             entityStringLen;
 
@@ -222,6 +230,7 @@ public:
     int             numLeaves;
     int             numPlanes;
     int             numVertexes;
+    int             numTextures;
     int             numModels;
     int             numFaces;
     int             numLeafFaces;
@@ -230,7 +239,7 @@ public:
 
 private:
 
-    BSPHeader       header;
+    bspHeader_t       header;
 
     bool            mapAllocated;
 };

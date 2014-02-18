@@ -1,7 +1,6 @@
 #include "common.h"
 #include "renderer.h"
 #include "log.h"
-#include "tests/texture.h"
 #include "tests/trenderer.h"
 #include "tests/jpeg.h"
 
@@ -19,7 +18,6 @@ struct ArgMap
 
 ArgMap tests[] =
 {
-    { "--texture", &TEX_DrawTest, &TEX_LoadTest },
     { "--bsp", &BSPR_DrawTest, &BSPR_LoadTest },
     { "--jpeg", &JPEG_DrawTest, &JPEG_LoadTest }
 };
@@ -61,7 +59,7 @@ bool AppInit( void )
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );
 
-    InitLog();
+    InitSysLog();
 
     MyPrintf( "Init", "OpenGL Version: %i.%i",
               glfwGetWindowAttrib( appWindow, GLFW_CONTEXT_VERSION_MAJOR ),

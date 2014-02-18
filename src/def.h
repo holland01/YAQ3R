@@ -23,6 +23,12 @@ compliance.
 #define GL_PROC __attribute__( ( __cdecl ) ) // default to cdecl calling convention on 32-bit non-MSVC compilers
 #endif
 
+#ifndef __GNUC__
+#include <stdint.h>
+#else
+#include <stdint-gcc.h>
+#endif
+
 #define INLINE inline
 
 typedef unsigned int uint;
@@ -33,4 +39,5 @@ typedef unsigned char byte;
 #define UNSIGNED_LEN(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #define SIGNED_LEN(x) ((int)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))
 
-#define cmalloc( s ) ( malloc( s ) )
+#define Mem_Alloc( s ) ( malloc( ( s ) ) )
+#define Mem_Free( ptr ) ( free( ( ptr ) ) )

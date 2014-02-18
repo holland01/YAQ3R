@@ -132,7 +132,7 @@ void Quake3Map::Read( const std::string& filepath )
         return;
     }
 
-    fread( &header, sizeof( BSPHeader ), 1, file );
+    fread( &header, sizeof( bspHeader_t ), 1, file );
 
     if ( header.id[ 0 ] != 'I' || header.id[ 1 ] != 'B' || header.id[ 2 ] != 'S' || header.id[ 3 ] != 'P' )
     {
@@ -149,8 +149,13 @@ void Quake3Map::Read( const std::string& filepath )
     fseek( file, header.directories[ BSP_LUMP_ENTITIES ].offset, SEEK_SET );
     fread( entities.infoString, header.directories[ BSP_LUMP_ENTITIES ].length, 1, file );
 
-    nodes = ( BSPNode* )malloc( header.directories[ BSP_LUMP_NODES ].length );
-    numNodes = header.directories[ BSP_LUMP_NODES ].length / sizeof( BSPNode );
+    textures = ( bspTexture_t* )malloc( header.directories[ BSP_LUMP_TEXTURES ].length );
+    numTextures = header.directories[ BSP_LUMP_TEXTURES ].length / sizeof( bspTexture_t );
+    fseek( file, header.directories[ BSP_LUMP_TEXTURES ].offset, SEEK_SET );
+    fread( textures, header.directories[ BSP_LUMP_TEXTURES ].length, 1, file );
+
+    nodes = ( bspNode_t* )malloc( header.directories[ BSP_LUMP_NODES ].length );
+    numNodes = header.directories[ BSP_LUMP_NODES ].length / sizeof( bspNode_t );
     fseek( file, header.directories[ BSP_LUMP_NODES ].offset, SEEK_SET );
     fread( nodes, header.directories[ BSP_LUMP_NODES ].length, 1, file );
 
@@ -160,8 +165,8 @@ void Quake3Map::Read( const std::string& filepath )
         SwizzleCoords( nodes[ i ].boxMin );
     }
 
-    leaves = ( BSPLeaf* )malloc( header.directories[ BSP_LUMP_LEAVES ].length );
-    numLeaves = header.directories[ BSP_LUMP_LEAVES ].length / sizeof( BSPLeaf );
+    leaves = ( bspLeaf_t* )malloc( header.directories[ BSP_LUMP_LEAVES ].length );
+    numLeaves = header.directories[ BSP_LUMP_LEAVES ].length / sizeof( bspLeaf_t );
     fseek( file, header.directories[ BSP_LUMP_LEAVES ].offset, SEEK_SET );
     fread( leaves, header.directories[ BSP_LUMP_LEAVES ].length, 1, file );
 
@@ -171,8 +176,8 @@ void Quake3Map::Read( const std::string& filepath )
         SwizzleCoords( leaves[ i ].boxMin );
     }
 
-    planes = ( BSPPlane* )malloc( header.directories[ BSP_LUMP_PLANES ].length );
-    numPlanes = header.directories[ BSP_LUMP_PLANES ].length / sizeof( BSPPlane );
+    planes = ( bspPlane_t* )malloc( header.directories[ BSP_LUMP_PLANES ].length );
+    numPlanes = header.directories[ BSP_LUMP_PLANES ].length / sizeof( bspPlane_t );
     fseek( file, header.directories[ BSP_LUMP_PLANES ].offset, SEEK_SET );
     fread( planes, header.directories[ BSP_LUMP_PLANES ].length, 1, file );
 
@@ -181,8 +186,8 @@ void Quake3Map::Read( const std::string& filepath )
         SwizzleCoords( planes[ i ].normal );
     }
 
-    vertexes = ( BSPVertex* )malloc( header.directories[ BSP_LUMP_VERTEXES ].length );
-    numVertexes = header.directories[ BSP_LUMP_VERTEXES ].length / sizeof( BSPVertex );
+    vertexes = ( bspVertex_t* )malloc( header.directories[ BSP_LUMP_VERTEXES ].length );
+    numVertexes = header.directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
     fseek( file, header.directories[ BSP_LUMP_VERTEXES ].offset, SEEK_SET );
     fread( vertexes, header.directories[ BSP_LUMP_VERTEXES ].length, 1, file );
 
@@ -192,8 +197,8 @@ void Quake3Map::Read( const std::string& filepath )
         SwizzleCoords( vertexes[ i ].normal );
     }
 
-    models = ( BSPModel* )malloc( header.directories[ BSP_LUMP_MODELS ].length );
-    numModels = header.directories[ BSP_LUMP_MODELS ].length / sizeof( BSPModel );
+    models = ( bspModel_t* )malloc( header.directories[ BSP_LUMP_MODELS ].length );
+    numModels = header.directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
     fseek( file, header.directories[ BSP_LUMP_MODELS ].offset, SEEK_SET );
     fread( models, header.directories[ BSP_LUMP_MODELS ].length, 1, file );
 
@@ -203,8 +208,8 @@ void Quake3Map::Read( const std::string& filepath )
         SwizzleCoords( models[ i ].boxMin );
     }
 
-    faces = ( BSPFace* )malloc( header.directories[ BSP_LUMP_FACES ].length );
-    numFaces = header.directories[ BSP_LUMP_FACES ].length / sizeof( BSPFace );
+    faces = ( bspFace_t* )malloc( header.directories[ BSP_LUMP_FACES ].length );
+    numFaces = header.directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
     fseek( file, header.directories[ BSP_LUMP_FACES ].offset, SEEK_SET );
     fread( faces, header.directories[ BSP_LUMP_FACES ].length, 1, file );
 
@@ -216,17 +221,17 @@ void Quake3Map::Read( const std::string& filepath )
         SwizzleCoords( faces[ i ].lightmapStVecs[ 1 ] );
     }
 
-    leafFaces = ( BSPLeafFace* )malloc( header.directories[ BSP_LUMP_LEAF_FACES ].length );
-    numLeafFaces = header.directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( BSPLeafFace );
+    leafFaces = ( bspLeafFace_t* )malloc( header.directories[ BSP_LUMP_LEAF_FACES ].length );
+    numLeafFaces = header.directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
     fseek( file, header.directories[ BSP_LUMP_LEAF_FACES ].offset, SEEK_SET );
     fread( leafFaces, header.directories[ BSP_LUMP_LEAF_FACES ].length, 1, file );
 
-    meshVertexes = ( BSPMeshVertex* )malloc( header.directories[ BSP_LUMP_MESH_VERTEXES ].length );
-    numMeshVertexes = header.directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( BSPMeshVertex );
+    meshVertexes = ( bspMeshVertex_t* )malloc( header.directories[ BSP_LUMP_MESH_VERTEXES ].length );
+    numMeshVertexes = header.directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( bspMeshVertex_t );
     fseek( file, header.directories[ BSP_LUMP_MESH_VERTEXES ].offset, SEEK_SET );
     fread( meshVertexes, header.directories[ BSP_LUMP_MESH_VERTEXES ].length, 1, file );
 
-    visdata = ( BSPVisdata* )malloc( header.directories[ BSP_LUMP_VISDATA ].length );
+    visdata = ( bspVisdata_t* )malloc( header.directories[ BSP_LUMP_VISDATA ].length );
     numVisdataVecs = header.directories[ BSP_LUMP_VISDATA ].length;
     fseek( file, header.directories[ BSP_LUMP_VISDATA ].offset, SEEK_SET );
     fread( visdata, sizeof( int ), 2, file );
@@ -282,14 +287,14 @@ camera is looking at.
 =====================================================
 */
 
-BSPLeaf* Quake3Map::FindClosestLeaf( const glm::vec3& camPos )
+bspLeaf_t* Quake3Map::FindClosestLeaf( const glm::vec3& camPos )
 {
     int nodeIndex = 0;
 
     while ( nodeIndex >= 0 )
     {
-        const BSPNode* const node = nodes + nodeIndex;
-        const BSPPlane* const plane = planes + node->plane;
+        const bspNode_t* const node = nodes + nodeIndex;
+        const bspPlane_t* const plane = planes + node->plane;
 
         // If the distance from the camera to the plane is >= 0,
         // then our needed camera data is in a leaf somewhere in front of this node,

@@ -180,10 +180,10 @@ void InputCamera::Update( void )
 
     viewData.transform = viewData.orientation * glm::translate( glm::mat4( 1.0f ), -viewData.origin );
 
-    /*
-    MyPrintf( "Camera Info", "pitch: %f, roll: %f, yaw: %f, position = { x: %f, y: %f, z: %f }", currRot.pitch, currRot.roll, currRot.yaw,
+
+    MyPrintf( "Camera Info", "pitch: %f, roll: %f, yaw: %f,\n position = { x: %f, y: %f, z: %f }", currRot.pitch, currRot.roll, currRot.yaw,
               viewData.origin.x, viewData.origin.y, viewData.origin.z );
-              */
+
 }
 
 /*

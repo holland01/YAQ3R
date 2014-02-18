@@ -30,12 +30,12 @@ void BSPR_LoadTest( GLFWwindow* window )
     glfwSetCursorPosCallback( window, BSPR_HandleMouseMove );
     glfwSetInputMode( window, GLFW_STICKY_KEYS, GL_FALSE );
 
+    renderer = new BSPRenderer;
     renderer->Prep();
     renderer->Load( "asset/quake/aty3dm1v2.bsp" );
 
     cursorVisible = true;
 
-    renderer = new BSPRenderer;
 }
 
 void BSPR_DrawTest( void )
