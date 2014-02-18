@@ -55,6 +55,22 @@ INLINE void RenderPass::SetFaceCount( int count )
 =====================================================
 */
 
+enum imageFormat_t
+{
+    FMT_JPEG = 0x1,
+    FMT_TGA  = 0x2,
+    FMT_PNG  = 0x4
+};
+
+struct mapImageData_t
+{
+    unsigned char*  pixels;
+    int             width;
+    int             height;
+    int             comp;               //???
+    imageFormat_t   format;
+};
+
 class BSPRenderer
 {
 public:
@@ -81,7 +97,6 @@ private:
 
     GLuint              bspProgram;
     GLuint              vao, vbo;
-    GLuint              texObj;
 
     float               deltaTime;
 
@@ -93,4 +108,8 @@ private:
     int                 currClusterIndex;
 
     Quake3Map           map;
+
+    mapImageData_t*     imageData;
+
+    GLuint*             texObjsBuf;
 };

@@ -52,7 +52,7 @@ enum
     BSP_FACE_TYPE_POLYGON = 0x1,
     BSP_FACE_TYPE_PATCH = 0x2,
     BSP_FACE_TYPE_MESH = 0x3,
-    BSP_FACE_TYPE_BILLBOARD = 0x4
+    BSP_FACE_TYPE_BILLBOARD = 0x4,
 };
 
 /*
@@ -77,10 +77,8 @@ struct bspLump_t
 struct bspHeader_t
 {
     char        id[ 4 ];
-
     int         version;
-
-    bspLump_t     directories[ 17 ];
+    bspLump_t   directories[ 17 ];
 };
 
 struct bspPlane_t
@@ -142,7 +140,7 @@ struct bspVertex_t
 
 struct bspTexture_t
 {
-    char    name[ 64 ];
+    char    filename[ 64 ];
     int     surfaceFlags;
     int     contentsFlags;
 };

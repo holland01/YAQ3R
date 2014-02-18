@@ -27,6 +27,11 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <stddef.h>
 #include <time.h>
 
+#ifdef __linux__
+#include <fts.h> // file directory traversal
+#include <err.h>
+#endif
+
 #include <string>
 #include <sstream>
 #include <vector>

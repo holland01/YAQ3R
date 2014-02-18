@@ -32,7 +32,7 @@ void BSPR_LoadTest( GLFWwindow* window )
 
     renderer = new BSPRenderer;
     renderer->Prep();
-    renderer->Load( "asset/quake/aty3dm1v2.bsp" );
+    renderer->Load( "asset/quake/railgun_arena/map.bsp" );
 
     cursorVisible = true;
 

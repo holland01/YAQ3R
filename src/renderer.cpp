@@ -78,7 +78,6 @@ void BSPRenderer::Prep( void )
 {
     glGenVertexArrays( 1, &vao );
     glGenBuffers( 1, &vbo );
-    glGenTextures( 1, &texObj );
 
     GLuint shaders[] =
     {
@@ -103,6 +102,10 @@ BSPRenderer::Load
 
 void BSPRenderer::Load( const std::string& filepath )
 {
+    // 64 (specifid by file format) + 5 for file extension,
+    // which is omitted in the bsp file.
+    const int MAX_TEXFILENAME_LEN = 69;
+
     if ( map.IsAllocated() )
     {
         map.DestroyMap();
@@ -111,6 +114,40 @@ void BSPRenderer::Load( const std::string& filepath )
     map.Read( filepath );
     visibleFaces.reserve( map.numFaces );
 
+    imageData = ( mapImageData_t* ) malloc( sizeof( mapImageData_t ) * map.numTextures );
+    texObjsBuf = ( GLuint* ) malloc( sizeof( GLuint ) * map.numTextures );
+
+    glGenTextures( map.numTextures, texObjsBuf );
+
+    // extract root directory of map file in filepath string;
+    // we append 1 at the end because we use the index as a
+    // buffer length
+    int dirRootLen = filepath.find_last_of( '/' ) + 1;
+    char tmpFullPath[ dirRootLen + MAX_TEXFILENAME_LEN ];
+    memset( tmpFullPath, 0, dirRootLen + MAX_TEXFILENAME_LEN );
+    memcpy( tmpFullPath, filepath.c_str(), dirRootLen );
+
+    printf( "Dir: %s\n", tmpFullPath );
+
+    // Iterate through each folder in the map dir's "texture's" folder
+    // to determine the file type of each image.
+    //TODO: use fts_open and other related functions to accomplish this
+
+    for ( int i = 0; i < map.numTextures; ++i )
+    {
+        memcpy( tmpFullPath + dirRootLen, map.textures[ i ].filename, strlen( map.textures[ i ].filename ) );
+        printf( "[%i] Path: %s, Filename: %s\n", i, tmpFullPath, map.textures[ i ].filename );
+
+        mapImageData_t* img = imageData + i;
+
+        img->pixels = stbi_load( tmpFullPath, &img->width, &img->height, &img->comp, 0 );
+
+        glBindTexture( GL_TEXTURE_2D, texObjsBuf[ i ] );
+        glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGBA32I, img->width, img->height );
+        glTexSubImage2D( GL_TEXTURE_2D, 1, 0, 0, img->width, img->height, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels );
+        glBindTexture( GL_TEXTURE_2D, 0 );
+    }
+
     glBindVertexArray( vao );
 
     glBindBuffer( GL_ARRAY_BUFFER, vbo );
@@ -118,15 +155,15 @@ void BSPRenderer::Load( const std::string& filepath )
 
     glBindAttribLocation( bspProgram, 0, "position" );
     glBindAttribLocation( bspProgram, 1, "color" );
-    //glBindAttribLocation( bspProgram, 2, "tex0" );
+    glBindAttribLocation( bspProgram, 2, "tex0" );
 
     glEnableVertexAttribArray( 0 );
     glEnableVertexAttribArray( 1 );
-    //glEnableVertexAttribArray( 2 );
+    glEnableVertexAttribArray( 2 );
 
     glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, position ) );
     glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) );
-    //glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texcoord ) );
+    glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texcoord ) );
 
     glBindVertexArray( 0 );
 
