@@ -2,6 +2,12 @@ QT -= core gui
 
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror
 
+
+#for stb_image.c lib
+QMAKE_CXXFLAGS += \
+-Wno-unused-but-set-variable \
+-Wno-missing-field-initializers
+
 debug {
    QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
 }
@@ -19,7 +25,6 @@ HEADERS += \
     src/renderer.h \
     src/global.h \
     src/gldebug.h \
-    src/tests/texture.h \
     src/tests/trenderer.h \
     src/def.h \
     src/q3m_model.h \
@@ -28,9 +33,7 @@ HEADERS += \
     src/input.h \
     src/eu_ang.h \
     src/tests/jpeg.h \
-    src/tests/test_util.h \
-    src/exp/spotlight.h \
-    src/exp/program_batch.h
+    src/tests/test_util.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -39,12 +42,7 @@ OTHER_FILES += \
     log/camLog.log \
     log/bspData.log \
     log/gl.log \
-    src/tex2D.vert \
-    src/tex2D.frag \
     asset/quake/overkill.bsp \
-    src/main.vert \
-    src/targetDraw.vert \
-    src/vertexColor.frag \
     asset/quake/railgun_arena/map.bsp \
     asset/quake/railgun_arena/map.aas \
     asset/quake/railgun_arena/textures/aedm7/aecell_decal_logo1.tga \
@@ -59,9 +57,8 @@ OTHER_FILES += \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_rl.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_sg.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_ya.tga \
-    src/shared_matrix.glsl \
-    src/baseVertex.vert \
-    src/singleColor.frag
+    src/main.vert \
+    src/main.frag
 
 SOURCES += \
     src/shader.cpp \
@@ -70,7 +67,6 @@ SOURCES += \
     src/renderer.cpp \
     src/main.cpp \
     src/gldebug.cpp \
-    src/tests/texture.cpp \
     src/tests/trenderer.cpp \
     src/q3m_model.cpp \
     src/math_util.cpp \
@@ -79,5 +75,5 @@ SOURCES += \
     src/eu_ang.cpp \
     src/tests/jpeg.cpp \
     src/tests/test_util.cpp \
-    src/exp/program_batch.cpp
+    src/extern/stb_image.c
 
