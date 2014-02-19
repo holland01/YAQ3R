@@ -78,7 +78,8 @@ Q3BspParser::~Q3BspParser( void )
 
 Q3BspParser::DestroyMap
 
-Free all dynamically allocated data
+Free all dynamically allocated data, and zero-out
+other data, thus prepping the map for re-use if need be.
 
 =====================================================
 */
@@ -87,6 +88,12 @@ void Q3BspParser::DestroyMap( void )
 {
     if ( mapAllocated )
     {
+        if ( apiTextures )
+        {
+            glDeleteTextures( numTextures, apiTextures );
+            free( apiTextures );
+        }
+
         free( entities.infoString );
 
         free( nodes );
@@ -103,14 +110,36 @@ void Q3BspParser::DestroyMap( void )
 
         free( visdata );
 
-        numFaces = 0;
-        numLeafFaces = 0;
-        numLeaves = 0;
-        numMeshVertexes = 0;
-        numModels = 0;
+        apiTextures = NULL;
+
+        entities.infoString = NULL;
+
+        nodes = NULL;
+        leaves = NULL;
+        planes = NULL;
+
+        vertexes = NULL;
+        textures = NULL;
+        models = NULL;
+        faces = NULL;
+
+        leafFaces = NULL;
+        meshVertexes = NULL;
+
+        visdata = NULL;
+
         numNodes = 0;
+        numLeaves = 0;
         numPlanes = 0;
+
         numVertexes = 0;
+        numTextures = 0;
+        numModels = 0;
+        numFaces = 0;
+
+        numLeafFaces = 0;
+        numMeshVertexes = 0;
+
         numVisdataVecs = 0;
 
         mapAllocated = false;
@@ -279,8 +308,8 @@ void Q3BspParser::GenTextures( const string &mapFilePath )
     string relMapDirPath = mapFilePath.substr( 0, dirRootLen );
 
     // Iterate through each folder in the map dir's "texture's" folder
-    // to determine the file type of each image. NOTE: the following likely
-    // works only in Linux environments
+    // to determine the file type of each image. NOTE: the following ( likely )
+    // works only in Linux environments; more will be added over time.
     {
         const string& texDirPath = relMapDirPath + string( "textures/" );
         char* paths[] =

@@ -90,5 +90,5 @@ private:
 
     int                 currClusterIndex;
 
-    Q3BspParser           map;
+    Q3BspParser         map;
 };
