@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-class Quake3Map;
+class Q3BspParser;
 
 struct Q3MModel
 {
@@ -11,5 +11,5 @@ struct Q3MModel
     glm::vec3   boundsCenter;
 };
 
-Q3MModel* GenModelTransform( int face, Quake3Map* map );
+Q3MModel* GenModelTransform( int face, Q3BspParser* map );
 

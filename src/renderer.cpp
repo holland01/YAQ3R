@@ -2,7 +2,8 @@
 #include "shader.h"
 #include "log.h"
 #include "math_util.h"
-#include "extern/stb_image.c"
+
+using namespace std;
 
 enum
 {
@@ -20,12 +21,20 @@ RenderPass::RenderPass
 =====================================================
 */
 
-RenderPass::RenderPass( const Quake3Map* const map, const ViewParams& viewData )
+RenderPass::RenderPass( const Q3BspParser* const map, const ViewParams& viewData )
     : view( viewData ),
       facesRendered( map->numFaces )
 {
     facesRendered.assign( map->numFaces, false );
 }
+
+/*
+=====================================================
+
+RenderPass::~RenderPass
+
+=====================================================
+*/
 
 RenderPass::~RenderPass( void )
 {
@@ -100,53 +109,16 @@ BSPRenderer::Load
 =====================================================
 */
 
-void BSPRenderer::Load( const std::string& filepath )
+void BSPRenderer::Load( const string& filepath )
 {
-    // 64 (specifid by file format) + 5 for file extension,
-    // which is omitted in the bsp file.
-    const int MAX_TEXFILENAME_LEN = 69;
-
     if ( map.IsAllocated() )
     {
         map.DestroyMap();
     }
 
     map.Read( filepath );
+    map.GenTextures( filepath );
     visibleFaces.reserve( map.numFaces );
-
-    imageData = ( mapImageData_t* ) malloc( sizeof( mapImageData_t ) * map.numTextures );
-    texObjsBuf = ( GLuint* ) malloc( sizeof( GLuint ) * map.numTextures );
-
-    glGenTextures( map.numTextures, texObjsBuf );
-
-    // extract root directory of map file in filepath string;
-    // we append 1 at the end because we use the index as a
-    // buffer length
-    int dirRootLen = filepath.find_last_of( '/' ) + 1;
-    char tmpFullPath[ dirRootLen + MAX_TEXFILENAME_LEN ];
-    memset( tmpFullPath, 0, dirRootLen + MAX_TEXFILENAME_LEN );
-    memcpy( tmpFullPath, filepath.c_str(), dirRootLen );
-
-    printf( "Dir: %s\n", tmpFullPath );
-
-    // Iterate through each folder in the map dir's "texture's" folder
-    // to determine the file type of each image.
-    //TODO: use fts_open and other related functions to accomplish this
-
-    for ( int i = 0; i < map.numTextures; ++i )
-    {
-        memcpy( tmpFullPath + dirRootLen, map.textures[ i ].filename, strlen( map.textures[ i ].filename ) );
-        printf( "[%i] Path: %s, Filename: %s\n", i, tmpFullPath, map.textures[ i ].filename );
-
-        mapImageData_t* img = imageData + i;
-
-        img->pixels = stbi_load( tmpFullPath, &img->width, &img->height, &img->comp, 0 );
-
-        glBindTexture( GL_TEXTURE_2D, texObjsBuf[ i ] );
-        glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGBA32I, img->width, img->height );
-        glTexSubImage2D( GL_TEXTURE_2D, 1, 0, 0, img->width, img->height, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels );
-        glBindTexture( GL_TEXTURE_2D, 0 );
-    }
 
     glBindVertexArray( vao );
 
@@ -198,6 +170,17 @@ void BSPRenderer::DrawWorld( void )
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
 }
+
+/*
+=====================================================
+
+BSPRenderer::Update
+
+Determine all of the faces which are visible, based on
+our current location in the map.
+
+=====================================================
+*/
 
 void BSPRenderer::Update( float dt )
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "q3m.h"
+#include "q3bsp.h"
 #include "input.h"
 
 /*
@@ -30,7 +30,7 @@ License: WTFPL
 class RenderPass
 {
 public:
-    RenderPass( const Quake3Map* const map, const ViewParams& viewData );
+    RenderPass( const Q3BspParser* const map, const ViewParams& viewData );
     ~RenderPass( void );
 
     void                    SetFaceCount( int count );
@@ -46,7 +46,6 @@ INLINE void RenderPass::SetFaceCount( int count )
     facesRendered.assign( count, false );
 }
 
-
 /*
 =====================================================
 
@@ -54,22 +53,6 @@ INLINE void RenderPass::SetFaceCount( int count )
 
 =====================================================
 */
-
-enum imageFormat_t
-{
-    FMT_JPEG = 0x1,
-    FMT_TGA  = 0x2,
-    FMT_PNG  = 0x4
-};
-
-struct mapImageData_t
-{
-    unsigned char*  pixels;
-    int             width;
-    int             height;
-    int             comp;               //???
-    imageFormat_t   format;
-};
 
 class BSPRenderer
 {
@@ -107,9 +90,5 @@ private:
 
     int                 currClusterIndex;
 
-    Quake3Map           map;
-
-    mapImageData_t*     imageData;
-
-    GLuint*             texObjsBuf;
+    Q3BspParser           map;
 };

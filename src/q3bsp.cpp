@@ -1,6 +1,9 @@
-#include "q3m.h"
+#include "q3bsp.h"
 #include "log.h"
 #include "mtrand.h"
+#include "extern/stb_image.c"
+
+using namespace std;
 
 /*
 =====================================================
@@ -36,18 +39,22 @@ static void SwizzleCoords( vec3i& v )
 /*
 =====================================================
 
-Quake3Map::Quake3Map
+Q3BspParser::Q3BspParser
 
 =====================================================
 */
 
-Quake3Map::Quake3Map( void )
+Q3BspParser::Q3BspParser( void )
      : nodes( NULL ),
        leaves( NULL ),
        planes( NULL ),
        vertexes( NULL ),
+       textures( NULL ),
        models( NULL ),
        faces( NULL ),
+       leafFaces( NULL ),
+       meshVertexes( NULL ),
+       apiTextures( NULL ),
        mapAllocated( false )
 {
     entities.infoString = NULL;
@@ -56,12 +63,12 @@ Quake3Map::Quake3Map( void )
 /*
 =====================================================
 
-Quake3Map::~Quake3Map
+Q3BspParser::~Q3BspParser
 
 =====================================================
 */
 
-Quake3Map::~Quake3Map( void )
+Q3BspParser::~Q3BspParser( void )
 {
     DestroyMap();
 }
@@ -69,27 +76,30 @@ Quake3Map::~Quake3Map( void )
 /*
 =====================================================
 
-Quake3Map::DestroyMap
+Q3BspParser::DestroyMap
 
 Free all dynamically allocated data
 
 =====================================================
 */
 
-void Quake3Map::DestroyMap( void )
+void Q3BspParser::DestroyMap( void )
 {
     if ( mapAllocated )
     {
+        free( entities.infoString );
+
         free( nodes );
         free( leaves );
         free( planes );
 
-        free( faces );
-        free( models );
         free( vertexes );
+        free( textures );
+        free( models );
+        free( faces );
+
         free( leafFaces );
         free( meshVertexes );
-        free( entities.infoString );
 
         free( visdata );
 
@@ -110,7 +120,7 @@ void Quake3Map::DestroyMap( void )
 /*
 =====================================================
 
-Quake3Map::Read
+Q3BspParser::Read
 
             read all map data into its respective
             buffer, defined by structs.
@@ -122,7 +132,7 @@ Quake3Map::Read
 =====================================================
 */
 
-void Quake3Map::Read( const std::string& filepath )
+void Q3BspParser::Read( const std::string& filepath )
 {   
     FILE* file = fopen( filepath.c_str(), "rb" );
 
@@ -248,21 +258,149 @@ void Quake3Map::Read( const std::string& filepath )
     //LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
 }
 
+/*
+=====================================================
+
+Q3BspParser::GenTextures
+
+Generates OpenGL texture data for map faces
+
+=====================================================
+*/
+
+void Q3BspParser::GenTextures( const string &mapFilePath )
+{
+    string fileExts[ numTextures ]; // fuck yeh: dynamic stack allocation
+
+    // extract (relative) root directory of map file in filepath string;
+    // we append 1 at the end because we use the index as a
+    // buffer length
+    int dirRootLen = mapFilePath.find_last_of( '/' ) + 1;
+    string relMapDirPath = mapFilePath.substr( 0, dirRootLen );
+
+    // Iterate through each folder in the map dir's "texture's" folder
+    // to determine the file type of each image. NOTE: the following likely
+    // works only in Linux environments
+    {
+        const string& texDirPath = relMapDirPath + string( "textures/" );
+        char* paths[] =
+        {
+            strdup( texDirPath.c_str() ),
+            NULL
+        };
+
+        FTS* tree = fts_open( paths, FTS_NOCHDIR, NULL );
+
+        if ( !tree )
+        {
+            ERROR( "Could not open textures directory \'%s\'", relMapDirPath.c_str() );
+        }
+
+        // used for simoltaneous forward and reverse
+        // iteration
+        int numHalfTextures = numTextures / 2;
+        int endTextures = numTextures - 1;
+
+        FTSENT* node = NULL;
+        while ( ( node = fts_read( tree ) ) )
+        {
+            // Skip over any hidden folders
+            if ( node->fts_level > 0 && node->fts_name[ 0 ] == '.' )
+            {
+                fts_set( tree, node, FTS_SKIP );
+            }
+            // Ensure we have a file if it's not hidden
+            else if ( ( node->fts_info & FTS_F ) > 0 )
+            {
+                const string& path     = node->fts_path;
+
+                size_t begin = path.find( "textures/" );
+
+                const string& filename = path.substr( begin, path.find_last_of( '.' ) - begin );
+                const string& ext      = path.substr( path.find_last_of( '.' ) );
+
+                // Iterate through all of our textures and find the matching file
+                // so we have the right index for each texture.
+                for ( int i = 0, j = endTextures; true; )
+                {
+                    if ( i < numHalfTextures )
+                    {
+                        string texCmpForward( textures[ i ].filename );
+
+                        if ( filename == texCmpForward )
+                        {
+                            fileExts[ i ] = ext;
+
+                            break;
+                        }
+
+                        i++;
+                    }
+
+                    if ( j >= numHalfTextures )
+                    {
+                        string texCmpBackward( textures[ j ].filename );
+
+                        if ( filename == texCmpBackward )
+                        {
+                            fileExts[ j ] = ext;
+
+                            break;
+                        }
+
+                        j--;
+                    }
+
+                    // We've exhausted all options, bail.
+                    if ( j < numHalfTextures && i == numHalfTextures )
+                        break;
+                }
+            }
+            // If we have a directory, enter it.
+            else if ( ( node->fts_info & FTS_D ) > 0 )
+            {
+                node = fts_children( tree, 0 );
+            }
+        }
+
+        fts_close( tree );
+        free( paths[ 0 ] );
+    }
+
+    apiTextures = ( GLuint* ) malloc( sizeof( GLuint ) * numTextures );
+    glGenTextures( numTextures, apiTextures );
+
+    for ( int i = 0; i < numTextures; ++i )
+    {
+        string texPath = relMapDirPath;
+        texPath.append( textures[ i ].filename );
+        texPath.append( fileExts[ i ] );
+
+        int width, height, comp;
+
+        unsigned char* pixels = stbi_load( texPath.c_str(), &width, &height, &comp, 0 );
+
+        glBindTexture( GL_TEXTURE_2D, apiTextures[ i ] );
+        glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGBA32I, width, height );
+        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels );
+        glBindTexture( GL_TEXTURE_2D, 0 );
+    }
+}
 
 /*
 =====================================================
 
-Quake3Map::SetVertexGroupColor
+Q3BspParser::SetVertexColorIf
 
 Set the color of all vertices with a given alpha channel value
-by a given RGB color.
+by a given RGB color, using a predicate function pointer.
 
 Color and channel specified are within the range [0, 255]
 
 =====================================================
 */
 
-void Quake3Map::SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor )
+void Q3BspParser::SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor )
 {
     for ( int i = 0; i < numVertexes; ++i )
     {
@@ -278,7 +416,7 @@ void Quake3Map::SetVertexColorIf( bool ( predicate )( unsigned char* ), const gl
 /*
 =====================================================
 
-Quake3Map::FindClosestLeaf
+Q3BspParser::FindClosestLeaf
 
 Find the closest map leaf-node to the given camera position.
 The leaf-node returned is further evaluated to detect faces the
@@ -287,7 +425,7 @@ camera is looking at.
 =====================================================
 */
 
-bspLeaf_t* Quake3Map::FindClosestLeaf( const glm::vec3& camPos )
+bspLeaf_t* Q3BspParser::FindClosestLeaf( const glm::vec3& camPos )
 {
     int nodeIndex = 0;
 
@@ -318,7 +456,7 @@ bspLeaf_t* Quake3Map::FindClosestLeaf( const glm::vec3& camPos )
 /*
 =====================================================
 
-Quake3Map::IsClusterVisible
+Q3BspParser::IsClusterVisible
 
 Check to see if param sourceCluster can "see" param testCluster.
 The algorithm used is standard and can be derived from the documentation
@@ -327,7 +465,7 @@ found in the link posted in q3m.h.
 =====================================================
 */
 
-bool Quake3Map::IsClusterVisible( int sourceCluster, int testCluster )
+bool Q3BspParser::IsClusterVisible( int sourceCluster, int testCluster )
 {
     if ( !visdata->bitsets || ( sourceCluster < 0 ) )
     {

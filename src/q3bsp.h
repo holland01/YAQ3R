@@ -184,60 +184,72 @@ struct bspVisdata_t
 /*
 =====================================================
 
-        Quake3Map: map loader and parser.
+        Q3BspParser: map loader and parser.
 
 =====================================================
 */
 
-class Quake3Map
+class Q3BspParser
 {
 public:
 
-    Quake3Map( void );
+    Q3BspParser( void );
 
-    ~Quake3Map( void );
+    ~Q3BspParser( void );
 
-    void            Read( const std::string& filepath );
+    void                Read( const std::string& filepath );
 
-    void            SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
+    void                GenTextures( const std::string& filepath );
 
-    bspLeaf_t*        FindClosestLeaf( const glm::vec3& camPos );
+    void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 
-    bool            IsClusterVisible( int sourceCluster, int testCluster );
+    GLuint              GetApiTexture( void ) const;
 
-    bool            IsAllocated( void ) const { return mapAllocated; }
+    bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
 
-    void            DestroyMap( void );
+    bool                IsClusterVisible( int sourceCluster, int testCluster );
 
-    bspEntity_t       entities;
+    bool                IsAllocated( void ) const { return mapAllocated; }
+
+    void                DestroyMap( void );
+
+    bspEntity_t         entities;
 
     bspNode_t*          nodes;
     bspLeaf_t*          leaves;
     bspPlane_t*         planes;
+
     bspVertex_t*        vertexes;
     bspTexture_t*       textures;
     bspModel_t*         models;
     bspFace_t*          faces;
+
     bspLeafFace_t*      leafFaces;
     bspMeshVertex_t*    meshVertexes;
+
     bspVisdata_t*       visdata;
 
-    int             entityStringLen;
+    int                 entityStringLen;
 
-    int             numNodes;
-    int             numLeaves;
-    int             numPlanes;
-    int             numVertexes;
-    int             numTextures;
-    int             numModels;
-    int             numFaces;
-    int             numLeafFaces;
-    int             numMeshVertexes;
-    int             numVisdataVecs;
+    int                 numNodes;
+    int                 numLeaves;
+    int                 numPlanes;
+
+    int                 numVertexes;
+    int                 numTextures;
+    int                 numModels;
+    int                 numFaces;
+
+    int                 numLeafFaces;
+    int                 numMeshVertexes;
+
+    int                 numVisdataVecs;
 
 private:
 
-    bspHeader_t       header;
+    GLuint*         apiTextures;
+
+    bspHeader_t     header;
 
     bool            mapAllocated;
 };

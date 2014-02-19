@@ -21,7 +21,6 @@ HEADERS += \
     src/vec.h \
     src/shader.h \
     src/log.h \
-    src/q3m.h \
     src/renderer.h \
     src/global.h \
     src/gldebug.h \
@@ -33,7 +32,8 @@ HEADERS += \
     src/input.h \
     src/eu_ang.h \
     src/tests/jpeg.h \
-    src/tests/test_util.h
+    src/tests/test_util.h \
+    src/q3bsp.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -63,7 +63,6 @@ OTHER_FILES += \
 SOURCES += \
     src/shader.cpp \
     src/log.cpp \
-    src/q3m.cpp \
     src/renderer.cpp \
     src/main.cpp \
     src/gldebug.cpp \
@@ -75,5 +74,6 @@ SOURCES += \
     src/eu_ang.cpp \
     src/tests/jpeg.cpp \
     src/tests/test_util.cpp \
-    src/extern/stb_image.c
+    src/extern/stb_image.c \
+    src/q3bsp.cpp
 

@@ -1,5 +1,5 @@
 #include "log.h"
-#include "q3m.h"
+#include "q3bsp.h"
 #include "gldebug.h"
 
 FILE* globalDrawLog = NULL;
@@ -96,7 +96,7 @@ LogDrawCall
 ===============================
 */
 
-void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Quake3Map* const map )
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Q3BspParser* const map )
 {
     std::stringstream ss;
 

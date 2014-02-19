@@ -28,8 +28,9 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <time.h>
 
 #ifdef __linux__
-#include <fts.h> // file directory traversal
+#include <fts.h>
 #include <err.h>
+#include <ftw.h>
 #endif
 
 #include <string>
@@ -53,5 +54,3 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include "vec.h"
 
 #define NOP ;
-
-
