@@ -65,6 +65,8 @@ bool AppInit( void )
               glfwGetWindowAttrib( appWindow, GLFW_CONTEXT_VERSION_MAJOR ),
               glfwGetWindowAttrib( appWindow, GLFW_CONTEXT_VERSION_MINOR ) );
 
+    glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
+
     return true;
 }
 

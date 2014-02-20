@@ -18,9 +18,9 @@ License: WTFPL
 
 class bspFace_t;
 class bspMeshVertex_t;
-class Q3BspParser;
+class Q3BspMap;
 
-void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Q3BspParser* const map );
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Q3BspMap* const map );
 void LogBSPData( int bspDataType, void* data, int length );
 
 void MyPrintf( const char* header, const char* fmt, ... );
@@ -30,7 +30,7 @@ void MyDateTime( const char* format, char* outBuffer, int length );
 void ExitOnGLError( const char* caller );
 
 void InitSysLog( void );
-void InitLogBSPData( Q3BspParser* map );
+void InitLogBSPData( Q3BspMap* map );
 
 void KillLog( void );
 

@@ -96,7 +96,7 @@ LogDrawCall
 ===============================
 */
 
-void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Q3BspParser* const map )
+void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Q3BspMap* const map )
 {
     std::stringstream ss;
 
@@ -160,8 +160,8 @@ void LogBSPData( int type, void* data, int length )
                    << "\t\t y: " << vertexes[ i ].position.y << "\n"
                    << "\t\t z: " << vertexes[ i ].position.z << "\n"
                    << "\t texcoords[ 0 ]:\n"
-                   << "\t\t x: " << vertexes[ i ].texcoord.x << "\n"
-                   << "\t\t y: " << vertexes[ i ].texcoord.y << "\n"
+                   << "\t\t x: " << vertexes[ i ].texCoord.x << "\n"
+                   << "\t\t y: " << vertexes[ i ].texCoord.y << "\n"
                    << "\t texcoords[ 1 ]:\n"
                    << "\t\t x: " << vertexes[ i ].lightmapCoord.x << "\n"
                    << "\t\t y: " << vertexes[ i ].lightmapCoord.y << "\n"

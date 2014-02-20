@@ -6,7 +6,7 @@ namespace
 {
     const float MOUSE_SENSE = 0.1f;
 
-    const float VIEW_STEP_SPEED = 1.0f;
+    const float VIEW_STEP_SPEED = 15.0f;
 
     enum
     {

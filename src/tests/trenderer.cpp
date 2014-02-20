@@ -32,7 +32,7 @@ void BSPR_LoadTest( GLFWwindow* window )
 
     renderer = new BSPRenderer;
     renderer->Prep();
-    renderer->Load( "asset/quake/railgun_arena/map.bsp" );
+    renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
 
     cursorVisible = true;
 
@@ -42,8 +42,8 @@ void BSPR_DrawTest( void )
 {
     currTime = glfwGetTime();
 
-    renderer->DrawWorld();
     renderer->Update( currTime - prevTime );
+    renderer->DrawWorld();
 
     prevTime = currTime;
 }

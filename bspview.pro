@@ -33,7 +33,8 @@ HEADERS += \
     src/eu_ang.h \
     src/tests/jpeg.h \
     src/tests/test_util.h \
-    src/q3bsp.h
+    src/q3bsp.h \
+    src/frustum.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \

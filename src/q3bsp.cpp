@@ -44,7 +44,7 @@ Q3BspParser::Q3BspParser
 =====================================================
 */
 
-Q3BspParser::Q3BspParser( void )
+Q3BspMap::Q3BspMap( void )
      : nodes( NULL ),
        leaves( NULL ),
        planes( NULL ),
@@ -68,7 +68,7 @@ Q3BspParser::~Q3BspParser
 =====================================================
 */
 
-Q3BspParser::~Q3BspParser( void )
+Q3BspMap::~Q3BspMap( void )
 {
     DestroyMap();
 }
@@ -84,7 +84,7 @@ other data, thus prepping the map for re-use if need be.
 =====================================================
 */
 
-void Q3BspParser::DestroyMap( void )
+void Q3BspMap::DestroyMap( void )
 {
     if ( mapAllocated )
     {
@@ -161,14 +161,13 @@ Q3BspParser::Read
 =====================================================
 */
 
-void Q3BspParser::Read( const std::string& filepath )
+void Q3BspMap::Read( const std::string& filepath )
 {   
     FILE* file = fopen( filepath.c_str(), "rb" );
 
     if ( !file )
     {
-        printf("Failed to open %s\n", filepath.c_str() );
-        return;
+        ERROR("Failed to open %s\n", filepath.c_str() );
     }
 
     fread( &header, sizeof( bspHeader_t ), 1, file );
@@ -297,7 +296,7 @@ Generates OpenGL texture data for map faces
 =====================================================
 */
 
-void Q3BspParser::GenTextures( const string &mapFilePath )
+void Q3BspMap::GenTextures( const string &mapFilePath )
 {
     string fileExts[ numTextures ]; // fuck yeh: dynamic stack allocation
 
@@ -325,9 +324,13 @@ void Q3BspParser::GenTextures( const string &mapFilePath )
             ERROR( "Could not open textures directory \'%s\'", relMapDirPath.c_str() );
         }
 
-        // used for simoltaneous forward and reverse
+        // used for simultaneous forward and reverse
         // iteration
         int numHalfTextures = numTextures / 2;
+
+        if ( numHalfTextures % 2 != 0 )
+            numHalfTextures += 1;
+
         int endTextures = numTextures - 1;
 
         FTSENT* node = NULL;
@@ -343,10 +346,15 @@ void Q3BspParser::GenTextures( const string &mapFilePath )
             {
                 const string& path     = node->fts_path;
 
+                size_t extIndex = path.find_last_of( '.' );
+
+                if ( extIndex == path.npos )
+                    continue;
+
                 size_t begin = path.find( "textures/" );
 
-                const string& filename = path.substr( begin, path.find_last_of( '.' ) - begin );
-                const string& ext      = path.substr( path.find_last_of( '.' ) );
+                const string& filename = path.substr( begin, extIndex - begin );
+                const string& ext      = path.substr( extIndex );
 
                 // Iterate through all of our textures and find the matching file
                 // so we have the right index for each texture.
@@ -380,7 +388,7 @@ void Q3BspParser::GenTextures( const string &mapFilePath )
                         j--;
                     }
 
-                    // We've exhausted all options, bail.
+                    // We've exhausted all options - bail.
                     if ( j < numHalfTextures && i == numHalfTextures )
                         break;
                 }
@@ -409,9 +417,19 @@ void Q3BspParser::GenTextures( const string &mapFilePath )
 
         unsigned char* pixels = stbi_load( texPath.c_str(), &width, &height, &comp, 0 );
 
+        if ( !pixels || !fileExts[ i ].c_str() )
+        {
+            continue;
+        }
+
+        if ( fileExts[ i ] == ".jpg" || fileExts[ i ] == ".jpeg" )
+            glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+        else
+            glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+
         glBindTexture( GL_TEXTURE_2D, apiTextures[ i ] );
-        glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGBA32I, width, height );
-        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels );
+        glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGB8, width, height );
+        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels );
         glBindTexture( GL_TEXTURE_2D, 0 );
     }
 }
@@ -429,7 +447,7 @@ Color and channel specified are within the range [0, 255]
 =====================================================
 */
 
-void Q3BspParser::SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor )
+void Q3BspMap::SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor )
 {
     for ( int i = 0; i < numVertexes; ++i )
     {
@@ -454,7 +472,7 @@ camera is looking at.
 =====================================================
 */
 
-bspLeaf_t* Q3BspParser::FindClosestLeaf( const glm::vec3& camPos )
+bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 {
     int nodeIndex = 0;
 
@@ -489,12 +507,12 @@ Q3BspParser::IsClusterVisible
 
 Check to see if param sourceCluster can "see" param testCluster.
 The algorithm used is standard and can be derived from the documentation
-found in the link posted in q3m.h.
+found in the link posted in q3bsp.h.
 
 =====================================================
 */
 
-bool Q3BspParser::IsClusterVisible( int sourceCluster, int testCluster )
+bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {
     if ( !visdata->bitsets || ( sourceCluster < 0 ) )
     {

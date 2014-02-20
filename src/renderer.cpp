@@ -21,7 +21,7 @@ RenderPass::RenderPass
 =====================================================
 */
 
-RenderPass::RenderPass( const Q3BspParser* const map, const ViewParams& viewData )
+RenderPass::RenderPass( const Q3BspMap* const map, const ViewParams& viewData )
     : view( viewData ),
       facesRendered( map->numFaces )
 {
@@ -135,7 +135,7 @@ void BSPRenderer::Load( const string& filepath )
 
     glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, position ) );
     glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) );
-    glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texcoord ) );
+    glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texCoord ) );
 
     glBindVertexArray( 0 );
 
@@ -186,6 +186,7 @@ void BSPRenderer::Update( float dt )
 {
     deltaTime = dt;
 
+    /*
     alreadyVisible.clear();
     visibleFaces.assign( visibleFaces.size(), 0 );
 
@@ -199,16 +200,14 @@ void BSPRenderer::Update( float dt )
         {
             for ( int j = testLeaf->leafFaceOffset; j < testLeaf->leafFaceOffset + testLeaf->numLeafFaces; ++j )
             {
-                if ( visibleFaces[ map.leafFaces[ j ].index ] == 0 )
-                {
-                    visibleFaces[ map.leafFaces[ j ].index ] = 1;
-                    alreadyVisible.push_back( map.leafFaces[ j ].index );
-                }
+                visibleFaces[ map.leafFaces[ j ].index ] = 1;
+                alreadyVisible.push_back( map.leafFaces[ j ].index );
             }
         }
     }
+    */
 
-    currClusterIndex = leaf->clusterIndex;
+    //currClusterIndex = leaf->clusterIndex;
     camera.Update();
 }
 
@@ -228,23 +227,26 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     {
         bspLeaf_t* drawLeaf = &map.leaves[ -( nodeIndex + 1 ) ];
 
-        if ( map.IsClusterVisible( currClusterIndex, drawLeaf->clusterIndex ) )
+        for ( int i = 0; i < map.numLeaves; ++i )
         {
-            for ( int i = drawLeaf->leafFaceOffset; i < drawLeaf->leafFaceOffset + drawLeaf->numLeafFaces; ++i )
+            bspLeaf_t* testLeaf = &map.leaves[ i ];
+
+            if ( map.IsClusterVisible( drawLeaf->clusterIndex, testLeaf->clusterIndex ) )
             {
-                if ( pass.facesRendered[ map.leafFaces[ i ].index ] )
-                    continue;
-
-                bspFace_t* face = map.faces + map.leafFaces[ i ].index;
-
-                if ( face->type == FACE_TYPE_MESH || face->type == FACE_TYPE_POLYGON )
+                for ( int k = 0; k < testLeaf->numLeafFaces; ++k )
                 {
-                    glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ].offset );
+                    int faceIndex = map.leafFaces[ testLeaf->leafFaceOffset + k ].index;
+
+                    if ( pass.facesRendered[ faceIndex ] )
+                        continue;
+
+                    DrawFace( map.leafFaces[ faceIndex ].index, k, pass, isSolid );
                 }
 
-                pass.facesRendered[ map.leafFaces[ i ].index ] = true;
             }
         }
+
+        glBindTexture( GL_TEXTURE_2D, 0 );
     }
     else
     {
@@ -264,6 +266,18 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
             DrawNode( node->children[ 0 ], pass, isSolid );
         }
     }
+}
 
+void BSPRenderer::DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid )
+{
+    bspFace_t* face = map.faces + faceIndex;
+
+    glActiveTexture( GL_TEXTURE0 + texUnit );
+    glBindTexture( GL_TEXTURE_2D, map.GetApiTexture( face->texture ) );
+    glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), texUnit );
+
+    glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ] );
+
+    pass.facesRendered[ faceIndex ] = true;
 }
 

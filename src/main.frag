@@ -9,5 +9,5 @@ out vec4 fragment;
 
 void main()
 {
-    fragment = frag_Color; // * texture(texSampler, frag_Tex);
+    fragment = frag_Color; //* texture(texSampler, frag_Tex);
 }

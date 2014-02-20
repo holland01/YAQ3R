@@ -131,7 +131,7 @@ struct bspModel_t
 struct bspVertex_t
 {
     vec3f position;
-    vec2f texcoord;
+    vec2f texCoord;
     vec2f lightmapCoord;
     vec3f normal;
 
@@ -189,13 +189,13 @@ struct bspVisdata_t
 =====================================================
 */
 
-class Q3BspParser
+class Q3BspMap
 {
 public:
 
-    Q3BspParser( void );
+    Q3BspMap( void );
 
-    ~Q3BspParser( void );
+    ~Q3BspMap( void );
 
     void                Read( const std::string& filepath );
 
@@ -203,7 +203,7 @@ public:
 
     void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 
-    GLuint              GetApiTexture( void ) const;
+    GLuint              GetApiTexture( int index ) const;
 
     bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
 
@@ -253,3 +253,11 @@ private:
 
     bool            mapAllocated;
 };
+
+INLINE GLuint Q3BspMap::GetApiTexture( int index ) const
+{
+    assert( mapAllocated );
+    assert( index < numTextures );
+
+    return apiTextures[ index ];
+}
