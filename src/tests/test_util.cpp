@@ -1,7 +1,7 @@
 #include "test_util.h"
 #include "../input.h"
 
-void OnKeyPress( GLFWwindow* window, int key, int scancode, int action, int mods, InputCamera& camera, bool& cursorVisible )
+void OnKeyPress( GLFWwindow* window, int key, int scancode, int action, int mods, InputCamera* const camera, bool& cursorVisible )
 {
     switch ( action )
     {
@@ -23,13 +23,13 @@ void OnKeyPress( GLFWwindow* window, int key, int scancode, int action, int mods
                     break;
 
                 default:
-                    camera.EvalKeyPress( key );
+                    camera->EvalKeyPress( key );
                     break;
             }
             break;
 
         case GLFW_RELEASE:
-            camera.EvalKeyRelease( key );
+            camera->EvalKeyRelease( key );
             break;
 
         default:

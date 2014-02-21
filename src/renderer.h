@@ -3,6 +3,7 @@
 #include "common.h"
 #include "q3bsp.h"
 #include "input.h"
+#include "frustum.h"
 
 /*
 =====================================================
@@ -30,12 +31,12 @@ License: WTFPL
 class RenderPass
 {
 public:
-    RenderPass( const Q3BspMap* const map, const ViewParams& viewData );
+    RenderPass( const Q3BspMap* const & map, const viewParams_t& viewData );
     ~RenderPass( void );
 
     void                    SetFaceCount( int count );
 
-    const ViewParams&       view;
+    const viewParams_t&       view;
     std::vector< bool >     facesRendered;
 
 };
@@ -54,11 +55,15 @@ INLINE void RenderPass::SetFaceCount( int count )
 =====================================================
 */
 
+class AABB;
+
 class BSPRenderer
 {
 public:
 
-    InputCamera camera;
+    InputCamera* camera;
+
+    Frustum*     frustum;
 
     BSPRenderer( void );
 
@@ -70,13 +75,15 @@ public:
     void    DrawWorld( void );
 
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
-    void    DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid );
+    void    DrawFace( int faceIndex, int texUnit, RenderPass& pass, const AABB& bounds, bool isSolid );
 
     void    Update( float dt );
 
 private:
 
     typedef bool        ( *PredicateFunc )( const bspVertex_t&, const bspVertex_t& );
+
+    Q3BspMap*           map;
 
     GLuint              bspProgram;
     GLuint              vao, vbo;
@@ -89,6 +96,4 @@ private:
     std::vector< bool > visibleClusters;
 
     int                 currClusterIndex;
-
-    Q3BspMap         map;
 };

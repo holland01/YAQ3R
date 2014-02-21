@@ -5,13 +5,15 @@
 
 static const int KEY_COUNT = 8;
 
-struct ViewParams
+struct viewParams_t
 {
     glm::vec3   forward;
     glm::vec3   up;
     glm::vec3   right;
 
     glm::vec3   origin;
+
+    float       fovy, aspect, zNear, zFar;
 
     glm::mat4   transform;
 
@@ -23,7 +25,7 @@ struct ViewParams
 
 class InputCamera
 {
-    ViewParams      viewData;
+    viewParams_t    viewData;
 
     EuAng           currRot, lastRot;
 
@@ -49,35 +51,64 @@ public:
     void    RotateY( float angRad );
     void    RotateZ( float angRad );
 
+    void    SetPerspective( float fovy, float aspect, float znear, float zfar );
     void    SetForward( const glm::vec3& target );
 
-    const   ViewParams& ViewData( void ) const;
+    glm::vec3   Forward( void ) const;
+    glm::vec3   Up( void ) const;
+    glm::vec3   Right( void ) const;
+
+    const   viewParams_t& ViewData( void ) const;
 };
+
+INLINE glm::vec3 InputCamera::Forward( void ) const
+{
+    glm::vec4 forward = viewData.inverseOrient * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f );
+
+    return glm::vec3( forward );
+}
+
+INLINE glm::vec3 InputCamera::Right( void ) const
+{
+    glm::vec4 right = viewData.inverseOrient * glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f );
+
+    return glm::vec3( right );
+}
+
+INLINE glm::vec3 InputCamera::Up( void ) const
+{
+    glm::vec4 up = viewData.inverseOrient * glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f );
+
+    return glm::vec3( up );
+}
 
 INLINE void InputCamera::Walk( float amount )
 {
-
-
-    glm::vec4 forward = viewData.inverseOrient * glm::vec4( 0.0f, 0.0f, -amount, 1.0f );
-
-    viewData.forward = glm::vec3( forward );
+    viewData.forward = Forward() * amount;
     viewData.origin += viewData.forward;
 }
 
 INLINE void InputCamera::Strafe( float amount )
 {
-    glm::vec4 right = viewData.inverseOrient * glm::vec4( amount, 0.0f, 0.0f, 1.0f );
-
-    viewData.right = glm::vec3( right );
+    viewData.right = Right() * amount;
     viewData.origin += viewData.right;
 }
 
 INLINE void InputCamera::Raise( float amount )
 {
-    glm::vec4 up = viewData.inverseOrient * glm::vec4( 0.0f, amount, 0.0f, 1.0f );
-
-    viewData.right = glm::vec3( up );
+    viewData.right = Up() * amount;
     viewData.origin += viewData.right;
+}
+
+INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
+{
+    viewData.projection = glm::perspective( fovy, aspect, zNear, zFar );
+
+    // Cache params for frustum culling
+    viewData.fovy = fovy;
+    viewData.aspect = aspect;
+    viewData.zNear = zNear;
+    viewData.zFar = zFar;
 }
 
 INLINE void InputCamera::SetForward( const glm::vec3& forward )
@@ -113,7 +144,7 @@ INLINE void InputCamera::SetForward( const glm::vec3& forward )
     viewData.forward = glm::normalize( viewData.forward );
 }
 
-INLINE const ViewParams& InputCamera::ViewData( void ) const
+INLINE const viewParams_t& InputCamera::ViewData( void ) const
 {
     return viewData;
 }

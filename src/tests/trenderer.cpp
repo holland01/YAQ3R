@@ -10,7 +10,7 @@ bool cursorVisible;
 
 }
 
-BSPRenderer* renderer = NULL;
+static BSPRenderer* renderer = NULL;
 
 void BSPR_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods )
 {
@@ -19,7 +19,7 @@ void BSPR_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int 
 
 void BSPR_HandleMouseMove( GLFWwindow* w, double x, double y )
 {
-    renderer->camera.EvalMouseMove( ( float ) x, ( float ) y );
+    renderer->camera->EvalMouseMove( ( float ) x, ( float ) y );
 }
 
 void BSPR_LoadTest( GLFWwindow* window )
@@ -30,7 +30,8 @@ void BSPR_LoadTest( GLFWwindow* window )
     glfwSetCursorPosCallback( window, BSPR_HandleMouseMove );
     glfwSetInputMode( window, GLFW_STICKY_KEYS, GL_FALSE );
 
-    renderer = new BSPRenderer;
+    BSPRenderer* r = new BSPRenderer;
+    renderer = r;
     renderer->Prep();
     renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
 

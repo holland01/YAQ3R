@@ -37,10 +37,18 @@ static INLINE void PlaneFrom3( plane_t* const outp, const glm::vec3& p, const gl
 
     outp->normal = glm::cross( e1, e3 );
 
-    if ( glm::length( outp->normal ) > 1.0f )
-        outp->normal = glm::normalize( outp->normal );
+    float mag = glm::length( outp->normal );
 
-    outp->d = glm::dot( e1, outp->normal );
+    if ( mag > 1.0f )
+    {
+        outp->normal = glm::normalize( outp->normal );
+        mag = glm::length( outp->normal );
+    }
+
+    if ( mag > 0.000000000f )
+        outp->d = glm::dot( e1, outp->normal );
+    else
+        outp->d = 0;
 
     outp->points[ 0 ] = p;
     outp->points[ 1 ] = p1;

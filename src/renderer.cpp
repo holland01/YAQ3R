@@ -2,6 +2,7 @@
 #include "shader.h"
 #include "log.h"
 #include "math_util.h"
+#include "aabb.h"
 
 using namespace std;
 
@@ -21,10 +22,10 @@ RenderPass::RenderPass
 =====================================================
 */
 
-RenderPass::RenderPass( const Q3BspMap* const map, const ViewParams& viewData )
-    : view( viewData ),
-      facesRendered( map->numFaces )
+RenderPass::RenderPass( const Q3BspMap* const& map, const viewParams_t& viewData )
+    : view( viewData )
 {
+    facesRendered.reserve( map->numFaces );
     facesRendered.assign( map->numFaces, false );
 }
 
@@ -49,11 +50,17 @@ BSPRenderer::BSPRenderer
 */
 
 BSPRenderer::BSPRenderer( void )
-    : bspProgram( 0 ),
+    : camera( NULL ),
+      frustum( NULL ),
+      map( NULL ),
+      bspProgram( 0 ),
       vao( 0 ),
       vbo( 0 ),
       deltaTime( 0 )
 {
+    camera = new InputCamera();
+    frustum = new Frustum();
+    map = new Q3BspMap();
 }
 
 /*
@@ -69,6 +76,10 @@ BSPRenderer::~BSPRenderer( void )
     glDeleteVertexArrays( 1, &vao );
     glDeleteProgram( bspProgram );
     glDeleteBuffers( 1, &vbo );
+
+    delete map;
+    delete frustum;
+    delete camera;
 }
 
 
@@ -111,19 +122,19 @@ BSPRenderer::Load
 
 void BSPRenderer::Load( const string& filepath )
 {
-    if ( map.IsAllocated() )
+    if ( map->IsAllocated() )
     {
-        map.DestroyMap();
+        map->DestroyMap();
     }
 
-    map.Read( filepath );
-    map.GenTextures( filepath );
-    visibleFaces.reserve( map.numFaces );
+    map->Read( filepath );
+    map->GenTextures( filepath );
+    visibleFaces.reserve( map->numFaces );
 
     glBindVertexArray( vao );
 
     glBindBuffer( GL_ARRAY_BUFFER, vbo );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map.numVertexes, map.vertexes, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->numVertexes, map->vertexes, GL_STATIC_DRAW );
 
     glBindAttribLocation( bspProgram, 0, "position" );
     glBindAttribLocation( bspProgram, 1, "color" );
@@ -140,7 +151,7 @@ void BSPRenderer::Load( const string& filepath )
     glBindVertexArray( 0 );
 
     glUseProgram( bspProgram );
-    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().projection ) );
+    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().projection ) );
     glUseProgram( 0 );
 }
 
@@ -159,9 +170,9 @@ void BSPRenderer::DrawWorld( void )
     glBindBuffer( GL_ARRAY_BUFFER, vbo );
 
     //glUniform1f( glGetUniformLocation( bspProgram, "deltaTime" ), deltaTime );
-    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "modelToCamera" ), 1, GL_FALSE, glm::value_ptr( camera.ViewData().transform ) );
+    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "modelToCamera" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) );
 
-    RenderPass pass( &map, camera.ViewData() );
+    RenderPass pass( map, camera->ViewData() );
 
     DrawNode( 0, pass, true );
     //DrawNode( 0, pass, false );
@@ -177,7 +188,7 @@ void BSPRenderer::DrawWorld( void )
 BSPRenderer::Update
 
 Determine all of the faces which are visible, based on
-our current location in the map.
+our current location in the map
 
 =====================================================
 */
@@ -185,30 +196,8 @@ our current location in the map.
 void BSPRenderer::Update( float dt )
 {
     deltaTime = dt;
-
-    /*
-    alreadyVisible.clear();
-    visibleFaces.assign( visibleFaces.size(), 0 );
-
-    bspLeaf_t* leaf = map.FindClosestLeaf( camera.ViewData().origin );
-
-    for ( int i = 0; i < map.numLeaves; ++i )
-    {
-        bspLeaf_t* testLeaf = map.leaves + i;
-
-        if ( map.IsClusterVisible( leaf->clusterIndex, testLeaf->clusterIndex ) )
-        {
-            for ( int j = testLeaf->leafFaceOffset; j < testLeaf->leafFaceOffset + testLeaf->numLeafFaces; ++j )
-            {
-                visibleFaces[ map.leafFaces[ j ].index ] = 1;
-                alreadyVisible.push_back( map.leafFaces[ j ].index );
-            }
-        }
-    }
-    */
-
-    //currClusterIndex = leaf->clusterIndex;
-    camera.Update();
+    camera->Update();
+    frustum->Update( camera->ViewData() );
 }
 
 /*
@@ -225,22 +214,27 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
 {
     if ( nodeIndex < 0 )
     {
-        bspLeaf_t* drawLeaf = &map.leaves[ -( nodeIndex + 1 ) ];
+        bspLeaf_t* drawLeaf = &map->leaves[ -( nodeIndex + 1 ) ];
 
-        for ( int i = 0; i < map.numLeaves; ++i )
+        for ( int i = 0; i < map->numLeaves; ++i )
         {
-            bspLeaf_t* testLeaf = &map.leaves[ i ];
+            bspLeaf_t* testLeaf = &map->leaves[ i ];
 
-            if ( map.IsClusterVisible( drawLeaf->clusterIndex, testLeaf->clusterIndex ) )
+            if ( map->IsClusterVisible( drawLeaf->clusterIndex, testLeaf->clusterIndex ) )
             {
                 for ( int k = 0; k < testLeaf->numLeafFaces; ++k )
                 {
-                    int faceIndex = map.leafFaces[ testLeaf->leafFaceOffset + k ].index;
+                    int faceIndex = map->leafFaces[ testLeaf->leafFaceOffset + k ].index;
 
                     if ( pass.facesRendered[ faceIndex ] )
                         continue;
 
-                    DrawFace( map.leafFaces[ faceIndex ].index, k, pass, isSolid );
+                    glm::vec3 max( testLeaf->boxMax.x, testLeaf->boxMax.y, testLeaf->boxMax.z );
+                    glm::vec3 min( testLeaf->boxMin.x, testLeaf->boxMin.y, testLeaf->boxMin.z );
+
+                    AABB bounds( max, min );
+
+                    DrawFace( map->leafFaces[ faceIndex ].index, k, pass, bounds, isSolid );
                 }
 
             }
@@ -250,8 +244,8 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     }
     else
     {
-        const bspNode_t* const node = &map.nodes[ nodeIndex ];
-        const bspPlane_t* const plane = &map.planes[ node->plane ];
+        const bspNode_t* const node = &map->nodes[ nodeIndex ];
+        const bspPlane_t* const plane = &map->planes[ node->plane ];
 
         float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) ) - plane->distance;
 
@@ -268,16 +262,19 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     }
 }
 
-void BSPRenderer::DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid )
+void BSPRenderer::DrawFace( int faceIndex, int texUnit, RenderPass& pass, const AABB& bounds, bool isSolid )
 {
-    bspFace_t* face = map.faces + faceIndex;
+    if ( frustum->IntersectsBox( bounds ) )
+    {
+        bspFace_t* face = map->faces + faceIndex;
 
-    glActiveTexture( GL_TEXTURE0 + texUnit );
-    glBindTexture( GL_TEXTURE_2D, map.GetApiTexture( face->texture ) );
-    glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), texUnit );
+        glActiveTexture( GL_TEXTURE0 + texUnit );
+        glBindTexture( GL_TEXTURE_2D, map->GetApiTexture( face->texture ) );
+        glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), texUnit );
 
-    glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map.meshVertexes[ face->meshVertexOffset ] );
+        glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ] );
 
-    pass.facesRendered[ faceIndex ] = true;
+        pass.facesRendered[ faceIndex ] = true;
+    }
 }
 

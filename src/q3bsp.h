@@ -247,6 +247,9 @@ public:
 
 private:
 
+    Q3BspMap( const Q3BspMap& ) = delete;
+    Q3BspMap& operator=( Q3BspMap ) = delete;
+
     GLuint*         apiTextures;
 
     bspHeader_t     header;

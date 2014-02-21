@@ -282,8 +282,8 @@ void Q3BspMap::Read( const std::string& filepath )
     fclose( file );
 
    // LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
-   // LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
-    //LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
+   //LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
+   //LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
 }
 
 /*

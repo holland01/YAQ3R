@@ -35,7 +35,7 @@ InputCamera::InputCamera( void )
     :
       lastMouse( 0.0f )
 {
-    viewData.projection = glm::perspective( 45.0f, 16.0f / 9.0f, 0.1f, 9000.0f );
+    SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 9000.0f );
 
     for ( int i = 0; i < KEY_COUNT; ++i )
     {
