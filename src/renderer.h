@@ -75,8 +75,6 @@ public:
 
     void    DrawWorld( void );
 
-    void    DrawIterative( RenderPass& pass );
-
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
     void    DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid );
 
@@ -92,11 +90,6 @@ private:
     GLuint              vao, vbo;
 
     float               deltaTime;
-
-    std::vector< int >  alreadyVisible;
-
-    std::vector< int >  visibleFaces;
-    std::vector< bool > visibleClusters;
 
     const bspLeaf_t*    currLeaf;
 };

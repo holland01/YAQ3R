@@ -115,6 +115,7 @@ void Q3BspMap::DestroyMap( void )
         }
 
         free( entities.infoString );
+        free( effectShaders );
 
         free( nodes );
         free( leaves );
@@ -133,6 +134,7 @@ void Q3BspMap::DestroyMap( void )
         apiTextures = NULL;
 
         entities.infoString = NULL;
+        effectShaders = NULL;
 
         nodes = NULL;
         leaves = NULL;
@@ -147,6 +149,8 @@ void Q3BspMap::DestroyMap( void )
         meshVertexes = NULL;
 
         visdata = NULL;
+
+        numEffectShaders = 0;
 
         numNodes = 0;
         numLeaves = 0;
