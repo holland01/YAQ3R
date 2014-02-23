@@ -134,10 +134,12 @@ LogBSPData
 
 void LogBSPData( int type, void* data, int length )
 {
-    if ( !globalBspDataLog )
-        return;
+    ASSERT( globalBspDataLog != NULL, "globalBspDataLog is NULL!" );
+    ASSERT( type >= 0x0 && type <= 0x10, "Type not within range [0, 16]! Value received: %i", type );
 
     std::stringstream ss;
+
+    ss << "TOTAL: " << length << "\n\n";
 
     std::string header;
 
@@ -149,8 +151,6 @@ void LogBSPData( int type, void* data, int length )
             bspVertex_t* vertexes = ( bspVertex_t* ) data;
 
             header = "VERTEXES";
-
-            ss << "TOTAL VERTEXES: " << length << "\n\n";
 
             for ( int i = 0; i < length; ++i )
             {
@@ -186,8 +186,6 @@ void LogBSPData( int type, void* data, int length )
 
             header = "MESH_VERTEXES";
 
-            ss << "TOTAL MESH VERTEXES: " << length << "\n\n";
-
             for ( int i = 0; i < length; ++i )
             {
                 ss << "Mesh Vertex [ " << i << " ]\n"
@@ -197,14 +195,54 @@ void LogBSPData( int type, void* data, int length )
         }
             break;
 
+        case BSP_LUMP_TEXTURES:
+        {
+
+            bspTexture_t* texbuf = ( bspTexture_t* ) data;
+
+            header = "TEXTURE_FILES";
+
+            for ( int i = 0; i < length; ++i )
+            {
+                ss  << "Begin Texture[ " << i << " ]" << "\n";
+                ss  << "\tFilename: " << texbuf[ i ].filename << "\n"
+                    << "\tContent Flags: " << texbuf[ i ].contentsFlags << "\n"
+                    << "\tSurface Flags: " << texbuf[ i ].surfaceFlags << "\n";
+                ss  << "End Texture\n\n";
+            }
+        }
+            break;
+
+        case BSP_LUMP_EFFECTS:
+        {
+
+            bspEffect_t* effectBuf = ( bspEffect_t* ) data;
+
+            header = "EFFECT_SHADERS";
+
+            for ( int i = 0; i < length; ++i )
+            {
+                ss  << "Begin Effect Shader[ " << i << " ]" << "\n";
+                ss  << "\tFilename: " << effectBuf[ i ].filename << "\n"
+                    << "\tBrush Index: " << effectBuf[ i ].brush << "\n"
+                    << "\tUknown Integer Field: " << effectBuf[ i ].unknown << "\n";
+                ss  << "End Effect Shader\n\n";
+            }
+        }
+            break;
+
         case BSP_LUMP_ENTITIES:
         {
             header = "ENTITIES_LUMP";
 
-            ss << "NUM CHARS: " << length << "\n\n";
-
             ss << ( char* )data;
         }
+            break;
+
+
+
+        default:
+            ERROR( "Log functionality for data type index %i has not been implemented yet!", type );
             break;
 
     }

@@ -47,7 +47,6 @@ OTHER_FILES += \
     log/gl.log \
     asset/quake/overkill.bsp \
     asset/quake/railgun_arena/map.bsp \
-    asset/quake/railgun_arena/map.aas \
     asset/quake/railgun_arena/textures/aedm7/aecell_decal_logo1.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_decal_spawn1.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_gl.tga \
@@ -61,7 +60,11 @@ OTHER_FILES += \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_sg.tga \
     asset/quake/railgun_arena/textures/aedm7/aecell_pads_ya.tga \
     src/main.vert \
-    src/main.frag
+    src/main.frag \
+    asset/quake/railgun_arena/maps/Railgun_Arena.aas \
+    asset/quake/railgun_arena/maps/Railgun_Arena.bsp \
+    asset/quake/railgun_arena/scripts/Railgun_Arena.shader \
+    asset/quake/railgun_arena/scripts/Railgun_Arena.arena
 
 SOURCES += \
     src/shader.cpp \

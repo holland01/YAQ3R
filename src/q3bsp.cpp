@@ -36,6 +36,26 @@ static void SwizzleCoords( vec3i& v )
     v.z = -tmp;
 }
 
+static void ScaleCoords( vec3f& v, float scale )
+{
+    v.x *= scale;
+    v.y *= scale;
+    v.z *= scale;
+}
+
+static void ScaleCoords( vec2f& v, float scale )
+{
+    v.x *= scale;
+    v.y *= scale;
+}
+
+static void ScaleCoords( vec3i& v, float scale )
+{
+    v.x *= scale;
+    v.y *= scale;
+    v.z *= scale;
+}
+
 /*
 =====================================================
 
@@ -161,8 +181,12 @@ Q3BspParser::Read
 =====================================================
 */
 
-void Q3BspMap::Read( const std::string& filepath )
+void Q3BspMap::Read( const std::string& filepath, const int scale )
 {   
+    assert( scale != 0 );
+
+    float fScale = scale;
+
     FILE* file = fopen( filepath.c_str(), "rb" );
 
     if ( !file )
@@ -199,6 +223,10 @@ void Q3BspMap::Read( const std::string& filepath )
 
     for ( int i = 0; i < numNodes; ++i )
     {
+
+        ScaleCoords( nodes[ i ].boxMax, scale );
+        ScaleCoords( nodes[ i ].boxMin, scale );
+
         SwizzleCoords( nodes[ i ].boxMax );
         SwizzleCoords( nodes[ i ].boxMin );
     }
@@ -210,6 +238,9 @@ void Q3BspMap::Read( const std::string& filepath )
 
     for ( int i = 0; i < numLeaves; ++i )
     {
+        ScaleCoords( leaves[ i ].boxMax, scale );
+        ScaleCoords( leaves[ i ].boxMin, scale );
+
         SwizzleCoords( leaves[ i ].boxMax );
         SwizzleCoords( leaves[ i ].boxMin );
     }
@@ -221,16 +252,23 @@ void Q3BspMap::Read( const std::string& filepath )
 
     for ( int i = 0; i < numPlanes; ++i )
     {
+        planes[ i ].distance *= scale;
+        ScaleCoords( planes[ i ].normal, fScale );
         SwizzleCoords( planes[ i ].normal );
     }
 
-    vertexes = ( bspVertex_t* )malloc( header.directories[ BSP_LUMP_VERTEXES ].length );
+    vertexes = ( bspVertex_t* ) malloc( header.directories[ BSP_LUMP_VERTEXES ].length );
     numVertexes = header.directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
     fseek( file, header.directories[ BSP_LUMP_VERTEXES ].offset, SEEK_SET );
     fread( vertexes, header.directories[ BSP_LUMP_VERTEXES ].length, 1, file );
 
     for ( int i = 0; i < numVertexes; ++i )
     {
+        ScaleCoords( vertexes[ i ].texCoord, scale );
+        ScaleCoords( vertexes[ i ].lightmapCoord, scale );
+        ScaleCoords( vertexes[ i ].normal, scale );
+        ScaleCoords( vertexes[ i ].position, scale );
+
         SwizzleCoords( vertexes[ i ].position );
         SwizzleCoords( vertexes[ i ].normal );
     }
@@ -242,6 +280,9 @@ void Q3BspMap::Read( const std::string& filepath )
 
     for ( int i = 0; i < numModels; ++i )
     {
+        ScaleCoords( models[ i ].boxMax, scale );
+        ScaleCoords( models[ i ].boxMin, scale );
+
         SwizzleCoords( models[ i ].boxMax );
         SwizzleCoords( models[ i ].boxMin );
     }
@@ -253,6 +294,11 @@ void Q3BspMap::Read( const std::string& filepath )
 
     for ( int i = 0; i < numFaces; ++i )
     {
+        ScaleCoords( faces[ i ].normal, scale );
+        ScaleCoords( faces[ i ].lightmapOrigin, scale );
+        ScaleCoords( faces[ i ].lightmapStVecs[ 0 ], scale );
+        ScaleCoords( faces[ i ].lightmapStVecs[ 1 ], scale );
+
         SwizzleCoords( faces[ i ].normal );
         SwizzleCoords( faces[ i ].lightmapOrigin );
         SwizzleCoords( faces[ i ].lightmapStVecs[ 0 ] );
@@ -269,6 +315,11 @@ void Q3BspMap::Read( const std::string& filepath )
     fseek( file, header.directories[ BSP_LUMP_MESH_VERTEXES ].offset, SEEK_SET );
     fread( meshVertexes, header.directories[ BSP_LUMP_MESH_VERTEXES ].length, 1, file );
 
+    effectShaders = ( bspEffect_t* )malloc( header.directories[ BSP_LUMP_EFFECTS ].length );
+    numEffectShaders = header.directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
+    fseek( file, header.directories[ BSP_LUMP_EFFECTS ].offset, SEEK_SET );
+    fread( effectShaders, header.directories[ BSP_LUMP_EFFECTS ].length, 1, file );
+
     visdata = ( bspVisdata_t* )malloc( header.directories[ BSP_LUMP_VISDATA ].length );
     numVisdataVecs = header.directories[ BSP_LUMP_VISDATA ].length;
     fseek( file, header.directories[ BSP_LUMP_VISDATA ].offset, SEEK_SET );
@@ -281,9 +332,12 @@ void Q3BspMap::Read( const std::string& filepath )
 
     fclose( file );
 
-   // LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
+   //LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
    //LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
-   //LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
+   LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
+   LogBSPData( BSP_LUMP_EFFECTS, ( void* ) effectShaders, numEffectShaders );
+   LogBSPData( BSP_LUMP_TEXTURES, ( void* ) textures, numTextures );
+
 }
 
 /*
@@ -298,138 +352,78 @@ Generates OpenGL texture data for map faces
 
 void Q3BspMap::GenTextures( const string &mapFilePath )
 {
-    string fileExts[ numTextures ]; // fuck yeh: dynamic stack allocation
-
     // extract (relative) root directory of map file in filepath string;
     // we append 1 at the end because we use the index as a
     // buffer length
     int dirRootLen = mapFilePath.find_last_of( '/' ) + 1;
     string relMapDirPath = mapFilePath.substr( 0, dirRootLen );
-
-    // Iterate through each folder in the map dir's "texture's" folder
-    // to determine the file type of each image. NOTE: the following ( likely )
-    // works only in Linux environments; more will be added over time.
-    {
-        const string& texDirPath = relMapDirPath + string( "textures/" );
-        char* paths[] =
-        {
-            strdup( texDirPath.c_str() ),
-            NULL
-        };
-
-        FTS* tree = fts_open( paths, FTS_NOCHDIR, NULL );
-
-        if ( !tree )
-        {
-            ERROR( "Could not open textures directory \'%s\'", relMapDirPath.c_str() );
-        }
-
-        // used for simultaneous forward and reverse
-        // iteration
-        int numHalfTextures = numTextures / 2;
-
-        if ( numHalfTextures % 2 != 0 )
-            numHalfTextures += 1;
-
-        int endTextures = numTextures - 1;
-
-        FTSENT* node = NULL;
-        while ( ( node = fts_read( tree ) ) )
-        {
-            // Skip over any hidden folders
-            if ( node->fts_level > 0 && node->fts_name[ 0 ] == '.' )
-            {
-                fts_set( tree, node, FTS_SKIP );
-            }
-            // Ensure we have a file if it's not hidden
-            else if ( ( node->fts_info & FTS_F ) > 0 )
-            {
-                const string& path     = node->fts_path;
-
-                size_t extIndex = path.find_last_of( '.' );
-
-                if ( extIndex == path.npos )
-                    continue;
-
-                size_t begin = path.find( "textures/" );
-
-                const string& filename = path.substr( begin, extIndex - begin );
-                const string& ext      = path.substr( extIndex );
-
-                // Iterate through all of our textures and find the matching file
-                // so we have the right index for each texture.
-                for ( int i = 0, j = endTextures; true; )
-                {
-                    if ( i < numHalfTextures )
-                    {
-                        string texCmpForward( textures[ i ].filename );
-
-                        if ( filename == texCmpForward )
-                        {
-                            fileExts[ i ] = ext;
-
-                            break;
-                        }
-
-                        i++;
-                    }
-
-                    if ( j >= numHalfTextures )
-                    {
-                        string texCmpBackward( textures[ j ].filename );
-
-                        if ( filename == texCmpBackward )
-                        {
-                            fileExts[ j ] = ext;
-
-                            break;
-                        }
-
-                        j--;
-                    }
-
-                    // We've exhausted all options - bail.
-                    if ( j < numHalfTextures && i == numHalfTextures )
-                        break;
-                }
-            }
-            // If we have a directory, enter it.
-            else if ( ( node->fts_info & FTS_D ) > 0 )
-            {
-                node = fts_children( tree, 0 );
-            }
-        }
-
-        fts_close( tree );
-        free( paths[ 0 ] );
-    }
+    relMapDirPath.append( "../" );
 
     apiTextures = ( GLuint* ) malloc( sizeof( GLuint ) * numTextures );
     glGenTextures( numTextures, apiTextures );
 
+    string cwdpath;
+
+    {
+        char buf[ CHAR_MAX ];
+        memset( buf, 0, CHAR_MAX );
+        getcwd( buf, CHAR_MAX );
+
+        cwdpath.append( buf );
+        cwdpath.append( "/" );
+    }
+
+    // Iterate through the directory location of each texture so we can uncover its
+    // extension and load it accordingly.
     for ( int i = 0; i < numTextures; ++i )
     {
         string texPath = relMapDirPath;
         texPath.append( textures[ i ].filename );
-        texPath.append( fileExts[ i ] );
+
+        bool finished = false;
+        {
+            // Comparison between filename in the texPath (sans root dir) and d_name param of "entry" var
+            const string& cmp = texPath.substr( texPath.find_last_of( '/' ) + 1 );
+            const string& dir = cwdpath + texPath.substr( 0, texPath.find_last_of( '/' ) );
+
+            DIR* d;
+
+            struct dirent* entry;
+
+            d = opendir( dir.c_str() );
+
+            while ( ( entry = readdir( d ) ) != NULL )
+            {
+                string fname( entry->d_name );
+
+                int extIndex = fname.find_last_of( '.' );
+                const string& ext = fname.substr( extIndex );
+                const string& file = fname.substr( 0, extIndex );
+
+                finished = file == cmp;
+
+                if ( finished )
+                {
+                    texPath.append( ext );
+                    break;
+                }
+            }
+        }
+
+        if ( !finished )
+            continue;
 
         int width, height, comp;
 
         unsigned char* pixels = stbi_load( texPath.c_str(), &width, &height, &comp, 0 );
 
-        if ( !pixels || !fileExts[ i ].c_str() )
-        {
-            continue;
-        }
-
-        if ( fileExts[ i ] == ".jpg" || fileExts[ i ] == ".jpeg" )
-            glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-        else
-            glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
-
         glBindTexture( GL_TEXTURE_2D, apiTextures[ i ] );
         glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGB8, width, height );
         glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels );
+
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+
         glBindTexture( GL_TEXTURE_2D, 0 );
     }
 }
@@ -525,5 +519,4 @@ bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 
     return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }
-
 

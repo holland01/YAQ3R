@@ -56,7 +56,8 @@ BSPRenderer::BSPRenderer( void )
       bspProgram( 0 ),
       vao( 0 ),
       vbo( 0 ),
-      deltaTime( 0 )
+      deltaTime( 0 ),
+      currLeaf( NULL )
 {
     camera = new InputCamera();
     frustum = new Frustum();
@@ -127,9 +128,11 @@ void BSPRenderer::Load( const string& filepath )
         map->DestroyMap();
     }
 
-    map->Read( filepath );
+    map->Read( filepath, 1 );
     map->GenTextures( filepath );
-    visibleFaces.reserve( map->numFaces );
+
+    //visibleFaces.reserve( map->numFaces );
+    //alreadyVisible.reserve( map->numFaces );
 
     glBindVertexArray( vao );
 
@@ -173,9 +176,10 @@ void BSPRenderer::DrawWorld( void )
     glUniformMatrix4fv( glGetUniformLocation( bspProgram, "modelToCamera" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) );
 
     RenderPass pass( map, camera->ViewData() );
+    pass.cluster = map->FindClosestLeaf( pass.view.origin )->clusterIndex;
 
     DrawNode( 0, pass, true );
-    //DrawNode( 0, pass, false );
+    DrawNode( 0, pass, false );
 
     glUseProgram( 0 );
     glBindVertexArray( 0 );
@@ -198,6 +202,57 @@ void BSPRenderer::Update( float dt )
     deltaTime = dt;
     camera->Update();
     frustum->Update( camera->ViewData() );
+/*
+    alreadyVisible.clear();
+    //alreadyVisible.assign( map->numFaces, 0 );
+
+    currLeaf = map->FindClosestLeaf( camera->ViewData().origin );
+
+    for ( int i = 0; i < map->numLeaves; ++i )
+    {
+        bspLeaf_t* test = map->leaves + i;
+
+        if ( map->IsClusterVisible( currLeaf->clusterIndex, test->clusterIndex ) )
+        {
+            for ( int i = 0; i < test->numLeafFaces; ++i )
+            {
+                alreadyVisible.push_back( map->leafFaces[ currLeaf->leafFaceOffset + i ].index );
+            }
+        }
+    }
+*/
+
+}
+
+void BSPRenderer::DrawIterative( RenderPass& pass )
+{
+    glm::vec3 max( currLeaf->boxMax.x, currLeaf->boxMax.y, currLeaf->boxMax.z );
+    glm::vec3 min( currLeaf->boxMin.x, currLeaf->boxMin.y, currLeaf->boxMin.z );
+
+    AABB bounds( max, min );
+
+    const int alreadyVisLen = ( int ) alreadyVisible.size();
+
+    for ( int i = 0; i < alreadyVisLen; ++i )
+    {
+        int faceIndex = alreadyVisible[ i ];
+
+        if ( pass.facesRendered[ faceIndex ] )
+            continue;
+
+        bspFace_t* face = map->faces + faceIndex;
+
+        if ( ( face->type == FACE_TYPE_MESH || face->type == FACE_TYPE_POLYGON ) && frustum->IntersectsBox( bounds ) )
+        {
+            glActiveTexture( GL_TEXTURE0 + i );
+            glBindTexture( GL_TEXTURE_2D, map->GetApiTexture( face->texture ) );
+            glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), i );
+
+            glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ] );
+
+            pass.facesRendered[ faceIndex ] = true;
+        }
+    }
 }
 
 /*
@@ -208,36 +263,32 @@ BSPRenderer::DrawNodes
 =====================================================
 */
 
-#define DRAW_MODE GL_TRIANGLES
-
 void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
 {
     if ( nodeIndex < 0 )
     {
-        bspLeaf_t* drawLeaf = &map->leaves[ -( nodeIndex + 1 ) ];
+        const bspLeaf_t* const viewLeaf = &map->leaves[ -( nodeIndex + 1 ) ];
 
-        for ( int i = 0; i < map->numLeaves; ++i )
+        if ( !map->IsClusterVisible( pass.cluster, viewLeaf->clusterIndex ) ) return;
+
+        /*
         {
-            bspLeaf_t* testLeaf = &map->leaves[ i ];
+            glm::vec3 max( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMin.z );
+            glm::vec3 min( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMax.z );
 
-            if ( map->IsClusterVisible( drawLeaf->clusterIndex, testLeaf->clusterIndex ) )
-            {
-                for ( int k = 0; k < testLeaf->numLeafFaces; ++k )
-                {
-                    int faceIndex = map->leafFaces[ testLeaf->leafFaceOffset + k ].index;
+            AABB bounds( max, min );
 
-                    if ( pass.facesRendered[ faceIndex ] )
-                        continue;
+            if ( !frustum->IntersectsBox( bounds ) ) return;
+        }
+        */
 
-                    glm::vec3 max( testLeaf->boxMax.x, testLeaf->boxMax.y, testLeaf->boxMax.z );
-                    glm::vec3 min( testLeaf->boxMin.x, testLeaf->boxMin.y, testLeaf->boxMin.z );
+        for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
+        {
+            int index = map->leafFaces[ viewLeaf->leafFaceOffset + i ].index;
 
-                    AABB bounds( max, min );
+            if ( pass.facesRendered[ index ] ) continue;
 
-                    DrawFace( map->leafFaces[ faceIndex ].index, k, pass, bounds, isSolid );
-                }
-
-            }
+            DrawFace( index, i, pass, isSolid );
         }
 
         glBindTexture( GL_TEXTURE_2D, 0 );
@@ -249,7 +300,7 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
 
         float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) ) - plane->distance;
 
-        if ( ( d >= 0 ) )
+        if ( ( d >= 0 ) == isSolid )
         {
             DrawNode( node->children[ 0 ], pass, isSolid );
             DrawNode( node->children[ 1 ], pass, isSolid );
@@ -262,19 +313,16 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     }
 }
 
-void BSPRenderer::DrawFace( int faceIndex, int texUnit, RenderPass& pass, const AABB& bounds, bool isSolid )
+void BSPRenderer::DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid )
 {
-    if ( frustum->IntersectsBox( bounds ) )
-    {
-        bspFace_t* face = map->faces + faceIndex;
+    bspFace_t* face = map->faces + faceIndex;
 
-        glActiveTexture( GL_TEXTURE0 + texUnit );
-        glBindTexture( GL_TEXTURE_2D, map->GetApiTexture( face->texture ) );
-        glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), texUnit );
+    glActiveTexture( GL_TEXTURE0 + texUnit );
+    glBindTexture( GL_TEXTURE_2D, map->GetApiTexture( face->texture ) );
+    glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), texUnit );
 
-        glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ] );
+    glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ] );
 
-        pass.facesRendered[ faceIndex ] = true;
-    }
+    pass.facesRendered[ faceIndex ] = true;
 }
 

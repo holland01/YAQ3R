@@ -7,13 +7,13 @@
 
 enum
 {
-    FRUST_NONE      = 0x0,
-    FRUST_TOP       = 0x1,
-    FRUST_BOTTOM    = 0x2,
-    FRUST_RIGHT     = 0x4,
-    FRUST_LEFT      = 0x8,
-    FRUST_NEAR      = 0x10,
-    FRUST_FAR       = 0x20
+    FRUST_NONE      = 6,
+    FRUST_TOP       = 0,
+    FRUST_BOTTOM    = 1,
+    FRUST_RIGHT     = 2,
+    FRUST_LEFT      = 3,
+    FRUST_NEAR      = 4,
+    FRUST_FAR       = 5
 };
 
 struct  viewParams_t;

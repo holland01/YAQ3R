@@ -31,6 +31,8 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <fts.h>
 #include <err.h>
 #include <ftw.h>
+#include <unistd.h>
+#include <dirent.h>
 #endif
 
 #include <string>

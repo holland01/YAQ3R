@@ -145,6 +145,13 @@ struct bspTexture_t
     int     contentsFlags;
 };
 
+struct bspEffect_t
+{
+    char    filename[ 64 ];
+    int     brush;
+    int     unknown;
+};
+
 struct bspMeshVertex_t
 {
     int offset;
@@ -197,7 +204,7 @@ public:
 
     ~Q3BspMap( void );
 
-    void                Read( const std::string& filepath );
+    void                Read( const std::string& filepath, const int scale );
 
     void                GenTextures( const std::string& filepath );
 
@@ -214,6 +221,7 @@ public:
     void                DestroyMap( void );
 
     bspEntity_t         entities;
+    bspEffect_t*        effectShaders;
 
     bspNode_t*          nodes;
     bspLeaf_t*          leaves;
@@ -230,6 +238,7 @@ public:
     bspVisdata_t*       visdata;
 
     int                 entityStringLen;
+    int                 numEffectShaders;
 
     int                 numNodes;
     int                 numLeaves;

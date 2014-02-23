@@ -36,8 +36,9 @@ public:
 
     void                    SetFaceCount( int count );
 
-    const viewParams_t&       view;
+    const viewParams_t&     view;
     std::vector< bool >     facesRendered;
+    int                     cluster;
 
 };
 
@@ -74,8 +75,10 @@ public:
 
     void    DrawWorld( void );
 
+    void    DrawIterative( RenderPass& pass );
+
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
-    void    DrawFace( int faceIndex, int texUnit, RenderPass& pass, const AABB& bounds, bool isSolid );
+    void    DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid );
 
     void    Update( float dt );
 
@@ -95,5 +98,5 @@ private:
     std::vector< int >  visibleFaces;
     std::vector< bool > visibleClusters;
 
-    int                 currClusterIndex;
+    const bspLeaf_t*    currLeaf;
 };
