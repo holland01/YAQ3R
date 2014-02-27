@@ -264,7 +264,7 @@ void InitSysLog( void )
     glDebugInit();
 }
 
-void KillLog( void )
+void KillSysLog( void )
 {
     if ( globalDrawLog )
         fclose( globalDrawLog );

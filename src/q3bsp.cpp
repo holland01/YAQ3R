@@ -19,7 +19,7 @@ right-handed:   { x => -left/+right, y => -down/+up,          z => +backward/-fo
 =====================================================
 */
 
-static void SwizzleCoords( vec3f& v )
+static void SwizzleCoords( vec3f_t& v )
 {
     float tmp = v.y;
 
@@ -28,7 +28,7 @@ static void SwizzleCoords( vec3f& v )
 }
 
 // Straight outta copypasta ( for integer vectors )
-static void SwizzleCoords( vec3i& v )
+static void SwizzleCoords( vec3i_t& v )
 {
     int tmp = v.y;
 
@@ -36,20 +36,20 @@ static void SwizzleCoords( vec3i& v )
     v.z = -tmp;
 }
 
-static void ScaleCoords( vec3f& v, float scale )
+static void ScaleCoords( vec3f_t& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
     v.z *= scale;
 }
 
-static void ScaleCoords( vec2f& v, float scale )
+static void ScaleCoords( vec2f_t& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
 }
 
-static void ScaleCoords( vec3i& v, float scale )
+static void ScaleCoords( vec3i_t& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
@@ -396,20 +396,28 @@ void Q3BspMap::GenTextures( const string &mapFilePath )
 
             d = opendir( dir.c_str() );
 
+            // We have an invalid directory if this is the case
+            if ( !d )
+                continue;
+
             while ( ( entry = readdir( d ) ) != NULL )
             {
                 string fname( entry->d_name );
 
                 int extIndex = fname.find_last_of( '.' );
-                const string& ext = fname.substr( extIndex );
-                const string& file = fname.substr( 0, extIndex );
 
-                finished = file == cmp;
-
-                if ( finished )
+                if ( extIndex != -1 )
                 {
-                    texPath.append( ext );
-                    break;
+                    const string& ext = fname.substr( extIndex );
+                    const string& file = fname.substr( 0, extIndex );
+
+                    finished = file == cmp;
+
+                    if ( finished )
+                    {
+                        texPath.append( ext );
+                        break;
+                    }
                 }
             }
         }
@@ -421,12 +429,29 @@ void Q3BspMap::GenTextures( const string &mapFilePath )
 
         unsigned char* pixels = stbi_load( texPath.c_str(), &width, &height, &comp, 0 );
 
+        GLenum fmt, ifmt;
+
+        switch ( comp )
+        {
+            case 3:
+                ifmt = GL_RGB8;
+                fmt = GL_RGB;
+                break;
+            default:
+                ifmt = GL_RGBA8;
+                fmt = GL_RGBA;
+                break;
+        }
+
         glBindTexture( GL_TEXTURE_2D, apiTextures[ i ] );
-        glTexStorage2D( GL_TEXTURE_2D, 1, GL_RGB8, width, height );
-        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels );
+        glTexStorage2D( GL_TEXTURE_2D, 1, ifmt, width, height );
+        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, fmt, GL_UNSIGNED_BYTE, pixels );
 
         glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
         glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 
         glBindTexture( GL_TEXTURE_2D, 0 );
     }

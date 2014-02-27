@@ -13,7 +13,7 @@ Frustum::~Frustum( void )
 
 void Frustum::Update( const viewParams_t& view )
 {
-    const glm::mat4& clipSpace = view.projection * view.transform;
+    const glm::mat4& clipSpace = view.clipTransform * view.transform;
 
     frustPlanes[ FRUST_LEFT ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] - clipSpace[ 0 ][ 0 ];
     frustPlanes[ FRUST_LEFT ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] - clipSpace[ 1 ][ 0 ];

@@ -1,46 +1,33 @@
 #include "trenderer.h"
-#include "test_util.h"
-#include "../input.h"
 
-namespace {
-
-double currTime, prevTime;
-
-bool cursorVisible;
-
+TRenderer::TRenderer( void )
+    : Test( 1366, 768 ),
+      renderer( NULL )
+{
 }
 
-static BSPRenderer* renderer = NULL;
-
-void BSPR_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods )
+TRenderer::~TRenderer( void )
 {
-    OnKeyPress( w, key, scancode, action, mods, renderer->camera, cursorVisible );
+    camPtr = NULL;
+    delete renderer;
 }
 
-void BSPR_HandleMouseMove( GLFWwindow* w, double x, double y )
+void TRenderer::Load( void )
 {
-    renderer->camera->EvalMouseMove( ( float ) x, ( float ) y );
-}
+    if ( !Test::Load( "BSPRenderer Test" ) )
+        return;
 
-void BSPR_LoadTest( GLFWwindow* window )
-{
-    prevTime = glfwGetTime();
+    glfwSetInputMode( winPtr, GLFW_STICKY_KEYS, GL_FALSE );
 
-    glfwSetKeyCallback( window, BSPR_HandleKeyInput );
-    glfwSetCursorPosCallback( window, BSPR_HandleMouseMove );
-    glfwSetInputMode( window, GLFW_STICKY_KEYS, GL_FALSE );
-
-    BSPRenderer* r = new BSPRenderer;
-    renderer = r;
+    renderer = new BSPRenderer;
     renderer->Prep();
-    //renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
+    // renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
     renderer->Load( "asset/quake/railgun_arena/maps/Railgun_Arena.bsp" );
 
-    cursorVisible = true;
-
+    camPtr = renderer->camera;
 }
 
-void BSPR_DrawTest( void )
+void TRenderer::Run( void )
 {
     currTime = glfwGetTime();
 

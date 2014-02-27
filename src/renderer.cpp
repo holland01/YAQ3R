@@ -151,8 +151,10 @@ void BSPRenderer::Load( const string& filepath )
     glBindVertexArray( 0 );
 
     glUseProgram( bspProgram );
-    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().projection ) );
+    glUniformMatrix4fv( glGetUniformLocation( bspProgram, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) );
     glUseProgram( 0 );
+
+    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 /*
@@ -174,7 +176,12 @@ void BSPRenderer::DrawWorld( void )
     RenderPass pass( map, camera->ViewData() );
     pass.cluster = map->FindClosestLeaf( pass.view.origin )->clusterIndex;
 
+    glDisable( GL_BLEND );
     DrawNode( 0, pass, true );
+
+
+    glEnable( GL_BLEND );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     DrawNode( 0, pass, false );
 
     glUseProgram( 0 );
@@ -218,8 +225,8 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
             return;
 
         {
-            glm::vec3 max( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMin.z );
-            glm::vec3 min( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMax.z );
+            glm::vec3 max( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z );
+            glm::vec3 min( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z );
 
             AABB bounds( max, min );
 
@@ -234,7 +241,7 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
             if ( pass.facesRendered[ index ] )
                 continue;
 
-            DrawFace( index, i, pass, isSolid );
+            DrawFace( index, pass, isSolid );
         }
 
         glBindTexture( GL_TEXTURE_2D, 0 );
@@ -244,9 +251,9 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
         const bspNode_t* const node = &map->nodes[ nodeIndex ];
         const bspPlane_t* const plane = &map->planes[ node->plane ];
 
-        float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) ) - plane->distance;
+        float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) ); //- plane->distance;
 
-        if ( ( d >= 0 ) == isSolid )
+        if ( ( d > plane->distance ) == isSolid )
         {
             DrawNode( node->children[ 0 ], pass, isSolid );
             DrawNode( node->children[ 1 ], pass, isSolid );
@@ -259,13 +266,13 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     }
 }
 
-void BSPRenderer::DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid )
+void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, bool isSolid )
 {
     bspFace_t* face = map->faces + faceIndex;
 
-    glActiveTexture( GL_TEXTURE0 + texUnit );
+    glActiveTexture( GL_TEXTURE0 );
     glBindTexture( GL_TEXTURE_2D, map->GetApiTexture( face->texture ) );
-    glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), texUnit );
+    glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), 0 );
 
     glDrawElements( GL_TRIANGLES, face->numMeshVertexes, GL_UNSIGNED_INT, ( void* ) &map->meshVertexes[ face->meshVertexOffset ] );
 

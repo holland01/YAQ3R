@@ -20,7 +20,7 @@ struct viewParams_t
     glm::mat4   orientation;
     glm::mat4   inverseOrient;
 
-    glm::mat4   projection;
+    glm::mat4   clipTransform;
 };
 
 class InputCamera
@@ -102,7 +102,7 @@ INLINE void InputCamera::Raise( float amount )
 
 INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
 {
-    viewData.projection = glm::perspective( fovy, aspect, zNear, zFar );
+    viewData.clipTransform = glm::perspective( fovy, aspect, zNear, zFar );
 
     // Cache params for frustum culling
     viewData.fovy = fovy;

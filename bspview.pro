@@ -36,7 +36,10 @@ HEADERS += \
     src/q3bsp.h \
     src/frustum.h \
     src/plane.h \
-    src/aabb.h
+    src/aabb.h \
+    src/bezpatch.h \
+    src/tests/test.h \
+    src/tests/tbezsurf.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -79,9 +82,11 @@ SOURCES += \
     src/input.cpp \
     src/eu_ang.cpp \
     src/tests/jpeg.cpp \
-    src/tests/test_util.cpp \
     src/extern/stb_image.c \
     src/q3bsp.cpp \
     src/frustum.cpp \
-    src/aabb.cpp
+    src/aabb.cpp \
+    src/bezpatch.cpp \
+    src/tests/test.cpp \
+    src/tests/tbezsurf.cpp
 

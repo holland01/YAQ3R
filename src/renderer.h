@@ -76,7 +76,7 @@ public:
     void    DrawWorld( void );
 
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
-    void    DrawFace( int faceIndex, int texUnit, RenderPass& pass, bool isSolid );
+    void    DrawFace( int faceIndex, RenderPass& pass, bool isSolid );
 
     void    Update( float dt );
 

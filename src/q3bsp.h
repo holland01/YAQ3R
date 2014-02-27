@@ -83,7 +83,7 @@ struct bspHeader_t
 
 struct bspPlane_t
 {
-    vec3f       normal;
+    vec3f_t       normal;
     float       distance;
 };
 
@@ -92,8 +92,8 @@ struct bspNode_t
     int     plane;
     int     children[ 2 ];
 
-    vec3i   boxMin;
-    vec3i   boxMax;
+    vec3i_t   boxMin;
+    vec3i_t   boxMax;
 };
 
 struct bspLeaf_t
@@ -101,8 +101,8 @@ struct bspLeaf_t
     int clusterIndex;
     int areaPortal;
 
-    vec3i   boxMin;
-    vec3i   boxMax;
+    vec3i_t   boxMin;
+    vec3i_t   boxMax;
 
     int leafFaceOffset;
     int numLeafFaces;
@@ -118,8 +118,8 @@ struct bspLeafFace_t
 
 struct bspModel_t
 {
-    vec3f boxMax;
-    vec3f boxMin;
+    vec3f_t boxMax;
+    vec3f_t boxMin;
 
     int faceOffset;
     int numFaces;
@@ -130,10 +130,10 @@ struct bspModel_t
 
 struct bspVertex_t
 {
-    vec3f position;
-    vec2f texCoord;
-    vec2f lightmapCoord;
-    vec3f normal;
+    vec3f_t position;
+    vec2f_t texCoord;
+    vec2f_t lightmapCoord;
+    vec3f_t normal;
 
     byte color[ 4 ];
 };
@@ -173,9 +173,9 @@ struct bspFace_t
     int lightmapStartCorner[ 2 ];
     int lightmapSize[ 2 ];
 
-    vec3f lightmapOrigin; // in world space
-    vec3f lightmapStVecs[ 2 ]; // world space s/t unit vectors
-    vec3f normal;
+    vec3f_t lightmapOrigin; // in world space
+    vec3f_t lightmapStVecs[ 2 ]; // world space s/t unit vectors
+    vec3f_t normal;
 
     int     size[ 2 ];
 };

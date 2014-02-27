@@ -1,12 +1,22 @@
 #pragma once
 
-#include "../common.h"
+#include "test.h"
 #include "../renderer.h"
 
-void BSPR_LoadTest( GLFWwindow* window );
+class TRenderer : public Test
+{
 
-void BSPR_DrawTest( void );
+private:
 
-void BSPR_HandleKeyInput( GLFWwindow* w, int key, int scancode, int action, int mods );
+    BSPRenderer* renderer;
 
-void BSPR_HandleMouseMove( GLFWwindow* w, double x, double y );
+    void Run( void );
+
+public:
+
+    TRenderer( void );
+
+    ~TRenderer( void );
+
+    void Load( void );
+};

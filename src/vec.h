@@ -19,17 +19,22 @@ License: WTFPL
 =====================================================
 */
 
-struct vec3f
+struct color4f_t
+{
+    float r, g, b, a;
+};
+
+struct vec3f_t
 {
     float x, y, z;
 };
 
-struct vec3i
+struct vec3i_t
 {
     int x, y, z;
 };
 
-struct vec2f
+struct vec2f_t
 {
     float x, y;
 };

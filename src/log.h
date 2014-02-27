@@ -32,7 +32,7 @@ void ExitOnGLError( const char* caller );
 void InitSysLog( void );
 void InitLogBSPData( Q3BspMap* map );
 
-void KillLog( void );
+void KillSysLog( void );
 
 #define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
 #define ERROR( args... )                                \
