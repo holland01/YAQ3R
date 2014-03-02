@@ -37,6 +37,11 @@ Test::~Test( void )
     KillSysLog();
 }
 
+void Test::Shutdown( void )
+{
+    running = false;
+}
+
 bool Test::Load( const char* winName )
 {
     if ( !glfwInit() )
@@ -114,7 +119,7 @@ void Test::OnKeyPress( int key, int scancode, int action, int mods )
             switch ( key )
             {
                 case GLFW_KEY_ESCAPE:
-                    running = false;
+                    FlagExit();
                     break;
 
                 case GLFW_KEY_F1:

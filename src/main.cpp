@@ -8,8 +8,7 @@
 // Is global
 void FlagExit( void )
 {
-    delete gAppTest;
-    gAppTest = NULL;
+    gAppTest->Shutdown();
 }
 
 int main( int argc, char** argv )
@@ -19,7 +18,7 @@ int main( int argc, char** argv )
 
     int code = gAppTest->Exec();
 
-    FlagExit();
+    delete gAppTest;
 
     return code;
 }

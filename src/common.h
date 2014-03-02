@@ -13,6 +13,7 @@ Global include file, containing often-used or down-right-necessary files for eac
 ==========================
 */
 
+#include "vert.h"
 #include "def.h"
 #include "global.h"
 
@@ -44,9 +45,6 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <stack>
 #include <algorithm>
 
-
-#define GLM_FORCE_RADIANS
-
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -54,6 +52,6 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "vert.h"
+
 
 #define NOP ;

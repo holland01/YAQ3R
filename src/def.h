@@ -30,6 +30,7 @@ compliance.
 #endif
 
 #define INLINE inline
+#define GLM_FORCE_RADIANS
 
 typedef unsigned int uint;
 typedef unsigned char byte;

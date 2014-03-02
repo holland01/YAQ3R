@@ -14,7 +14,7 @@ protected:
 
     bool            cursorVisible, running;
 
-    Camera*    camPtr;
+    Camera*         camPtr;
 
     GLFWwindow*     winPtr;
 
@@ -35,6 +35,8 @@ public:
     virtual void OnKeyPress( int key, int scancode, int action, int mods );
 
     virtual void OnMouseMove( double x, double y );
+
+    void         Shutdown( void );
 
 };
 

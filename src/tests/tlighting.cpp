@@ -1,6 +1,146 @@
 #include "tlighting.h"
+#include "key_mover.h"
 #include "../log.h"
 #include "../shader.h"
+
+namespace
+{
+    const int LIGHTCUBE_VERTS_LEN = 24 * 3 * 2;
+
+    GLfloat s = 0.01f;
+
+    GLfloat lightCubeVertices[ LIGHTCUBE_VERTS_LEN ] =
+    {
+        -s,-s,-s, // triangle 1 : begin
+        -s,-s, s,
+        -s, s, s, // triangle 1 : end
+        s, s,-s, // triangle 2 : begin
+        -s,-s,-s,
+        -s, s,-s, // triangle 2 : end
+        s,-s, s,
+        -s,-s,-s,
+        s,-s,-s,
+        s, s,-s,
+        s,-s,-s,
+        -s,-s,-s,
+        -s,-s,-s,
+        -s, s, s,
+        -s, s,-s,
+        s,-s, s,
+        -s,-s, s,
+        -s,-s,-s,
+        -s, s, s,
+        -s,-s, s,
+        s,-s, s,
+        s, s, s,
+        s,-s,-s,
+        s, s,-s,
+        s,-s,-s,
+        s, s, s,
+        s,-s, s,
+        s, s, s,
+        s, s,-s,
+        -s, s,-s,
+        s, s, s,
+        -s, s,-s,
+        -s, s, s,
+        s, s, s,
+        -s, s, s,
+        s,-s, s
+    };
+
+    void GenFloatArrayNormals( float* arrayBuffer, int start, int end )
+    {
+        const int NORMALS_START = start; //LIGHTCUBE_VERTS_LEN / 2;
+        const int NORMALS_END   = end;//LIGHTCUBE_VERTS_LEN;
+
+        int vertex = 0;
+
+        for ( int i = NORMALS_START; i < NORMALS_END; i += 3 )
+        {
+            glm::vec3 normal( 0.0f ), adjCrossSum;
+
+            // Begin at our base vertex
+            adjCrossSum.x = arrayBuffer[ vertex     ];
+            adjCrossSum.y = arrayBuffer[ vertex + 1 ];
+            adjCrossSum.z = arrayBuffer[ vertex + 2 ];
+
+            // Iterate through three adjacent vertices and
+            // Sum them up each to compute the normalized average
+            int sumStart, sumEnd;
+
+            sumStart = vertex;
+            sumEnd   = vertex + 9;
+
+            const int BOUNDS = vertex == 0 ? NORMALS_START : vertex; //NORMALS_START + vertex;
+
+            int interm0 = BOUNDS;
+            int interm1 = BOUNDS - 3;
+
+            int interm0Add = 3;
+            int interm1Add = 3; // Delay addition until after second iteration
+
+            for ( int tri = sumStart; tri < sumEnd; tri += 3 )
+            {
+                glm::vec3 currentVert, lastVert;
+
+                int currentBase = interm0;
+
+                currentVert.x = arrayBuffer[ currentBase     ];
+                currentVert.y = arrayBuffer[ currentBase + 1 ];
+                currentVert.z = arrayBuffer[ currentBase + 2 ];
+
+                int lastBase = interm1;
+
+                lastVert.x = arrayBuffer[ lastBase     ];
+                lastVert.y = arrayBuffer[ lastBase + 1 ];
+                lastVert.z = arrayBuffer[ lastBase + 2 ];
+
+                adjCrossSum += glm::cross( currentVert, lastVert );
+
+                // FIXME: lastBase is off by -3 in last iteration of first normal: when currentBase = 6, lastBase = 0.
+                // lastBase should be == 3
+                if ( BOUNDS == NORMALS_START )
+                {
+                    // First iteration
+                    if ( interm0 == BOUNDS )
+                    {
+                        interm0 = vertex - 3;
+                    }
+                    // Second iteration
+                    else if ( interm1 == BOUNDS )
+                    {
+                        interm1 = vertex - 3;
+                    }
+                }
+
+                interm0 += interm0Add;
+                interm1 += interm1Add;
+            }
+
+            normal = glm::normalize( adjCrossSum );
+
+            arrayBuffer[ i     ] = normal.x;
+            arrayBuffer[ i + 1 ] = normal.y;
+            arrayBuffer[ i + 2 ] = normal.z;
+
+            vertex += 3;
+        }
+    }
+}
+
+void FreePointLight( pointLight_t* light )
+{
+    if ( light )
+    {
+        glDeleteVertexArrays( 1, &light->vao );
+        glDeleteBuffers( 1, &light->vbo );
+        glDeleteProgram( light->program );
+
+        if ( light->mover )
+            delete light->mover;
+    }
+}
 
 TLighting::TLighting( void )
     : Test( 1366, 768 ),
@@ -12,6 +152,8 @@ TLighting::TLighting( void )
 
 TLighting::~TLighting( void )
 {
+    FreePointLight( &light );
+
     glDeleteVertexArrays( 1, &vao );
     glDeleteProgram( program );
 
@@ -21,102 +163,74 @@ TLighting::~TLighting( void )
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
-    std::for_each(  meshes.begin(), meshes.end(),
-                    []( objMesh_t& mesh ) -> void
-                    {
-                        glDeleteBuffers( NUM_BUFS_PER_MESH, mesh.vbos );
+    for ( int i = 0; i < ( int ) meshes.size(); ++i )
+    {
+        objMesh_t& m = meshes[ i ];
 
-                        Mem_Free( mesh.vertices );
-                        Mem_Free( mesh.indices );
+        glDeleteBuffers( NUM_BUFS_PER_MESH, m.vbos );
 
-                        mesh.vertices = NULL;
-                        mesh.indices  = NULL;
-                    } );
+        Mem_Free( m.vertices );
+        Mem_Free( m.indices );
+
+        m.vertices = NULL;
+        m.indices  = NULL;
+    }
 
     camPtr = NULL;
 }
 
 void TLighting::InitLight( void )
 {
+    GenFloatArrayNormals(
+                lightCubeVertices,
+                LIGHTCUBE_VERTS_LEN / 2, // start of normals
+                LIGHTCUBE_VERTS_LEN      // end of normals
+            );
+
     light.program = []( void ) -> GLuint
     {
         GLuint shaders[] =
         {
-            CompileShader( "src/tests/light/baseVertex.vert", GL_VERTEX_SHADER ),
-            CompileShader( "src/tests/light/singleColor.frag", GL_FRAGMENT_SHADER )
+            CompileShader( "src/tests/light/pointLightModel.vert", GL_VERTEX_SHADER ),
+            CompileShader( "src/tests/light/pointLightModel.frag", GL_FRAGMENT_SHADER )
         };
 
         return LinkProgram( shaders, 2 );
     }();
 
-    light.color = glm::vec4( 1.0f );
-    light.radius = 10.0f;
-    light.ambient = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-    light.intensity = glm::vec4( 0.5f, 0.5f, 0.5f, 1.0f );
-    light.worldPos = glm::vec3( 0.0f, 0.0f, -3.0f );
+
+    light.radius = 5.0f;
+    light.ambient = glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f );
+    light.color = light.ambient;
+    light.intensity = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f );
+    light.worldPos = glm::vec3( 0.0f, -0.1f, 0.0f );
 
     light.modelScale = 0.2f;
+    light.mover = new KeyMover( light.worldPos, 0.001f );
 
-    GLfloat s = 0.3f;
 
-    GLfloat lightCubeVertices[] =
-    {
-        -s, -s,  s, 1.0f,
-        s, -s,  s, 1.0f,
-        -s,  s,  s, 1.0f,
-        s,  s,  s, 1.0f,
-        -s, -s, -s, 1.0f,
-        s, -s, -s, 1.0f,
-        -s,  s, -s, 1.0f,
-        s,  s, -s, 1.0f
-    };
 
-    GLuint lightCubeIndices[] =
-    {
-        // front
-        0, 1, 2,
-        2, 3, 0,
-        // top
-        3, 2, 6,
-        6, 7, 3,
-        // back
-        7, 6, 5,
-        5, 4, 7,
-        // bottom
-        4, 5, 1,
-        1, 0, 4,
-        // left
-        4, 0, 3,
-        3, 7, 4,
-        // right
-        1, 5, 6,
-        6, 2, 1,
-    };
-
-    light.modelIndexCount = UNSIGNED_LEN( lightCubeIndices );
+    light.modelNumVertices = UNSIGNED_LEN( lightCubeVertices );
 
     glGenVertexArrays( 1, &light.vao );
-    glGenBuffers( 2, light.vbos );
+    glGenBuffers( 1, &light.vbo );
 
     glUseProgram( light.program );
     glBindVertexArray( light.vao );
-    glBindBuffer( GL_ARRAY_BUFFER, light.vbos[ 0 ] );
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, light.vbos[ 1 ] );
 
+    glBindBuffer( GL_ARRAY_BUFFER, light.vbo );
     glBufferData( GL_ARRAY_BUFFER, sizeof( lightCubeVertices ), lightCubeVertices, GL_STATIC_DRAW );
-    glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( lightCubeIndices ), lightCubeIndices, GL_STATIC_DRAW );
 
     GLuint posAttrib = glGetAttribLocation( light.program, "position" );
 
     glEnableVertexAttribArray( posAttrib );
-    glVertexAttribPointer( posAttrib, 4, GL_FLOAT, GL_FALSE, sizeof( GLfloat ), ( void* )0 );
+    glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( GLfloat ), ( void* )0 );
 
     glUniform4fv( glGetUniformLocation( light.program, "color" ), 1, glm::value_ptr( light.color ) );
     glUniformMatrix4fv( glGetUniformLocation( light.program, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) );
 
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
     glUseProgram( 0 );
 }
 
@@ -132,15 +246,13 @@ glm::vec4 TLighting::CompLightPos( void ) const
 
 void TLighting::DrawLight( void ) const
 {
-    glm::mat4 trans = glm::translate( glm::mat4( 1.0f ), light.worldPos - glm::vec3( 0.0f, 0.0f, 2.0f ) );
-    //trans *= glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f ) );
+    glm::mat4 trans = glm::translate( glm::mat4( 1.0f ), light.worldPos );
 
     ApplyModelToCameraTransform( light.program, trans, true );
 
-    glBindVertexArray( light.vao);
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, light.vbos[ 1 ] );
-    glDrawElements( GL_TRIANGLES, light.modelIndexCount, GL_UNSIGNED_INT, ( void* ) 0 );
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+    glBindVertexArray( light.vao );
+    glBindBuffer( GL_ARRAY_BUFFER, light.vbo );
+    glDrawArrays( GL_TRIANGLES, 0, light.modelNumVertices );
     glBindVertexArray( 0 );
     glUseProgram( 0 );
 }
@@ -160,7 +272,7 @@ bool TLighting::Load( void )
 
     InitLight();
 
-    glClearColor( 0.0f, 0.3f, 0.3f, 1.0f );
+    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
     program = []( void ) -> GLuint
     {
@@ -179,13 +291,9 @@ bool TLighting::Load( void )
     glBindAttribLocation( program, 1, "inColor" );
     glBindAttribLocation( program, 2, "inNormal" );
 
-    //GLint posAttrib = glGetAttribLocation( program, "inPosition" );
-    //GLint colorAttrib = glGetAttribLocation( program, "inColor" );
-    //GLint normAttrib = glGetAttribLocation( program, "inNormal" );
-
-    GLint posAttrib = 0;
-    GLint colorAttrib = 1;
-    GLint normAttrib = 2;
+    GLint posAttrib = glGetAttribLocation( program, "inPosition" );
+    GLint colorAttrib = glGetAttribLocation( program, "inColor" );
+    GLint normAttrib = glGetAttribLocation( program, "inNormal" );
 
     glUniformMatrix4fv( glGetUniformLocation( program, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) );
 
@@ -199,7 +307,7 @@ bool TLighting::Load( void )
         float4_t color =
         {
             {
-                0.5f,
+                0.8f,
                 0.5f,
                 0.5f,
                 1.0f
@@ -245,27 +353,46 @@ bool TLighting::Load( void )
                 mesh.indices[ j ] = indRef[ j ];
 
             glGenVertexArrays( 1, &mesh.vao );
-            glGenBuffers( NUM_BUFS_PER_MESH, mesh.vbos );
+            //ExitOnGLError( "GenVertexArrays" );
 
             glBindVertexArray( mesh.vao );
+            ExitOnGLError( "glBindVertexArray" );
+
+            glGenBuffers( NUM_BUFS_PER_MESH, mesh.vbos );
+            //ExitOnGLError( "GenBuffers" );
 
             glBindBuffer( GL_ARRAY_BUFFER, mesh.vbos[ 0 ] );
+            //ExitOnGLError( "glBindBuffer GL_ARRAY_BUFFER" );
+
             glBufferData( GL_ARRAY_BUFFER, sizeof( objVertex_t ) * mesh.numVertices, mesh.vertices, GL_STATIC_DRAW );
+            //ExitOnGLError( "glBufferData GL_ARRAY_BUFFER" );
 
             glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[ 1 ] );
+            //ExitOnGLError( "glBindBuffer GL_ELEMENT_ARRAY_BUFFER" );
+
             glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof ( GLuint ) * mesh.numIndices, mesh.indices, GL_STATIC_DRAW );
+            //ExitOnGLError( "glBufferData GL_ELEMENT_ARRAY_BUFFER" );
 
             glEnableVertexAttribArray( posAttrib );
+            //ExitOnGLError( "glEnableVertexAttribArray 0" );
+
             glEnableVertexAttribArray( colorAttrib );
+            //ExitOnGLError( "glEnableVertexAttribArray 1" );
+
             glEnableVertexAttribArray( normAttrib );
+            //ExitOnGLError( "glEnableVertexAttribArray 2" );
 
             glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::position ) );
-            glVertexAttribPointer( colorAttrib, 4, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::color ) );
-            glVertexAttribPointer( normAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::normal ) );
+            //ExitOnGLError( "glEnableVertexAttribArray 0" );
 
-            ExitOnGLError( "Loop" );
+            glVertexAttribPointer( colorAttrib, 4, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::color ) );
+            //ExitOnGLError( "glEnableVertexAttribArray 1" );
+
+            glVertexAttribPointer( normAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::normal ) );
+            //ExitOnGLError( "glEnableVertexAttribArray 2" );
 
             glBindVertexArray( 0 );
+            //ExitOnGLError( "glBindVertexArray 0" );
 
             meshes.push_back( mesh );
         }
@@ -278,9 +405,10 @@ bool TLighting::Load( void )
 
 void TLighting::Run( void )
 {
+    light.mover->Update();
     camera->Update();
 
-    //DrawLight();
+    DrawLight();
 
     glUseProgram( program );
 
@@ -309,4 +437,19 @@ void TLighting::Run( void )
 
     glBindVertexArray( 0 );
     glUseProgram( 0 );
+}
+
+void TLighting::OnKeyPress( int key, int scancode, int action, int mods )
+{
+    Test::OnKeyPress( key, scancode, action, mods );
+
+    switch( action )
+    {
+        case GLFW_PRESS:
+            light.mover->EvalKeyPress( key );
+            break;
+        case GLFW_RELEASE:
+            light.mover->EvalKeyRelease( key );
+            break;
+    }
 }

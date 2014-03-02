@@ -21,24 +21,29 @@ struct objMesh_t
     GLuint*         indices;
     int             numIndices;
 
-    GLuint          vbos[ 2 ]; // vbo and ibo
+    GLuint          vbos[ 2 ];
     GLuint          vao;
 
     glm::mat4       localTransform;
 };
 
+class KeyMover;
+
 struct pointLight_t
 {
-    float     radius;
-    float     modelScale;
-    glm::vec3 worldPos;
-    glm::vec4 intensity;
-    glm::vec4 ambient;
-    glm::vec4 color;
+    float       radius;
+    float       modelScale;
+    glm::vec3   worldPos;
+    glm::vec4   intensity;
+    glm::vec4   ambient;
+    glm::vec4   color;
 
-    GLuint    vao, vbos[ 2 ];
-    GLuint    program;
-    GLsizei   modelIndexCount;
+    GLuint      vao, vbo;
+    GLuint      program;
+    GLsizei     modelNumVertices;
+
+    KeyMover*   mover;
+    bool        drawLight;
 };
 
 class TLighting : public Test
@@ -56,15 +61,17 @@ private:
     GLuint                      program;
     GLuint                      vao;
 
-    void Run( void );
+    void        Run( void );
 
-    void      InitLight( void );
+    void        InitLight( void );
 
-    glm::vec4 CompLightPos( void ) const;
+    glm::vec4   CompLightPos( void ) const;
 
-    void      DrawLight( void ) const;
+    void        DrawLight( void ) const;
 
-    void      ApplyModelToCameraTransform( GLuint program, const glm::mat4& model, bool bindProgram ) const;
+    void        ApplyModelToCameraTransform( GLuint program, const glm::mat4& model, bool bindProgram ) const;
+
+    void        OnKeyPress( int key, int scancode, int action, int mods );
 
 public:
 
@@ -74,3 +81,6 @@ public:
 
     bool Load( void );
 };
+
+
+void FreePointLight( pointLight_t* light );

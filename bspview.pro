@@ -42,7 +42,8 @@ HEADERS += \
     src/tests/tbezsurf.h \
     src/tests/tlighting.h \
     src/extern/tiny_obj_loader.h \
-    src/vert.h
+    src/vert.h \
+    src/tests/key_mover.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -73,8 +74,8 @@ OTHER_FILES += \
     asset/quake/railgun_arena/scripts/Railgun_Arena.arena \
     src/tests/light/diffuseVertex_MS.vert \
     src/tests/light/diffusePerFragment_MS.frag \
-    src/tests/light/baseVertex.vert \
-    src/tests/light/singleColor.frag
+    src/tests/light/pointLightModel.vert \
+    src/tests/light/pointLightModel.frag
 
 SOURCES += \
     src/shader.cpp \
@@ -98,5 +99,6 @@ SOURCES += \
     src/tests/tbezsurf.cpp \
     src/extern/tiny_obj_loader.cc \
     src/tests/tlighting.cpp \
-    src/mem.cpp
+    src/mem.cpp \
+    src/tests/key_mover.cpp
 
