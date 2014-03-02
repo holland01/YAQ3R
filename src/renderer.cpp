@@ -59,7 +59,7 @@ BSPRenderer::BSPRenderer( void )
       deltaTime( 0 ),
       currLeaf( NULL )
 {
-    camera = new InputCamera();
+    camera = new Camera();
     frustum = new Frustum();
     map = new Q3BspMap();
 }

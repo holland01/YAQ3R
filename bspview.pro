@@ -2,6 +2,7 @@ QT -= core gui
 
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror
 
+#DEFINES += NDEBUG
 
 #for stb_image.c lib
 QMAKE_CXXFLAGS += \
@@ -18,7 +19,6 @@ unix {
 
 HEADERS += \
     src/common.h \
-    src/vec.h \
     src/shader.h \
     src/log.h \
     src/renderer.h \
@@ -39,7 +39,10 @@ HEADERS += \
     src/aabb.h \
     src/bezpatch.h \
     src/tests/test.h \
-    src/tests/tbezsurf.h
+    src/tests/tbezsurf.h \
+    src/tests/tlighting.h \
+    src/extern/tiny_obj_loader.h \
+    src/vert.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -67,7 +70,11 @@ OTHER_FILES += \
     asset/quake/railgun_arena/maps/Railgun_Arena.aas \
     asset/quake/railgun_arena/maps/Railgun_Arena.bsp \
     asset/quake/railgun_arena/scripts/Railgun_Arena.shader \
-    asset/quake/railgun_arena/scripts/Railgun_Arena.arena
+    asset/quake/railgun_arena/scripts/Railgun_Arena.arena \
+    src/tests/light/diffuseVertex_MS.vert \
+    src/tests/light/diffusePerFragment_MS.frag \
+    src/tests/light/baseVertex.vert \
+    src/tests/light/singleColor.frag
 
 SOURCES += \
     src/shader.cpp \
@@ -88,5 +95,8 @@ SOURCES += \
     src/aabb.cpp \
     src/bezpatch.cpp \
     src/tests/test.cpp \
-    src/tests/tbezsurf.cpp
+    src/tests/tbezsurf.cpp \
+    src/extern/tiny_obj_loader.cc \
+    src/tests/tlighting.cpp \
+    src/mem.cpp
 

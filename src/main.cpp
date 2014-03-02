@@ -3,7 +3,7 @@
 #include "log.h"
 #include "tests/trenderer.h"
 #include "tests/tbezsurf.h"
-#include "tests/jpeg.h"
+#include "tests/tlighting.h"
 
 // Is global
 void FlagExit( void )
@@ -14,7 +14,7 @@ void FlagExit( void )
 
 int main( int argc, char** argv )
 {
-    gAppTest = new TBezSurface();
+    gAppTest = new TLighting();
     gAppTest->Load();
 
     int code = gAppTest->Exec();

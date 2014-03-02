@@ -14,13 +14,11 @@ protected:
 
     bool            cursorVisible, running;
 
-    InputCamera*    camPtr;
+    Camera*    camPtr;
 
     GLFWwindow*     winPtr;
 
     bool            Load( const char* winTitle );
-
-
 
 public:
 
@@ -30,7 +28,7 @@ public:
 
     int          Exec( void );
 
-    virtual void Load( void ) = 0;
+    virtual bool Load( void ) = 0;
 
     virtual void Run( void ) = 0;
 

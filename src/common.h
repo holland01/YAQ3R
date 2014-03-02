@@ -42,6 +42,7 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <map>
 #include <utility>
 #include <stack>
+#include <algorithm>
 
 
 #define GLM_FORCE_RADIANS
@@ -53,6 +54,6 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "vec.h"
+#include "vert.h"
 
 #define NOP ;

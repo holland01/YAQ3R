@@ -23,7 +23,7 @@ struct viewParams_t
     glm::mat4   clipTransform;
 };
 
-class InputCamera
+class Camera
 {
     viewParams_t    viewData;
 
@@ -35,7 +35,7 @@ class InputCamera
 
 public:
 
-    InputCamera( void );
+    Camera( void );
 
     void    EvalKeyPress( int key );
     void    EvalKeyRelease( int key );
@@ -61,46 +61,46 @@ public:
     const   viewParams_t& ViewData( void ) const;
 };
 
-INLINE glm::vec3 InputCamera::Forward( void ) const
+INLINE glm::vec3 Camera::Forward( void ) const
 {
     glm::vec4 forward = viewData.inverseOrient * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f );
 
     return glm::vec3( forward );
 }
 
-INLINE glm::vec3 InputCamera::Right( void ) const
+INLINE glm::vec3 Camera::Right( void ) const
 {
     glm::vec4 right = viewData.inverseOrient * glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f );
 
     return glm::vec3( right );
 }
 
-INLINE glm::vec3 InputCamera::Up( void ) const
+INLINE glm::vec3 Camera::Up( void ) const
 {
     glm::vec4 up = viewData.inverseOrient * glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f );
 
     return glm::vec3( up );
 }
 
-INLINE void InputCamera::Walk( float amount )
+INLINE void Camera::Walk( float amount )
 {
     viewData.forward = Forward() * amount;
     viewData.origin += viewData.forward;
 }
 
-INLINE void InputCamera::Strafe( float amount )
+INLINE void Camera::Strafe( float amount )
 {
     viewData.right = Right() * amount;
     viewData.origin += viewData.right;
 }
 
-INLINE void InputCamera::Raise( float amount )
+INLINE void Camera::Raise( float amount )
 {
     viewData.right = Up() * amount;
     viewData.origin += viewData.right;
 }
 
-INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
+INLINE void Camera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
 {
     viewData.clipTransform = glm::perspective( fovy, aspect, zNear, zFar );
 
@@ -111,7 +111,7 @@ INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, 
     viewData.zFar = zFar;
 }
 
-INLINE void InputCamera::SetForward( const glm::vec3& forward )
+INLINE void Camera::SetForward( const glm::vec3& forward )
 {
     glm::vec3 lookDir = forward - viewData.origin;
     glm::vec3 projected = lookDir;
@@ -144,7 +144,7 @@ INLINE void InputCamera::SetForward( const glm::vec3& forward )
     viewData.forward = glm::normalize( viewData.forward );
 }
 
-INLINE const viewParams_t& InputCamera::ViewData( void ) const
+INLINE const viewParams_t& Camera::ViewData( void ) const
 {
     return viewData;
 }

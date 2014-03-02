@@ -12,10 +12,10 @@ TRenderer::~TRenderer( void )
     delete renderer;
 }
 
-void TRenderer::Load( void )
+bool TRenderer::Load( void )
 {
     if ( !Test::Load( "BSPRenderer Test" ) )
-        return;
+        return false;
 
     glfwSetInputMode( winPtr, GLFW_STICKY_KEYS, GL_FALSE );
 
@@ -25,6 +25,8 @@ void TRenderer::Load( void )
     renderer->Load( "asset/quake/railgun_arena/maps/Railgun_Arena.bsp" );
 
     camPtr = renderer->camera;
+
+    return true;
 }
 
 void TRenderer::Run( void )

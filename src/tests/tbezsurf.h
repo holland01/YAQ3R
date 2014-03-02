@@ -4,8 +4,8 @@
 
 struct tbezvert_t
 {
-    vec3f_t     vertex;
-    color4f_t   color;
+    float3_t     vertex;
+    float4_t   color;
 };
 
 #define TBEZ_LEVEL 4
@@ -31,5 +31,5 @@ public:
 
     ~TBezSurface( void );
 
-    void Load( void );
+    bool Load( void );
 };

@@ -62,7 +62,7 @@ class BSPRenderer
 {
 public:
 
-    InputCamera* camera;
+    Camera* camera;
 
     Frustum*     frustum;
 

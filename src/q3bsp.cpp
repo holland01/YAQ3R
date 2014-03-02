@@ -19,7 +19,7 @@ right-handed:   { x => -left/+right, y => -down/+up,          z => +backward/-fo
 =====================================================
 */
 
-static void SwizzleCoords( vec3f_t& v )
+static void SwizzleCoords( float3_t& v )
 {
     float tmp = v.y;
 
@@ -28,7 +28,7 @@ static void SwizzleCoords( vec3f_t& v )
 }
 
 // Straight outta copypasta ( for integer vectors )
-static void SwizzleCoords( vec3i_t& v )
+static void SwizzleCoords( int3_t& v )
 {
     int tmp = v.y;
 
@@ -36,20 +36,20 @@ static void SwizzleCoords( vec3i_t& v )
     v.z = -tmp;
 }
 
-static void ScaleCoords( vec3f_t& v, float scale )
+static void ScaleCoords( float3_t& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
     v.z *= scale;
 }
 
-static void ScaleCoords( vec2f_t& v, float scale )
+static void ScaleCoords( float2_t& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
 }
 
-static void ScaleCoords( vec3i_t& v, float scale )
+static void ScaleCoords( int3_t& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;

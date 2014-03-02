@@ -18,5 +18,5 @@ public:
 
     ~TRenderer( void );
 
-    void Load( void );
+    bool Load( void );
 };

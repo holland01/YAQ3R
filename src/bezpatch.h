@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "vec.h"
 
 #define BEZ_BUF_COUNT 3
 
@@ -11,7 +10,7 @@ private:
 
     GLuint                      buffers[ BEZ_BUF_COUNT ];
 
-    std::vector< vec3f_t >      vertices;
+    std::vector< float3_t >      vertices;
 
     std::vector< int  >         indices;
     std::vector< int  >         trisPerRow;
@@ -21,7 +20,7 @@ public:
 
     int                     tessLevel;
 
-    vec3f_t                 controlPoints[ 9 ];
+    float3_t                 controlPoints[ 9 ];
 
     void                    Alloc( void );
 

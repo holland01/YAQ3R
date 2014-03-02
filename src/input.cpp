@@ -5,8 +5,7 @@
 namespace
 {
     const float MOUSE_SENSE = 0.1f;
-
-    const float VIEW_STEP_SPEED = 1.0f;
+    const float VIEW_STEP_SPEED = 0.01f;
 
     enum
     {
@@ -31,7 +30,7 @@ InputCamera::Input
 =====================================================
 */
 
-InputCamera::InputCamera( void )
+Camera::Camera( void )
     :
       lastMouse( 0.0f )
 {
@@ -53,7 +52,7 @@ InputCamera::EvalMouseMove
 
 
 
-void InputCamera::EvalMouseMove( float x, float y )
+void Camera::EvalMouseMove( float x, float y )
 {
     currRot.pitch += ( y - lastMouse.y ) * MOUSE_SENSE;
     currRot.yaw += ( x - lastMouse.x ) * MOUSE_SENSE;
@@ -70,7 +69,7 @@ InputCamera::EvalKeyPress
 =====================================================
 */
 
-void InputCamera::EvalKeyPress( int key )
+void Camera::EvalKeyPress( int key )
 {
     switch( key )
     {
@@ -114,7 +113,7 @@ InputCamera::EvalKeyRelease
 =====================================================
 */
 
-void InputCamera::EvalKeyRelease( int key )
+void Camera::EvalKeyRelease( int key )
 {
     switch( key )
     {
@@ -155,7 +154,7 @@ InputCamera::Update
 */
 
 
-void InputCamera::Update( void )
+void Camera::Update( void )
 {
      currRot.Normalize();
 
@@ -167,8 +166,8 @@ void InputCamera::Update( void )
     if ( keysPressed[ KEY_LEFT ] ) Strafe( -VIEW_STEP_SPEED );
     if ( keysPressed[ KEY_UP ] ) Raise( VIEW_STEP_SPEED );
     if ( keysPressed[ KEY_DOWN ] ) Raise( -VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_IN ] ) currRot.roll += VIEW_STEP_SPEED;
-    if ( keysPressed[ KEY_OUT ] ) currRot.roll -= VIEW_STEP_SPEED;
+    if ( keysPressed[ KEY_IN ] ) currRot.roll += MOUSE_SENSE;
+    if ( keysPressed[ KEY_OUT ] ) currRot.roll -= MOUSE_SENSE;
 
     currRot.Normalize();
 

@@ -16,14 +16,14 @@ TBezSurface::~TBezSurface( void )
     glDeleteProgram( program );
 }
 
-void TBezSurface::Load( void )
+bool TBezSurface::Load( void )
 {
     if ( !Test::Load( "Bezier Surface" ) )
-        return;
+        return false;
 
     glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
-    camPtr = new InputCamera();
+    camPtr = new Camera();
 
     const float pi = glm::pi< float >();
 
@@ -80,14 +80,14 @@ void TBezSurface::Load( void )
 
         //v = -u;
 
-        color4f_t color;
+        float4_t color;
 
         color.r = t;
         color.g = color.r + t;
         color.b = 1.0f;
         color.a = 1.0f;
 
-        vec3f_t q, r;
+        float3_t q, r;
 
         q.x = u.x;
         q.y = u.y;
@@ -187,6 +187,8 @@ void TBezSurface::Load( void )
     glBindVertexArray( 0 );
 
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+    return true;
 }
 
 const glm::mat4& bezModel = glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f ) );
