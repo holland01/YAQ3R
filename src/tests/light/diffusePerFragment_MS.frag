@@ -18,5 +18,4 @@ void main(void)
     cosAngIncidence = clamp( cosAngIncidence, 0, 1 );
 
     fragment = ( diffuseColor * lightIntensity * cosAngIncidence ) + ( diffuseColor * ambientIntensity );
-    fragment = diffuseColor;
 }

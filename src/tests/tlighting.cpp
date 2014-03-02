@@ -132,7 +132,7 @@ glm::vec4 TLighting::CompLightPos( void ) const
 
 void TLighting::DrawLight( void ) const
 {
-    glm::mat4 trans = glm::translate( glm::mat4( 1.0f ), light.worldPos - glm::vec3( 0.0f, 0.0f, 10.0f ) );
+    glm::mat4 trans = glm::translate( glm::mat4( 1.0f ), light.worldPos - glm::vec3( 0.0f, 0.0f, 2.0f ) );
     //trans *= glm::scale( glm::mat4( 1.0f ), glm::vec3( 1.0f ) );
 
     ApplyModelToCameraTransform( light.program, trans, true );
@@ -173,15 +173,19 @@ bool TLighting::Load( void )
         return LinkProgram( shaders, 2 );
     }();
 
+    glUseProgram( program );
+
     glBindAttribLocation( program, 0, "inPosition" );
     glBindAttribLocation( program, 1, "inColor" );
     glBindAttribLocation( program, 2, "inNormal" );
 
-    glUseProgram( program );
-
-    GLint posAttrib = glGetAttribLocation( program, "inPosition" );
-    GLint colorAttrib = glGetAttribLocation( program, "inColor" );
+    //GLint posAttrib = glGetAttribLocation( program, "inPosition" );
+    //GLint colorAttrib = glGetAttribLocation( program, "inColor" );
     //GLint normAttrib = glGetAttribLocation( program, "inNormal" );
+
+    GLint posAttrib = 0;
+    GLint colorAttrib = 1;
+    GLint normAttrib = 2;
 
     glUniformMatrix4fv( glGetUniformLocation( program, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) );
 
@@ -194,10 +198,12 @@ bool TLighting::Load( void )
 
         float4_t color =
         {
-            0.5f,
-            0.5f,
-            0.5f,
-            1.0f
+            {
+                0.5f,
+                0.5f,
+                0.5f,
+                1.0f
+            }
         };
 
         for ( int i = 0; i < ( int ) shapes.size(); ++i )
@@ -251,11 +257,11 @@ bool TLighting::Load( void )
 
             glEnableVertexAttribArray( posAttrib );
             glEnableVertexAttribArray( colorAttrib );
-            glEnableVertexAttribArray( 2 );
+            glEnableVertexAttribArray( normAttrib );
 
             glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::position ) );
             glVertexAttribPointer( colorAttrib, 4, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::color ) );
-            glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::normal ) );
+            glVertexAttribPointer( normAttrib, 3, GL_FLOAT, GL_FALSE, sizeof( objVertex_t ), BUFFER_OFFSET( objVertex_t, objVertex_t::normal ) );
 
             ExitOnGLError( "Loop" );
 
@@ -284,6 +290,7 @@ void TLighting::Run( void )
     const glm::vec4& lightViewSpace = modelToCam * lightWorldSpace;
 
     const glm::mat4& invCamTransform = glm::inverse( modelToCam );
+    const glm::vec4& lightModelSpace = invCamTransform * lightViewSpace;
 
     glUniform4fv( glGetUniformLocation( program, "lightIntensity" ), 1, glm::value_ptr( light.intensity ) );
     glUniform4fv( glGetUniformLocation( program, "ambientIntensity" ), 1, glm::value_ptr( light.ambient ) );
@@ -293,8 +300,6 @@ void TLighting::Run( void )
         glBindVertexArray( meshes[ i ].vao );
 
         ApplyModelToCameraTransform( program, meshes[ i ].localTransform, false );
-
-        const glm::vec4& lightModelSpace = invCamTransform * lightViewSpace;
 
         glUniform3fv( glGetUniformLocation( program, "modelLightPos" ), 1, glm::value_ptr( lightModelSpace ) );
         glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, meshes[ i ].vbos[ 1 ] );
