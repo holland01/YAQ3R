@@ -36,7 +36,7 @@ struct pointLight_t
     glm::vec3   worldPos;
     glm::vec4   intensity;
     glm::vec4   ambient;
-    glm::vec4   color;
+    glm::vec4   diffuse;
 
     GLuint      vao, vbo;
     GLuint      program;
@@ -67,9 +67,11 @@ private:
 
     glm::vec4   CompLightPos( void ) const;
 
-    void        DrawLight( void ) const;
+    void        DrawLight( const glm::vec4& lightWorldSpace ) const;
 
-    void        ApplyModelToCameraTransform( GLuint program, const glm::mat4& model, bool bindProgram ) const;
+    void        DrawModel( const glm::vec4& lightWorldSpace ) const;
+
+    void        ApplyModelToCameraTransform( GLuint program, const glm::mat4& model ) const;
 
     void        OnKeyPress( int key, int scancode, int action, int mods );
 
