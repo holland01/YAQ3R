@@ -1,4 +1,4 @@
-#include "tlighting.h"
+ #include "tlighting.h"
 #include "key_mover.h"
 #include "../log.h"
 #include "../shader.h"
@@ -200,12 +200,14 @@ void TLighting::InitLight( void )
 
 
     light.radius = 5.0f;
+    light.specularShininess = 20.0f;
+    light.specularStrength = 10.0f;
+
     light.ambient = glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f );
     light.diffuse = light.ambient;
     light.intensity = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f );
     light.worldPos = glm::vec3( 0.0f, -0.1f, 0.0f );
 
-    light.modelScale = 0.2f;
     light.mover = new KeyMover( light.worldPos, 0.01f );
 
     light.modelNumVertices = UNSIGNED_LEN( lightCubeVertices ) / 2 / 3;
@@ -220,14 +222,13 @@ void TLighting::InitLight( void )
     glBufferData( GL_ARRAY_BUFFER, sizeof( lightCubeVertices ), lightCubeVertices, GL_STATIC_DRAW );
 
     GLuint posAttrib = glGetAttribLocation( light.program, "inPosition" );
-    GLuint normalAttrib = glGetAttribLocation( light.program, "inNormal" );
+    //GLuint normalAttrib = glGetAttribLocation( light.program, "inNormal" );
 
     glEnableVertexAttribArray( posAttrib );
     glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, ( void* )0 );
-    glVertexAttribPointer( normalAttrib, 3, GL_FLOAT, GL_FALSE, 0, ( void* )( sizeof( float ) * ( LIGHTCUBE_VERTS_LEN / 2 ) ) );
+    //glVertexAttribPointer( normalAttrib, 3, GL_FLOAT, GL_FALSE, 0, ( void* )( sizeof( float ) * ( LIGHTCUBE_VERTS_LEN / 2 ) ) );
 
-    //glUniform4fv( glGetUniformLocation( light.program, "lightColor" ), 1, glm::value_ptr( glm::vec4( 0.5f ) ) );
-    glUniform4fv( glGetUniformLocation( light.program, "diffuseColor" ), 1, glm::value_ptr( light.diffuse ) );
+    glUniform4fv( glGetUniformLocation( light.program, "objectColor" ), 1, glm::value_ptr( light.diffuse ) );
     glUniformMatrix4fv( glGetUniformLocation( light.program, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) );
 
     glBindVertexArray( 0 );
@@ -251,21 +252,11 @@ void TLighting::DrawLight( const glm::vec4& lightWorldSpace ) const
 
     glUseProgram( light.program );
 
-    const glm::mat4& modelToCam = camera->ViewData().transform;
-
-    const glm::vec4& lightViewSpace = modelToCam * glm::vec4( light.worldPos, 1.0f );
-    const glm::mat4& invCamTransform = glm::inverse( modelToCam );
-    const glm::vec3& lightModelSpace = glm::vec3( trans * invCamTransform * lightViewSpace );
-
-    glUniform4fv( glGetUniformLocation( light.program, "lightIntensity" ), 1, glm::value_ptr( light.intensity ) );
-    glUniform4fv( glGetUniformLocation( light.program, "ambientIntensity" ), 1, glm::value_ptr( light.ambient ) );
-    glUniform3fv( glGetUniformLocation( light.program, "modelLightPos" ), 1, glm::value_ptr( lightModelSpace ) );
-
     ApplyModelToCameraTransform( light.program, trans );
 
     glBindVertexArray( light.vao );
         glBindBuffer( GL_ARRAY_BUFFER, light.vbo );
-        glDrawArrays( GL_TRIANGLE_FAN, 0, 24 );
+        glDrawArrays( GL_TRIANGLE_FAN, 0, light.modelNumVertices );
     glBindVertexArray( 0 );
 
 
@@ -283,8 +274,23 @@ void TLighting::DrawModel( const glm::vec4& lightWorldSpace ) const
     const glm::mat4& invCamTransform = glm::inverse( modelToCam );
     const glm::vec4& lightModelSpace = invCamTransform * lightViewSpace;
 
+    const glm::vec4& eyeWorldSpace = modelToCam * camera->ViewData().orientation * ( glm::vec4( camera->ViewData().origin, 1.0f ) - modelToCam[ 3 ] );
+    //const glm::vec4& eyeWorldSpace = glm::vec4( camera->ViewData().origin, 1.0f );
+
+    const glm::vec4& eyeViewSpace = modelToCam * eyeWorldSpace;
+    const glm::vec4& eyeModelSpace = invCamTransform * eyeViewSpace;
+
+    const glm::vec3& halfVector = glm::vec3( eyeWorldSpace - lightWorldSpace );
+    //const glm::vec3& halfVector = glm::vec3( eyeModelSpace - lightModelSpace );
+
+    glUniform1f( glGetUniformLocation( program, "strength" ), light.specularStrength );
+    glUniform1f( glGetUniformLocation( program, "shininess" ), light.specularShininess );
+
+    glUniform3fv( glGetUniformLocation( program, "halfVector" ), 1, glm::value_ptr( halfVector ) );
+
     glUniform4fv( glGetUniformLocation( program, "lightIntensity" ), 1, glm::value_ptr( light.intensity ) );
     glUniform4fv( glGetUniformLocation( program, "ambientIntensity" ), 1, glm::value_ptr( light.ambient ) );
+
 
     for ( int i = 0; i < ( int ) meshes.size(); ++i )
     {
@@ -292,7 +298,12 @@ void TLighting::DrawModel( const glm::vec4& lightWorldSpace ) const
 
         ApplyModelToCameraTransform( program, meshes[ i ].localTransform );
 
+        glm::mat3 normalTransform( meshes[ i ].localTransform );
+
+        glUniformMatrix3fv( glGetUniformLocation( program, "normalTransform" ), 1, GL_FALSE, glm::value_ptr( normalTransform ) );
+
         glUniform3fv( glGetUniformLocation( program, "modelLightPos" ), 1, glm::value_ptr( lightModelSpace ) );
+
         glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, meshes[ i ].vbos[ 1 ] );
 
         glDrawElements( GL_TRIANGLES, meshes[ i ].numIndices, GL_UNSIGNED_INT, ( void* )0 );
@@ -398,7 +409,7 @@ bool TLighting::Load( void )
             //ExitOnGLError( "GenVertexArrays" );
 
             glBindVertexArray( mesh.vao );
-            ExitOnGLError( "glBindVertexArray" );
+            //ExitOnGLError( "glBindVertexArray" );
 
             glGenBuffers( NUM_BUFS_PER_MESH, mesh.vbos );
             //ExitOnGLError( "GenBuffers" );

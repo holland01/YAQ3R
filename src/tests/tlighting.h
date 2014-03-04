@@ -32,11 +32,15 @@ class KeyMover;
 struct pointLight_t
 {
     float       radius;
-    float       modelScale;
+
+    float       specularStrength;
+    float       specularShininess;
+
     glm::vec3   worldPos;
     glm::vec4   intensity;
     glm::vec4   ambient;
     glm::vec4   diffuse;
+
 
     GLuint      vao, vbo;
     GLuint      program;
