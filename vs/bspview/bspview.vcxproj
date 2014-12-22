@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E69BC7BF-C8F6-4185-B99B-0F3B3F5C0FFA}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>bspview</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32; _CRT_SECURE_NO_WARNINGS; _DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(DML_LIB_ROOT_W32)/glew-msvc/include;$(DML_LIB_ROOT_W32)/glm/;$(DML_LIB_ROOT_W32)/glfw3/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DML_LIB_ROOT_W32)/glew-msvc/lib/Release/Win32/;$(DML_LIB_ROOT_W32)/glfw3/lib-msvc120;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:msvcrt %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32; _CRT_SECURE_NO_WARNINGS; NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(DML_LIB_ROOT_W32)/glew-msvc/include;$(DML_LIB_ROOT_W32)/glm/;$(DML_LIB_ROOT_W32)/glfw3/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(DML_LIB_ROOT_W32)/glew-msvc/lib/Release/Win32/;$(DML_LIB_ROOT_W32)/glfw3/lib-msvc120;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:msvcrt %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\aabb.cpp" />
+    <ClCompile Include="..\..\src\bezpatch.cpp" />
+    <ClCompile Include="..\..\src\eu_ang.cpp" />
+    <ClCompile Include="..\..\src\frustum.cpp" />
+    <ClCompile Include="..\..\src\gldebug.cpp" />
+    <ClCompile Include="..\..\src\glutil.cpp" />
+    <ClCompile Include="..\..\src\input.cpp" />
+    <ClCompile Include="..\..\src\log.cpp" />
+    <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\math_util.cpp" />
+    <ClCompile Include="..\..\src\mtrand.cpp" />
+    <ClCompile Include="..\..\src\q3bsp.cpp" />
+    <ClCompile Include="..\..\src\q3m_model.cpp" />
+    <ClCompile Include="..\..\src\renderer.cpp" />
+    <ClCompile Include="..\..\src\shader.cpp" />
+    <ClCompile Include="..\..\src\tests\jpeg.cpp" />
+    <ClCompile Include="..\..\src\tests\tbezsurf.cpp" />
+    <ClCompile Include="..\..\src\tests\test.cpp" />
+    <ClCompile Include="..\..\src\tests\trenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\aabb.h" />
+    <ClInclude Include="..\..\src\bezpatch.h" />
+    <ClInclude Include="..\..\src\common.h" />
+    <ClInclude Include="..\..\src\def.h" />
+    <ClInclude Include="..\..\src\eu_ang.h" />
+    <ClInclude Include="..\..\src\frustum.h" />
+    <ClInclude Include="..\..\src\gldebug.h" />
+    <ClInclude Include="..\..\src\global.h" />
+    <ClInclude Include="..\..\src\glutil.h" />
+    <ClInclude Include="..\..\src\input.h" />
+    <ClInclude Include="..\..\src\lightmodel.h" />
+    <ClInclude Include="..\..\src\log.h" />
+    <ClInclude Include="..\..\src\math_util.h" />
+    <ClInclude Include="..\..\src\mtrand.h" />
+    <ClInclude Include="..\..\src\plane.h" />
+    <ClInclude Include="..\..\src\q3bsp.h" />
+    <ClInclude Include="..\..\src\q3m_model.h" />
+    <ClInclude Include="..\..\src\renderer.h" />
+    <ClInclude Include="..\..\src\shader.h" />
+    <ClInclude Include="..\..\src\tests\jpeg.h" />
+    <ClInclude Include="..\..\src\tests\tbezsurf.h" />
+    <ClInclude Include="..\..\src\tests\test.h" />
+    <ClInclude Include="..\..\src\tests\test_util.h" />
+    <ClInclude Include="..\..\src\tests\trenderer.h" />
+    <ClInclude Include="..\..\src\vec.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\main.frag" />
+    <None Include="..\..\src\main.vert" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -15,8 +15,8 @@ compliance.
 ==========================
 */
 
-#if defined(_WIN32)
-#define GL_PROC __stdcall
+#if defined( _WIN32 )
+#define GL_PROC APIENTRY
 #elif defined( __GNUC__ ) && defined( __amd64__ )
 #define GL_PROC // leave blank: calling convention should be taken care of on this architecture
 #else

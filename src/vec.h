@@ -39,4 +39,52 @@ struct vec2f_t
     float x, y;
 };
 
+INLINE vec3f_t operator * ( const vec3f_t& a, float b )
+{
+	vec3f_t r = 
+	{
+		a.x * b,
+		a.y * b,
+		a.z * b
+	};
+
+	return r;
+}
+
+INLINE vec3f_t operator + ( const vec3f_t& a, const vec3f_t& b )
+{
+	vec3f_t r = 
+	{
+		a.x + b.x,
+		a.y + b.y,
+		a.z + b.z
+	};
+
+	return r;
+}
+
+INLINE vec2f_t operator * ( const vec2f_t& a, float b )
+{
+	vec2f_t r = 
+	{
+		a.x * b,
+		a.y * b
+	};
+
+	return r;
+}
+
+INLINE vec2f_t operator + ( const vec2f_t& a, const vec2f_t& b )
+{
+	vec2f_t r = 
+	{
+		a.x + b.x,
+		a.y + b.y,
+	};
+
+	return r;
+}
+
+
+
 

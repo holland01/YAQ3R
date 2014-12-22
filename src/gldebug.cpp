@@ -19,7 +19,7 @@ Globals
 
 static GLDebugValue  values[] =
 {
-    GLDEBUG_LOG_FILE
+    GLDEBUG_LOG_STDOUT
 };
 
 static char* dateTime           = NULL;
@@ -44,8 +44,9 @@ const int DATE_TIME_STR_SIZE = 40;
 
 void glDebugInit( void )
 {
-    MyDateTime( "%Y/%m/%d %H:%M:%S", dateTime, DATE_TIME_STR_SIZE );
     dateTime = ( char* )malloc( sizeof( char ) * DATE_TIME_STR_SIZE );
+	MyDateTime( "%Y/%m/%d %H:%M:%S", dateTime, DATE_TIME_STR_SIZE );
+
     glLog    = fopen( "log/gl.log", "w" );
 
     if ( !glLog )
@@ -55,7 +56,7 @@ void glDebugInit( void )
 
     glDebugMessageCallbackARB( glDebugOutProc, NULL );
 
-    //exitOnGLError( "glDebugInit" );
+	ExitOnGLError( "OpenGL Debug" );
 }
 
 /*
@@ -92,13 +93,13 @@ glDebugOutProc
 ===========================
 */
 
-GL_PROC void glDebugOutProc( GLenum source,
+void GL_PROC glDebugOutProc( GLenum source,
                     GLenum type,
                     GLuint id,
                     GLenum severity,
                     GLsizei length,
                     const GLchar* message,
-                    void* userParam )
+                    const void* userParam )
 {
     // __dateTime - __fileEntryCount | __stdoutEntryCount
 

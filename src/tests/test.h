@@ -20,7 +20,11 @@ protected:
 
     bool            Load( const char* winTitle );
 
+	float			mouseY;
+	float			mouseX;
 
+	float			lastMouseX;
+	float			lastMouseY;
 
 public:
 

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "plane.h"
+#include "log.h"
 
 #define FRUST_NUM_PLANES 6
 
@@ -23,6 +24,10 @@ class Frustum
 {
     plane_t     frustPlanes[ FRUST_NUM_PLANES ];
 
+	mutable uint32_t acceptCount;
+
+	mutable uint32_t rejectCount;
+
 public:
 
     Frustum( void );
@@ -31,5 +36,14 @@ public:
 
     void    Update( const viewParams_t& params );
 
-    bool    IntersectsBox( const AABB& box );
+	void	PrintMetrics( void ) const;
+
+	void	ResetMetrics( void ) const { rejectCount = 0; acceptCount = 0; }
+
+    bool    IntersectsBox( const AABB& box ) const;
 };
+
+INLINE void Frustum::PrintMetrics( void ) const
+{
+	printf( "Reject Count: %iu; Accept Count: %iu\r", rejectCount, acceptCount );
+}

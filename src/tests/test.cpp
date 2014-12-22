@@ -20,7 +20,11 @@ Test::Test( int w, int h )
       currTime( 0.0 ), prevTime( 0.0 ),
       cursorVisible( true ), running( false ),
       camPtr( NULL ),
-      winPtr( NULL )
+      winPtr( NULL ),
+	  mouseX( 0.0f ),
+	  mouseY( 0.0f ),
+	  lastMouseX( 0.0f ),
+	  lastMouseY( 0.0f )
 {
 }
 
@@ -144,5 +148,14 @@ void Test::OnKeyPress( int key, int scancode, int action, int mods )
 
 void Test::OnMouseMove( double x, double y )
 {
-    camPtr->EvalMouseMove( ( float ) x, ( float ) y );
+	camPtr->lastMouse.x = mouseX;
+	camPtr->lastMouse.y = mouseY;
+
+	mouseX = x;
+	mouseY = y;
+
+	if ( !cursorVisible )
+	{
+		camPtr->EvalMouseMove( mouseX, mouseY );
+	}
 }

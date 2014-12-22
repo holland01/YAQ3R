@@ -6,7 +6,7 @@ namespace
 {
     const float MOUSE_SENSE = 0.1f;
 
-    const float VIEW_STEP_SPEED = 1.0f;
+    const float DEF_MOVE_STEP_SPEED = 50.0f;
 
     enum
     {
@@ -32,10 +32,18 @@ InputCamera::Input
 */
 
 InputCamera::InputCamera( void )
-    :
-      lastMouse( 0.0f )
+    : InputCamera( viewParams_t(), EuAng() )
 {
-    SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 9000.0f );
+    
+}
+
+InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
+	: lastMouse( 0.0f ),
+	  moveStep( DEF_MOVE_STEP_SPEED ),
+	  viewData( view ),
+	  currRot( currRot )
+{
+	SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 20000.0f );
 
     for ( int i = 0; i < KEY_COUNT; ++i )
     {
@@ -161,14 +169,14 @@ void InputCamera::Update( void )
 
      lastRot = currRot;
 
-    if ( keysPressed[ KEY_FORWARD ] ) Walk( VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_BACKWARD ] ) Walk( -VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_RIGHT ] ) Strafe( VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_LEFT ] ) Strafe( -VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_UP ] ) Raise( VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_DOWN ] ) Raise( -VIEW_STEP_SPEED );
-    if ( keysPressed[ KEY_IN ] ) currRot.roll += VIEW_STEP_SPEED;
-    if ( keysPressed[ KEY_OUT ] ) currRot.roll -= VIEW_STEP_SPEED;
+    if ( keysPressed[ KEY_FORWARD ] ) Walk( moveStep );
+    if ( keysPressed[ KEY_BACKWARD ] ) Walk( -moveStep );
+    if ( keysPressed[ KEY_RIGHT ] ) Strafe( moveStep );
+    if ( keysPressed[ KEY_LEFT ] ) Strafe( -moveStep );
+    if ( keysPressed[ KEY_UP ] ) Raise( moveStep );
+    if ( keysPressed[ KEY_DOWN ] ) Raise( -moveStep );
+    if ( keysPressed[ KEY_IN ] ) currRot.roll += moveStep;
+    if ( keysPressed[ KEY_OUT ] ) currRot.roll -= moveStep;
 
     currRot.Normalize();
 
@@ -180,9 +188,9 @@ void InputCamera::Update( void )
 
     viewData.transform = viewData.orientation * glm::translate( glm::mat4( 1.0f ), -viewData.origin );
 
-
+	/*
     MyPrintf( "Camera Info", "pitch: %f, roll: %f, yaw: %f,\n position = { x: %f, y: %f, z: %f }", currRot.pitch, currRot.roll, currRot.yaw,
-              viewData.origin.x, viewData.origin.y, viewData.origin.z );
+              viewData.origin.x, viewData.origin.y, viewData.origin.z );*/
 
 }
 

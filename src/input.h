@@ -21,6 +21,17 @@ struct viewParams_t
     glm::mat4   inverseOrient;
 
     glm::mat4   clipTransform;
+
+	viewParams_t( void )
+		: forward( 0.0f ), up( 0.0f ), right( 0.0f ),
+		  origin( 0.0f ),
+		  fovy( 0.0f ), aspect( 0.0f ), zNear( 0.0f ), zFar( 0.0f ),
+		  transform( 1.0f ),
+		  orientation( 1.0f ),
+		  inverseOrient( 1.0f ),
+		  clipTransform( 1.0f )
+	{
+	}
 };
 
 class InputCamera
@@ -37,6 +48,10 @@ public:
 
     InputCamera( void );
 
+	InputCamera( const viewParams_t& view, const EuAng& currRot );
+
+	float	moveStep;
+
     void    EvalKeyPress( int key );
     void    EvalKeyRelease( int key );
     void    EvalMouseMove( float x, float y );
@@ -47,10 +62,6 @@ public:
     void    Strafe( float amount );
     void    Raise( float amount );
 
-    void    RotateX( float angRad );
-    void    RotateY( float angRad );
-    void    RotateZ( float angRad );
-
     void    SetPerspective( float fovy, float aspect, float znear, float zfar );
     void    SetForward( const glm::vec3& target );
 
@@ -59,6 +70,8 @@ public:
     glm::vec3   Right( void ) const;
 
     const   viewParams_t& ViewData( void ) const;
+
+	friend class Test;
 };
 
 INLINE glm::vec3 InputCamera::Forward( void ) const

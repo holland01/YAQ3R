@@ -34,19 +34,11 @@ public:
     RenderPass( const Q3BspMap* const & map, const viewParams_t& viewData );
     ~RenderPass( void );
 
-    void                    SetFaceCount( int count );
-
+	const bspLeaf_t*		leaf;
     const viewParams_t&     view;
-    std::vector< bool >     facesRendered;
-    int                     cluster;
 
+    std::vector< unsigned char >     facesRendered;
 };
-
-INLINE void RenderPass::SetFaceCount( int count )
-{
-    facesRendered.reserve( count );
-    facesRendered.assign( count, false );
-}
 
 /*
 =====================================================

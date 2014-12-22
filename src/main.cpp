@@ -14,7 +14,7 @@ void FlagExit( void )
 
 int main( int argc, char** argv )
 {
-    gAppTest = new TBezSurface();
+    gAppTest = new TRenderer();
     gAppTest->Load();
 
     int code = gAppTest->Exec();

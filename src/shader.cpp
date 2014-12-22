@@ -18,10 +18,12 @@ GLuint LinkProgram( GLuint shaders[], int len )
         GLint logLen;
         glGetProgramiv( program, GL_INFO_LOG_LENGTH, &logLen );
 
-        char infoLog[ logLen ];
+        char* infoLog = new char[ logLen ]();
         glGetProgramInfoLog( program, logLen, NULL, infoLog );
 
         ERROR( "GLSL LINK ERROR: %s", infoLog );
+
+		delete[] infoLog;
     }
 
     for ( int i = 0; i < len; ++i )
@@ -37,7 +39,7 @@ GLuint LinkProgram( GLuint shaders[], int len )
 
 GLuint CompileShader( const char* filename, GLenum shader_type )
 {
-    GLuint shader_id = 0;
+    GLuint shaderId = 0;
     FILE* file;
     long file_size = -1;
     char* glsl_source;
@@ -54,30 +56,30 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
             {
                 glsl_source[file_size] = '\0';
 
-                if (0 != (shader_id = glCreateShader(shader_type)))
+                if (0 != (shaderId = glCreateShader(shader_type)))
                 {
                     // necessary to avoid -Werror raise on incompatible pointer type, when passed to glShaderSource
                     const char* sourceconst = glsl_source;
                     int length[ 1 ];
                     length[ 0 ] = strlen( glsl_source );
 
-                    glShaderSource(shader_id, 1, &sourceconst, length);
-                    glCompileShader(shader_id);
+                    glShaderSource( shaderId, 1, &sourceconst, length );
+                    glCompileShader( shaderId );
 
                     GLint compile_success;
-                    glGetShaderiv( shader_id, GL_COMPILE_STATUS, &compile_success );
+                    glGetShaderiv( shaderId, GL_COMPILE_STATUS, &compile_success );
 
                     if ( compile_success == GL_FALSE )
                     {
-                        GLint log_len;
-                        glGetShaderiv( shader_id, GL_INFO_LOG_LENGTH, &log_len );
+                        GLint logLen;
+                        glGetShaderiv( shaderId, GL_INFO_LOG_LENGTH, &logLen );
 
-                        char log[ log_len ];
-                        log[ log_len ] = '\0';
+                        char* infoLog = new char[ logLen ]();
+                        infoLog[ logLen ] = '\0';
 
-                        glGetShaderInfoLog( shader_id, log_len, NULL, log );
+                        glGetShaderInfoLog( shaderId, logLen, NULL, infoLog );
 
-                        ERROR( "SHADER COMPILE ERROR: %s", log );
+                        ERROR( "SHADER COMPILE ERROR: %s", infoLog );
                     }
 
                 }
@@ -105,7 +107,7 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
         ERROR( "ERROR: Could not open file %s\n", filename );
     }
 
-    return shader_id;
+    return shaderId;
 }
 
 

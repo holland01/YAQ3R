@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "bezpatch.h"
 
 /*
 =====================================================
@@ -188,6 +189,48 @@ struct bspVisdata_t
     byte*   bitsets;
 };
 
+INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
+{
+	bspVertex_t vert;
+	
+	vert.position = a.position + b.position;
+
+	/*
+	vert.color[ 0 ] = a.color[ 0 ] + b.color[ 0 ];
+	vert.color[ 1 ] = a.color[ 1 ] + b.color[ 1 ];
+	vert.color[ 2 ] = a.color[ 2 ] + b.color[ 2 ];
+	vert.color[ 3 ] = a.color[ 3 ] + b.color[ 3 ];
+	*/
+	
+	vert.normal = a.normal + b.normal;
+	vert.texCoord = a.texCoord + b.texCoord;
+
+	// TODO: lightmapCoords?
+
+	return vert;
+}
+
+INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
+{
+	bspVertex_t vert;
+	
+	vert.position = a.position * b;
+
+	vert.normal = a.normal * b;
+	vert.texCoord = a.texCoord * b;
+
+	/*
+	vert.color[ 0 ] *= ( byte )( b * 255.0f );
+	vert.color[ 1 ] *= ( byte )( b * 255.0f );
+	vert.color[ 2 ] *= ( byte )( b * 255.0f );
+	vert.color[ 3 ] *= ( byte )( b * 255.0f );
+	*/
+	// TODO: lightmapCoords?
+	// TODO: colors with floats?
+
+	return vert;
+}
+
 /*
 =====================================================
 
@@ -269,7 +312,11 @@ private:
 INLINE GLuint Q3BspMap::GetApiTexture( int index ) const
 {
     assert( mapAllocated );
+	//assert( apiTextures );
     assert( index < numTextures );
 
-    return apiTextures[ index ];
+	if ( apiTextures )
+		return apiTextures[ index ];
+	else
+		return 0;
 }

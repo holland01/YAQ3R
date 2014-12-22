@@ -41,7 +41,9 @@ public:
 
     glm::vec3        Radius( void ) const;
 
-    glm::vec3        Corner( int32_t index ) const;
+    glm::vec3        Corner( int index ) const;
+
+	glm::vec4		Corner4( int index ) const;
 
     bool        IsEmpty( void ) const;
 
@@ -53,3 +55,8 @@ public:
 
     glm::vec3        maxPoint, minPoint;
 };
+
+INLINE glm::vec4 AABB::Corner4( int32_t index ) const
+{
+	return glm::vec4( Corner( index ), 1.0f );
+}

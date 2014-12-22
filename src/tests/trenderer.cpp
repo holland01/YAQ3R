@@ -31,7 +31,7 @@ void TRenderer::Run( void )
 {
     currTime = glfwGetTime();
 
-    renderer->Update( currTime - prevTime );
+    renderer->Update( ( float )( currTime - prevTime ) );
     renderer->DrawWorld();
 
     prevTime = currTime;

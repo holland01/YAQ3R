@@ -3,6 +3,8 @@
 #include "aabb.h"
 
 Frustum::Frustum( void )
+	:	acceptCount( 0 ),
+		rejectCount( 0 )
 {
     //memset( frustPlanes, 0, sizeof( plane_t ) * FRUST_NUM_PLANES );
 }
@@ -13,60 +15,44 @@ Frustum::~Frustum( void )
 
 void Frustum::Update( const viewParams_t& view )
 {
-    const glm::mat4& clipSpace = view.clipTransform * view.transform;
+	glm::mat4 mvp ( view.clipTransform * view.transform ); 
+	//pointTrans = mvp;
 
-    frustPlanes[ FRUST_LEFT ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] - clipSpace[ 0 ][ 0 ];
-    frustPlanes[ FRUST_LEFT ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] - clipSpace[ 1 ][ 0 ];
-    frustPlanes[ FRUST_LEFT ].normal[ 2 ] = clipSpace[ 2 ][ 3 ] - clipSpace[ 2 ][ 0 ];
-    frustPlanes[ FRUST_LEFT ].normal[ 3 ] = clipSpace[ 3 ][ 3 ] - clipSpace[ 3 ][ 0 ];
-
-    frustPlanes[ FRUST_RIGHT ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] + clipSpace[ 0 ][ 0 ];
-    frustPlanes[ FRUST_RIGHT ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] + clipSpace[ 1 ][ 0 ];
-    frustPlanes[ FRUST_RIGHT ].normal[ 2 ] = clipSpace[ 2 ][ 3 ] + clipSpace[ 2 ][ 0 ];
-    frustPlanes[ FRUST_RIGHT ].normal[ 3 ] = clipSpace[ 3 ][ 3 ] + clipSpace[ 3 ][ 0 ];
-
-    frustPlanes[ FRUST_BOTTOM ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] - clipSpace[ 0 ][ 1 ];
-    frustPlanes[ FRUST_BOTTOM ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] - clipSpace[ 1 ][ 1 ];
-    frustPlanes[ FRUST_BOTTOM ].normal[ 2 ] = clipSpace[ 2 ][ 3 ] - clipSpace[ 2 ][ 1 ];
-    frustPlanes[ FRUST_BOTTOM ].normal[ 3 ] = clipSpace[ 3 ][ 3 ] - clipSpace[ 3 ][ 1 ];
-
-    frustPlanes[ FRUST_TOP ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] + clipSpace[ 0 ][ 1 ];
-    frustPlanes[ FRUST_TOP ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] + clipSpace[ 1 ][ 1 ];
-    frustPlanes[ FRUST_TOP ].normal[ 2 ] = clipSpace[ 2 ][ 3 ] + clipSpace[ 2 ][ 1 ];
-    frustPlanes[ FRUST_TOP ].normal[ 3 ] = clipSpace[ 3 ][ 3 ] + clipSpace[ 3 ][ 1 ];
-
-    frustPlanes[ FRUST_NEAR ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] + clipSpace[ 0 ][ 2 ];
-    frustPlanes[ FRUST_NEAR ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] + clipSpace[ 1 ][ 2 ];
-    frustPlanes[ FRUST_NEAR ].normal[ 2 ] = clipSpace[ 2 ][ 3 ] + clipSpace[ 2 ][ 2 ];
-    frustPlanes[ FRUST_NEAR ].normal[ 3 ] = clipSpace[ 3 ][ 3 ] + clipSpace[ 3 ][ 2 ];
-
-    frustPlanes[ FRUST_FAR ].normal[ 0 ] = clipSpace[ 0 ][ 3 ] - clipSpace[ 0 ][ 2 ];
-    frustPlanes[ FRUST_FAR ].normal[ 1 ] = clipSpace[ 1 ][ 3 ] - clipSpace[ 1 ][ 2 ];
-    frustPlanes[ FRUST_FAR ].normal[ 2 ] = clipSpace[ 2 ][ 3 ] - clipSpace[ 2 ][ 2 ];
-    frustPlanes[ FRUST_FAR ].normal[ 3 ] = clipSpace[ 3 ][ 3 ] - clipSpace[ 3 ][ 2 ];
+	frustPlanes[ FRUST_LEFT ].normal = glm::normalize( glm::row( mvp, 3 ) + glm::row( mvp, 0 ) );
+	frustPlanes[ FRUST_RIGHT ].normal = glm::normalize( glm::row( mvp, 3 ) - glm::row( mvp, 0 ) );
+	frustPlanes[ FRUST_BOTTOM ].normal = glm::normalize( glm::row( mvp, 3 ) + glm::row( mvp, 1 ) );
+	frustPlanes[ FRUST_TOP ].normal = glm::normalize( glm::row( mvp, 3 ) - glm::row( mvp, 1 ) );
+	frustPlanes[ FRUST_FAR ].normal = glm::normalize( glm::row( mvp, 3 ) + glm::row( mvp, 2 ) ); 
+	frustPlanes[ FRUST_NEAR ].normal = glm::normalize( glm::row( mvp, 3 ) - glm::row( mvp, 2 ) );
 }
 
+// Adding plane[ 3 ] ( which is the distance from the plane to the origin offsets the plane so we can ensure that the point is in front of the plane normal )
 #define dist( point, plane ) \
-    ( ( plane[ 0 ] ) * ( point[ 0 ] ) + ( plane[ 1 ] ) * ( point[ 1 ] ) + ( plane[ 2 ] ) * ( point[ 2 ] ) + ( plane[ 3 ] ) )
+    ( ( plane[ 0 ] ) * ( point[ 0 ] ) + ( plane[ 1 ] ) * ( point[ 1 ] ) + ( plane[ 2 ] ) * ( point[ 2 ] ) + plane[ 3 ] )
 
-bool Frustum::IntersectsBox( const AABB& box )
+bool Frustum::IntersectsBox( const AABB& box ) const
 {
+	// Test each corner against every plane normal
     for ( int i = 0; i < FRUST_NUM_PLANES; ++i )
     {
         int out = 0;
 
-        if ( dist( box.Corner( 0 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 1 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 2 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 3 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 4 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 5 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 6 ), frustPlanes[ i ].normal ) < 0 ) out++;
-        if ( dist( box.Corner( 7 ), frustPlanes[ i ].normal ) < 0 ) out++;
-
-        if ( out == 8 )
+        if ( dist( box.Corner4( 0 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 1 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 2 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 3 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 4 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 5 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 6 ), frustPlanes[ i ].normal ) < 0 ) out++;
+        if ( dist( box.Corner4( 7 ), frustPlanes[ i ].normal ) < 0 ) out++;
+		
+		if ( out == 8 )
+		{
+			rejectCount++;
             return false;
-    }
+		}	
+	}
 
+	acceptCount++;
     return true;
 }

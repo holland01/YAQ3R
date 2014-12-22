@@ -18,3 +18,14 @@ moc_*.cpp
 qrc_*.cpp
 Makefile
 *-build-*
+*.obj
+*.tlog
+*.filters
+*.user
+*.sdf
+vs/bspview/Debug/bspview.exe
+*.ilk
+vs/bspview/Debug/bspview.log
+*.pdb
+vs/bspview/Debug/bspview.Build.CppClean.log
+*.idb

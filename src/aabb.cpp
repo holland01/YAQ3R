@@ -158,7 +158,7 @@ glm::vec3 AABB::Radius( void ) const
     return maxPoint - Center();
 }
 
-glm::vec3 AABB::Corner( int32_t index ) const
+glm::vec3 AABB::Corner( int index ) const
 {
     assert( index >= 0 );
     assert( index <= 7 );

@@ -49,12 +49,13 @@ static void ScaleCoords( vec2f_t& v, float scale )
     v.y *= scale;
 }
 
-static void ScaleCoords( vec3i_t& v, float scale )
+static void ScaleCoords( vec3i_t& v, int scale )
 {
     v.x *= scale;
     v.y *= scale;
     v.z *= scale;
 }
+
 
 /*
 =====================================================
@@ -189,7 +190,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 {   
     assert( scale != 0 );
 
-    float fScale = scale;
+    float fScale = ( float )scale;
 
     FILE* file = fopen( filepath.c_str(), "rb" );
 
@@ -227,7 +228,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
     for ( int i = 0; i < numNodes; ++i )
     {
-
         ScaleCoords( nodes[ i ].boxMax, scale );
         ScaleCoords( nodes[ i ].boxMin, scale );
 
@@ -257,7 +257,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
     for ( int i = 0; i < numPlanes; ++i )
     {
         planes[ i ].distance *= scale;
-        ScaleCoords( planes[ i ].normal, fScale );
+        ScaleCoords( planes[ i ].normal, ( float ) fScale );
         SwizzleCoords( planes[ i ].normal );
     }
 
@@ -268,10 +268,10 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
     for ( int i = 0; i < numVertexes; ++i )
     {
-        ScaleCoords( vertexes[ i ].texCoord, scale );
-        ScaleCoords( vertexes[ i ].lightmapCoord, scale );
-        ScaleCoords( vertexes[ i ].normal, scale );
-        ScaleCoords( vertexes[ i ].position, scale );
+        ScaleCoords( vertexes[ i ].texCoord, ( float ) scale );
+        ScaleCoords( vertexes[ i ].lightmapCoord, ( float ) scale );
+        ScaleCoords( vertexes[ i ].normal, ( float ) scale );
+        ScaleCoords( vertexes[ i ].position, ( float ) scale );
 
         SwizzleCoords( vertexes[ i ].position );
         SwizzleCoords( vertexes[ i ].normal );
@@ -284,8 +284,8 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
     for ( int i = 0; i < numModels; ++i )
     {
-        ScaleCoords( models[ i ].boxMax, scale );
-        ScaleCoords( models[ i ].boxMin, scale );
+        ScaleCoords( models[ i ].boxMax, ( float ) scale );
+        ScaleCoords( models[ i ].boxMin, ( float ) scale );
 
         SwizzleCoords( models[ i ].boxMax );
         SwizzleCoords( models[ i ].boxMin );
@@ -298,10 +298,10 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
     for ( int i = 0; i < numFaces; ++i )
     {
-        ScaleCoords( faces[ i ].normal, scale );
-        ScaleCoords( faces[ i ].lightmapOrigin, scale );
-        ScaleCoords( faces[ i ].lightmapStVecs[ 0 ], scale );
-        ScaleCoords( faces[ i ].lightmapStVecs[ 1 ], scale );
+        ScaleCoords( faces[ i ].normal, ( float ) scale );
+        ScaleCoords( faces[ i ].lightmapOrigin, ( float ) scale );
+        ScaleCoords( faces[ i ].lightmapStVecs[ 0 ], ( float ) scale );
+        ScaleCoords( faces[ i ].lightmapStVecs[ 1 ], ( float ) scale );
 
         SwizzleCoords( faces[ i ].normal );
         SwizzleCoords( faces[ i ].lightmapOrigin );
@@ -356,105 +356,7 @@ Generates OpenGL texture data for map faces
 
 void Q3BspMap::GenTextures( const string &mapFilePath )
 {
-    // extract (relative) root directory of map file in filepath string;
-    // we append 1 at the end because we use the index as a
-    // buffer length
-    int dirRootLen = mapFilePath.find_last_of( '/' ) + 1;
-    string relMapDirPath = mapFilePath.substr( 0, dirRootLen );
-    relMapDirPath.append( "../" );
-
-    apiTextures = ( GLuint* ) malloc( sizeof( GLuint ) * numTextures );
-    glGenTextures( numTextures, apiTextures );
-
-    string cwdpath;
-
-    {
-        char buf[ CHAR_MAX ];
-        memset( buf, 0, CHAR_MAX );
-        getcwd( buf, CHAR_MAX );
-
-        cwdpath.append( buf );
-        cwdpath.append( "/" );
-    }
-
-    // Iterate through the directory location of each texture so we can uncover its
-    // extension and load it accordingly.
-    for ( int i = 0; i < numTextures; ++i )
-    {
-        string texPath = relMapDirPath;
-        texPath.append( textures[ i ].filename );
-
-        bool finished = false;
-        {
-            // Comparison between filename in the texPath (sans root dir) and d_name param of "entry" var
-            const string& cmp = texPath.substr( texPath.find_last_of( '/' ) + 1 );
-            const string& dir = cwdpath + texPath.substr( 0, texPath.find_last_of( '/' ) );
-
-            DIR* d;
-
-            struct dirent* entry;
-
-            d = opendir( dir.c_str() );
-
-            // We have an invalid directory if this is the case
-            if ( !d )
-                continue;
-
-            while ( ( entry = readdir( d ) ) != NULL )
-            {
-                string fname( entry->d_name );
-
-                int extIndex = fname.find_last_of( '.' );
-
-                if ( extIndex != -1 )
-                {
-                    const string& ext = fname.substr( extIndex );
-                    const string& file = fname.substr( 0, extIndex );
-
-                    finished = file == cmp;
-
-                    if ( finished )
-                    {
-                        texPath.append( ext );
-                        break;
-                    }
-                }
-            }
-        }
-
-        if ( !finished )
-            continue;
-
-        int width, height, comp;
-
-        unsigned char* pixels = stbi_load( texPath.c_str(), &width, &height, &comp, 0 );
-
-        GLenum fmt, ifmt;
-
-        switch ( comp )
-        {
-            case 3:
-                ifmt = GL_RGB8;
-                fmt = GL_RGB;
-                break;
-            default:
-                ifmt = GL_RGBA8;
-                fmt = GL_RGBA;
-                break;
-        }
-
-        glBindTexture( GL_TEXTURE_2D, apiTextures[ i ] );
-        glTexStorage2D( GL_TEXTURE_2D, 1, ifmt, width, height );
-        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, fmt, GL_UNSIGNED_BYTE, pixels );
-
-        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-
-        glBindTexture( GL_TEXTURE_2D, 0 );
-    }
+    
 }
 
 /*

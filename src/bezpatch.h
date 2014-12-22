@@ -3,29 +3,32 @@
 #include "common.h"
 #include "vec.h"
 
-#define BEZ_BUF_COUNT 3
+#define BEZ_BUF_COUNT 2
+#define BEZ_CONTROL_POINT_COUNT 9
+
+struct bspVertex_t;
 
 class BezPatch
 {
-private:
-
+public:
     GLuint                      buffers[ BEZ_BUF_COUNT ];
 
-    std::vector< vec3f_t >      vertices;
+	GLuint						vao;
+
+    std::vector< bspVertex_t >  vertices;
 
     std::vector< int  >         indices;
-    std::vector< int  >         trisPerRow;
-    std::vector< int* >         rowIndices;
 
-public:
+    const bspVertex_t*			controlPoints[ BEZ_CONTROL_POINT_COUNT ];
 
-    int                     tessLevel;
+	GLuint						clientVbo, clientVao;
 
-    vec3f_t                 controlPoints[ 9 ];
+	BezPatch( GLuint clientVbo, GLuint clientVao );
+	~BezPatch( void );
 
-    void                    Alloc( void );
+    void						Tesselate( int level );
 
-    void                    Tesselate( void );
+    void						Render( void ) const;
 
-    void                    Render( void ) const;
+	friend class				Q3BspMap;
 };
