@@ -2,9 +2,7 @@ bspviewer
 =========
 
 View an IBSP map!
-
-(Currently only supported on Linux) <br>
-(Totally not finished yet)
+(WIP)
 
 ##Credits
 
