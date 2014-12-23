@@ -47,14 +47,14 @@ void glDebugInit( void )
     dateTime = ( char* )malloc( sizeof( char ) * DATE_TIME_STR_SIZE );
 	MyDateTime( "%Y/%m/%d %H:%M:%S", dateTime, DATE_TIME_STR_SIZE );
 
-    glLog    = fopen( "log/gl.log", "w" );
+    glLog = fopen( "log/gl.log", "w" );
 
     if ( !glLog )
         ERROR( "Could not open gl.log" );
 
-    glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+//    glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
 
-    glDebugMessageCallbackARB( glDebugOutProc, NULL );
+    // glDebugMessageCallbackARB( glDebugOutProc, NULL );
 
 	ExitOnGLError( "OpenGL Debug" );
 }

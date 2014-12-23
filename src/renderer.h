@@ -54,9 +54,14 @@ class BSPRenderer
 {
 public:
 
-    InputCamera* camera;
+    InputCamera*	camera;
 
-    Frustum*     frustum;
+    Frustum*		frustum;
+
+	BezPatch		patchRenderer;
+
+	int				mapDimsLength;
+	int				lodThreshold;
 
     BSPRenderer( void );
 
@@ -68,7 +73,7 @@ public:
     void    DrawWorld( void );
 
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
-    void    DrawFace( int faceIndex, RenderPass& pass, bool isSolid );
+    void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid );
 
     void    Update( float dt );
 
@@ -84,4 +89,6 @@ private:
     float               deltaTime;
 
     const bspLeaf_t*    currLeaf;
+
+	int CalcSubdivision( const RenderPass& pass, const AABB& bounds );
 };

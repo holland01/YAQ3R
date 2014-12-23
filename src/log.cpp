@@ -252,6 +252,7 @@ void LogBSPData( int type, void* data, int length )
 
 void InitSysLog( void )
 {
+	
     globalDrawLog = fopen( "log/drawLog.log", "w" );
     globalBspDataLog = fopen( "log/bspData.log", "w" );
 

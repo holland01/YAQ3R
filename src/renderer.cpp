@@ -58,7 +58,8 @@ BSPRenderer::BSPRenderer( void )
       vao( 0 ),
       vbo( 0 ),
       deltaTime( 0 ),
-      currLeaf( NULL )
+      currLeaf( NULL ),
+	  mapDimsLength( 0 )
 {
 	viewParams_t view;
 	view.inverseOrient = glm::mat4( 
@@ -162,6 +163,9 @@ void BSPRenderer::Load( const string& filepath )
 
     GL_CHECK( glUseProgram( bspProgram ) );
     GL_CHECK( glUniformMatrix4fv( glGetUniformLocation( bspProgram, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+
+	mapDimsLength = ( int ) glm::length( glm::vec3( map->nodes[ 0 ].boxMax.x, map->nodes[ 0 ].boxMax.y, map->nodes[ 0 ].boxMax.z ) );
+	lodThreshold = mapDimsLength / 3;
 }
 
 /*
@@ -182,11 +186,10 @@ void BSPRenderer::DrawWorld( void )
     RenderPass pass( map, camera->ViewData() );
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 
-    //GL_CHECK( glDisable( GL_BLEND ) );
     DrawNode( 0, pass, true );
 
-	frustum->PrintMetrics();
-	frustum->ResetMetrics();
+	//frustum->PrintMetrics();
+	//frustum->ResetMetrics();
 
     GL_CHECK( glBindVertexArray( 0 ) );
     GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
@@ -227,15 +230,13 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
         if ( !map->IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
             return;
 
-        {
-            glm::vec3 max( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z );
-            glm::vec3 min( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z );
+        AABB bounds( 
+			glm::vec3( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z ), 
+			glm::vec3( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z ) 
+		);
 
-            AABB bounds( max, min );
-
-            if ( !frustum->IntersectsBox( bounds ) )
-                return;
-        }
+        if ( !frustum->IntersectsBox( bounds ) )
+            return;
 
         for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
         {
@@ -244,7 +245,7 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
             if ( pass.facesRendered[ index ] )
                 continue;
 
-            DrawFace( index, pass, isSolid );
+            DrawFace( index, pass, bounds, isSolid );
         }
 
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
@@ -269,18 +270,25 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     }
 }
 
-void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, bool isSolid )
+void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid )
 {
     bspFace_t* face = map->faces + faceIndex;
 
 	std::vector< GLuint > indices;
 
-	if ( face->type == FACE_TYPE_POLYGON || face->type == FACE_TYPE_MESH )
+	if ( face->texture >= 0 )
 	{
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->GetApiTexture( face->texture ) ) );
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
 		GL_CHECK( glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), 0 ) );
+	}
+	else
+	{
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	}
 
+	if ( face->type == FACE_TYPE_POLYGON || face->type == FACE_TYPE_MESH )
+	{
 		indices.reserve( face->numMeshVertexes );
 		for ( int i = 0; i < face->numMeshVertexes; ++i )
 		{
@@ -291,33 +299,47 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, bool isSolid )
 	}
 	else if ( face->type == FACE_TYPE_PATCH )
 	{
-		// We send our vao and vbo so we don't have to rebind after the instance is destroyed
-		 
-		BezPatch patch( vbo, vao );
+		// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
+		int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
+		int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
 
-		if ( face->numVertexes % 9 != 0 )
-		{
-			__nop();
-			return;
-		}
-		/*
-		for ( int j = 0; j < face->numVertexes; j += 9 )
-		{
-			for ( int i = 0; i < 9; ++i )
-			{
-				patch.controlPoints[ i ] = &map->vertexes[ face->vertexOffset + i ];
-			}
+		int c = 0;
+		for ( int i = 0; i < face->size[ 0 ]; i += stepWidth )
+			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
+				patchRenderer.controlPoints[ c++ ] = &map->vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
+				
+		patchRenderer.Tesselate( CalcSubdivision( pass, bounds ) );
+		patchRenderer.Render();
 
-			patch.Tesselate( 4 );
-			patch.Render();
-		}
-		*/
-	}
-	else
-	{
-		return;
+		// Rebind after render since patchRenderer overrides with its own vao/vbo combo
+		GL_CHECK( glBindVertexArray( vao ) );
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 	}
 
     pass.facesRendered[ faceIndex ] = 1;
+}
+
+
+int BSPRenderer::CalcSubdivision( const RenderPass& pass, const AABB& bounds )
+{
+	int min = INT_MAX;
+
+	// Find the closest point to the camera
+	for ( int i = 0; i < 8; ++i )
+	{
+		int d = ( int ) glm::distance( pass.view.origin, bounds.Corner( i ) );
+		if ( min > d )
+			min = d;
+	}
+
+	// Compute our subdivision level based on the length of the map's size vector
+	// and its ratio in relation with the closest distance
+	int subdiv = 0;
+	if ( min > lodThreshold )
+		subdiv = 1;
+	else
+		subdiv = mapDimsLength / min;
+
+	return subdiv;
 }
 

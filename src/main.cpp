@@ -10,6 +10,8 @@ void FlagExit( void )
 {
     delete gAppTest;
     gAppTest = NULL;
+	system( "pause" );
+	exit( 0 );
 }
 
 int main( int argc, char** argv )

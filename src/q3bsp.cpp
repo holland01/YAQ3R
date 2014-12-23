@@ -336,12 +336,9 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
     fclose( file );
 
-   //LogBSPData( BSP_LUMP_VERTEXES, ( void* ) vertexes, numVertexes );
-   //LogBSPData( BSP_LUMP_MESH_VERTEXES, ( void* ) meshVertexes, numMeshVertexes );
-   LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
-   LogBSPData( BSP_LUMP_EFFECTS, ( void* ) effectShaders, numEffectShaders );
-   LogBSPData( BSP_LUMP_TEXTURES, ( void* ) textures, numTextures );
-
+	LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
+	LogBSPData( BSP_LUMP_EFFECTS, ( void* ) effectShaders, numEffectShaders );
+	LogBSPData( BSP_LUMP_TEXTURES, ( void* ) textures, numTextures );
 }
 
 /*
@@ -356,7 +353,87 @@ Generates OpenGL texture data for map faces
 
 void Q3BspMap::GenTextures( const string &mapFilePath )
 {
-    
+#ifndef _WIN32
+#	error "No file system traversal implementation exists for non-Windows OS; this is necessary for fetching the stored textures in memory, in addition to various other assets"
+#endif
+
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+
+	// Some might consider this a hack; however, it works. It's also simpler, portable, and more performant than traversing a number of directories
+	// using an OS-specific API
+	static const char* validImgExt[] = 
+	{
+		".jpg", ".png", ".tga", ".tiff", ".bmp"
+	};
+
+	const std::string& root = mapFilePath.substr( 0, mapFilePath.find_last_of( '/' ) ) + "/../";
+
+	glTextures.resize( numTextures, 0 );
+	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
+
+	for ( int t = 0; t < numTextures; t++ )
+	{
+		FILE* tf;
+
+		std::string fname( textures[ t ].filename );
+
+		const std::string& texPath = root + fname;
+		
+		// If we don't have a file extension appended in the name,
+		// try to find one for it which is valid
+		if ( fname.find_last_of( '.' ) == std::string::npos )
+		{
+			for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
+			{
+				const std::string& str = texPath + std::string( validImgExt[ i ] );
+
+				tf = fopen( str.c_str(), "rb" );
+			
+				// If we found a match, bail
+				if ( tf )
+					break;
+			}
+		}
+		else
+		{
+			tf = fopen( texPath.c_str(), "rb" );
+		}
+		
+		// Stub out the texture for this iteration by continue; warn user
+		if ( !tf )
+		{
+			WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
+			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
+			glTextures[ t ] = 0;
+			continue;
+		}
+
+		// Load image
+		int width, height, bpp;
+		byte* imagePixels = stbi_load_from_file( tf, &width, &height, &bpp, STBI_default );
+
+		GLenum fmt;
+
+		switch ( bpp )
+		{
+		case 1:
+			fmt = GL_R8;
+			break;
+		case 3:
+			fmt = GL_RGB;
+			break;
+		case 4:
+			fmt = GL_RGBA;
+			break;
+		default:
+			ERROR( "Unsupported bits per pixel specified; this needs to be fixed. For image file \'%s\'", texPath.c_str() );
+			break;
+		}
+		
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glTextures[ t ] ) );
+		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, GL_SRGB8, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	}
 }
 
 /*

@@ -297,6 +297,8 @@ public:
 
     int                 numVisdataVecs;
 
+	std::vector< GLuint > glTextures;
+
 private:
 
     Q3BspMap( const Q3BspMap& ) = delete;

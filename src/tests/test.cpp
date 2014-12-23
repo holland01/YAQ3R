@@ -151,8 +151,8 @@ void Test::OnMouseMove( double x, double y )
 	camPtr->lastMouse.x = mouseX;
 	camPtr->lastMouse.y = mouseY;
 
-	mouseX = x;
-	mouseY = y;
+	mouseX = ( float ) x;
+	mouseY = ( float ) y;
 
 	if ( !cursorVisible )
 	{

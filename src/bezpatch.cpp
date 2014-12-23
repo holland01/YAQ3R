@@ -3,24 +3,19 @@
 #include "q3bsp.h"
 #include "glutil.h"
 
-BezPatch::BezPatch( GLuint clientVbo_, GLuint clientVao_ )
-	: clientVbo( clientVbo_ ),
-	  clientVao( clientVao_ )
+BezPatch::BezPatch( void )
+	: lastCount( 0 )
 {
-	GL_CHECK( glGenBuffers( BEZ_BUF_COUNT, buffers ) ); 
+	GL_CHECK( glGenBuffers( 1, &vbo ) ); 
 	GL_CHECK( glGenVertexArrays( 1, &vao ) );
 
-	//memset( controlPoints, 0, sizeof( const bspVertex_t* ) * BEZ_CONTROL_POINT_COUNT );  
+	memset( controlPoints, 0, sizeof( const bspVertex_t* ) * BEZ_CONTROL_POINT_COUNT );  
 }
 
 BezPatch::~BezPatch( void )
 {
-	GL_CHECK( glDeleteBuffers( BEZ_BUF_COUNT, buffers ) );
+	GL_CHECK( glDeleteBuffers( 1, &vbo ) );
 	GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
-
-	// Rebind on destruct so we don't have to do it ourselves after using this class
-	GL_CHECK( glBindVertexArray( clientVao ) );
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, clientVbo ) );
 }
 
 // From Paul Baker's Octagon project, as referenced in http://graphics.cs.brown.edu/games/quake/quake3.html
@@ -85,19 +80,34 @@ void BezPatch::Tesselate( int level )
 			indices[ ( row * L1 + col ) * 2 + 1 ] = row * L1 + col;
 		}
 	}
+
+	rowIndices.resize( level );
+	trisPerRow.resize( level );
+	for ( int row = 0; row < level; ++row )
+	{
+		trisPerRow[ row ] = 2 * L1;
+		rowIndices[ row ] = &indices[ row * 2 * L1 ];  
+	}
+
+	subdivLevel = level;
 }
 
 void BezPatch::Render( void ) const
 {
 	GL_CHECK( glBindVertexArray( vao ) );
 
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, buffers[ 0 ] ) );
-	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ], GL_DYNAMIC_DRAW ) );
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 
-	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, buffers[ 1 ] ) );
-	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( GLuint ) * indices.size(), &indices[ 0 ], GL_DYNAMIC_DRAW ) ); 
+	if ( lastCount < vertices.size() )
+		GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ], GL_DYNAMIC_DRAW ) );
+	else
+		GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ] ) );
 
 	LoadVertexLayout();
 
-	GL_CHECK( glDrawElements( GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, NULL ) );
+	GL_CHECK( glDrawElements( GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, &indices[ 0 ] ) );
+
+	//GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &rowIndices[ 0 ], subdivLevel ) );
+
+	lastCount = vertices.size();
 }
