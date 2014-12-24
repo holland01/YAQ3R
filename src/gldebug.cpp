@@ -1,11 +1,9 @@
 #include "gldebug.h"
 #include "log.h"
 
-
 enum GLDebugValue
 {
     GLDEBUG_LOG_STDOUT = 0x1,
-
     GLDEBUG_LOG_FILE = 0x2
 };
 
@@ -26,6 +24,9 @@ static char* dateTime           = NULL;
 static int   fileEntryCount     = 0;
 static int   stdoutEntryCount   = 0;
 static FILE* glLog              = NULL;
+
+static std::string glErrorSourceFn = "NOT SPECIFIED";
+static std::string glErrorCallFn = "NOT SPECIFIED";
 
 /*
 ===========================
@@ -52,20 +53,9 @@ void glDebugInit( void )
     if ( !glLog )
         ERROR( "Could not open gl.log" );
 
-//    glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
-
-    // glDebugMessageCallbackARB( glDebugOutProc, NULL );
-
-	ExitOnGLError( "OpenGL Debug" );
+	glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+	glDebugMessageCallbackARB( glDebugOutProc, NULL );
 }
-
-/*
-===========================
-
-glDebugKill
-
-===========================
-*/
 
 void glDebugKill( void )
 {
@@ -82,16 +72,11 @@ void glDebugKill( void )
 
 }
 
-/*
-===========================
-
-glDebugOutProc
-
-    Process GL-sent callback info
-    and output to user-specified file.
-
-===========================
-*/
+void glDebugSetCallInfo( const std::string& glFn, const std::string& calleeFn )
+{
+	glErrorCallFn = glFn;
+	glErrorSourceFn = calleeFn;
+}
 
 void GL_PROC glDebugOutProc( GLenum source,
                     GLenum type,
@@ -101,46 +86,50 @@ void GL_PROC glDebugOutProc( GLenum source,
                     const GLchar* message,
                     const void* userParam )
 {
-    // __dateTime - __fileEntryCount | __stdoutEntryCount
-
-    const char* out_fmt = "[ %s - %i ] { \n\n"\
+    const char* format = "[ %s: %s ] [ %s - %i ] { \n\n"\
                             "\tSource: %s \n"\
                             "\tType: %s \n"\
                             "\tID: %d \n"\
                             "\tSeverity: %s \n"\
                             "\tMessage: %s \n\n } \n";
 
+    char msgSource[ 20 ];
+    char msgType[ 20 ];
+    char msgSeverity[ 20 ];
 
-    char deb_source  [ 16 ];
-    char deb_type    [ 20 ];
-    char deb_sev     [ 5 ];
+	memset( msgSource, 0, sizeof( source ) );
+	memset( msgType, 0, sizeof( msgType ) );
+	memset( msgSeverity, 0, sizeof( msgSeverity ) );
+
+	bool doExit = type == GL_DEBUG_TYPE_ERROR_ARB || type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB;
 
     switch( source )
     {
-        case GL_DEBUG_SOURCE_API_ARB:               strcpy( deb_source, "OpenGL" ); break;
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:     strcpy( deb_source, "Windows" );  break;
-        case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:   strcpy( deb_source, "Shader Compiler" ); break;
-        case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:       strcpy( deb_source, "Third Party" ); break;
-        case GL_DEBUG_SOURCE_APPLICATION_ARB:       strcpy( deb_source, "Application" ); break;
-        case GL_DEBUG_SOURCE_OTHER_ARB:             strcpy( deb_source, "Other" ); break;
+        case GL_DEBUG_SOURCE_API_ARB:               strcpy( msgSource, "OpenGL" ); break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:     strcpy( msgSource, "Windows" );  break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:   strcpy( msgSource, "Shader Compiler" ); break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:       strcpy( msgSource, "Third Party" ); break;
+        case GL_DEBUG_SOURCE_APPLICATION_ARB:       strcpy( msgSource, "Application" ); break;
+        case GL_DEBUG_SOURCE_OTHER_ARB:             strcpy( msgSource, "Other" ); break;
     }
 
     switch( type )
     {
-        case GL_DEBUG_TYPE_ERROR_ARB:               strcpy( deb_type, "Error" ); break;
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB: strcpy( deb_type, "Deprecated Behavior" ); break;
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:  strcpy( deb_type, "Undefined Behavior" ); break;
-        case GL_DEBUG_TYPE_PORTABILITY_ARB:         strcpy( deb_type, "Portability" ); break;
-        case GL_DEBUG_TYPE_PERFORMANCE_ARB:         strcpy( deb_type, "Performance" ); break;
-        case GL_DEBUG_TYPE_OTHER_ARB:               strcpy( deb_type, "Other" ); break;
+        case GL_DEBUG_TYPE_ERROR_ARB:               strcpy( msgType, "Error" ); break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB: strcpy( msgType, "Deprecated Behavior" ); break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:  strcpy( msgType, "Undefined Behavior" ); break;
+        case GL_DEBUG_TYPE_PORTABILITY_ARB:         strcpy( msgType, "Portability" ); break;
+        case GL_DEBUG_TYPE_PERFORMANCE_ARB:         strcpy( msgType, "Performance" ); return; break;
+        case GL_DEBUG_TYPE_OTHER_ARB:               strcpy( msgType, "Other" ); break;
 
     }
-
+	
     switch( severity )
     {
-        case GL_DEBUG_SEVERITY_HIGH_ARB:    strcpy( deb_sev, "High" ); break;
-        case GL_DEBUG_SEVERITY_MEDIUM_ARB:  strcpy( deb_sev, "Medium" ); break;
-        case GL_DEBUG_SEVERITY_LOW_ARB:     strcpy( deb_sev, "Low" ); break;
+        case GL_DEBUG_SEVERITY_HIGH_ARB:    strcpy( msgSeverity, "High" ); break;
+        case GL_DEBUG_SEVERITY_MEDIUM_ARB:  strcpy( msgSeverity, "Medium" ); break;
+        case GL_DEBUG_SEVERITY_LOW_ARB:     strcpy( msgSeverity, "Low" ); break;
+		default:							return;
     }
 
     switch( values[ 0 ] )
@@ -149,13 +138,15 @@ void GL_PROC glDebugOutProc( GLenum source,
         {
             MyFprintf( glLog,
                      "Log",
-                     out_fmt,
+                     format,
+					 glErrorSourceFn.c_str(),
+					 glErrorCallFn.c_str(),
                      dateTime,
                      fileEntryCount,
-                     deb_source,
-                     deb_type,
+                     source,
+                     msgType,
                      id,
-                     deb_sev,
+                     msgSeverity,
                      message );
 
             ++fileEntryCount;
@@ -165,19 +156,24 @@ void GL_PROC glDebugOutProc( GLenum source,
         case GLDEBUG_LOG_STDOUT:
         {
             MyPrintf(  "glio_debug_out",
-                        out_fmt,
+                        format,
+						glErrorSourceFn.c_str(),
+						glErrorCallFn.c_str(),
                         dateTime,
                         stdoutEntryCount,
-                        deb_source,
-                        deb_type,
+                        source,
+                        msgType,
                         id,
-                        deb_sev,
+                        msgSeverity,
                         message );
 
             ++stdoutEntryCount;
         }
         break;
     }
+
+	if ( doExit )
+		FlagExit();
 }
 
 

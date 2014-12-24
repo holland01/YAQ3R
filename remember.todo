@@ -1,0 +1,32 @@
+Feature:
+- Lightmaps; use a separate tex sampler for that
+- Billboards
+
+Perf:
+
+//- Use the same vao for the bezier patches that is being used for the rest of the data
+//- Pre-construct face indices so they don't need to be re-computed every pass
+//- Cache uniform locations
+//- Minimize state changes as much as possible
+- Testing on map "aty3dm1v2.bsp" produces some areas where there is a pretty bad drop in performance. The following is a list
+  of things which are known to not be causes of the performance hit:
+  - Rendering bezier patches
+  - using alpha blending
+  Things which have appeared to provide improvements:
+  - Capping bezier tessellation level at 10
+  - Improving the speed of the frustum collision loop by 8x
+  - Moving glActiveTexture and the glUniform1i call used to set the sampler parameter out of the render loop.  
+
+
+Refactor:
+
+//- Have a global interface function which can be called for setting the function source and call strings in GL_CHECK macro, as opposed to just directly setting globals...
+//- Make all variables camelcase in gldebug.cpp
+//- For consistency, remove std::vector usage from Q3BspMap class (as well as mapModel_t). Replace with buffers.
+- Precompile headers...
+- Ditch malloc usage in Q3BspMap::Read(...) and call new instead. Also consider allocating one gigantic buffer, and then simply using pointers to point to the actual data in their respective memory formats.
+
+
+
+
+

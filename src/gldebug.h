@@ -16,10 +16,11 @@ License: WTFPL
 
 #include "common.h"
 
-
 void            glDebugInit( void );
 
 void            glDebugKill( void );
+
+void			glDebugSetCallInfo( const std::string& glFn, const std::string& calleeFn );
 
 void  GL_PROC	glDebugOutProc( GLenum source,
                             GLenum type,

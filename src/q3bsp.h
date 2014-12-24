@@ -132,8 +132,7 @@ struct bspModel_t
 struct bspVertex_t
 {
     vec3f_t position;
-    vec2f_t texCoord;
-    vec2f_t lightmapCoord;
+    vec2f_t texCoords[ 2 ]; // 0 => surface, 1 => lightmap
     vec3f_t normal;
 
     byte color[ 4 ];
@@ -203,7 +202,7 @@ INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
 	*/
 	
 	vert.normal = a.normal + b.normal;
-	vert.texCoord = a.texCoord + b.texCoord;
+	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
 
 	// TODO: lightmapCoords?
 
@@ -217,7 +216,7 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 	vert.position = a.position * b;
 
 	vert.normal = a.normal * b;
-	vert.texCoord = a.texCoord * b;
+	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
 
 	/*
 	vert.color[ 0 ] *= ( byte )( b * 255.0f );
@@ -239,6 +238,11 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 =====================================================
 */
 
+struct mapModel_t
+{
+	std::vector< GLuint > indices;
+};
+
 class Q3BspMap
 {
 public:
@@ -252,8 +256,6 @@ public:
     void                GenTextures( const std::string& filepath );
 
     void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
-
-    GLuint              GetApiTexture( int index ) const;
 
     bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
 
@@ -297,28 +299,15 @@ public:
 
     int                 numVisdataVecs;
 
-	std::vector< GLuint > glTextures;
+	std::vector< GLuint > glTextures; // has one->one map with texture indices
+	std::vector< mapModel_t > glFaces; // has one->one map with face indices
 
 private:
 
     Q3BspMap( const Q3BspMap& ) = delete;
     Q3BspMap& operator=( Q3BspMap ) = delete;
 
-    GLuint*         apiTextures;
-
     bspHeader_t     header;
 
     bool            mapAllocated;
 };
-
-INLINE GLuint Q3BspMap::GetApiTexture( int index ) const
-{
-    assert( mapAllocated );
-	//assert( apiTextures );
-    assert( index < numTextures );
-
-	if ( apiTextures )
-		return apiTextures[ index ];
-	else
-		return 0;
-}

@@ -90,5 +90,7 @@ private:
 
     const bspLeaf_t*    currLeaf;
 
+	std::map< std::string, GLint > bspProgramUniforms;
+
 	int CalcSubdivision( const RenderPass& pass, const AABB& bounds );
 };

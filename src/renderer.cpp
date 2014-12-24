@@ -7,12 +7,13 @@
 
 using namespace std;
 
-enum
+
+
+enum 
 {
-    FACE_TYPE_BILLBOAD = 4,
-    FACE_TYPE_MESH = 3,
-    FACE_TYPE_PATCH = 2,
-    FACE_TYPE_POLYGON = 1
+	FRAGWRITE_TEX = 0,
+	FRAGWRITE_TEX_COLOR = 1,
+	FRAGWRITE_COLOR = 2
 };
 
 /*
@@ -61,6 +62,7 @@ BSPRenderer::BSPRenderer( void )
       currLeaf( NULL ),
 	  mapDimsLength( 0 )
 {
+	/*
 	viewParams_t view;
 	view.inverseOrient = glm::mat4( 
 		glm::vec4( 1.00000000f, -0.000000000f, -1.06630473e-008f, 0.0f ),
@@ -77,6 +79,10 @@ BSPRenderer::BSPRenderer( void )
 	rot.roll = 0.0f;
 
     camera = new InputCamera( view, rot );
+	*/
+
+	camera = new InputCamera();
+
     frustum = new Frustum();
     map = new Q3BspMap();
 }
@@ -92,15 +98,13 @@ BSPRenderer::~BSPRenderer
 BSPRenderer::~BSPRenderer( void )
 {
     glDeleteVertexArrays( 1, &vao );
+	glDeleteBuffers( 1, &vbo );
     glDeleteProgram( bspProgram );
-    glDeleteBuffers( 1, &vbo );
-
+    
     delete map;
     delete frustum;
     delete camera;
 }
-
-
 
 /*
 =====================================================
@@ -125,6 +129,12 @@ void BSPRenderer::Prep( void )
 
     bspProgram = LinkProgram( shaders, 2 );
 
+	bspProgramUniforms[ "fragWriteMode" ] = glGetUniformLocation( bspProgram, "fragWriteMode" );
+	bspProgramUniforms[ "fragTexSampler" ] = glGetUniformLocation( bspProgram, "fragTexSampler" );
+
+	bspProgramUniforms[ "modelToCamera" ] = glGetUniformLocation( bspProgram, "modelToCamera" );
+	bspProgramUniforms[ "cameraToClip" ] = glGetUniformLocation( bspProgram, "cameraToClip" );
+
     glUseProgram( bspProgram );
 }
 
@@ -141,16 +151,15 @@ BSPRenderer::Load
 void BSPRenderer::Load( const string& filepath )
 {
     if ( map->IsAllocated() )
-    {
         map->DestroyMap();
-    }
 
     map->Read( filepath, 1 );
     map->GenTextures( filepath );
 
-    GL_CHECK( glBindVertexArray( vao ) );
+	// Allocate vertex data from map and store it all in a single vbo
+	GL_CHECK( glBindVertexArray( vao ) );
 
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
     GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->numVertexes, map->vertexes, GL_STATIC_DRAW ) );
 
     GL_CHECK( glBindAttribLocation( bspProgram, 0, "position" ) );
@@ -159,10 +168,13 @@ void BSPRenderer::Load( const string& filepath )
 
 	LoadVertexLayout();
 
-    GL_CHECK( glBindVertexArray( 0 ) );
-
+	// Load projection transform
     GL_CHECK( glUseProgram( bspProgram ) );
-    GL_CHECK( glUniformMatrix4fv( glGetUniformLocation( bspProgram, "cameraToClip" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+    GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+
+	// Base texture setup
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+	GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
 
 	mapDimsLength = ( int ) glm::length( glm::vec3( map->nodes[ 0 ].boxMax.x, map->nodes[ 0 ].boxMax.y, map->nodes[ 0 ].boxMax.z ) );
 	lodThreshold = mapDimsLength / 3;
@@ -177,22 +189,13 @@ BSPRenderer::DrawWorld
 */
 
 void BSPRenderer::DrawWorld( void )
-{
-    GL_CHECK( glBindVertexArray( vao ) ); 
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-
-    GL_CHECK( glUniformMatrix4fv( glGetUniformLocation( bspProgram, "modelToCamera" ), 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
+{ 
+	GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
 
     RenderPass pass( map, camera->ViewData() );
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 
     DrawNode( 0, pass, true );
-
-	//frustum->PrintMetrics();
-	//frustum->ResetMetrics();
-
-    GL_CHECK( glBindVertexArray( 0 ) );
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
 }
 
 /*
@@ -247,8 +250,6 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
 
             DrawFace( index, pass, bounds, isSolid );
         }
-
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
     }
     else
     {
@@ -257,7 +258,8 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
 
         float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) );
 
-        if ( ( d > plane->distance ) == isSolid )
+		// We're in front of the plane if d > plane->distance
+        if ( isSolid && d > plane->distance )
         {
             DrawNode( node->children[ 0 ], pass, isSolid );
             DrawNode( node->children[ 1 ], pass, isSolid );
@@ -274,30 +276,22 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 {
     bspFace_t* face = map->faces + faceIndex;
 
-	std::vector< GLuint > indices;
-
-	if ( face->texture >= 0 )
+	if ( map->glTextures[ face->texture ] != 0 )
 	{
-		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
-		GL_CHECK( glUniform1i( glGetUniformLocation( bspProgram, "texSampler" ), 0 ) );
+		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
 	}
 	else
 	{
+		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_COLOR ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	}
 
-	if ( face->type == FACE_TYPE_POLYGON || face->type == FACE_TYPE_MESH )
+	if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
 	{
-		indices.reserve( face->numMeshVertexes );
-		for ( int i = 0; i < face->numMeshVertexes; ++i )
-		{
-			indices.push_back( face->vertexOffset + map->meshVertexes[ face->meshVertexOffset + i ].offset );
-		}
-
-		GL_CHECK( glDrawElements( GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, &indices[ 0 ] ) );
+		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ faceIndex ].indices[ 0 ] ) );
 	}
-	else if ( face->type == FACE_TYPE_PATCH )
+	else if ( face->type == BSP_FACE_TYPE_PATCH )
 	{
 		// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
 		int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
@@ -308,17 +302,15 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
 				patchRenderer.controlPoints[ c++ ] = &map->vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
 				
-		patchRenderer.Tesselate( CalcSubdivision( pass, bounds ) );
+		patchRenderer.Tesselate( glm::min( 10, CalcSubdivision( pass, bounds ) ) );
 		patchRenderer.Render();
 
 		// Rebind after render since patchRenderer overrides with its own vao/vbo combo
-		GL_CHECK( glBindVertexArray( vao ) );
-		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
+		LoadBuffer( vbo );
 	}
 
     pass.facesRendered[ faceIndex ] = 1;
 }
-
 
 int BSPRenderer::CalcSubdivision( const RenderPass& pass, const AABB& bounds )
 {

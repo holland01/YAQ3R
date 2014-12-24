@@ -2,8 +2,10 @@
 #include "q3bsp.h"
 #include "gldebug.h"
 
-FILE* globalDrawLog = NULL;
-FILE* globalBspDataLog = NULL;
+
+
+FILE* gDrawLog = NULL;
+FILE* gBspDataLog = NULL;
 
 /*
 ===============================
@@ -134,7 +136,7 @@ LogBSPData
 
 void LogBSPData( int type, void* data, int length )
 {
-    ASSERT( globalBspDataLog != NULL, "globalBspDataLog is NULL!" );
+    ASSERT( gBspDataLog != NULL, "globalBspDataLog is NULL!" );
     ASSERT( type >= 0x0 && type <= 0x10, "Type not within range [0, 16]! Value received: %i", type );
 
     std::stringstream ss;
@@ -160,11 +162,11 @@ void LogBSPData( int type, void* data, int length )
                    << "\t\t y: " << vertexes[ i ].position.y << "\n"
                    << "\t\t z: " << vertexes[ i ].position.z << "\n"
                    << "\t texcoords[ 0 ]:\n"
-                   << "\t\t x: " << vertexes[ i ].texCoord.x << "\n"
-                   << "\t\t y: " << vertexes[ i ].texCoord.y << "\n"
+                   << "\t\t x: " << vertexes[ i ].texCoords[ 0 ].x << "\n"
+                   << "\t\t y: " << vertexes[ i ].texCoords[ 0 ].y << "\n"
                    << "\t texcoords[ 1 ]:\n"
-                   << "\t\t x: " << vertexes[ i ].lightmapCoord.x << "\n"
-                   << "\t\t y: " << vertexes[ i ].lightmapCoord.y << "\n"
+                   << "\t\t x: " << vertexes[ i ].texCoords[ 1 ].x << "\n"
+                   << "\t\t y: " << vertexes[ i ].texCoords[ 1 ].y << "\n"
                    << "\t normal:\n"
                    << "\t\t x: " << vertexes[ i ].normal.x << "\n"
                    << "\t\t y: " << vertexes[ i ].normal.y << "\n"
@@ -239,27 +241,24 @@ void LogBSPData( int type, void* data, int length )
         }
             break;
 
-
-
         default:
             ERROR( "Log functionality for data type index %i has not been implemented yet!", type );
             break;
 
     }
 
-    MyFprintf( globalBspDataLog, header.c_str(), ss.str().c_str() );
+    MyFprintf( gBspDataLog, header.c_str(), ss.str().c_str() );
 }
 
 void InitSysLog( void )
 {
-	
-    globalDrawLog = fopen( "log/drawLog.log", "w" );
-    globalBspDataLog = fopen( "log/bspData.log", "w" );
+    gDrawLog = fopen( "log/drawLog.log", "w" );
+    gBspDataLog = fopen( "log/bspData.log", "w" );
 
-    if ( !globalDrawLog )
+    if ( !gDrawLog )
         ERROR( "could not open gDrawLog" );
 
-    if ( !globalBspDataLog )
+    if ( !gBspDataLog )
         ERROR( "could not open gBspDataLog" );
 
     glDebugInit();
@@ -267,11 +266,11 @@ void InitSysLog( void )
 
 void KillSysLog( void )
 {
-    if ( globalDrawLog )
-        fclose( globalDrawLog );
+    if ( gDrawLog )
+        fclose( gDrawLog );
 
-    if ( globalBspDataLog )
-        fclose( globalBspDataLog );
+    if ( gBspDataLog )
+        fclose( gBspDataLog );
 
     glDebugKill();
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "gldebug.h"
 
 /*
 =====================================================
@@ -40,17 +41,7 @@ void KillSysLog( void );
 #	define _FUNC_NAME_ __FUNCTION__
 #endif
 
-#ifdef _DEBUG
-#	define GL_CHECK( expr ) \
-		do					\
-		{					\
-			( expr );		\
-			ExitOnGLError( _FUNC_NAME_ );	\
-		}					\
-		while ( 0 )
-#else
-#	define GL_CHECK( expr ) ( expr )
-#endif
+
 
 #ifdef __GNUC__
 #	define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"

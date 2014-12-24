@@ -1,6 +1,6 @@
 #include "q3bsp.h"
 #include "log.h"
-#include "mtrand.h"
+#include "glutil.h"
 #include "extern/stb_image.c"
 
 using namespace std;
@@ -75,7 +75,6 @@ Q3BspMap::Q3BspMap( void )
        faces( NULL ),
        leafFaces( NULL ),
        meshVertexes( NULL ),
-       apiTextures( NULL ),
        mapAllocated( false )
 {
     entities.infoString = NULL;
@@ -109,12 +108,6 @@ void Q3BspMap::DestroyMap( void )
 {
     if ( mapAllocated )
     {
-        if ( apiTextures )
-        {
-            glDeleteTextures( numTextures, apiTextures );
-            free( apiTextures );
-        }
-
         free( entities.infoString );
         free( effectShaders );
 
@@ -131,8 +124,6 @@ void Q3BspMap::DestroyMap( void )
         free( meshVertexes );
 
         free( visdata );
-
-        apiTextures = NULL;
 
         entities.infoString = NULL;
         effectShaders = NULL;
@@ -167,6 +158,8 @@ void Q3BspMap::DestroyMap( void )
 
         numVisdataVecs = 0;
 
+		GL_CHECK( glDeleteTextures( glTextures.size(), &glTextures[ 0 ] ) );
+
         mapAllocated = false;
     }
 }
@@ -188,6 +181,7 @@ Q3BspParser::Read
 
 void Q3BspMap::Read( const std::string& filepath, const int scale )
 {   
+	// Open file, verify it if we succeed
     assert( scale != 0 );
 
     float fScale = ( float )scale;
@@ -210,6 +204,9 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
     {
         ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, header.version );
     }
+
+	// Read map data, swizzle coordinates from Z UP axis to Y UP axis in a right-handed system.
+	// Scale anything as necessary (or desired)
 
     entities.infoString = ( char* ) malloc( header.directories[ BSP_LUMP_ENTITIES ].length );
     entityStringLen = header.directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
@@ -265,17 +262,17 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
     numVertexes = header.directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
     fseek( file, header.directories[ BSP_LUMP_VERTEXES ].offset, SEEK_SET );
     fread( vertexes, header.directories[ BSP_LUMP_VERTEXES ].length, 1, file );
-
-    for ( int i = 0; i < numVertexes; ++i )
-    {
-        ScaleCoords( vertexes[ i ].texCoord, ( float ) scale );
-        ScaleCoords( vertexes[ i ].lightmapCoord, ( float ) scale );
+	
+	for ( int i = 0; i < numVertexes; ++i )
+	{
+		ScaleCoords( vertexes[ i ].texCoords[ 0 ], ( float ) scale );
+        ScaleCoords( vertexes[ i ].texCoords[ 1 ], ( float ) scale );
         ScaleCoords( vertexes[ i ].normal, ( float ) scale );
         ScaleCoords( vertexes[ i ].position, ( float ) scale );
 
         SwizzleCoords( vertexes[ i ].position );
         SwizzleCoords( vertexes[ i ].normal );
-    }
+	}
 
     models = ( bspModel_t* )malloc( header.directories[ BSP_LUMP_MODELS ].length );
     numModels = header.directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
@@ -336,9 +333,21 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
     fclose( file );
 
-	LogBSPData( BSP_LUMP_ENTITIES, ( void* ) entities.infoString, entityStringLen );
-	LogBSPData( BSP_LUMP_EFFECTS, ( void* ) effectShaders, numEffectShaders );
-	LogBSPData( BSP_LUMP_TEXTURES, ( void* ) textures, numTextures );
+	glFaces.resize( numFaces );
+
+	// Generate vbos; we simply cash the data already used for any polygon or mesh faces. For faces
+	// which aren't of these two categories, we leave them be.
+	for ( int i = 0; i < numFaces; ++i )
+	{
+		bspFace_t* face = faces + i;
+
+		if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
+		{
+			glFaces[ i ].indices.resize( face->numMeshVertexes );
+			for ( int j = 0; j < face->numMeshVertexes; ++j )
+				glFaces[ i ].indices[ j ] = face->vertexOffset + meshVertexes[ face->meshVertexOffset + j ].offset;
+		}
+	}
 }
 
 /*
@@ -357,7 +366,7 @@ void Q3BspMap::GenTextures( const string &mapFilePath )
 #	error "No file system traversal implementation exists for non-Windows OS; this is necessary for fetching the stored textures in memory, in addition to various other assets"
 #endif
 
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+	//GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
 	// Some might consider this a hack; however, it works. It's also simpler, portable, and more performant than traversing a number of directories
 	// using an OS-specific API
@@ -401,38 +410,54 @@ void Q3BspMap::GenTextures( const string &mapFilePath )
 		
 		// Stub out the texture for this iteration by continue; warn user
 		if ( !tf )
-		{
-			WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
-			glTextures[ t ] = 0;
-			continue;
-		}
+			goto FAIL_WARN;
 
 		// Load image
 		int width, height, bpp;
 		byte* imagePixels = stbi_load_from_file( tf, &width, &height, &bpp, STBI_default );
 
+		fclose( tf );
+
+		if ( !imagePixels )
+			goto FAIL_WARN;
+
 		GLenum fmt;
+		GLenum internalFmt;
 
 		switch ( bpp )
 		{
 		case 1:
-			fmt = GL_R8;
+			fmt = GL_R;
+			internalFmt = GL_R8; 
 			break;
 		case 3:
+			internalFmt = GL_RGB8;
 			fmt = GL_RGB;
 			break;
 		case 4:
+			internalFmt = GL_RGBA8;
 			fmt = GL_RGBA;
 			break;
 		default:
-			ERROR( "Unsupported bits per pixel specified; this needs to be fixed. For image file \'%s\'", texPath.c_str() );
+			ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath.c_str() );
 			break;
 		}
 		
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glTextures[ t ] ) );
-		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, GL_SRGB8, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+
+		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
+		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
+
+		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imagePixels ) );
+
+		continue;
+
+FAIL_WARN:
+		WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
+		GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
+		glTextures[ t ] = 0;
 	}
 }
 
@@ -517,9 +542,7 @@ found in the link posted in q3bsp.h.
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {
     if ( !visdata->bitsets || ( sourceCluster < 0 ) )
-    {
         return true;
-    }
 
     int i = ( sourceCluster * visdata->sizeVector ) + ( testCluster >> 3 );
 

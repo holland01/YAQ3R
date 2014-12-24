@@ -21,8 +21,8 @@ void TRenderer::Load( void )
 
     renderer = new BSPRenderer;
     renderer->Prep();
-    // renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
-    renderer->Load( "asset/quake/railgun_arena/maps/Railgun_Arena.bsp" );
+    renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
+    //renderer->Load( "asset/quake/railgun_arena/maps/Railgun_Arena.bsp" );
 
     camPtr = renderer->camera;
 }

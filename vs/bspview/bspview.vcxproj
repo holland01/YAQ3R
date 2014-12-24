@@ -89,7 +89,6 @@
     <ClCompile Include="..\..\src\eu_ang.cpp" />
     <ClCompile Include="..\..\src\frustum.cpp" />
     <ClCompile Include="..\..\src\gldebug.cpp" />
-    <ClCompile Include="..\..\src\glutil.cpp" />
     <ClCompile Include="..\..\src\input.cpp" />
     <ClCompile Include="..\..\src\log.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
@@ -99,8 +98,6 @@
     <ClCompile Include="..\..\src\q3m_model.cpp" />
     <ClCompile Include="..\..\src\renderer.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
-    <ClCompile Include="..\..\src\tests\jpeg.cpp" />
-    <ClCompile Include="..\..\src\tests\tbezsurf.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
   </ItemGroup>
@@ -124,10 +121,7 @@
     <ClInclude Include="..\..\src\q3m_model.h" />
     <ClInclude Include="..\..\src\renderer.h" />
     <ClInclude Include="..\..\src\shader.h" />
-    <ClInclude Include="..\..\src\tests\jpeg.h" />
-    <ClInclude Include="..\..\src\tests\tbezsurf.h" />
     <ClInclude Include="..\..\src\tests\test.h" />
-    <ClInclude Include="..\..\src\tests\test_util.h" />
     <ClInclude Include="..\..\src\tests\trenderer.h" />
     <ClInclude Include="..\..\src\vec.h" />
   </ItemGroup>

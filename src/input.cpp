@@ -2,39 +2,26 @@
 #include "log.h"
 #include "math_util.h"
 
-namespace
+static const float MOUSE_SENSE = 0.1f;
+static const float DEF_MOVE_STEP_SPEED = 50.0f;
+
+enum
 {
-    const float MOUSE_SENSE = 0.1f;
-
-    const float DEF_MOVE_STEP_SPEED = 50.0f;
-
-    enum
-    {
-        KEY_PRESSED = 1,
-        KEY_NOT_PRESSED = 0,
-        KEY_FORWARD = 0,
-        KEY_BACKWARD = 1,
-        KEY_LEFT = 2,
-        KEY_RIGHT = 3,
-        KEY_UP = 4,
-        KEY_DOWN = 5,
-        KEY_IN = 6,
-        KEY_OUT = 7
-    };
-}
-
-/*
-=====================================================
-
-InputCamera::Input
-
-=====================================================
-*/
+    KEY_PRESSED = 1,
+    KEY_NOT_PRESSED = 0,
+    KEY_FORWARD = 0,
+    KEY_BACKWARD = 1,
+    KEY_LEFT = 2,
+    KEY_RIGHT = 3,
+    KEY_UP = 4,
+    KEY_DOWN = 5,
+    KEY_IN = 6,
+    KEY_OUT = 7
+};
 
 InputCamera::InputCamera( void )
     : InputCamera( viewParams_t(), EuAng() )
 {
-    
 }
 
 InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
@@ -51,16 +38,6 @@ InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
     }
 }
 
-/*
-=====================================================
-
-InputCamera::EvalMouseMove
-
-=====================================================
-*/
-
-
-
 void InputCamera::EvalMouseMove( float x, float y )
 {
     currRot.pitch += ( y - lastMouse.y ) * MOUSE_SENSE;
@@ -69,14 +46,6 @@ void InputCamera::EvalMouseMove( float x, float y )
     lastMouse.x = x;
     lastMouse.y = y;
 }
-
-/*
-=====================================================
-
-InputCamera::EvalKeyPress
-
-=====================================================
-*/
 
 void InputCamera::EvalKeyPress( int key )
 {
@@ -114,14 +83,6 @@ void InputCamera::EvalKeyPress( int key )
     }
 }
 
-/*
-=====================================================
-
-InputCamera::EvalKeyRelease
-
-=====================================================
-*/
-
 void InputCamera::EvalKeyRelease( int key )
 {
     switch( key )
@@ -154,15 +115,6 @@ void InputCamera::EvalKeyRelease( int key )
     }
 }
 
-/*
-=====================================================
-
-InputCamera::Update
-
-=====================================================
-*/
-
-
 void InputCamera::Update( void )
 {
      currRot.Normalize();
@@ -187,34 +139,4 @@ void InputCamera::Update( void )
     viewData.inverseOrient = glm::inverse( viewData.orientation );
 
     viewData.transform = viewData.orientation * glm::translate( glm::mat4( 1.0f ), -viewData.origin );
-
-	/*
-    MyPrintf( "Camera Info", "pitch: %f, roll: %f, yaw: %f,\n position = { x: %f, y: %f, z: %f }", currRot.pitch, currRot.roll, currRot.yaw,
-              viewData.origin.x, viewData.origin.y, viewData.origin.z );*/
-
 }
-
-/*
-=====================================================
-
-InputCamera::RotateX
-
-=====================================================
-*/
-/*
-void InputCamera::RotateX( float angRad )
-{
-    if ( glm::length( viewData.rotation ) == 0 )
-    {
-        viewData.rotation = MakeQuat( angRad,  );
-        viewData.rotConj -=viewData.rotation;
-    }
-    else
-    {
-        view
-    }
-}
-
-void    InputCamera::RotateY( float angRad );
-void    InputCamera::RotateZ( float angRad );
-*/
