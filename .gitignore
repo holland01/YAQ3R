@@ -29,3 +29,5 @@ vs/bspview/Debug/bspview.log
 *.pdb
 vs/bspview/Debug/bspview.Build.CppClean.log
 *.idb
+*.exe
+vs/bspview/Release/bspview.Build.CppClean.log

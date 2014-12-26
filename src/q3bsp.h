@@ -194,12 +194,10 @@ INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
 	
 	vert.position = a.position + b.position;
 
-	/*
-	vert.color[ 0 ] = a.color[ 0 ] + b.color[ 0 ];
-	vert.color[ 1 ] = a.color[ 1 ] + b.color[ 1 ];
-	vert.color[ 2 ] = a.color[ 2 ] + b.color[ 2 ];
-	vert.color[ 3 ] = a.color[ 3 ] + b.color[ 3 ];
-	*/
+	vert.color[ 0 ] = a.color[ 0 ];
+	vert.color[ 1 ] = a.color[ 1 ];
+	vert.color[ 2 ] = a.color[ 2 ];
+	vert.color[ 3 ] = a.color[ 3 ];
 	
 	vert.normal = a.normal + b.normal;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
@@ -218,12 +216,8 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 	vert.normal = a.normal * b;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
 
-	/*
-	vert.color[ 0 ] *= ( byte )( b * 255.0f );
-	vert.color[ 1 ] *= ( byte )( b * 255.0f );
-	vert.color[ 2 ] *= ( byte )( b * 255.0f );
-	vert.color[ 3 ] *= ( byte )( b * 255.0f );
-	*/
+	memcpy( vert.color, a.color, sizeof( vert.color ) );
+	
 	// TODO: lightmapCoords?
 	// TODO: colors with floats?
 
@@ -245,6 +239,17 @@ struct mapModel_t
 
 class Q3BspMap
 {
+private:
+
+    Q3BspMap( const Q3BspMap& ) = delete;
+    Q3BspMap& operator=( Q3BspMap ) = delete;
+
+    bspHeader_t     header;
+
+	byte*			mapBuffer;
+
+    bool            mapAllocated;
+
 public:
 
     Q3BspMap( void );
@@ -302,12 +307,5 @@ public:
 	std::vector< GLuint > glTextures; // has one->one map with texture indices
 	std::vector< mapModel_t > glFaces; // has one->one map with face indices
 
-private:
 
-    Q3BspMap( const Q3BspMap& ) = delete;
-    Q3BspMap& operator=( Q3BspMap ) = delete;
-
-    bspHeader_t     header;
-
-    bool            mapAllocated;
 };

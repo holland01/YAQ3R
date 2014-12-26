@@ -94,10 +94,6 @@ void BezPatch::Tesselate( int level )
 
 void BezPatch::Render( void ) const
 {
-	//GL_CHECK( glBindVertexArray( vao ) );
-
-	//GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-
 	LoadBuffer( vbo );
 
 	if ( lastCount < vertices.size() )

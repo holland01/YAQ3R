@@ -7,8 +7,6 @@
 
 using namespace std;
 
-
-
 enum 
 {
 	FRAGWRITE_TEX = 0,
@@ -177,7 +175,7 @@ void BSPRenderer::Load( const string& filepath )
 	GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
 
 	mapDimsLength = ( int ) glm::length( glm::vec3( map->nodes[ 0 ].boxMax.x, map->nodes[ 0 ].boxMax.y, map->nodes[ 0 ].boxMax.z ) );
-	lodThreshold = mapDimsLength / 3;
+	lodThreshold = mapDimsLength / 2;
 }
 
 /*
@@ -190,12 +188,16 @@ BSPRenderer::DrawWorld
 
 void BSPRenderer::DrawWorld( void )
 { 
+	double startTime = glfwGetTime();
 	GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
 
     RenderPass pass( map, camera->ViewData() );
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 
     DrawNode( 0, pass, true );
+	frameTime = glfwGetTime() - startTime;
+
+
 }
 
 /*
@@ -259,7 +261,7 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
         float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) );
 
 		// We're in front of the plane if d > plane->distance
-        if ( isSolid && d > plane->distance )
+        if ( isSolid == ( d > plane->distance ) )
         {
             DrawNode( node->children[ 0 ], pass, isSolid );
             DrawNode( node->children[ 1 ], pass, isSolid );
@@ -302,7 +304,7 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
 				patchRenderer.controlPoints[ c++ ] = &map->vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
 				
-		patchRenderer.Tesselate( glm::min( 10, CalcSubdivision( pass, bounds ) ) );
+		patchRenderer.Tesselate( CalcSubdivision( pass, bounds ) );
 		patchRenderer.Render();
 
 		// Rebind after render since patchRenderer overrides with its own vao/vbo combo

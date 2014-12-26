@@ -10,7 +10,7 @@ protected:
 
     int             width, height;
 
-    double          currTime, prevTime;
+    float			deltaTime;
 
     bool            cursorVisible, running;
 

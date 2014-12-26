@@ -45,5 +45,3 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <glm/gtc/type_ptr.hpp>
 
 #include "vec.h"
-
-#define NOP ;

@@ -1,7 +1,10 @@
 #include "trenderer.h"
 
+static const char* gTitle = "I am a floating camera";
+
 TRenderer::TRenderer( void )
     : Test( 1366, 768 ),
+	  currentTime( 0.0f ),
       renderer( NULL )
 {
 }
@@ -14,7 +17,7 @@ TRenderer::~TRenderer( void )
 
 void TRenderer::Load( void )
 {
-    if ( !Test::Load( "BSPRenderer Test" ) )
+    if ( !Test::Load( "I am a floating camera" ) )
         return;
 
     glfwSetInputMode( winPtr, GLFW_STICKY_KEYS, GL_FALSE );
@@ -29,10 +32,12 @@ void TRenderer::Load( void )
 
 void TRenderer::Run( void )
 {
-    currTime = glfwGetTime();
-
-    renderer->Update( ( float )( currTime - prevTime ) );
+    renderer->Update( deltaTime );
     renderer->DrawWorld();
 
-    prevTime = currTime;
+	std::stringstream windowTitle;
+	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
+	windowTitle << gTitle << ": " << glm::min( ( 60.0f / deltaTime ), 1000.0f );
+
+	glfwSetWindowTitle( winPtr, windowTitle.str().c_str() );
 }

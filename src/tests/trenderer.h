@@ -8,6 +8,8 @@ class TRenderer : public Test
 
 private:
 
+	float currentTime;
+
     BSPRenderer* renderer;
 
     void Run( void );

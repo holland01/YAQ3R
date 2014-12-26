@@ -18,7 +18,7 @@ static void OnMouseMoveWrapper( GLFWwindow* w, double x, double y )
 
 Test::Test( int w, int h )
     : width( w ), height( h ),
-      currTime( 0.0 ), prevTime( 0.0 ),
+      deltaTime( 0.0f ),
       cursorVisible( true ), running( false ),
       camPtr( NULL ),
       winPtr( NULL ),
@@ -48,7 +48,7 @@ bool Test::Load( const char* winName )
         return false;
 
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 4 );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
     winPtr = glfwCreateWindow( width, height, winName, NULL, NULL );
@@ -64,7 +64,6 @@ bool Test::Load( const char* winName )
     if ( response != GLEW_OK )
     {
         printf( "Could not initialize GLEW! %s", glewGetErrorString( response ) );
-
         return false;
     }
 
@@ -85,8 +84,6 @@ bool Test::Load( const char* winName )
     glfwSetKeyCallback( winPtr, OnKeyPressWrapper );
     glfwSetCursorPosCallback( winPtr, OnMouseMoveWrapper );
 
-    prevTime = glfwGetTime();
-
     running = true;
 
     InitSysLog();
@@ -99,14 +96,20 @@ int Test::Exec( void )
     if ( !winPtr )
         return 1;
 
+	float lastTime = 0.0f;
+
     while( running && !glfwWindowShouldClose( winPtr ) )
     {
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+		deltaTime = ( float )glfwGetTime() - lastTime;
 
         Run();
 
         glfwSwapBuffers( winPtr );
         glfwPollEvents();
+
+		lastTime = ( float )glfwGetTime();
     }
 
     return 0;
