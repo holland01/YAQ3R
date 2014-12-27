@@ -292,6 +292,12 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 	effectShaders = ( bspEffect_t* )( mapBuffer + header.directories[ BSP_LUMP_EFFECTS ].offset );
 	numEffectShaders = header.directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
 
+	lightmaps = ( bspLightmap_t* )( mapBuffer + header.directories[ BSP_LUMP_LIGHTMAPS ].offset );
+	numLightmaps = header.directories[ BSP_LUMP_LIGHTMAPS ].length / sizeof( bspLightmap_t );
+
+	lightvols = ( bspLightvol_t* )( mapBuffer + header.directories[ BSP_LUMP_LIGHTVOLS ].offset );
+	numLightvols = header.directories[ BSP_LUMP_LIGHTVOLS ].length / sizeof( bspLightvol_t );
+
     visdata = ( bspVisdata_t* )( mapBuffer + header.directories[ BSP_LUMP_VISDATA ].offset );
 	numVisdataVecs = header.directories[ BSP_LUMP_VISDATA ].length;
     
@@ -323,112 +329,127 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 				glFaces[ i ].indices[ j ] = face->vertexOffset + meshVertexes[ face->meshVertexOffset + j ].offset;
 		}
 	}
-}
-
-/*
-=====================================================
-
-Q3BspParser::GenTextures
-
-Generates OpenGL texture data for map faces
-
-=====================================================
-*/
-
-void Q3BspMap::GenTextures( const string &mapFilePath )
-{
-	//GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
-	// Some might consider this a hack; however, it works. It's also simpler, portable, and more performant than traversing a number of directories
-	// using an OS-specific API
-	static const char* validImgExt[] = 
-	{
-		".jpg", ".png", ".tga", ".tiff", ".bmp"
-	};
-
-	const std::string& root = mapFilePath.substr( 0, mapFilePath.find_last_of( '/' ) ) + "/../";
-
+	
+	// Now, find and generate the textures. We first start with the image files.
 	glTextures.resize( numTextures, 0 );
 	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
 
-	for ( int t = 0; t < numTextures; t++ )
+	// GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+
+	// Some might consider this a hack, and to be fair it kind of is. However, it works. It's also simpler, portable, and more performant than traversing a number of directories
+	// using an OS-specific API. It's also only temporary :)
 	{
-		FILE* tf;
-
-		std::string fname( textures[ t ].filename );
-
-		const std::string& texPath = root + fname;
-		
-		// If we don't have a file extension appended in the name,
-		// try to find one for it which is valid
-		if ( fname.find_last_of( '.' ) == std::string::npos )
+		static const char* validImgExt[] = 
 		{
-			for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
+			".jpg", ".png", ".tga", ".tiff", ".bmp"
+		};
+
+		const std::string& root = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
+
+		for ( int t = 0; t < numTextures; t++ )
+		{
+			FILE* tf;
+
+			std::string fname( textures[ t ].filename );
+
+			const std::string& texPath = root + fname;
+		
+			// If we don't have a file extension appended in the name,
+			// try to find one for it which is valid
+			if ( fname.find_last_of( '.' ) == std::string::npos )
 			{
-				const std::string& str = texPath + std::string( validImgExt[ i ] );
+				for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
+				{
+					const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-				tf = fopen( str.c_str(), "rb" );
+					tf = fopen( str.c_str(), "rb" );
 			
-				// If we found a match, bail
-				if ( tf )
-					break;
+					// If we found a match, bail
+					if ( tf )
+						break;
+				}
 			}
-		}
-		else
-		{
-			tf = fopen( texPath.c_str(), "rb" );
-		}
+			else
+			{
+				tf = fopen( texPath.c_str(), "rb" );
+			}
 		
-		// Stub out the texture for this iteration by continue; warn user
-		if ( !tf )
-			goto FAIL_WARN;
+			// Stub out the texture for this iteration by continue; warn user
+			if ( !tf )
+				goto FAIL_WARN;
 
-		// Load image
-		int width, height, bpp;
-		byte* imagePixels = stbi_load_from_file( tf, &width, &height, &bpp, STBI_default );
+			// Load image
+			int width, height, bpp;
+			byte* imagePixels = stbi_load_from_file( tf, &width, &height, &bpp, STBI_default );
 
-		fclose( tf );
+			fclose( tf );
 
-		if ( !imagePixels )
-			 goto FAIL_WARN;
+			if ( !imagePixels )
+				 goto FAIL_WARN;
 
-		GLenum fmt;
-		GLenum internalFmt;
+			GLenum fmt;
+			GLenum internalFmt;
 
-		switch ( bpp )
-		{
-		case 1:
-			fmt = GL_R;
-			internalFmt = GL_R8; 
-			break;
-		case 3:
-			internalFmt = GL_RGB8;
-			fmt = GL_RGB;
-			break;
-		case 4:
-			internalFmt = GL_RGBA8;
-			fmt = GL_RGBA;
-			break;
-		default:
-			ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath.c_str() );
-			break;
-		}
+			switch ( bpp )
+			{
+			case 1:
+				fmt = GL_R;
+				internalFmt = GL_R8; 
+				break;
+			case 3:
+				internalFmt = GL_SRGB8;
+				fmt = GL_RGB;
+				break;
+			case 4:
+				internalFmt = GL_SRGB8_ALPHA8;
+				fmt = GL_RGBA;
+				break;
+			default:
+				ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath.c_str() );
+				break;
+			}
 		
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glTextures[ t ] ) );
+			GL_CHECK( glBindTexture( GL_TEXTURE_2D, glTextures[ t ] ) );
+
+			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
+			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
+
+			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
+
+			continue;
+
+	FAIL_WARN:
+			WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
+			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
+			glTextures[ t ] = 0;
+		}
+	}
+
+	// And then generate all of the lightmaps
+	glLightmaps.resize( numLightmaps, 0 );
+	GL_CHECK( glGenTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
+	
+	for ( int l = 0; l < numLightmaps; ++l )
+	{	
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glLightmaps[ l ] ) );
 
 		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
 		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
 		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
 		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
 
-		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
-
-		continue;
-
-FAIL_WARN:
-		WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-		GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
-		glTextures[ t ] = 0;
+		GL_CHECK( glTexImage2D( 
+			GL_TEXTURE_2D, 
+			0, 
+			GL_RGB8, 
+			BSP_LIGHTMAP_WIDTH, 
+			BSP_LIGHTMAP_HEIGHT, 
+			0, 
+			GL_RGB, 
+			GL_UNSIGNED_BYTE, 
+			lightmaps[ l ].map ) );	
 	}
 }
 

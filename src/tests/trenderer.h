@@ -21,4 +21,6 @@ public:
     ~TRenderer( void );
 
     void Load( void );
+
+	void OnKeyPress( int key, int scancode, int action, int mods );
 };

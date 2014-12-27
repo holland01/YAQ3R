@@ -60,6 +60,9 @@ public:
 
 	BezPatch		patchRenderer;
 
+	bool			drawDebugInfo;
+	bool			gammaCorrectVertexColors; 
+
 	int				mapDimsLength;
 	int				lodThreshold;
 

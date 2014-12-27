@@ -12,7 +12,7 @@ protected:
 
     float			deltaTime;
 
-    bool            cursorVisible, running;
+    bool            cursorVisible, running, useSRGBFramebuffer;
 
     InputCamera*    camPtr;
 

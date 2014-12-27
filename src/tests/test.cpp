@@ -19,7 +19,7 @@ static void OnMouseMoveWrapper( GLFWwindow* w, double x, double y )
 Test::Test( int w, int h )
     : width( w ), height( h ),
       deltaTime( 0.0f ),
-      cursorVisible( true ), running( false ),
+      cursorVisible( true ), running( false ), useSRGBFramebuffer( true ),
       camPtr( NULL ),
       winPtr( NULL ),
 	  mouseX( 0.0f ),
@@ -49,7 +49,8 @@ bool Test::Load( const char* winName )
 
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 4 );
-	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
+	glfwWindowHint( GLFW_SRGB_CAPABLE, GL_TRUE );
 
     winPtr = glfwCreateWindow( width, height, winName, NULL, NULL );
 
@@ -78,6 +79,8 @@ bool Test::Load( const char* winName )
 
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );
+
+	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
 
     glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
@@ -125,6 +128,15 @@ void Test::OnKeyPress( int key, int scancode, int action, int mods )
                 case GLFW_KEY_ESCAPE:
                     running = false;
                     break;
+
+				case GLFW_KEY_9:
+					useSRGBFramebuffer = !useSRGBFramebuffer;
+					if ( useSRGBFramebuffer )
+						GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
+					else
+						GL_CHECK( glDisable( GL_FRAMEBUFFER_SRGB ) );
+					
+					break;
 
                 case GLFW_KEY_F1:
                     cursorVisible = !cursorVisible;

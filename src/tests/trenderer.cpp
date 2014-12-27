@@ -1,4 +1,5 @@
 #include "trenderer.h"
+#include "../glutil.h"
 
 static const char* gTitle = "I am a floating camera";
 
@@ -15,10 +16,25 @@ TRenderer::~TRenderer( void )
     delete renderer;
 }
 
+void TRenderer::Run( void )
+{
+    renderer->Update( deltaTime );
+    renderer->DrawWorld();
+
+	std::stringstream windowTitle;
+	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
+	windowTitle << gTitle << ": " << glm::min( ( 60.0f / deltaTime ), 1000.0f );
+
+	glfwSetWindowTitle( winPtr, windowTitle.str().c_str() );
+}
+
 void TRenderer::Load( void )
 {
     if ( !Test::Load( "I am a floating camera" ) )
         return;
+
+	//GL_CHECK( glEnable( GL_BLEND ) );
+	//GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
 
     glfwSetInputMode( winPtr, GLFW_STICKY_KEYS, GL_FALSE );
 
@@ -30,14 +46,20 @@ void TRenderer::Load( void )
     camPtr = renderer->camera;
 }
 
-void TRenderer::Run( void )
+void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 {
-    renderer->Update( deltaTime );
-    renderer->DrawWorld();
+	Test::OnKeyPress( key, scancode, action, mods );
 
-	std::stringstream windowTitle;
-	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
-	windowTitle << gTitle << ": " << glm::min( ( 60.0f / deltaTime ), 1000.0f );
-
-	glfwSetWindowTitle( winPtr, windowTitle.str().c_str() );
+	if ( action == GLFW_PRESS )
+	{
+		switch ( key )
+		{
+		case GLFW_KEY_0:
+			renderer->drawDebugInfo = !renderer->drawDebugInfo;
+			break;
+		case GLFW_KEY_8:
+			renderer->gammaCorrectVertexColors = !renderer->gammaCorrectVertexColors;
+			break;
+		}
+	}
 }

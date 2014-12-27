@@ -1,7 +1,10 @@
 Feature:
-- Lightmaps; use a separate tex sampler for that
+- Lightmaps; use a separate tex sampler for that ( almost done )
+- Textures; need to be mipmapped (priority)
+//- Gamma correction
 - Billboards
 - Shader parser (once Bills and Lightmaps are working and performing reasonably)
+	* We'll need a struct for every model (or texture) with various flags 
 
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data
@@ -26,8 +29,13 @@ Bug:
 - Some bezier patches have a "reflection"-like artifact appearing on them. These look like Egyptian pots, and I think this may be due to the filtering...and maybe even wrap modes, 
 though I'm not sure. Regardless, all of these specifics should be handled via the shader parser, as it will likely have the best configuration for a particular material.
 
-Refactor:
+- Plant meshes are just flat polygons that will render as black in areas where there is no image data for the texel. 
+  As a result, any zero length fragment coming from a plant mesh in the fragment shader should just be discarded. Shader may provide info for this. 
+  (Update) yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
 
+
+Refactor:
+- All GL state management should be handled in ONE place.
 //- Have a global interface function which can be called for setting the function source and call strings in GL_CHECK macro, as opposed to just directly setting globals...
 //- Make all variables camelcase in gldebug.cpp
 //- For consistency, remove std::vector usage from Q3BspMap class (as well as mapModel_t). Replace with buffers.

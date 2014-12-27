@@ -52,6 +52,8 @@ BSPRenderer::BSPRenderer
 BSPRenderer::BSPRenderer( void )
     : camera( NULL ),
       frustum( NULL ),
+	  drawDebugInfo( false ),
+	  gammaCorrectVertexColors( true ),
       map( NULL ),
       bspProgram( 0 ),
       vao( 0 ),
@@ -60,25 +62,6 @@ BSPRenderer::BSPRenderer( void )
       currLeaf( NULL ),
 	  mapDimsLength( 0 )
 {
-	/*
-	viewParams_t view;
-	view.inverseOrient = glm::mat4( 
-		glm::vec4( 1.00000000f, -0.000000000f, -1.06630473e-008f, 0.0f ),
-		glm::vec4( -7.25249971e-010f, 0.997684300f, -0.0680152625f, 0.0f ),
-		glm::vec4( 1.06383551e-008f, 0.0680152625f, 0.997684300f, 0.0f ),
-		glm::vec4( -0.000000000f, 0.000000000f, -0.000000000f, 1.0f )
-	);
-
-	view.origin = glm::vec3( 1281.95422f, 2441.09473f, -3001.82715f );
-
-	EuAng rot;
-	rot.pitch = -3001.82715f;
-	rot.yaw = -6.10947609e-007f;
-	rot.roll = 0.0f;
-
-    camera = new InputCamera( view, rot );
-	*/
-
 	camera = new InputCamera();
 
     frustum = new Frustum();
@@ -116,6 +99,9 @@ Load static, independent data which need not be re-initialized if multiple maps 
 
 void BSPRenderer::Prep( void )
 {
+	GL_CHECK( glPointSize( 10.0f ) );
+	// GL_CHECK( glLineWidth( 10.0f ) );
+
     glGenVertexArrays( 1, &vao );
     glGenBuffers( 1, &vbo );
 
@@ -127,12 +113,21 @@ void BSPRenderer::Prep( void )
 
     bspProgram = LinkProgram( shaders, 2 );
 
-	bspProgramUniforms[ "fragWriteMode" ] = glGetUniformLocation( bspProgram, "fragWriteMode" );
-	bspProgramUniforms[ "fragTexSampler" ] = glGetUniformLocation( bspProgram, "fragTexSampler" );
+	const std::vector< std::string > uniforms = 
+	{
+		"fragWriteMode",
+		"fragTexSampler",
+		"fragLightmapSampler",
+		"fragAmbient",
+		
+		"doGammaCorrect",
+		"modelToCamera",
+		"cameraToClip"
+	};
 
-	bspProgramUniforms[ "modelToCamera" ] = glGetUniformLocation( bspProgram, "modelToCamera" );
-	bspProgramUniforms[ "cameraToClip" ] = glGetUniformLocation( bspProgram, "cameraToClip" );
-
+	for ( size_t i = 0; i < uniforms.size(); ++i )
+		bspProgramUniforms[ uniforms[ i ] ] = GL_CHECK( glGetUniformLocation( bspProgram, uniforms[ i ].c_str() ) );
+	
     glUseProgram( bspProgram );
 }
 
@@ -152,7 +147,6 @@ void BSPRenderer::Load( const string& filepath )
         map->DestroyMap();
 
     map->Read( filepath, 1 );
-    map->GenTextures( filepath );
 
 	// Allocate vertex data from map and store it all in a single vbo
 	GL_CHECK( glBindVertexArray( vao ) );
@@ -163,6 +157,7 @@ void BSPRenderer::Load( const string& filepath )
     GL_CHECK( glBindAttribLocation( bspProgram, 0, "position" ) );
     GL_CHECK( glBindAttribLocation( bspProgram, 1, "color" ) );
     GL_CHECK( glBindAttribLocation( bspProgram, 2, "tex0" ) );
+	GL_CHECK( glBindAttribLocation( bspProgram, 3, "lightmap" ) );
 
 	LoadVertexLayout();
 
@@ -171,8 +166,8 @@ void BSPRenderer::Load( const string& filepath )
     GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
 
 	// Base texture setup
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-	GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
+	
+	//GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
 
 	mapDimsLength = ( int ) glm::length( glm::vec3( map->nodes[ 0 ].boxMax.x, map->nodes[ 0 ].boxMax.y, map->nodes[ 0 ].boxMax.z ) );
 	lodThreshold = mapDimsLength / 2;
@@ -188,6 +183,8 @@ BSPRenderer::DrawWorld
 
 void BSPRenderer::DrawWorld( void )
 { 
+	GL_CHECK( glUniform1i( bspProgramUniforms[ "doGammaCorrect" ], gammaCorrectVertexColors ? 1 : 0 ) );
+
 	double startTime = glfwGetTime();
 	GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
 
@@ -196,8 +193,6 @@ void BSPRenderer::DrawWorld( void )
 
     DrawNode( 0, pass, true );
 	frameTime = glfwGetTime() - startTime;
-
-
 }
 
 /*
@@ -274,9 +269,14 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
     }
 }
 
+static const float ONE_THIRD = 1.0f / 3.0f;
+
 void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid )
 {
     bspFace_t* face = map->faces + faceIndex;
+
+    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+    GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
 
 	if ( map->glTextures[ face->texture ] != 0 )
 	{
@@ -289,6 +289,15 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	}
 
+	if ( face->lightmapIndex >= 0 )
+	{
+		GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
+		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragLightmapSampler" ], 1 ) );
+
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
+		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
+	}
+	
 	if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
 	{
 		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ faceIndex ].indices[ 0 ] ) );
@@ -309,6 +318,48 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 
 		// Rebind after render since patchRenderer overrides with its own vao/vbo combo
 		LoadBuffer( vbo );
+	}
+
+	if ( drawDebugInfo )
+	{
+		GL_CHECK( glUseProgram( 0 ) );
+
+		GL_CHECK( glMatrixMode( GL_PROJECTION ) );
+		GL_CHECK( glLoadMatrixf( glm::value_ptr( camera->ViewData().clipTransform ) ) );
+
+		GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+
+		glm::mat4 viewTriOrigin( camera->ViewData().transform );
+
+		GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTriOrigin ) ) );
+		GL_CHECK( glBegin( GL_LINES ) );
+
+		glm::vec3 s( face->lightmapStVecs[ 0 ].x, face->lightmapStVecs[ 0 ].y, face->lightmapStVecs[ 0 ].z );
+		glm::vec3 t( face->lightmapStVecs[ 1 ].x, face->lightmapStVecs[ 1 ].y, face->lightmapStVecs[ 1 ].z );
+
+		// Draw lightmap s vector
+		GL_CHECK( glColor3f( 1.0f, 0.0f, 0.0f ) );
+		GL_CHECK( glVertex3f( 0.0f, 0.0f, 0.0f ) );
+		GL_CHECK( glVertex3f( s.x, s.y, s.z ) ); 
+
+		// Draw lightmap t vector
+		GL_CHECK( glColor3f( 0.0f, 1.0f, 0.0f ) );
+		GL_CHECK( glVertex3f( 0.0f, 0.0f, 0.0f ) );
+		GL_CHECK( glVertex3f( t.x, t.y, t.z ) ); 
+		
+		GL_CHECK( glEnd() );
+
+
+		//GL_CHECK( glLoadMatrixf( glm::value_ptr( camera->ViewData().transform ) ) );
+		// Draw lightmap origin
+		GL_CHECK( glBegin( GL_POINTS ) );
+		GL_CHECK( glColor3f( 0.0f, 0.0f, 1.0f ) );
+		GL_CHECK( glVertex3f( face->lightmapOrigin.x, face->lightmapOrigin.y, face->lightmapOrigin.z ) );
+		GL_CHECK( glEnd() );
+		
+		GL_CHECK( glLoadIdentity() );
+
+		GL_CHECK( glUseProgram( bspProgram ) );
 	}
 
     pass.facesRendered[ faceIndex ] = 1;

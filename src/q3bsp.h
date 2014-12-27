@@ -54,6 +54,9 @@ enum
     BSP_FACE_TYPE_PATCH = 0x2,
     BSP_FACE_TYPE_MESH = 0x3,
     BSP_FACE_TYPE_BILLBOARD = 0x4,
+
+    BSP_LIGHTMAP_WIDTH = 128,
+    BSP_LIGHTMAP_HEIGHT = 128
 };
 
 /*
@@ -180,6 +183,18 @@ struct bspFace_t
     int     size[ 2 ];
 };
 
+struct bspLightmap_t
+{
+	byte map[ BSP_LIGHTMAP_WIDTH ][ BSP_LIGHTMAP_HEIGHT ][ 3 ]; // lightmap color data. RGB.
+};
+
+struct bspLightvol_t
+{
+	byte ambient[ 3 ];		// RGB color
+	byte directional[ 3 ];	// RGB color
+	byte direction[ 2 ];	// - to light; 0 => phi, 1 => theta
+};
+
 struct bspVisdata_t
 {
     int     numVectors;
@@ -201,6 +216,7 @@ INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
 	
 	vert.normal = a.normal + b.normal;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
 
 	// TODO: lightmapCoords?
 
@@ -215,6 +231,7 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 
 	vert.normal = a.normal * b;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
 
 	memcpy( vert.color, a.color, sizeof( vert.color ) );
 	
@@ -258,8 +275,6 @@ public:
 
     void                Read( const std::string& filepath, const int scale );
 
-    void                GenTextures( const std::string& filepath );
-
     void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 
     bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
@@ -285,6 +300,9 @@ public:
     bspLeafFace_t*      leafFaces;
     bspMeshVertex_t*    meshVertexes;
 
+	bspLightmap_t*		lightmaps;
+	bspLightvol_t*		lightvols;
+
     bspVisdata_t*       visdata;
 
     int                 entityStringLen;
@@ -302,10 +320,13 @@ public:
     int                 numLeafFaces;
     int                 numMeshVertexes;
 
+	int					numLightmaps;
+	int					numLightvols;
+
     int                 numVisdataVecs;
 
 	std::vector< GLuint > glTextures; // has one->one map with texture indices
 	std::vector< mapModel_t > glFaces; // has one->one map with face indices
-
+	std::vector< GLuint > glLightmaps; // textures - has one->one map with lightmap indices
 
 };
