@@ -93,42 +93,6 @@ void ExitOnGLError( const char* caller )
 /*
 ===============================
 
-LogDrawCall
-
-===============================
-*/
-
-void LogDrawCall( int faceIndex, const glm::vec3& leafBoundsCenter, const glm::vec3& camPos, const glm::mat4& faceTransform, const bspFace_t* const face, const Q3BspMap* const map )
-{
-    std::stringstream ss;
-
-    ss << "Camera Pos: { " << camPos.x << ", " << camPos.y << ", " << camPos.z << " }, \n"
-       << "leafBoundsCenter: { " << leafBoundsCenter.x << ", " << leafBoundsCenter.y << ", " << leafBoundsCenter.z << " }, \n"
-       << "Translation Vector: { " << faceTransform[ 3 ][ 0 ] << ", " << faceTransform[ 3 ][ 1 ] << ", " << faceTransform[ 3 ][ 2 ] << " }, \n"
-       << "face: " << faceIndex << ",\n"
-       << "numMeshVertices: " << face->numMeshVertexes << ", \n"
-       << "meshVertexOffset: " << face->meshVertexOffset << ", \n"
-       << "( vertexes + meshVertexOffset )...( vertexes + meshVertexOffset + numMeshVertexes ): { \n\n";
-
-    for ( int i = face->meshVertexOffset; i < face->meshVertexOffset + face->numMeshVertexes; ++i )
-    {
-        ss << "[ " << i << "]: { " << map->vertexes[ i ].position.x << ", "
-                                   << map->vertexes[ i ].position.y << ", "
-                                   << map->vertexes[ i ].position.z << " }\n";
-    }
-
-    ss << "\n } \n";
-
-    MyPrintf( "YOU HAS A DRAW",
-              "%s",
-              ss.str().c_str() );
-
-
-}
-
-/*
-===============================
-
 LogBSPData
 
 ===============================

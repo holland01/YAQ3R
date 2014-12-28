@@ -59,6 +59,16 @@ enum
     BSP_LIGHTMAP_HEIGHT = 128
 };
 
+// Map loader-specific flags
+enum 
+{
+	Q3LOAD_TEXTURE_SRGB = 1,
+	Q3LOAD_TEXTURE_ANISOTROPY = 1 << 2,
+	Q3LOAD_TEXTURE_MIPMAP = 1 << 3,
+	
+	Q3LOAD_ALL = Q3LOAD_TEXTURE_SRGB | Q3LOAD_TEXTURE_ANISOTROPY | Q3LOAD_TEXTURE_MIPMAP
+};
+
 /*
 =====================================================
 
@@ -254,39 +264,15 @@ struct mapModel_t
 	std::vector< GLuint > indices;
 };
 
-class Q3BspMap
+struct mapData_t
 {
-private:
+	byte*				buffer; // all memory comes from this
 
-    Q3BspMap( const Q3BspMap& ) = delete;
-    Q3BspMap& operator=( Q3BspMap ) = delete;
+	bspHeader_t*		header;
 
-    bspHeader_t     header;
+	bspEntity_t         entities;
 
-	byte*			mapBuffer;
-
-    bool            mapAllocated;
-
-public:
-
-    Q3BspMap( void );
-
-    ~Q3BspMap( void );
-
-    void                Read( const std::string& filepath, const int scale );
-
-    void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
-
-    bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
-
-    bool                IsClusterVisible( int sourceCluster, int testCluster );
-
-    bool                IsAllocated( void ) const { return mapAllocated; }
-
-    void                DestroyMap( void );
-
-    bspEntity_t         entities;
-    bspEffect_t*        effectShaders;
+	bspEffect_t*        effectShaders;
 
     bspNode_t*          nodes;
     bspLeaf_t*          leaves;
@@ -305,7 +291,7 @@ public:
 
     bspVisdata_t*       visdata;
 
-    int                 entityStringLen;
+	int                 entityStringLen;
     int                 numEffectShaders;
 
     int                 numNodes;
@@ -324,9 +310,39 @@ public:
 	int					numLightvols;
 
     int                 numVisdataVecs;
+};
 
-	std::vector< GLuint > glTextures; // has one->one map with texture indices
-	std::vector< mapModel_t > glFaces; // has one->one map with face indices
-	std::vector< GLuint > glLightmaps; // textures - has one->one map with lightmap indices
+class Q3BspMap
+{
+private:
 
+    Q3BspMap( const Q3BspMap& ) = delete;
+    Q3BspMap& operator=( Q3BspMap ) = delete;
+
+    bool						mapAllocated;
+
+	
+
+public:
+
+	std::vector< GLuint >		glTextures;		// has one->one map with texture indices
+	std::vector< mapModel_t >	glFaces;		// has one->one map with face indices
+	std::vector< GLuint >		glLightmaps;	// textures - has one->one map with lightmap indices
+
+    Q3BspMap( void );
+    ~Q3BspMap( void );
+
+	mapData_t			data;
+
+    void                Read( const std::string& filepath, const int scale, uint32_t loadFlags );
+
+    void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
+
+    bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
+
+    bool                IsClusterVisible( int sourceCluster, int testCluster );
+
+    bool                IsAllocated( void ) const { return mapAllocated; }
+
+    void                DestroyMap( void );
 };

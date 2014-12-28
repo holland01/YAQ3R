@@ -12,6 +12,11 @@ private:
 
     BSPRenderer* renderer;
 
+	std::string mapFilepath;
+
+	uint32_t mapLoadFlags;
+	uint32_t mapRenderFlags;
+
     void Run( void );
 
 public:

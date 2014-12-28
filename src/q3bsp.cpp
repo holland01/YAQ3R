@@ -66,19 +66,9 @@ Q3BspParser::Q3BspParser
 */
 
 Q3BspMap::Q3BspMap( void )
-     : nodes( NULL ),
-       leaves( NULL ),
-       planes( NULL ),
-       vertexes( NULL ),
-       textures( NULL ),
-       models( NULL ),
-       faces( NULL ),
-       leafFaces( NULL ),
-       meshVertexes( NULL ),
-	   visdata( NULL ),
-       mapAllocated( false )
+     :	mapAllocated( false ),
+		data( {} )
 {
-    entities.infoString = NULL;
 }
 
 /*
@@ -109,45 +99,17 @@ void Q3BspMap::DestroyMap( void )
 {
     if ( mapAllocated )
     {
-        entities.infoString = NULL;
-        effectShaders = NULL;
-
-        nodes = NULL;
-        leaves = NULL;
-        planes = NULL;
-
-        vertexes = NULL;
-        textures = NULL;
-        models = NULL;
-        faces = NULL;
-
-        leafFaces = NULL;
-        meshVertexes = NULL;
-
-		delete[] visdata->bitsets;
-        visdata = NULL;
-
-        numEffectShaders = 0;
-
-        numNodes = 0;
-        numLeaves = 0;
-        numPlanes = 0;
-
-        numVertexes = 0;
-        numTextures = 0;
-        numModels = 0;
-        numFaces = 0;
-
-        numLeafFaces = 0;
-        numMeshVertexes = 0;
-
-        numVisdataVecs = 0;
+		delete[] data.visdata->bitsets;
+        delete[] data.buffer;	
+		memset( &data, 0, sizeof( mapData_t ) );
 
 		GL_CHECK( glDeleteTextures( glTextures.size(), &glTextures[ 0 ] ) );
+		GL_CHECK( glDeleteTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
 
-		delete[] mapBuffer;
-		mapBuffer = nullptr;
-
+		glTextures.clear();
+		glLightmaps.clear();
+		glFaces.clear();
+		
         mapAllocated = false;
     }
 }
@@ -167,8 +129,11 @@ Q3BspParser::Read
 =====================================================
 */
 
-void Q3BspMap::Read( const std::string& filepath, const int scale )
+void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t loadFlags )
 {   
+	if ( IsAllocated() )
+		DestroyMap();
+
 	assert( scale != 0 );
 
 	// Open file, verify it if we succeed
@@ -181,157 +146,156 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
 	fseek( file, 0, SEEK_END );
 	size_t fsize = ftell( file );
-	mapBuffer = new byte[ fsize ]();
+	data.buffer = new byte[ fsize ]();
 	fseek( file, 0, SEEK_SET );
-	fread( mapBuffer, fsize, 1, file );
+	fread( data.buffer, fsize, 1, file );
 	rewind( file );
-	//fclose( file );
 
-	memcpy( &header, mapBuffer, sizeof( bspHeader_t ) );
+	data.header = ( bspHeader_t* )data.buffer;
 
-    if ( header.id[ 0 ] != 'I' || header.id[ 1 ] != 'B' || header.id[ 2 ] != 'S' || header.id[ 3 ] != 'P' )
+    if ( data.header->id[ 0 ] != 'I' || data.header->id[ 1 ] != 'B' || data.header->id[ 2 ] != 'S' || data.header->id[ 3 ] != 'P' )
     {
-        ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", header.id );
+        ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", data.header->id );
     }
 
-    if ( header.version != BSP_Q3_VERSION )
+    if ( data.header->version != BSP_Q3_VERSION )
     {
-        ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, header.version );
+        ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, data.header->version );
     }
 
 	// Read map data, swizzle coordinates from Z UP axis to Y UP axis in a right-handed system.
 	// Scale anything as necessary (or desired)
-    entities.infoString = ( char* )( mapBuffer + header.directories[ BSP_LUMP_ENTITIES ].offset );
-    entityStringLen = header.directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
+    data.entities.infoString = ( char* )( data.buffer + data.header->directories[ BSP_LUMP_ENTITIES ].offset );
+    data.entityStringLen = data.header->directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
 
-    textures = ( bspTexture_t* )( mapBuffer + header.directories[ BSP_LUMP_TEXTURES ].offset ); 
-	numTextures = header.directories[ BSP_LUMP_TEXTURES ].length / sizeof( bspTexture_t );
+    data.textures = ( bspTexture_t* )( data.buffer + data.header->directories[ BSP_LUMP_TEXTURES ].offset ); 
+	data.numTextures = data.header->directories[ BSP_LUMP_TEXTURES ].length / sizeof( bspTexture_t );
 
-    nodes = ( bspNode_t* )( mapBuffer + header.directories[ BSP_LUMP_NODES ].offset );
-	numNodes = header.directories[ BSP_LUMP_NODES ].length / sizeof( bspNode_t );
+    data.nodes = ( bspNode_t* )( data.buffer + data.header->directories[ BSP_LUMP_NODES ].offset );
+	data.numNodes = data.header->directories[ BSP_LUMP_NODES ].length / sizeof( bspNode_t );
 
-    for ( int i = 0; i < numNodes; ++i )
+    for ( int i = 0; i < data.numNodes; ++i )
     {
-        ScaleCoords( nodes[ i ].boxMax, scale );
-        ScaleCoords( nodes[ i ].boxMin, scale );
+        ScaleCoords( data.nodes[ i ].boxMax, scale );
+        ScaleCoords( data.nodes[ i ].boxMin, scale );
 
-        SwizzleCoords( nodes[ i ].boxMax );
-        SwizzleCoords( nodes[ i ].boxMin );
+        SwizzleCoords( data.nodes[ i ].boxMax );
+        SwizzleCoords(data. nodes[ i ].boxMin );
     }
 	
-    leaves = ( bspLeaf_t* )( mapBuffer + header.directories[ BSP_LUMP_LEAVES ].offset );
-	numLeaves = header.directories[ BSP_LUMP_LEAVES ].length / sizeof( bspLeaf_t );
+    data.leaves = ( bspLeaf_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAVES ].offset );
+	data.numLeaves = data.header->directories[ BSP_LUMP_LEAVES ].length / sizeof( bspLeaf_t );
 
-    for ( int i = 0; i < numLeaves; ++i )
+    for ( int i = 0; i < data.numLeaves; ++i )
     {
-        ScaleCoords( leaves[ i ].boxMax, scale );
-        ScaleCoords( leaves[ i ].boxMin, scale );
+        ScaleCoords( data.leaves[ i ].boxMax, scale );
+        ScaleCoords( data.leaves[ i ].boxMin, scale );
 
-        SwizzleCoords( leaves[ i ].boxMax );
-        SwizzleCoords( leaves[ i ].boxMin );
+        SwizzleCoords( data.leaves[ i ].boxMax );
+        SwizzleCoords( data.leaves[ i ].boxMin );
     }
 
-	planes = ( bspPlane_t* )( mapBuffer + header.directories[ BSP_LUMP_PLANES ].offset );
-    numPlanes = header.directories[ BSP_LUMP_PLANES ].length / sizeof( bspPlane_t );
+	data.planes = ( bspPlane_t* )( data.buffer + data.header->directories[ BSP_LUMP_PLANES ].offset );
+    data.numPlanes = data.header->directories[ BSP_LUMP_PLANES ].length / sizeof( bspPlane_t );
 
-    for ( int i = 0; i < numPlanes; ++i )
+    for ( int i = 0; i < data.numPlanes; ++i )
     {
-        planes[ i ].distance *= scale;
-        ScaleCoords( planes[ i ].normal, ( float ) scale );
-        SwizzleCoords( planes[ i ].normal );
+		data.planes[ i ].distance *= scale;
+        ScaleCoords( data.planes[ i ].normal, ( float ) scale );
+        SwizzleCoords( data.planes[ i ].normal );
     }
 	
-    vertexes = ( bspVertex_t* )( mapBuffer + header.directories[ BSP_LUMP_VERTEXES ].offset );
-	numVertexes = header.directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
+    data.vertexes = ( bspVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_VERTEXES ].offset );
+	data.numVertexes = data.header->directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
 	
-	for ( int i = 0; i < numVertexes; ++i )
+	for ( int i = 0; i < data.numVertexes; ++i )
 	{
-		ScaleCoords( vertexes[ i ].texCoords[ 0 ], ( float ) scale );
-        ScaleCoords( vertexes[ i ].texCoords[ 1 ], ( float ) scale );
-        ScaleCoords( vertexes[ i ].normal, ( float ) scale );
-        ScaleCoords( vertexes[ i ].position, ( float ) scale );
+		ScaleCoords( data.vertexes[ i ].texCoords[ 0 ], ( float ) scale );
+        ScaleCoords( data.vertexes[ i ].texCoords[ 1 ], ( float ) scale );
+        ScaleCoords( data.vertexes[ i ].normal, ( float ) scale );
+        ScaleCoords( data.vertexes[ i ].position, ( float ) scale );
 
-        SwizzleCoords( vertexes[ i ].position );
-        SwizzleCoords( vertexes[ i ].normal );
+        SwizzleCoords( data.vertexes[ i ].position );
+        SwizzleCoords( data.vertexes[ i ].normal );
 	}
 	
-    models = ( bspModel_t* )( mapBuffer + header.directories[ BSP_LUMP_MODELS ].offset );
-	numModels = header.directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
+    data.models = ( bspModel_t* )( data.buffer + data.header->directories[ BSP_LUMP_MODELS ].offset );
+	data.numModels = data.header->directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
 
-    for ( int i = 0; i < numModels; ++i )
+    for ( int i = 0; i < data.numModels; ++i )
     {
-        ScaleCoords( models[ i ].boxMax, ( float ) scale );
-        ScaleCoords( models[ i ].boxMin, ( float ) scale );
+        ScaleCoords( data.models[ i ].boxMax, ( float ) scale );
+        ScaleCoords( data.models[ i ].boxMin, ( float ) scale );
 
-        SwizzleCoords( models[ i ].boxMax );
-        SwizzleCoords( models[ i ].boxMin );
+        SwizzleCoords( data.models[ i ].boxMax );
+        SwizzleCoords( data.models[ i ].boxMin );
     }
     
-    faces = ( bspFace_t* )( mapBuffer + header.directories[ BSP_LUMP_FACES ].offset );
-	numFaces = header.directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
+    data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
+	data.numFaces = data.header->directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
 
-    for ( int i = 0; i < numFaces; ++i )
+    for ( int i = 0; i < data.numFaces; ++i )
     {
-        ScaleCoords( faces[ i ].normal, ( float ) scale );
-        ScaleCoords( faces[ i ].lightmapOrigin, ( float ) scale );
-        ScaleCoords( faces[ i ].lightmapStVecs[ 0 ], ( float ) scale );
-        ScaleCoords( faces[ i ].lightmapStVecs[ 1 ], ( float ) scale );
+        ScaleCoords( data.faces[ i ].normal, ( float ) scale );
+        ScaleCoords( data.faces[ i ].lightmapOrigin, ( float ) scale );
+        ScaleCoords( data.faces[ i ].lightmapStVecs[ 0 ], ( float ) scale );
+        ScaleCoords( data.faces[ i ].lightmapStVecs[ 1 ], ( float ) scale );
 
-        SwizzleCoords( faces[ i ].normal );
-        SwizzleCoords( faces[ i ].lightmapOrigin );
-        SwizzleCoords( faces[ i ].lightmapStVecs[ 0 ] );
-        SwizzleCoords( faces[ i ].lightmapStVecs[ 1 ] );
+        SwizzleCoords( data.faces[ i ].normal );
+        SwizzleCoords( data.faces[ i ].lightmapOrigin );
+        SwizzleCoords( data.faces[ i ].lightmapStVecs[ 0 ] );
+        SwizzleCoords( data.faces[ i ].lightmapStVecs[ 1 ] );
     }
 
-    leafFaces = ( bspLeafFace_t* )( mapBuffer + header.directories[ BSP_LUMP_LEAF_FACES ].offset );
-	numLeafFaces = header.directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
+    data.leafFaces = ( bspLeafFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_FACES ].offset );
+	data.numLeafFaces = data.header->directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
 
-    meshVertexes = ( bspMeshVertex_t* )( mapBuffer + header.directories[ BSP_LUMP_MESH_VERTEXES ].offset );
-	numMeshVertexes = header.directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( bspMeshVertex_t );
+    data.meshVertexes = ( bspMeshVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_MESH_VERTEXES ].offset );
+	data.numMeshVertexes = data.header->directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( bspMeshVertex_t );
 
-	effectShaders = ( bspEffect_t* )( mapBuffer + header.directories[ BSP_LUMP_EFFECTS ].offset );
-	numEffectShaders = header.directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
+	data.effectShaders = ( bspEffect_t* )( data.buffer + data.header->directories[ BSP_LUMP_EFFECTS ].offset );
+	data.numEffectShaders = data.header->directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
 
-	lightmaps = ( bspLightmap_t* )( mapBuffer + header.directories[ BSP_LUMP_LIGHTMAPS ].offset );
-	numLightmaps = header.directories[ BSP_LUMP_LIGHTMAPS ].length / sizeof( bspLightmap_t );
+	data.lightmaps = ( bspLightmap_t* )( data.buffer + data.header->directories[ BSP_LUMP_LIGHTMAPS ].offset );
+	data.numLightmaps = data.header->directories[ BSP_LUMP_LIGHTMAPS ].length / sizeof( bspLightmap_t );
 
-	lightvols = ( bspLightvol_t* )( mapBuffer + header.directories[ BSP_LUMP_LIGHTVOLS ].offset );
-	numLightvols = header.directories[ BSP_LUMP_LIGHTVOLS ].length / sizeof( bspLightvol_t );
+	data.lightvols = ( bspLightvol_t* )( data.buffer + data.header->directories[ BSP_LUMP_LIGHTVOLS ].offset );
+	data.numLightvols = data.header->directories[ BSP_LUMP_LIGHTVOLS ].length / sizeof( bspLightvol_t );
 
-    visdata = ( bspVisdata_t* )( mapBuffer + header.directories[ BSP_LUMP_VISDATA ].offset );
-	numVisdataVecs = header.directories[ BSP_LUMP_VISDATA ].length;
+    data.visdata = ( bspVisdata_t* )( data.buffer + data.header->directories[ BSP_LUMP_VISDATA ].offset );
+	data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;
     
 	// Reading the last portion of the data from the file directly has appeared to produce better results.
 	// Not quite sure why, admittedly. See: http://stackoverflow.com/questions/27653440/mapping-data-to-an-offset-of-a-byte-buffer-allocated-for-an-entire-file-versus-r 
 	// for the full story
-	fseek( file, header.directories[ BSP_LUMP_VISDATA ].offset + sizeof( int ) * 2, SEEK_SET );
+	fseek( file, data.header->directories[ BSP_LUMP_VISDATA ].offset + sizeof( int ) * 2, SEEK_SET );
     
-	int size = visdata->numVectors * visdata->sizeVector;
-    visdata->bitsets = new byte[ size ]();
-	fread( visdata->bitsets, size, 1, file );
+	int size = data.visdata->numVectors * data.visdata->sizeVector;
+    data.visdata->bitsets = new byte[ size ]();
+	fread( data.visdata->bitsets, size, 1, file );
 
 	fclose( file );
 
     mapAllocated = true;
 
-	glFaces.resize( numFaces );
+	glFaces.resize( data.numFaces );
 
 	// Generate vbos; we simply cache the data already used for any polygon or mesh faces. For faces
 	// which aren't of these two categories, we leave them be.
-	for ( int i = 0; i < numFaces; ++i )
+	for ( int i = 0; i < data.numFaces; ++i )
 	{
-		bspFace_t* face = faces + i;
+		bspFace_t* face = data.faces + i;
 
 		if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
 		{
 			glFaces[ i ].indices.resize( face->numMeshVertexes );
 			for ( int j = 0; j < face->numMeshVertexes; ++j )
-				glFaces[ i ].indices[ j ] = face->vertexOffset + meshVertexes[ face->meshVertexOffset + j ].offset;
+				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
 		}
 	}
 	
 	// Now, find and generate the textures. We first start with the image files.
-	glTextures.resize( numTextures, 0 );
+	glTextures.resize( data.numTextures, 0 );
 	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
 
 	// GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
@@ -339,6 +303,10 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 	// Some might consider this a hack, and to be fair it kind of is. However, it works. It's also simpler, portable, and more performant than traversing a number of directories
 	// using an OS-specific API. It's also only temporary :)
 	{
+		GLint oldAlign;
+		GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
+		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+
 		static const char* validImgExt[] = 
 		{
 			".jpg", ".png", ".tga", ".tiff", ".bmp"
@@ -346,11 +314,11 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 
 		const std::string& root = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 
-		for ( int t = 0; t < numTextures; t++ )
+		for ( int t = 0; t < data.numTextures; t++ )
 		{
 			FILE* tf;
 
-			std::string fname( textures[ t ].filename );
+			std::string fname( data.textures[ t ].filename );
 
 			const std::string& texPath = root + fname;
 		
@@ -390,6 +358,19 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 			GLenum fmt;
 			GLenum internalFmt;
 
+			GLenum rgb, rgba;
+			
+			if ( loadFlags & Q3LOAD_TEXTURE_SRGB )
+			{
+				rgb = GL_SRGB8;
+				rgba = GL_SRGB8_ALPHA8;
+			}
+			else
+			{
+				rgb = GL_RGB8;
+				rgba = GL_RGBA8;
+			}
+
 			switch ( bpp )
 			{
 			case 1:
@@ -397,11 +378,11 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 				internalFmt = GL_R8; 
 				break;
 			case 3:
-				internalFmt = GL_SRGB8;
+				internalFmt = rgb;
 				fmt = GL_RGB;
 				break;
 			case 4:
-				internalFmt = GL_SRGB8_ALPHA8;
+				internalFmt = rgba;
 				fmt = GL_RGBA;
 				break;
 			default:
@@ -411,12 +392,46 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 		
 			GL_CHECK( glBindTexture( GL_TEXTURE_2D, glTextures[ t ] ) );
 
-			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+			int maxLevels = glm::min( ( int ) glm::log2( ( float ) width ), ( int ) glm::log2( ( float ) height ) ); 
+
+			GLenum minFilter;
+			if ( loadFlags & Q3LOAD_TEXTURE_MIPMAP )
+			{
+				int w = width;
+				int h = height;
+
+				for ( int mip = 0; h != 1 && w != 1; ++mip )
+				{
+					GL_CHECK( glTexImage2D( GL_TEXTURE_2D, mip, internalFmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
+
+					if ( h > 1 )
+						h /= 2;
+
+					if ( w > 1 )
+						w /= 2;
+				}
+
+				GL_CHECK( glGenerateMipmap( GL_TEXTURE_2D ) );
+				minFilter = GL_LINEAR_MIPMAP_LINEAR;
+			}
+			else
+			{
+				GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
+				minFilter = GL_LINEAR;
+			}
+		
+
+			if ( loadFlags & Q3LOAD_TEXTURE_ANISOTROPY )
+			{
+				GLfloat maxSamples;
+				GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
+				GL_CHECK( glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
+			}
+
+			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter ) );
 			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
 			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
 			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
-
-			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
 
 			continue;
 
@@ -425,13 +440,16 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
 			glTextures[ t ] = 0;
 		}
+
+		// Reset the alignment to maintain consistency
+		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 	}
 
 	// And then generate all of the lightmaps
-	glLightmaps.resize( numLightmaps, 0 );
+	glLightmaps.resize( data.numLightmaps, 0 );
 	GL_CHECK( glGenTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
 	
-	for ( int l = 0; l < numLightmaps; ++l )
+	for ( int l = 0; l < data.numLightmaps; ++l )
 	{	
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glLightmaps[ l ] ) );
 
@@ -449,34 +467,8 @@ void Q3BspMap::Read( const std::string& filepath, const int scale )
 			0, 
 			GL_RGB, 
 			GL_UNSIGNED_BYTE, 
-			lightmaps[ l ].map ) );	
+			data.lightmaps[ l ].map ) );	
 	}
-}
-
-/*
-=====================================================
-
-Q3BspParser::SetVertexColorIf
-
-Set the color of all vertices with a given alpha channel value
-by a given RGB color, using a predicate function pointer.
-
-Color and channel specified are within the range [0, 255]
-
-=====================================================
-*/
-
-void Q3BspMap::SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor )
-{
-    for ( int i = 0; i < numVertexes; ++i )
-    {
-        if ( ( *predicate )( vertexes[ i ].color ) )
-        {
-            vertexes[ i ].color[ 0 ] = rgbColor.r;
-            vertexes[ i ].color[ 1 ] = rgbColor.g;
-            vertexes[ i ].color[ 2 ] = rgbColor.b;
-        }
-    }
 }
 
 /*
@@ -497,8 +489,8 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 
     while ( nodeIndex >= 0 )
     {
-        const bspNode_t* const node = nodes + nodeIndex;
-        const bspPlane_t* const plane = planes + node->plane;
+        const bspNode_t* const node = data.nodes + nodeIndex;
+        const bspPlane_t* const plane = data.planes + node->plane;
 
         // If the distance from the camera to the plane is >= 0,
         // then our needed camera data is in a leaf somewhere in front of this node,
@@ -516,7 +508,7 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 
     nodeIndex = -( nodeIndex + 1 );
 
-    return &leaves[ nodeIndex ];
+    return &data.leaves[ nodeIndex ];
 }
 
 /*
@@ -533,12 +525,12 @@ found in the link posted in q3bsp.h.
 
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {
-    if ( !visdata->bitsets || ( sourceCluster < 0 ) )
+    if ( !data.visdata->bitsets || ( sourceCluster < 0 ) )
         return true;
 
-    int i = ( sourceCluster * visdata->sizeVector ) + ( testCluster >> 3 );
+    int i = ( sourceCluster * data.visdata->sizeVector ) + ( testCluster >> 3 );
 
-    byte visSet = visdata->bitsets[ i ];
+    byte visSet = data.visdata->bitsets[ i ];
 
     return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }

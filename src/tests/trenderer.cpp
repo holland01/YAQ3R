@@ -6,7 +6,9 @@ static const char* gTitle = "I am a floating camera";
 TRenderer::TRenderer( void )
     : Test( 1366, 768 ),
 	  currentTime( 0.0f ),
-      renderer( NULL )
+      renderer( NULL ),
+	  mapFilepath( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" ),
+	  mapLoadFlags( Q3LOAD_ALL )
 {
 }
 
@@ -19,7 +21,7 @@ TRenderer::~TRenderer( void )
 void TRenderer::Run( void )
 {
     renderer->Update( deltaTime );
-    renderer->DrawWorld();
+    renderer->Render( mapRenderFlags );
 
 	std::stringstream windowTitle;
 	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
@@ -33,14 +35,17 @@ void TRenderer::Load( void )
     if ( !Test::Load( "I am a floating camera" ) )
         return;
 
+	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
+    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
+    GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
+
 	//GL_CHECK( glEnable( GL_BLEND ) );
 	//GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
 
-    glfwSetInputMode( winPtr, GLFW_STICKY_KEYS, GL_FALSE );
-
     renderer = new BSPRenderer;
     renderer->Prep();
-    renderer->Load( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" );
+	renderer->Load( mapFilepath, mapLoadFlags );
     //renderer->Load( "asset/quake/railgun_arena/maps/Railgun_Arena.bsp" );
 
     camPtr = renderer->camera;
@@ -55,11 +60,27 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 		switch ( key )
 		{
 		case GLFW_KEY_0:
-			renderer->drawDebugInfo = !renderer->drawDebugInfo;
+			mapRenderFlags ^= RENDER_BSP_LIGHTMAP_INFO;
 			break;
-		case GLFW_KEY_8:
-			renderer->gammaCorrectVertexColors = !renderer->gammaCorrectVertexColors;
+
+		case GLFW_KEY_7:
+			mapLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+			break;
+
+		case GLFW_KEY_6:
+			mapLoadFlags ^= Q3LOAD_TEXTURE_ANISOTROPY;
+			break;
+
+		case GLFW_KEY_9:
+			useSRGBFramebuffer = !useSRGBFramebuffer;
+			if ( useSRGBFramebuffer )
+				GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
+			else
+				GL_CHECK( glDisable( GL_FRAMEBUFFER_SRGB ) );
 			break;
 		}
+
+		if ( key == GLFW_KEY_7 || key == GLFW_KEY_6 )
+			renderer->Load( mapFilepath, mapLoadFlags );
 	}
 }

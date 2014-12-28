@@ -20,10 +20,7 @@ void main()
 {
     gl_Position = cameraToClip * modelToCamera * vec4( position, 1.0 );
 
-	if ( doGammaCorrect )
-		frag_Color = pow( color, vec4( gammaExp ) );
-    else
-		frag_Color = color;
+	frag_Color = pow( color, vec4( gammaExp ) );
 
 	frag_Tex = tex0;
 	frag_Lightmap = lightmap;

@@ -50,6 +50,12 @@ public:
 
 class AABB;
 
+// Draw flags
+enum 
+{
+	RENDER_BSP_LIGHTMAP_INFO = 1
+};
+
 class BSPRenderer
 {
 public:
@@ -60,31 +66,25 @@ public:
 
 	BezPatch		patchRenderer;
 
-	bool			drawDebugInfo;
-	bool			gammaCorrectVertexColors; 
-
 	int				mapDimsLength;
 	int				lodThreshold;
 
     BSPRenderer( void );
-
     ~BSPRenderer( void );
 
     void    Prep( void );
-    void    Load( const std::string& filepath );
+    void    Load( const std::string& filepath, uint32_t loadFlags );
 
-    void    DrawWorld( void );
+    void    Render( uint32_t renderFlags );
 
-    void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid );
-    void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid );
+    void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags );
+    void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags );
 
 	float   CalcFps( void ) const { return 60.0f / ( float )frameTime; }
 
     void    Update( float dt );
 
 private:
-
-    typedef bool        ( *PredicateFunc )( const bspVertex_t&, const bspVertex_t& );
 
     Q3BspMap*           map;
 

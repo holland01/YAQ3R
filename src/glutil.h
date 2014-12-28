@@ -4,6 +4,10 @@
 #include "q3bsp.h"
 #include "gldebug.h"
 
+// Extensions
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
+
 #ifdef _DEBUG
 #	define GL_CHECK( expr ) \
 		do					\

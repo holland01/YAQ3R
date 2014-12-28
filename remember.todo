@@ -1,10 +1,13 @@
 Feature:
-- Lightmaps; use a separate tex sampler for that ( almost done )
-- Textures; need to be mipmapped (priority)
+//- Lightmaps; use a separate tex sampler for that ( almost done )
+//- Textures; need to be mipmapped (priority)
 //- Gamma correction
-- Billboards
+//- Anisotropy
+- Billboards ( next )
 - Shader parser (once Bills and Lightmaps are working and performing reasonably)
 	* We'll need a struct for every model (or texture) with various flags 
+
+- Lightvols
 
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data
@@ -33,9 +36,12 @@ though I'm not sure. Regardless, all of these specifics should be handled via th
   As a result, any zero length fragment coming from a plant mesh in the fragment shader should just be discarded. Shader may provide info for this. 
   (Update) yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
 
+- Artifacts which appear in various forms of the scenery (for example, the columns). They look like little tiny sketches (or lines, rather) which appear on the models in varying places
+  as the camera moves around. If effect shader support doesn't fix this, this will need to be revisited.
+
 
 Refactor:
-- All GL state management should be handled in ONE place.
+//- All GL state management should be handled in ONE place.
 //- Have a global interface function which can be called for setting the function source and call strings in GL_CHECK macro, as opposed to just directly setting globals...
 //- Make all variables camelcase in gldebug.cpp
 //- For consistency, remove std::vector usage from Q3BspMap class (as well as mapModel_t). Replace with buffers.

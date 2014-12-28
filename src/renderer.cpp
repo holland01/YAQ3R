@@ -4,6 +4,7 @@
 #include "math_util.h"
 #include "aabb.h"
 #include "glutil.h"
+#include <glm/gtx/string_cast.hpp>
 
 using namespace std;
 
@@ -25,8 +26,7 @@ RenderPass::RenderPass
 RenderPass::RenderPass( const Q3BspMap* const& map, const viewParams_t& viewData )
     : view( viewData )
 {
-    facesRendered.reserve( map->numFaces );
-    facesRendered.assign( map->numFaces, 0 );
+    facesRendered.resize( map->data.numFaces, 0 );
 }
 
 /*
@@ -52,9 +52,7 @@ BSPRenderer::BSPRenderer
 BSPRenderer::BSPRenderer( void )
     : camera( NULL ),
       frustum( NULL ),
-	  drawDebugInfo( false ),
-	  gammaCorrectVertexColors( true ),
-      map( NULL ),
+	  map ( NULL ),
       bspProgram( 0 ),
       vao( 0 ),
       vbo( 0 ),
@@ -62,7 +60,10 @@ BSPRenderer::BSPRenderer( void )
       currLeaf( NULL ),
 	  mapDimsLength( 0 )
 {
-	camera = new InputCamera();
+	viewParams_t view;
+	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
+
+	camera = new InputCamera( view, EuAng() );
 
     frustum = new Frustum();
     map = new Q3BspMap();
@@ -120,7 +121,6 @@ void BSPRenderer::Prep( void )
 		"fragLightmapSampler",
 		"fragAmbient",
 		
-		"doGammaCorrect",
 		"modelToCamera",
 		"cameraToClip"
 	};
@@ -128,6 +128,15 @@ void BSPRenderer::Prep( void )
 	for ( size_t i = 0; i < uniforms.size(); ++i )
 		bspProgramUniforms[ uniforms[ i ] ] = GL_CHECK( glGetUniformLocation( bspProgram, uniforms[ i ].c_str() ) );
 	
+	GL_CHECK( glBindAttribLocation( bspProgram, 0, "position" ) );
+    GL_CHECK( glBindAttribLocation( bspProgram, 1, "color" ) );
+    GL_CHECK( glBindAttribLocation( bspProgram, 2, "tex0" ) );
+	GL_CHECK( glBindAttribLocation( bspProgram, 3, "lightmap" ) );
+
+	// Load projection transform
+    GL_CHECK( glUseProgram( bspProgram ) );
+    GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+
     glUseProgram( bspProgram );
 }
 
@@ -141,35 +150,22 @@ BSPRenderer::Load
 =====================================================
 */
 
-void BSPRenderer::Load( const string& filepath )
+void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 {
-    if ( map->IsAllocated() )
-        map->DestroyMap();
-
-    map->Read( filepath, 1 );
+    map->Read( filepath, 1, mapLoadFlags );
 
 	// Allocate vertex data from map and store it all in a single vbo
 	GL_CHECK( glBindVertexArray( vao ) );
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-    GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->numVertexes, map->vertexes, GL_STATIC_DRAW ) );
-
-    GL_CHECK( glBindAttribLocation( bspProgram, 0, "position" ) );
-    GL_CHECK( glBindAttribLocation( bspProgram, 1, "color" ) );
-    GL_CHECK( glBindAttribLocation( bspProgram, 2, "tex0" ) );
-	GL_CHECK( glBindAttribLocation( bspProgram, 3, "lightmap" ) );
+    GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->data.numVertexes, map->data.vertexes, GL_STATIC_DRAW ) );
 
 	LoadVertexLayout();
 
-	// Load projection transform
-    GL_CHECK( glUseProgram( bspProgram ) );
-    GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+	const bspNode_t* root = &map->data.nodes[ 0 ];
 
 	// Base texture setup
-	
-	//GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
-
-	mapDimsLength = ( int ) glm::length( glm::vec3( map->nodes[ 0 ].boxMax.x, map->nodes[ 0 ].boxMax.y, map->nodes[ 0 ].boxMax.z ) );
+	mapDimsLength = ( int ) glm::length( glm::vec3( root->boxMax.x, root->boxMax.y, root->boxMax.z ) );
 	lodThreshold = mapDimsLength / 2;
 }
 
@@ -181,18 +177,18 @@ BSPRenderer::DrawWorld
 =====================================================
 */
 
-void BSPRenderer::DrawWorld( void )
+void BSPRenderer::Render( uint32_t renderFlags )
 { 
-	GL_CHECK( glUniform1i( bspProgramUniforms[ "doGammaCorrect" ], gammaCorrectVertexColors ? 1 : 0 ) );
-
 	double startTime = glfwGetTime();
 	GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
 
     RenderPass pass( map, camera->ViewData() );
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 
-    DrawNode( 0, pass, true );
+    DrawNode( 0, pass, true, renderFlags );
 	frameTime = glfwGetTime() - startTime;
+
+	MyPrintf( "Cam Pos", "%s", glm::to_string( pass.view.origin ) );
 }
 
 /*
@@ -221,11 +217,11 @@ BSPRenderer::DrawNodes
 =====================================================
 */
 
-void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
+void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags )
 {
     if ( nodeIndex < 0 )
     {
-        const bspLeaf_t* const viewLeaf = &map->leaves[ -( nodeIndex + 1 ) ];
+        const bspLeaf_t* const viewLeaf = &map->data.leaves[ -( nodeIndex + 1 ) ];
 
         if ( !map->IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
             return;
@@ -240,40 +236,43 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid )
 
         for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
         {
-            int index = map->leafFaces[ viewLeaf->leafFaceOffset + i ].index;
+            int index = map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index;
 
             if ( pass.facesRendered[ index ] )
                 continue;
 
-            DrawFace( index, pass, bounds, isSolid );
+            DrawFace( index, pass, bounds, isSolid, renderFlags );
         }
     }
     else
     {
-        const bspNode_t* const node = &map->nodes[ nodeIndex ];
-        const bspPlane_t* const plane = &map->planes[ node->plane ];
+        const bspNode_t* const node = &map->data.nodes[ nodeIndex ];
+        const bspPlane_t* const plane = &map->data.planes[ node->plane ];
 
         float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) );
 
-		// We're in front of the plane if d > plane->distance
+		// We're in front of the plane if d > plane->distance.
+		// If both of these are true, it makes sense to draw what is in front of us, as any 
+		// non-solid object can be handled properly by depth if it's infront of the partition plane
+		// and we're behind it
         if ( isSolid == ( d > plane->distance ) )
         {
-            DrawNode( node->children[ 0 ], pass, isSolid );
-            DrawNode( node->children[ 1 ], pass, isSolid );
+            DrawNode( node->children[ 0 ], pass, isSolid, renderFlags );
+            DrawNode( node->children[ 1 ], pass, isSolid, renderFlags );
         }
         else
         {
-            DrawNode( node->children[ 1 ], pass, isSolid );
-            DrawNode( node->children[ 0 ], pass, isSolid );
+            DrawNode( node->children[ 1 ], pass, isSolid, renderFlags );
+            DrawNode( node->children[ 0 ], pass, isSolid, renderFlags );
         }
     }
 }
 
 static const float ONE_THIRD = 1.0f / 3.0f;
 
-void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid )
+void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags )
 {
-    bspFace_t* face = map->faces + faceIndex;
+    bspFace_t* face = map->data.faces + faceIndex;
 
     GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
     GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
@@ -311,7 +310,7 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		int c = 0;
 		for ( int i = 0; i < face->size[ 0 ]; i += stepWidth )
 			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
-				patchRenderer.controlPoints[ c++ ] = &map->vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
+				patchRenderer.controlPoints[ c++ ] = &map->data.vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
 				
 		patchRenderer.Tesselate( CalcSubdivision( pass, bounds ) );
 		patchRenderer.Render();
@@ -320,7 +319,8 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		LoadBuffer( vbo );
 	}
 
-	if ( drawDebugInfo )
+	// Evaluate optional settings
+	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
 	{
 		GL_CHECK( glUseProgram( 0 ) );
 
@@ -349,8 +349,6 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		
 		GL_CHECK( glEnd() );
 
-
-		//GL_CHECK( glLoadMatrixf( glm::value_ptr( camera->ViewData().transform ) ) );
 		// Draw lightmap origin
 		GL_CHECK( glBegin( GL_POINTS ) );
 		GL_CHECK( glColor3f( 0.0f, 0.0f, 1.0f ) );
@@ -387,4 +385,3 @@ int BSPRenderer::CalcSubdivision( const RenderPass& pass, const AABB& bounds )
 
 	return subdiv;
 }
-

@@ -24,6 +24,8 @@ int main( int argc, char** argv )
     FlagExit();
 
     return code;
+	
+	return 0;
 }
 
 

@@ -14,7 +14,7 @@ uniform sampler2D fragLightmapSampler;
 
 uniform int fragWriteMode;
 
-uniform vec4 fragAmbient = vec4( 5.0 );
+uniform vec4 fragAmbient = vec4( 1.0 );
 
 out vec4 fragment;
 

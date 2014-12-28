@@ -59,6 +59,11 @@ bool Test::Load( const char* winName )
 
     glfwMakeContextCurrent( winPtr );
 
+	glfwSetKeyCallback( winPtr, OnKeyPressWrapper );
+    glfwSetCursorPosCallback( winPtr, OnMouseMoveWrapper );
+
+	glfwSetInputMode( winPtr, GLFW_STICKY_KEYS, GL_FALSE );
+
     glewExperimental = true;
     GLenum response = glewInit();
 
@@ -76,16 +81,6 @@ bool Test::Load( const char* winName )
     // GLEW-dependent OpenGL error is pushed on init. This is a temporary hack to just pop
     // that error off the error stack.
     glGetError();
-
-    glEnable( GL_DEPTH_TEST );
-    glDepthFunc( GL_LEQUAL );
-
-	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
-
-    glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
-
-    glfwSetKeyCallback( winPtr, OnKeyPressWrapper );
-    glfwSetCursorPosCallback( winPtr, OnMouseMoveWrapper );
 
     running = true;
 
@@ -128,15 +123,6 @@ void Test::OnKeyPress( int key, int scancode, int action, int mods )
                 case GLFW_KEY_ESCAPE:
                     running = false;
                     break;
-
-				case GLFW_KEY_9:
-					useSRGBFramebuffer = !useSRGBFramebuffer;
-					if ( useSRGBFramebuffer )
-						GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
-					else
-						GL_CHECK( glDisable( GL_FRAMEBUFFER_SRGB ) );
-					
-					break;
 
                 case GLFW_KEY_F1:
                     cursorVisible = !cursorVisible;
