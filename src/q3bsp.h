@@ -153,14 +153,14 @@ struct bspVertex_t
 
 struct bspTexture_t
 {
-    char    filename[ 64 ];
+    char    name[ 64 ];
     int     surfaceFlags;
     int     contentsFlags;
 };
 
 struct bspEffect_t
 {
-    char    filename[ 64 ];
+    char    name[ 64 ];
     int     brush;
     int     unknown;
 };
@@ -266,6 +266,8 @@ struct mapModel_t
 
 struct mapData_t
 {
+	const char*			basePath; // root directory of the map
+
 	byte*				buffer; // all memory comes from this
 
 	bspHeader_t*		header;
@@ -321,8 +323,6 @@ private:
 
     bool						mapAllocated;
 
-	
-
 public:
 
 	std::vector< GLuint >		glTextures;		// has one->one map with texture indices
@@ -332,17 +332,17 @@ public:
     Q3BspMap( void );
     ~Q3BspMap( void );
 
-	mapData_t			data;
+	mapData_t					data;
 
-    void                Read( const std::string& filepath, const int scale, uint32_t loadFlags );
+    void						Read( const std::string& filepath, const int scale, uint32_t loadFlags );
 
-    void                SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
+    void						SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 
-    bspLeaf_t*          FindClosestLeaf( const glm::vec3& camPos );
+    bspLeaf_t*					FindClosestLeaf( const glm::vec3& camPos );
 
-    bool                IsClusterVisible( int sourceCluster, int testCluster );
+    bool						IsClusterVisible( int sourceCluster, int testCluster );
 
-    bool                IsAllocated( void ) const { return mapAllocated; }
+    bool						IsAllocated( void ) const { return mapAllocated; }
 
-    void                DestroyMap( void );
+    void						DestroyMap( void );
 };

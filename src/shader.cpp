@@ -21,7 +21,7 @@ GLuint LinkProgram( GLuint shaders[], int len )
         char* infoLog = new char[ logLen ]();
         glGetProgramInfoLog( program, logLen, NULL, infoLog );
 
-        ERROR( "GLSL LINK ERROR: %s", infoLog );
+        MLOG_ERROR( "GLSL LINK MLOG_ERROR: %s", infoLog );
 
 		delete[] infoLog;
     }
@@ -79,32 +79,32 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
 
                         glGetShaderInfoLog( shaderId, logLen, NULL, infoLog );
 
-                        ERROR( "SHADER COMPILE ERROR: %s", infoLog );
+                        MLOG_ERROR( "SHADER COMPILE MLOG_ERROR: %s", infoLog );
                     }
 
                 }
                 else
                 {
-                    ERROR( "ERROR: Could not create a shader.\n" );
+                    MLOG_ERROR( "ERROR: Could not create a shader.\n" );
                 }
             }
             else
             {
-                ERROR( "ERROR: Could not read file %s\n", filename );
+                MLOG_ERROR( "ERROR: Could not read file %s\n", filename );
             }
 
             free( glsl_source );
         }
         else
         {
-            ERROR( "ERROR: Could not allocate %ld bytes.\n", file_size );
+            MLOG_ERROR( "ERROR: Could not allocate %ld bytes.\n", file_size );
         }
 
         fclose(file);
     }
     else
     {
-        ERROR( "ERROR: Could not open file %s\n", filename );
+        MLOG_ERROR( "ERROR: Could not open file %s\n", filename );
     }
 
     return shaderId;

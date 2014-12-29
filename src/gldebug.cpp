@@ -51,7 +51,7 @@ void glDebugInit( void )
     glLog = fopen( "log/gl.log", "w" );
 
     if ( !glLog )
-        ERROR( "Could not open gl.log" );
+        MLOG_ERROR( "Could not open gl.log" );
 
 	glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
 	glDebugMessageCallbackARB( glDebugOutProc, NULL );

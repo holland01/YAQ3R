@@ -1,0 +1,256 @@
+<HTML>
+<HEAD>
+   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+   <META NAME="Author" CONTENT="Bert Peers">
+   <META NAME="GENERATOR" CONTENT="Mozilla/4.01 [en] (Win95; I) [Netscape]">
+   <TITLE>Q3ASE Homepage</TITLE>
+</HEAD>
+<BODY TEXT="#000000" BGCOLOR="#FFFFFF" LINK="#000000" VLINK="#000000" ALINK="#220AC9">
+&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="100%" HEIGHT="50" BGCOLOR="#000000" >
+<TR>
+<TD WIDTH="5%"><A HREF="../index.html"><IMG SRC="backarr.gif" BORDER=0></A></TD>
+
+<TD ALIGN=RIGHT WIDTH="15%" BGCOLOR="#CCCCCC"><FONT FACE="Arial Black"><FONT SIZE=+4>Q</FONT></FONT></TD>
+
+<TD><FONT FACE="Arial Black"><FONT COLOR="#FFFFFF"><FONT SIZE=+4>3A Shader Editor</FONT></FONT></FONT></TD>
+</TR>
+</TABLE>
+<P>
+<center><img src="q3aselogo.jpg"></center>
+
+&nbsp;
+<BR>&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 COLS=3 WIDTH="100%" >
+<TR><TD ALIGN=RIGHT VALIGN=BOTTOM ROWSPAN="2" WIDTH="10%"></TD>
+<TD ALIGN=RIGHT VALIGN=TOP ROWSPAN="2" WIDTH="10%" BGCOLOR="#000000"><FONT FACE="Arial Narrow"><FONT COLOR="#FFFFFF" FACE="Arial Black" SIZE=+2>C</FONT>&nbsp;</TD>
+<TD BGCOLOR="#FFFFFF"><FONT FACE="Arial Black" SIZE=+2>ontents</FONT></TD>
+</TR>
+<TR>
+<TD ROWSPAN="2" BGCOLOR="#FFFFFF">
+<UL>
+<LI><a href="#background">About Q3ASE</A></LI>
+<LI><a href="#doc">Documentation</A></LI>
+<LI><a href="#releases">Releases <B>(download)</B></A></LI>
+<LI><a href="#credits">Credits</A></LI>
+<LI><a href="#links">Links</A></LI>
+</UL>
+</TD>
+<TD></TD>
+<TD></TD>
+</TR>
+</TABLE>
+
+&nbsp;<BR>&nbsp;
+
+&nbsp;
+<A Name="background">
+<BR>&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 COLS=3 WIDTH="100%" >
+<TR><TD ALIGN=RIGHT VALIGN=BOTTOM ROWSPAN="2" WIDTH="10%"></TD>
+<TD ALIGN=RIGHT VALIGN=TOP ROWSPAN="2" WIDTH="10%" BGCOLOR="#000000"><FONT FACE="Arial Narrow"><FONT COLOR="#FFFFFF" FACE="Arial Black" SIZE=+2>A</FONT>&nbsp;</TD>
+<TD BGCOLOR="#FFFFFF"><FONT FACE="Arial Black" SIZE=+2>bout Q3ASE</FONT></TD>
+</TR>
+<TR>
+<TD ROWSPAN="2" BGCOLOR="#FFFFFF">
+Textures in Quake3:Arena are no longer a simple texture combined with a lightmap, but
+are fully scripted entities which can be used to control practically every option
+OpenGL exposes when it comes to texture positioning, transformation, blending and whatnot.
+To facilitate the creation and editing of such scripts, this tool will parse a script
+and present it as a Windows GUI which is easier to understand and navigate than the
+bare C-like text files.
+<P>
+<UL>
+<LI>Full support for every keyword up to Q3A 1.29 PR TA</LI>
+<LI>Realtime preview of the shader in an OpenGL, hardware accelerated subwindow</LI>
+<LI>Realtime preview on shadowed, skinned MD3s, or directly inside a BSP</LI>
+<LI>Easy to use, custom preview modes for skies and fog</LI>
+<LI>Full undo/redo support</LI>
+<LI>Copy/paste shaders, general keywords or individual stages</LI>
+<LI>Usable as an ActiveX on webpages</LI>
+</UL>
+
+</TD>
+<TD></TD>
+<TD></TD>
+</TR>
+</TABLE>
+&nbsp;<BR>&nbsp;
+
+&nbsp;
+<A Name="doc">
+<BR>&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 COLS=3 WIDTH="100%" >
+<TR><TD ALIGN=RIGHT VALIGN=BOTTOM ROWSPAN="2" WIDTH="10%"></TD>
+<TD ALIGN=RIGHT VALIGN=TOP ROWSPAN="2" WIDTH="10%" BGCOLOR="#000000"><FONT FACE="Arial Narrow"><FONT COLOR="#FFFFFF" FACE="Arial Black" SIZE=+2>D</FONT>&nbsp;</TD>
+<TD BGCOLOR="#FFFFFF"><FONT FACE="Arial Black" SIZE=+2>ocumentation</FONT></TD>
+</TR>
+<TR>
+<TD ROWSPAN="2" BGCOLOR="#FFFFFF">
+Documentation is very limited, due to a lack of time.  Fortunately some people have made excellent tutorials to get
+you started.  If you are the author of a Q3ASE tutorial, <A HREF="mailto:rat@planetquake.com">mail me</A> to be
+included in this list.
+<P>
+<TABLE WIDTH=100%><TR><TD BGCOLOR="#DFDFDF">
+<UL>
+<LI><A HREF="q3asetutorial.html">Tutorial</A> by <A HREF="mailto:fmfat@yahoo.co.uk">fatmanfat</A></LI>
+<LI><A HREF="http://www.planetquake.com/polycount/cottages/qbranch/tutorials/shaders-2.shtml">Tutorial</A> at <A HREF="http://www.planetquake.com/polycount/cottages/qbranch/">QBranch</A> by <A HREF="mailto:harlequin@planetquake.com">Harlequin</A></LI>
+<LI><A HREF="q3asestyledemo.html">Overview</A> of the different Clipboard modes available when using Copy on a Shader or Stage</LI>
+<LI><A HREF="q3asex.html">ActiveX FAQ</A> and demo page -- showcases the ActiveX code, and answers some common questions about it</LI>
+</UL>
+</TR></TD></TABLE><P>
+Here's a quick'n'dirty list of the more obscure inputs.  Press F1 in q3ase to see the latest list :
+<UL>BSP mode
+<LI><code>'s', 'd', 'f', 'e'</code> : navigate -- hold <code>CTRL</code> to double speed, <code>SHIFT</code> to halve speed</LI>
+<LI><code>'t', 'g'</code> : up/down</LI>
+<LI><code>'c'</code> : toggle clipping to the PVS</LI>
+<LI><code>'l'</code> : toggle locking the frustum culling</LI>
+<LI><code>'p', 'P'</code> : increase/decrease picmip level</LI>
+<LI>left mouse down : freelook</LI>
+<LI>right mouse down : move forward (<code>CTRL, SHIFT</code> similar to <code>'e'</code>)</LI>
+</UL>
+<P>
+<UL>MD3 or Object mode
+<LI>left mouse down : move model</LI>
+<LI>left mouse down + <code>CTRL</code> : scale model</LI>
+<LI>right mouse down : rotate model</LI>
+<LI>right mouse down + <code>CTRL</code> : drag rotation-per-second for model</LI>
+<LI><code>space</code> : reset time</LI>
+<LI><code>num +</code> : next animation</LI>
+<LI><code>num -</code> : previous animation</LI>
+</UL>
+<UL>Text editing mode
+	<LI>Ctrl <code>space</code> : show list of known possible matches for typed text</LI>
+</UL>
+<UL>Any mode
+<LI>Shift right click : show list of shaders at mouse location</LI>
+</UL>
+</TD>
+<TD></TD>
+<TD></TD>
+</TR>
+</TABLE>
+
+
+
+&nbsp;
+<A Name="releases">
+<BR>&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 COLS=3 WIDTH="100%" >
+<TR><TD ALIGN=RIGHT VALIGN=BOTTOM ROWSPAN="2" WIDTH="10%"></TD>
+<TD ALIGN=RIGHT VALIGN=TOP ROWSPAN="2" WIDTH="10%" BGCOLOR="#000000"><FONT FACE="Arial Narrow"><FONT COLOR="#FFFFFF" FACE="Arial Black" SIZE=+2>R</FONT>&nbsp;</TD>
+<TD BGCOLOR="#FFFFFF"><FONT FACE="Arial Black" SIZE=+2>eleases</FONT></TD>
+</TR>
+<TR>
+<TD ROWSPAN="2" BGCOLOR="#FFFFFF">
+<P>
+This program is <b>freeware</b> : you can distribute and copy it at will as long as you do
+so at no charge, except for charges to cover the carrying media.  The software may be
+repacked as part of a package as long as the original ZIP file is included <b>unmodified</b>.
+<P>If you happen to use this tool for production work, <A HREF="mailto:rat@planetquake.com">let me know</A> !
+<P>
+<TABLE WIDTH=100% BORDER=0><TR><TD BGCOLOR="#DFDFDF">
+<B><H3>Version 1.5.3, 13/12/2002</H3></B>
+<UL>Highlights :
+<LI>RoQ video playback supported</LI>
+<LI>Much improved ActiveX support</LI>
+<LI>Realtime self-shadowing stencil shadows for MD3s (needs 32bpp desktop)</LI>
+<LI>Multiple <tt>q3map_sun</tt> support</LI>
+<LI>Improved support for Unparsed Data</LI>
+</UL>
+<H3><A HREF="q3ase.zip"><B>Q3ASE.zip</B></A> 526.529 bytes</H3>
+<BR>
+<B>If it complains about "msvcp60.dll not found", put <A HREF="msvcp60.zip">this file</A> (115795 bytes) in the q3ase directory.</B><BR>&nbsp;
+</TD></TR></TABLE>
+<P>
+<UL>
+<LI><A HREF="q3asechanges.html">Here is the list of daily changes</A></LI>
+<LI><A HREF="q3asehighlights.html">Here is the list of highlights of previous releases.</A></LI>
+<LI><A HREF="Shader.xsd">Here is the XML Schema Definition</A> by <A HREF="mailto:oliverw@snafu.de">Oliver Wiechhold</A> used by Q3ASE</LI>
+</UL>
+<P>
+</TD>
+<TD></TD>
+<TD></TD>
+</TR>
+</TABLE>
+
+
+&nbsp;
+<A Name="credits">
+<BR>&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 COLS=3 WIDTH="100%" >
+<TR><TD ALIGN=RIGHT VALIGN=BOTTOM ROWSPAN="2" WIDTH="10%"></TD>
+<TD ALIGN=RIGHT VALIGN=TOP ROWSPAN="2" WIDTH="10%" BGCOLOR="#000000"><FONT FACE="Arial Narrow"><FONT COLOR="#FFFFFF" FACE="Arial Black" SIZE=+2>C</FONT>&nbsp;</TD>
+<TD BGCOLOR="#FFFFFF"><FONT FACE="Arial Black" SIZE=+2>redits</FONT></TD>
+</TR>
+<TR>
+<TD ROWSPAN="2" BGCOLOR="#FFFFFF">
+<UL>
+<LI>Logo : <A HREF="http://www.koubis.com">David 'dines' Durrenberger</A></LI>
+<LI>Additional graphics : Eutectic, fatmanfat</LI>
+<LI>Quality Assurance : Eutectic -- the person to thank for the streamlined GUI and accuracy of the renderer</LI>
+<LI>
+Beta testing/thanks to : <UL>
+<LI>Paul Jaquays for some tips</LI>
+<LI>Jason "Phoenix" Wilkins for debunking the broken <code>tcMod</code> and a few other quirks</LI>
+<LI>the <A HREF="http://sourceforge.net/projects/curry/">Curry</A> team for not complaining about me ripping their TreeView idea =)</LI>
+<LI>Ken Proudfoot, Maj, Fatmanfat, Monsto Brukes, Matthew Ross for bugreports</LI>
+<LI>Dany "BinaryOfLard" Rioux for testing and some great feature ideas</LI>
+<LI>testing and tips by HarlequiN and [DT]Starrgazer</LI>
+<LI>testing by Jon Skinner</LI>
+<LI>testing by Cardigan</LI>
+</UL></LI>
+<LI>Tutorial : <A HREF="mailto:fmfat@yahoo.co.uk">Fatmanfat</A></LI>
+<LI>MD3 preview models : <A HREF="http://www.fantaseum.com/arcana">Arcana</A> (<A HREF="mailto:arcana@fantaseum.com">email</A>)</LI>
+<LI><A HREF="shader.xsd">XML Schema Definition</A> : <A HREF="mailto:oliverw@snafu.de">Oliver Wiechhold</A></LI>
+<LI>RoQ format spec and sample implementation : <A HREF="http://www.csse.monash.edu.au/~timf">Tim Ferguson</A></LI>
+<LI>Programming : <A HREF="http://www.bpeers.com/">Bert Peers</A></LI>
+<LI>Special thanks to John Carmack</LI>
+<LI>This program uses : the <A HREF="http://www.ijg.org">Independent JPEG group</A>'s library; ZLib; <A HREF="http://expat.sourceforge.net">Expat</A></LI>
+</UL>
+</TD>
+<TD></TD>
+<TD></TD>
+</TR>
+</TABLE>
+
+
+&nbsp;
+<A Name="links">
+<BR>&nbsp;
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 COLS=3 WIDTH="100%" >
+<TR><TD ALIGN=RIGHT VALIGN=BOTTOM ROWSPAN="2" WIDTH="10%"></TD>
+<TD ALIGN=RIGHT VALIGN=TOP ROWSPAN="2" WIDTH="10%" BGCOLOR="#000000"><FONT FACE="Arial Narrow"><FONT COLOR="#FFFFFF" FACE="Arial Black" SIZE=+2>L</FONT>&nbsp;</TD>
+<TD BGCOLOR="#FFFFFF"><FONT FACE="Arial Black" SIZE=+2>inks</FONT></TD>
+</TR>
+<TR>
+<TD ROWSPAN="2" BGCOLOR="#FFFFFF">
+<UL>
+<LI><A HREF="http://www.bpeers.com/software/q3ase/">http://www.bpeers.com/software/q3ase/</A>  Subsection of my homepage, tech/development news</LI>
+<LI><A HREF="http://www.bpeers.com/software/q3ase/q3asetutorial.html">http://www.bpeers.com/software/q3ase/q3asetutorial.html</A>  Tutorial by fatmanfat</LI>
+<LI><A HREF="http://www.planetquake.com/borderfield">http://www.planetquake.com/borderfield</A>  Borderfield, former release label of this tool</LI>
+<LI><A HREF="http://www.larian.com">http://www.larian.com</A>  Larian Studios, former sponsor of this tool</A></LI>
+<LI><A HREF="http://www.bpeers.com">http://www.bpeers.com</A>  My homepage</A></LI>
+</UL>
+<UL>People using Q3ASE :
+<LI><A HREF="http://www.ritual.com">Ritual Entertainment</A></LI>
+<LI><A HREF="http://www.majescosales.com/">Pipedream Interactive</A></LI>
+<LI><A HREF="http://www.mumbojumbo.com">Mumbo Jumbo</A></LI>
+</UL>
+Email : <A HREF="mailto:q3ase@bpeers.com">q3ase@bpeers.com</A>.<BR>
+Mailing list : <A HREF="http://bpeers.com/mailman/listinfo/q3ase-user_bpeers.com">Web interface</A>
+</TD>
+<TD></TD>
+<TD></TD>
+</TR>
+</TABLE>
+
+&nbsp;<BR>&nbsp;
+
+<FONT SIZE=-1><A HREF="../index.html">Back to my homepage</A></FONT>
+
+<DIV ALIGN=right><A HREF="http://www.nedstat.nl/cgi-bin/viewstat?name=peerstel"><IMG SRC="http://www.nedstat.nl/cgi-bin/nedstat.gif?name=peerstel" HEIGHT=32 WIDTH=32></A></DIV>
+
+</BODY>
+</HTML>

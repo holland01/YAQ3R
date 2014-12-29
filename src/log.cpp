@@ -100,8 +100,8 @@ LogBSPData
 
 void LogBSPData( int type, void* data, int length )
 {
-    ASSERT( gBspDataLog != NULL, "globalBspDataLog is NULL!" );
-    ASSERT( type >= 0x0 && type <= 0x10, "Type not within range [0, 16]! Value received: %i", type );
+    MLOG_ASSERT( gBspDataLog != NULL, "globalBspDataLog is NULL!" );
+    MLOG_ASSERT( type >= 0x0 && type <= 0x10, "Type not within range [0, 16]! Value received: %i", type );
 
     std::stringstream ss;
 
@@ -171,7 +171,7 @@ void LogBSPData( int type, void* data, int length )
             for ( int i = 0; i < length; ++i )
             {
                 ss  << "Begin Texture[ " << i << " ]" << "\n";
-                ss  << "\tFilename: " << texbuf[ i ].filename << "\n"
+                ss  << "\tFilename: " << texbuf[ i ].name << "\n"
                     << "\tContent Flags: " << texbuf[ i ].contentsFlags << "\n"
                     << "\tSurface Flags: " << texbuf[ i ].surfaceFlags << "\n";
                 ss  << "End Texture\n\n";
@@ -189,7 +189,7 @@ void LogBSPData( int type, void* data, int length )
             for ( int i = 0; i < length; ++i )
             {
                 ss  << "Begin Effect Shader[ " << i << " ]" << "\n";
-                ss  << "\tFilename: " << effectBuf[ i ].filename << "\n"
+                ss  << "\tFilename: " << effectBuf[ i ].name << "\n"
                     << "\tBrush Index: " << effectBuf[ i ].brush << "\n"
                     << "\tUknown Integer Field: " << effectBuf[ i ].unknown << "\n";
                 ss  << "End Effect Shader\n\n";
@@ -206,7 +206,7 @@ void LogBSPData( int type, void* data, int length )
             break;
 
         default:
-            ERROR( "Log functionality for data type index %i has not been implemented yet!", type );
+            MLOG_ERROR( "Log functionality for data type index %i has not been implemented yet!", type );
             break;
 
     }
@@ -220,10 +220,10 @@ void InitSysLog( void )
     gBspDataLog = fopen( "log/bspData.log", "w" );
 
     if ( !gDrawLog )
-        ERROR( "could not open gDrawLog" );
+        MLOG_ERROR( "could not open gDrawLog" );
 
     if ( !gBspDataLog )
-        ERROR( "could not open gBspDataLog" );
+        MLOG_ERROR( "could not open gBspDataLog" );
 
     glDebugInit();
 }

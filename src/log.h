@@ -40,11 +40,10 @@ void KillSysLog( void );
 #	define _FUNC_NAME_ __FUNCTION__
 #endif
 
-
+#define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
 
 #ifdef __GNUC__
-#	define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
-#	define ERROR( args... )                                \
+#	define MLOG_ERROR( args... )                                \
 		do                                                      \
 		{                                                       \
 			puts("======== ERROR ========");                    \
@@ -54,7 +53,7 @@ void KillSysLog( void );
 		}                                                       \
 		while( 0 )
 
-#	define WARNING( args... )                              \
+#	define MLOG_WARNING( args... )                              \
 		do                                                      \
 		{                                                       \
 			puts("======== WARNING ========");                  \
@@ -63,19 +62,19 @@ void KillSysLog( void );
 		}                                                       \
 		while( 0 )
 
-#	define ASSERT( condition, args... )    \
+#	define MLOG_ASSERT( condition, args... )    \
 		do                                      \
 		{                                       \
 			if ( !( condition ) )               \
 			{                                   \
-				ERROR( args );                  \
+				MLOG_ERROR( args );                  \
 			}                                   \
 		}                                       \
 		while( 0 )
 
 #elif defined( _MSC_VER )
-#	define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
-#	define ERROR( ... )                                \
+
+#	define MLOG_ERROR( ... )                                \
 		do                                                      \
 		{                                                       \
 			puts("======== ERROR ========");                    \
@@ -85,7 +84,7 @@ void KillSysLog( void );
 		}                                                       \
 		while( 0 )
 
-#	define WARNING( ... )                              \
+#	define MLOG_WARNING( ... )                              \
 		do                                                      \
 		{                                                       \
 			puts("======== WARNING ========");                  \
@@ -94,12 +93,12 @@ void KillSysLog( void );
 		}                                                       \
 		while( 0 )
 
-#	define ASSERT( condition, ... )    \
+#	define MLOG_ASSERT( condition, ... )    \
 		do                                      \
 		{                                       \
 			if ( !( condition ) )               \
 			{                                   \
-				ERROR( __VA_ARGS__ );           \
+				MLOG_ERROR( __VA_ARGS__ );           \
 			}                                   \
 		}                                       \
 		while( 0 )

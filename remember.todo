@@ -12,6 +12,15 @@ Feature:
 
 - Ability to save camera position/orientation and load it later.
 
+
+Impl:
+- Shaders:
+	* The chunk of texture loading code used is good and should be saved.
+	* Railgun_Arena.shader is your friend; use it as a basis to go off of before moving onto more complex layouts.
+	* Test the map with the first draft of the parser when it's done. Think about the passes; each shader "name" (i.e., entry)
+	  has a multi-tier layer of passes which begin after the globals are specified in its own entry: those are the passes to focus
+	  on and consider. This likely ties into the "isSolid" bool variable which is passed into the DrawNode(...) function 
+
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data
 //- Pre-construct face indices so they don't need to be re-computed every pass
@@ -44,6 +53,7 @@ though I'm not sure. Regardless, all of these specifics should be handled via th
 
 
 Refactor:
+  - Move all OpenGL utility functions into glutil.h (e.g., shader compilation and linking functions); ideally, any function which has an OpenGL call should be thrown in there.
 //- All GL state management should be handled in ONE place.
 //- Have a global interface function which can be called for setting the function source and call strings in GL_CHECK macro, as opposed to just directly setting globals...
 //- Make all variables camelcase in gldebug.cpp

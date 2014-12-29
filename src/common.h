@@ -13,6 +13,7 @@ Global include file, containing often-used or down-right-necessary files for eac
 ==========================
 */
 
+#include <Windows.h> // This needs to be before GLFW includes to prevent APIENTRY macro redef error
 #include "def.h"
 #include "global.h"
 
@@ -45,3 +46,15 @@ Global include file, containing often-used or down-right-necessary files for eac
 #include <glm/gtc/type_ptr.hpp>
 
 #include "vec.h"
+
+INLINE bool FileGetExt( std::string& outExt, const std::string& filename  )
+{
+	// Second condition is to ensure we actually have a file extension we can use
+	size_t index;
+	if ( ( index = filename.find_last_of( '.' ) ) != std::string::npos && index != filename.size() - 1 )
+	{
+		outExt = filename.substr( index + 1 );
+		return true;
+	}
+	return index >= 0;
+}

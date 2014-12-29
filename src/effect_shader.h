@@ -3,19 +3,11 @@
 #include "common.h"
 #include "def.h"
 
-enum surfaceParams_t
+struct mapData_t;
+
+struct renderTexture_t
 {
-	
+	int index;
 };
 
-struct shaderStub_t
-{
-	
-
-};
-
-struct shader_t
-{
-	const char* title;
-
-};
+void LoadShaders( mapData_t* map );

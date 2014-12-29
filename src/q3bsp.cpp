@@ -2,6 +2,7 @@
 #include "log.h"
 #include "glutil.h"
 #include "extern/stb_image.c"
+#include "effect_shader.h"
 
 using namespace std;
 
@@ -99,6 +100,7 @@ void Q3BspMap::DestroyMap( void )
 {
     if ( mapAllocated )
     {
+		delete[] data.basePath;
 		delete[] data.visdata->bitsets;
         delete[] data.buffer;	
 		memset( &data, 0, sizeof( mapData_t ) );
@@ -141,7 +143,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
     if ( !file )
     {
-        ERROR("Failed to open %s\n", filepath.c_str() );
+        MLOG_ERROR("Failed to open %s\n", filepath.c_str() );
     }
 
 	fseek( file, 0, SEEK_END );
@@ -151,16 +153,28 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	fread( data.buffer, fsize, 1, file );
 	rewind( file );
 
+	{
+		const std::string& rootdir = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../"; // FIXME: replace /root/maps/../ with just /root/
+
+		char* basePath = new char[ rootdir.size() + 1 ]();
+		basePath[ rootdir.size() ] = 0;
+		memcpy( basePath, &rootdir[ 0 ], sizeof( char ) * rootdir.size() );
+
+		data.basePath = basePath;
+
+		__nop();
+	}
+
 	data.header = ( bspHeader_t* )data.buffer;
 
     if ( data.header->id[ 0 ] != 'I' || data.header->id[ 1 ] != 'B' || data.header->id[ 2 ] != 'S' || data.header->id[ 3 ] != 'P' )
     {
-        ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", data.header->id );
+        MLOG_ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", data.header->id );
     }
 
     if ( data.header->version != BSP_Q3_VERSION )
     {
-        ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, data.header->version );
+        MLOG_ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, data.header->version );
     }
 
 	// Read map data, swizzle coordinates from Z UP axis to Y UP axis in a right-handed system.
@@ -311,11 +325,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-#define USE_SHADERS 1
-
-#if USE_SHADERS
-		
-#else
 		static const char* validImgExt[] = 
 		{
 			".jpg", ".png", ".tga", ".tiff", ".bmp"
@@ -327,7 +336,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		{
 			FILE* tf;
 
-			std::string fname( data.textures[ t ].filename );
+			std::string fname( data.textures[ t ].name );
 
 			const std::string& texPath = root + fname;
 		
@@ -395,7 +404,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 				fmt = GL_RGBA;
 				break;
 			default:
-				ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath.c_str() );
+				MLOG_ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath.c_str() );
 				break;
 			}
 		
@@ -445,15 +454,16 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			continue;
 
 	FAIL_WARN:
-			WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
+			MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
 			glTextures[ t ] = 0;
 		}
-#endif // USE_SHADERS
 
 		// Reset the alignment to maintain consistency
 		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 	}
+
+	LoadShaders( &data );
 
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps, 0 );
