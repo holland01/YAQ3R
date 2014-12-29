@@ -5,9 +5,12 @@ Feature:
 //- Anisotropy
 - Billboards ( next )
 - Shader parser (once Bills and Lightmaps are working and performing reasonably)
-	* We'll need a struct for every model (or texture) with various flags 
+	* We'll need a struct for every shader entry. Research the file format to get a better idea.
 
+- Models
 - Lightvols
+
+- Ability to save camera position/orientation and load it later.
 
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data
@@ -34,9 +37,9 @@ though I'm not sure. Regardless, all of these specifics should be handled via th
 
 - Plant meshes are just flat polygons that will render as black in areas where there is no image data for the texel. 
   As a result, any zero length fragment coming from a plant mesh in the fragment shader should just be discarded. Shader may provide info for this. 
-  (Update) yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
+  **Update** yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
 
-- Artifacts which appear in various forms of the scenery (for example, the columns). They look like little tiny sketches (or lines, rather) which appear on the models in varying places
+- Artifacts which appear in various forms of the scenery (for example, the columns in "aty3dm1v2"). They look like little tiny sketches (or lines, rather) which appear on the models in varying places
   as the camera moves around. If effect shader support doesn't fix this, this will need to be revisited.
 
 

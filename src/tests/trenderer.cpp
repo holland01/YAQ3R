@@ -3,11 +3,15 @@
 
 static const char* gTitle = "I am a floating camera";
 
+static const char* railgunArena = "asset/quake/railgun_arena/maps/Railgun_Arena.bsp";
+static const char* egyptTemple = "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp";
+static const char* neDuel = "asset/quake/ne_duel/maps/ne_duel.bsp";
+
 TRenderer::TRenderer( void )
     : Test( 1366, 768 ),
 	  currentTime( 0.0f ),
       renderer( NULL ),
-	  mapFilepath( "asset/quake/aty3dm1v2/aty3dm1v2/maps/aty3dm1v2.bsp" ),
+	  mapFilepath( egyptTemple ),
 	  mapLoadFlags( Q3LOAD_ALL )
 {
 }
@@ -46,8 +50,6 @@ void TRenderer::Load( void )
     renderer = new BSPRenderer;
     renderer->Prep();
 	renderer->Load( mapFilepath, mapLoadFlags );
-    //renderer->Load( "asset/quake/railgun_arena/maps/Railgun_Arena.bsp" );
-
     camPtr = renderer->camera;
 }
 

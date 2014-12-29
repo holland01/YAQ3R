@@ -292,6 +292,10 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			for ( int j = 0; j < face->numMeshVertexes; ++j )
 				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
 		}
+		else if ( face->type == BSP_FACE_TYPE_BILLBOARD )
+		{
+			__nop();
+		}
 	}
 	
 	// Now, find and generate the textures. We first start with the image files.
@@ -307,6 +311,11 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
+#define USE_SHADERS 1
+
+#if USE_SHADERS
+		
+#else
 		static const char* validImgExt[] = 
 		{
 			".jpg", ".png", ".tga", ".tiff", ".bmp"
@@ -440,6 +449,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
 			glTextures[ t ] = 0;
 		}
+#endif // USE_SHADERS
 
 		// Reset the alignment to maintain consistency
 		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );

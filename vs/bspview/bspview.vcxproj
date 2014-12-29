@@ -98,6 +98,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\aabb.cpp" />
     <ClCompile Include="..\..\src\bezpatch.cpp" />
+    <ClCompile Include="..\..\src\effect_shader.cpp" />
     <ClCompile Include="..\..\src\eu_ang.cpp" />
     <None Include="..\..\src\extern\stb_image.c" />
     <ClCompile Include="..\..\src\frustum.cpp" />
@@ -119,6 +120,7 @@
     <ClInclude Include="..\..\src\bezpatch.h" />
     <ClInclude Include="..\..\src\common.h" />
     <ClInclude Include="..\..\src\def.h" />
+    <ClInclude Include="..\..\src\effect_shader.h" />
     <ClInclude Include="..\..\src\eu_ang.h" />
     <ClInclude Include="..\..\src\frustum.h" />
     <ClInclude Include="..\..\src\gldebug.h" />

@@ -318,6 +318,11 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		// Rebind after render since patchRenderer overrides with its own vao/vbo combo
 		LoadBuffer( vbo );
 	}
+	else // Billboards
+	{
+		// TODO
+		__nop();
+	}
 
 	// Evaluate optional settings
 	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
