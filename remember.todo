@@ -20,6 +20,10 @@ Impl:
 	* Test the map with the first draft of the parser when it's done. Think about the passes; each shader "name" (i.e., entry)
 	  has a multi-tier layer of passes which begin after the globals are specified in its own entry: those are the passes to focus
 	  on and consider. This likely ties into the "isSolid" bool variable which is passed into the DrawNode(...) function 
+  
+  TODO:
+    - Add qer_trans support.
+    - Start mapping out current usage for the renderer; look into testing shader entries with multiple passes ( aka "stages" ).
 
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data
@@ -46,10 +50,11 @@ though I'm not sure. Regardless, all of these specifics should be handled via th
 
 - Plant meshes are just flat polygons that will render as black in areas where there is no image data for the texel. 
   As a result, any zero length fragment coming from a plant mesh in the fragment shader should just be discarded. Shader may provide info for this. 
-  **Update** yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
+  UPDATE: yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
 
-- Artifacts which appear in various forms of the scenery (for example, the columns in "aty3dm1v2"). They look like little tiny sketches (or lines, rather) which appear on the models in varying places
-  as the camera moves around. If effect shader support doesn't fix this, this will need to be revisited.
+- Artifacts which appear in various forms of the scenery (for example, the columns in "aty3dm1v2"). They look like little tiny sketches (or lines, rather) which appear 
+  on the models in varying places as the camera moves around. If effect shader support doesn't fix this, this will need to be revisited. 
+  UPDATE: this is likely what is known as "Z-Fighting". polygonoffset in the shaders should ammend any issues with this. 
 
 
 Refactor:

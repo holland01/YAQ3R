@@ -14,7 +14,36 @@ Global include file, containing often-used or down-right-necessary files for eac
 */
 
 #include <Windows.h> // This needs to be before GLFW includes to prevent APIENTRY macro redef error
-#include "def.h"
+
+#if defined( _WIN32 )
+#	define GL_PROC APIENTRY
+#elif defined( __GNUC__ ) && defined( __amd64__ )
+#	define GL_PROC // leave blank: calling convention should be taken care of on this architecture
+#else
+#	define GL_PROC __attribute__( ( __cdecl ) ) // default to cdecl calling convention on 32-bit non-MSVC compilers
+#endif
+
+#ifdef __GNUC__
+#	include <stdint-gcc.h>
+#else
+#	include <stdint.h>
+#endif
+
+#define INLINE inline
+
+typedef unsigned int uint;
+typedef unsigned char byte;
+
+#define TRUE 1
+#define FALSE 0
+
+// From: http://stackoverflow.com/a/4415646/763053 (originally named "COUNT_OF")
+#define UNSIGNED_LEN(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+#define SIGNED_LEN(x) ((int)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))
+
+#define Mem_Alloc( s ) ( malloc( ( s ) ) )
+#define Mem_Free( ptr ) ( free( ( ptr ) ) )
+
 #include "global.h"
 
 #include <GL/glew.h>

@@ -119,7 +119,6 @@
     <ClInclude Include="..\..\src\aabb.h" />
     <ClInclude Include="..\..\src\bezpatch.h" />
     <ClInclude Include="..\..\src\common.h" />
-    <ClInclude Include="..\..\src\def.h" />
     <ClInclude Include="..\..\src\effect_shader.h" />
     <ClInclude Include="..\..\src\eu_ang.h" />
     <ClInclude Include="..\..\src\frustum.h" />
