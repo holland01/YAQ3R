@@ -17,3 +17,8 @@ ___
 ___
 * **Unofficial Quake 3 Map Specs**: http://www.mralligator.com/q3/
 * **Rendering Quake 3 Maps**: http://graphics.cs.brown.edu/games/quake/quake3.html 
+
+### Further
+___
+  * The original Quake III engine source code on Github.
+  * Various other blog posts by the multitudes of others who have done this before I :)
