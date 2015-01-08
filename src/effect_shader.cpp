@@ -129,6 +129,8 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 				outInfo->surfaceParms |= SURFPARM_NO_MARKS;
 			else if ( strcmp( value, "trans" ) == 0 ) 
 				outInfo->surfaceParms |= SURFPARM_TRANS;
+
+			outInfo->surfparmStr.push_back( value );
 		}
 		else if ( strcmp( token, "polygonoffset" ) == 0 )
 		{
@@ -231,6 +233,8 @@ static void ParseShader( mapData_t* map, const std::string& filepath )
 
 		entries.push_back( entry );
 	}
+
+	__nop();
 }
 
 void LoadShaders( mapData_t* map )

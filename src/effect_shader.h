@@ -65,7 +65,6 @@ struct shaderStage_t
 	GLenum blendDest;
 
 	rgbGen_t rgbGen;
-	
 	mapCmd_t mapCmd;
 
 	char	 mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
@@ -77,6 +76,8 @@ struct shaderInfo_t
 	uint8_t hasPolygonOffset;
 
 	uint32_t surfaceParms;
+
+	std::vector< std::string > surfparmStr;
 	
 	int stageCount;
 	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
