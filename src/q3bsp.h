@@ -259,6 +259,8 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 =====================================================
 */
 
+struct shaderInfo_t;
+
 struct mapModel_t
 {
 	std::vector< GLuint > indices;
@@ -268,7 +270,7 @@ struct mapData_t
 {
 	const char*			basePath; // root directory of the map
 
-	byte*				buffer; // all memory comes from this
+	byte*				buffer;  // all file memory comes from this
 
 	bspHeader_t*		header;
 
@@ -293,6 +295,8 @@ struct mapData_t
 
     bspVisdata_t*       visdata;
 
+	shaderInfo_t*		shaderEntries;
+
 	int                 entityStringLen;
     int                 numEffectShaders;
 
@@ -312,6 +316,8 @@ struct mapData_t
 	int					numLightvols;
 
     int                 numVisdataVecs;
+
+	int					numShaderEntries;
 };
 
 class Q3BspMap

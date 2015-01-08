@@ -2,78 +2,11 @@
 #include "q3bsp.h"
 #include "log.h"
 
-#define SHADER_MAX_NUM_STAGES 3 
-#define SHADER_MAX_TOKEN_CHAR_LENGTH 64
-
-// Info can be obtained from http://toolz.nexuizninjaz.com/shader/
-
-enum surfaceParms_t
-{
-	SURFPARM_ALPHA_SHADOW		= 1 << 1,
-	SURFPARM_AREA_PORTAL		= 1 << 2,
-	SURFPARM_CLUSTER_PORTAL		= 1 << 3,
-	SURFPARM_DO_NOT_ENTER		= 1 << 4,
-	SURFPARM_FLESH				= 1 << 5,
-	SURFPARM_FOG				= 1 << 6,
-	SURFPARM_LAVA				= 1 << 7,
-	SURFPARM_METAL_STEPS		= 1 << 8,
-	SURFPARM_NO_DMG				= 1 << 9,
-	SURFPARM_NO_DLIGHT			= 1 << 10,
-	SURFPARM_NO_DRAW			= 1 << 11,
-	SURFPARM_NO_DROP			= 1 << 12,
-	SURFPARM_NO_IMPACT			= 1 << 13,
-	SURFPARM_NO_MARKS			= 1 << 14,
-	SURFPARM_NO_LIGHTMAP		= 1 << 15,
-	SURFPARM_NO_STEPS			= 1 << 16,
-	SURFPARM_NON_SOLID			= 1 << 17,
-	SURFPARM_ORIGIN				= 1 << 18,
-	SURFPARM_PLAYER_CLIP		= 1 << 19,
-	SURFPARM_SLICK				= 1 << 20,
-	SURFPARM_SLIME				= 1 << 21,
-	SURFPARM_STRUCTURAL			= 1 << 22,
-	SURFPARM_TRANS				= 1 << 23,
-	SURFPARM_WATER				= 1 << 24
-};	
-
-enum rgbGen_t
-{
-	RGBGEN_IDENTITY_LIGHTING = 1,
-	RGBGEN_IDENTITY,
-	RGBGEN_ENTITY,
-	RGBGEN_ONE_MINUS_ENTITY,
-	RGBGEN_VERTEX,
-	RGBGEN_ONE_MINUS_VERTEX,
-	RGBGEN_LIGHTING_DIFFUSE,
-	RGBGEN_WAVE
-};
-
 enum tokType_t
 {
 	TOKTYPE_VALID = 0,
 	TOKTYPE_GENERIC, // newlines, indents, whitespace, etc.
 	TOKTYPE_COMMENT
-};
-
-struct shaderStage_t
-{
-	GLenum blendSrc;
-	GLenum blendDest;
-	
-	rgbGen_t rgbGen;
-	
-	char clampmap[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-};
-
-struct shaderInfo_t
-{
-	char name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-	char qerEditorImage[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-	char hasPolygonOffset;
-
-	uint32_t surfaceParms;
-	uint32_t stageCount;
-
-	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
 };
 
 static INLINE GLenum GL_EnumFromStr( const char* str )
@@ -170,7 +103,6 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 		memset( entCandidate, 0, sizeof( entCandidate ) );
 
 		buffer = ReadToken( outInfo->name, buffer );	
-
 		buffer = ParseEntry( outInfo, map, buffer + 1, level );
 	}
 	else
@@ -181,11 +113,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 		buffer = ReadToken( token, buffer );
 
 		// Evaluate possible global parameters
-		if ( strcmp( token, "qer_editorimage" ) == 0 )
-		{
-			buffer = ReadToken( outInfo->qerEditorImage, buffer );
-		}
-		else if ( strcmp( token, "surfaceparm" ) == 0 )
+		if ( strcmp( token, "surfaceparm" ) == 0 )
 		{
 			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {}; 
 
@@ -211,7 +139,13 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 		{
 			if ( strcmp( token, "clampmap" ) == 0 )
 			{
-				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].clampmap, buffer );
+				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, buffer );
+				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
+			}
+			else if ( strcmp( token, "map" ) == 0 )
+			{
+				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, buffer );
+				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
 			}
 			else if ( strcmp( token, "blendFunc" ) == 0 )
 			{
@@ -235,10 +169,38 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 			}
 		}	
 
+		if ( outInfo->stageCount >= SHADER_MAX_NUM_STAGES )
+			__nop();
+
 		buffer = ParseEntry( outInfo, map, buffer + 1, level );
 	}
 
 	return buffer;
+}
+
+// Lol...
+static uint8_t IsStubbedStage( const shaderStage_t* stage )
+{
+	static const size_t STUB_OFFSETS[] = 
+	{
+		offsetof( shaderStage_t, rgbGen ), sizeof( rgbGen_t ),
+		offsetof( shaderStage_t, blendSrc ), sizeof( GLenum ),
+		offsetof( shaderStage_t, blendDest ), sizeof( GLenum )
+	};
+
+	static const size_t NUM_STUB_OFFSETS = SIGNED_LEN( STUB_OFFSETS );
+
+	const uint8_t* bytes = ( const uint8_t* ) stage;
+
+	for ( size_t i = 0; i < NUM_STUB_OFFSETS; i += 2 )
+	{
+		const uint8_t* member = bytes + STUB_OFFSETS[ i ];
+		for ( size_t byte = 0; byte < STUB_OFFSETS[ i + 1 ]; ++byte )
+			if ( member[ byte ] )
+				return 0;
+	}
+
+	return 1;
 }
 
 static void ParseShader( mapData_t* map, const std::string& filepath )
@@ -255,12 +217,19 @@ static void ParseShader( mapData_t* map, const std::string& filepath )
 
 	const char* pChar = fileBuffer;
 
+	std::vector< shaderInfo_t > entries;
 	while ( *pChar )
 	{
 		pChar = SkipInvalid( pChar );
 		
 		shaderInfo_t entry = {};
 		pChar = ParseEntry( &entry, map, pChar, 0 );
+		
+		// Look for stages which are effectively "stubs" and therefore need to use default render parameters
+		for ( int i = 0; i < entry.stageCount; ++i )
+			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
+
+		entries.push_back( entry );
 	}
 }
 

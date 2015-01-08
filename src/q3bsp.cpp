@@ -311,7 +311,9 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			__nop();
 		}
 	}
-	
+
+
+#ifndef USE_SHADERS
 	// Now, find and generate the textures. We first start with the image files.
 	glTextures.resize( data.numTextures, 0 );
 	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
@@ -462,6 +464,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		// Reset the alignment to maintain consistency
 		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 	}
+#endif
 
 	LoadShaders( &data );
 

@@ -22,8 +22,17 @@ Impl:
 	  on and consider. This likely ties into the "isSolid" bool variable which is passed into the DrawNode(...) function 
   
   TODO:
-    - Add qer_trans support.
-    - Start mapping out current usage for the renderer; look into testing shader entries with multiple passes ( aka "stages" ).
+    - Write a debug function which checks to see if a shader stage within an entry is a "stub" (an entry which wasn't parsed due to unsupported functionality);
+      for every stage which is a stub, use the default shader to render.
+    - Start mapping out current usage for the renderer; look into testing shader entries with multiple passes ( aka "stages" ). 
+      Also use glPolygonOffset to test entries which use that.
+      - Each shader stage should be its own GLSL program. Uniform blocks should exist for global entry parameters, in addition to the standard view/projection transforms.
+      - GLSL program generation will begin after the initial parsing is finished. Remember: this doesn't need to be perfect; it just needs to get the job done.
+
+  NOTES:
+
+    - clampmap should be of a category of parameter, such as "texParm"; there are other keywords which invoke
+      similar operations and have various different parameters (e.g., "map $lightmap", "map /some/path/to/file", etc.)
 
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data
