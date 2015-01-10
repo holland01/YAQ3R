@@ -1,6 +1,9 @@
 #include "effect_shader.h"
 #include "q3bsp.h"
 #include "log.h"
+#include "shader.h"
+#include "glutil.h"
+#include <sstream>
 
 enum tokType_t
 {
@@ -71,13 +74,13 @@ static const char* ReadToken( char* out, const char* buffer )
 }
 
 // Returns the char count to increment the filebuffer by
-static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char* buffer, const int level )
+static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const int level )
 {
 	buffer = SkipInvalid( buffer );
 
 	// Begin stage?
 	if ( *buffer == '{' )
-		return ParseEntry( outInfo, map, buffer + 1, level + 1 );
+		return ParseEntry( outInfo, buffer + 1, level + 1 );
 
 	// End stage; we done
 	if ( *buffer == '}' )
@@ -91,7 +94,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 		else
 		{
 			outInfo->stageCount += 1;
-			return ParseEntry( outInfo, map, buffer + 1, level - 1 );
+			return ParseEntry( outInfo, buffer + 1, level - 1 );
 		}
 	}
 
@@ -103,7 +106,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 		memset( entCandidate, 0, sizeof( entCandidate ) );
 
 		buffer = ReadToken( outInfo->name, buffer );	
-		buffer = ParseEntry( outInfo, map, buffer + 1, level );
+		buffer = ParseEntry( outInfo, buffer + 1, level );
 	}
 	else
 	{
@@ -174,38 +177,19 @@ static const char* ParseEntry( shaderInfo_t* outInfo, mapData_t* map, const char
 		if ( outInfo->stageCount >= SHADER_MAX_NUM_STAGES )
 			__nop();
 
-		buffer = ParseEntry( outInfo, map, buffer + 1, level );
+		buffer = ParseEntry( outInfo, buffer + 1, level );
 	}
 
 	return buffer;
 }
 
-// Lol...
 static uint8_t IsStubbedStage( const shaderStage_t* stage )
 {
-	static const size_t STUB_OFFSETS[] = 
-	{
-		offsetof( shaderStage_t, rgbGen ), sizeof( rgbGen_t ),
-		offsetof( shaderStage_t, blendSrc ), sizeof( GLenum ),
-		offsetof( shaderStage_t, blendDest ), sizeof( GLenum )
-	};
-
-	static const size_t NUM_STUB_OFFSETS = SIGNED_LEN( STUB_OFFSETS );
-
-	const uint8_t* bytes = ( const uint8_t* ) stage;
-
-	for ( size_t i = 0; i < NUM_STUB_OFFSETS; i += 2 )
-	{
-		const uint8_t* member = bytes + STUB_OFFSETS[ i ];
-		for ( size_t byte = 0; byte < STUB_OFFSETS[ i + 1 ]; ++byte )
-			if ( member[ byte ] )
-				return 0;
-	}
-
-	return 1;
+	// Last condition is for the rgbGen vars which are currently supported.
+	return ( stage->blendSrc == 0 || stage->blendDest == 0 || stage->rgbGen == 0 || ( stage->rgbGen != RGBGEN_VERTEX && stage->rgbGen != RGBGEN_ONE_MINUS_VERTEX ) );  
 }
 
-static void ParseShader( mapData_t* map, const std::string& filepath )
+static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 {
 	FILE* file = fopen( filepath.c_str(), "r" );
 	MLOG_ASSERT( file, "Could not open file \'%s\'", filepath.c_str() );
@@ -219,31 +203,27 @@ static void ParseShader( mapData_t* map, const std::string& filepath )
 
 	const char* pChar = fileBuffer;
 
-	std::vector< shaderInfo_t > entries;
 	while ( *pChar )
 	{
 		pChar = SkipInvalid( pChar );
 		
 		shaderInfo_t entry = {};
-		pChar = ParseEntry( &entry, map, pChar, 0 );
+		pChar = ParseEntry( &entry, pChar, 0 );
 		
 		// Look for stages which are effectively "stubs" and therefore need to use default render parameters
 		for ( int i = 0; i < entry.stageCount; ++i )
 			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
 
-		entries.push_back( entry );
+		entries.insert( shaderMapEntry_t( entry.name, entry ) );
 	}
-
-	__nop();
 }
 
-void LoadShaders( mapData_t* map )
+void LoadShaders( shaderMap_t& effectShaders, const char* dirRoot )
 {
-	std::string shaderRootDir( map->basePath );
+	std::string shaderRootDir( dirRoot );
 	shaderRootDir.append( "scripts/" );
 
 	// Find shader files
-	//char filePattern[ MAX_PATH ];
 	WIN32_FIND_DATAA findFileData;
 	
 	HANDLE file;
@@ -261,7 +241,97 @@ void LoadShaders( mapData_t* map )
 		{
 			if ( ext == "shader" )
 			{
-				ParseShader( map, shaderRootDir + std::string( findFileData.cFileName ) );
+				ParseShader( effectShaders, shaderRootDir + std::string( findFileData.cFileName ) );
+			}
+		}
+	}
+	
+	// Convert the effect shader info to GLSL programs
+	{
+		// Base variables are required for all programs.
+		const char* baseVertex = "#version 420\n"
+								 "layout( location = 0 ) in vec3 position;\n"
+								 "layout( location = 1 ) in vec2 tex0;\n"
+								 "layout( location = 2 ) in vec4 color;\n"
+								 "uniform mat4 modelToView;\n"
+								 "uniform mat4 viewToClip;\n"
+								 "const float gamma = 1.0 / 2.2;\n";
+							 
+
+		const char* baseFragment =	"#version 420\n";
+
+		// Convert each effect stage to its GLSL equivalent
+		for ( auto& entry: effectShaders )
+		{
+			shaderInfo_t& shader = entry.second;
+
+			for ( int j = 0; j < shader.stageCount; ++j )
+			{
+				if ( shader.stageBuffer[ j ].isStub )
+					continue;
+
+				std::stringstream vertexSrc, fragmentSrc;
+
+				vertexSrc << baseVertex;
+				fragmentSrc << baseFragment;
+
+				// Unspecified alphaGen implies a default 1.0 alpha channel
+				if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
+					fragmentSrc << "const float alphaGen = 1.0;\n";
+				else
+					fragmentSrc << "const float alphaGen = " << shader.stageBuffer[ j ].alphaGen << ";\n";
+
+				std::vector< std::string > uniformStrings = { "modelToView", "viewToClip" };
+			
+				// These are the bodies of the main function in the programs
+				std::string fragcmp, vertcmp;
+
+				if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_VERTEX || shader.stageBuffer[ j ].rgbGen == RGBGEN_ONE_MINUS_VERTEX )
+				{
+					vertexSrc << "out vec2 frag_Tex;\n"
+								 "out vec4 frag_Color;\n";
+
+					fragmentSrc << "in vec2 frag_Tex;\n" 
+								   "in vec4 frag_Color;\n" 
+								   "uniform sampler2D samplerImage;\n" 
+								   "uniform sampler2D samplerLightmap;\n"
+								   "out vec4 fragment;\n";
+			
+					vertcmp =	"gl_Position = viewToClip * modelToView * vec4( position, 1.0 );\n"
+								"frag_Tex = tex0;\n"
+								"frag_Color = pow( color, vec4( gamma ) );\n";
+
+					uniformStrings.push_back( "samplerImage" );
+				}
+
+				switch ( shader.stageBuffer[ j ].rgbGen )
+				{
+				case RGBGEN_ONE_MINUS_VERTEX:
+					fragcmp = "fragment = vec4( vec3( 1.0 ) - texture( samplerLightmap, frag_Tex ).rgb *  texture( samplerImage, frag_Tex ).rgb * frag_Color.rgb, alphaGen );\n";
+					break;
+				default:
+					fragcmp = "fragment = vec4( texture( samplerLightmap, frag_Tex ).rgb * texture( samplerImage, frag_Tex ).rgb * frag_Color.rgb, alphaGen );\n";
+					break;
+				}
+
+				vertexSrc << "void main() { \n" << vertcmp << " }\n";
+				fragmentSrc << "void main() { \n" << fragcmp << " }\n";
+
+				GLuint shaders[] = 
+				{
+					CompileShaderSource( vertexSrc.str().c_str(), GL_VERTEX_SHADER ),
+					CompileShaderSource( fragmentSrc.str().c_str(), GL_FRAGMENT_SHADER )
+				};
+
+				shader.stageBuffer[ j ].programID = LinkProgram( shaders, 2 );
+
+				for ( uint32_t u = 0; u < uniformStrings.size(); ++u )
+				{
+					GLint uniform;
+					GL_CHECK( uniform = glGetUniformLocation( shader.stageBuffer[ j ].programID, uniformStrings[ u ].c_str() ) );
+
+					shader.stageBuffer[ j ].uniforms.insert( std::pair< std::string, GLint >( uniformStrings[ u ], uniform ) );
+				}
 			}
 		}
 	}

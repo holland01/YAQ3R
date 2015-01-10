@@ -3,8 +3,8 @@ Feature:
 //- Textures; need to be mipmapped (priority)
 //- Gamma correction
 //- Anisotropy
-- Billboards ( next )
-- Shader parser (once Bills and Lightmaps are working and performing reasonably)
+- Billboards
+- Shader parser
 	* We'll need a struct for every shader entry. Research the file format to get a better idea.
 
 - Models
@@ -22,12 +22,16 @@ Impl:
 	  on and consider. This likely ties into the "isSolid" bool variable which is passed into the DrawNode(...) function 
   
   TODO:
-    - Write a debug function which checks to see if a shader stage within an entry is a "stub" (an entry which wasn't parsed due to unsupported functionality);
-      for every stage which is a stub, use the default shader to render.
+    //- Write a debug function which checks to see if a shader stage within an entry is a "stub" (an entry which wasn't parsed due to unsupported functionality);
+     // for every stage which is a stub, use the default shader to render.
     - Start mapping out current usage for the renderer; look into testing shader entries with multiple passes ( aka "stages" ). 
       Also use glPolygonOffset to test entries which use that.
-      - Each shader stage should be its own GLSL program. Uniform blocks should exist for global entry parameters, in addition to the standard view/projection transforms.
-      - GLSL program generation will begin after the initial parsing is finished. Remember: this doesn't need to be perfect; it just needs to get the job done.
+      //- Each shader stage should be its own GLSL program. 
+      //- GLSL program generation will begin after the initial parsing is finished. Remember: this doesn't need to be perfect; it just needs to get the job done.
+      - Uniform blocks should exist for global entry parameters, in addition to the standard view/projection transforms.
+      - effect shader structs are stored in a std::map file. The next step is to create textures for every light stage which which references a texture file; 
+        this texture data will be stored in the light stage itself. Sampler objects should be used. Also, be sure to review the differences between "map" and "clampmap"
+        keywords.
 
   NOTES:
 

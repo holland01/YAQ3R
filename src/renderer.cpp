@@ -268,8 +268,6 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
     }
 }
 
-static const float ONE_THIRD = 1.0f / 3.0f;
-
 void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags )
 {
     bspFace_t* face = map->data.faces + faceIndex;

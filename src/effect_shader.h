@@ -41,13 +41,13 @@ enum surfaceParms_t
 enum rgbGen_t
 {
 	RGBGEN_UNDEFINED = 0,
-	RGBGEN_IDENTITY_LIGHTING = 1,
+	RGBGEN_VERTEX = 1,
+	RGBGEN_ONE_MINUS_VERTEX,
+	RGBGEN_IDENTITY_LIGHTING,
 	RGBGEN_IDENTITY,
 	RGBGEN_ENTITY,
 	RGBGEN_ONE_MINUS_ENTITY,
-	RGBGEN_VERTEX,
-	RGBGEN_ONE_MINUS_VERTEX,
-	RGBGEN_LIGHTING_DIFFUSE,
+	RGBGEN_DIFFUSE_LIGHTING,
 	RGBGEN_WAVE
 };
 
@@ -61,13 +61,19 @@ struct shaderStage_t
 {
 	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
 
+	GLuint programID;
+
 	GLenum blendSrc;
 	GLenum blendDest;
 
 	rgbGen_t rgbGen;
 	mapCmd_t mapCmd;
 
-	char	 mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	float alphaGen; // if 0, use 1.0
+
+	char mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	
+	std::map< std::string, GLint > uniforms;
 };
 
 struct shaderInfo_t
@@ -83,4 +89,7 @@ struct shaderInfo_t
 	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
 };
 
-void LoadShaders( mapData_t* map );
+using shaderMap_t = std::map< std::string, shaderInfo_t >;
+using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
+
+void LoadShaders( shaderMap_t& effectShaders, const char* dirRoot );

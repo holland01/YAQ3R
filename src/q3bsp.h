@@ -295,8 +295,6 @@ struct mapData_t
 
     bspVisdata_t*       visdata;
 
-	shaderInfo_t*		shaderEntries;
-
 	int                 entityStringLen;
     int                 numEffectShaders;
 
@@ -316,8 +314,6 @@ struct mapData_t
 	int					numLightvols;
 
     int                 numVisdataVecs;
-
-	int					numShaderEntries;
 };
 
 class Q3BspMap
@@ -334,6 +330,8 @@ public:
 	std::vector< GLuint >		glTextures;		// has one->one map with texture indices
 	std::vector< mapModel_t >	glFaces;		// has one->one map with face indices
 	std::vector< GLuint >		glLightmaps;	// textures - has one->one map with lightmap indices
+
+	std::map< std::string, shaderInfo_t > effectShaders;
 
     Q3BspMap( void );
     ~Q3BspMap( void );

@@ -306,10 +306,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			for ( int j = 0; j < face->numMeshVertexes; ++j )
 				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
 		}
-		else if ( face->type == BSP_FACE_TYPE_BILLBOARD )
-		{
-			__nop();
-		}
 	}
 
 
@@ -466,7 +462,8 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	}
 #endif
 
-	LoadShaders( &data );
+	// Load shaders
+	LoadShaders( effectShaders, data.basePath );
 
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps, 0 );

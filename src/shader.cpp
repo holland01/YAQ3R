@@ -1,5 +1,6 @@
 #include "shader.h"
 #include "log.h"
+#include "glutil.h"
 
 GLuint LinkProgram( GLuint shaders[], int len )
 {
@@ -36,7 +37,6 @@ GLuint LinkProgram( GLuint shaders[], int len )
 }
 
 // (Slightly modified) Implementation is copy-pasta from http://code.google.com/p/openglbook-samples/source/browse/trunk/Chapter%204/Utils.c
-
 GLuint CompileShader( const char* filename, GLenum shader_type )
 {
     GLuint shaderId = 0;
@@ -56,37 +56,7 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
             {
                 glsl_source[file_size] = '\0';
 
-                if (0 != (shaderId = glCreateShader(shader_type)))
-                {
-                    // necessary to avoid -Werror raise on incompatible pointer type, when passed to glShaderSource
-                    const char* sourceconst = glsl_source;
-                    int length[ 1 ];
-                    length[ 0 ] = strlen( glsl_source );
-
-                    glShaderSource( shaderId, 1, &sourceconst, length );
-                    glCompileShader( shaderId );
-
-                    GLint compile_success;
-                    glGetShaderiv( shaderId, GL_COMPILE_STATUS, &compile_success );
-
-                    if ( compile_success == GL_FALSE )
-                    {
-                        GLint logLen;
-                        glGetShaderiv( shaderId, GL_INFO_LOG_LENGTH, &logLen );
-
-                        char* infoLog = new char[ logLen ]();
-                        infoLog[ logLen ] = '\0';
-
-                        glGetShaderInfoLog( shaderId, logLen, NULL, infoLog );
-
-                        MLOG_ERROR( "SHADER COMPILE MLOG_ERROR: %s", infoLog );
-                    }
-
-                }
-                else
-                {
-                    MLOG_ERROR( "ERROR: Could not create a shader.\n" );
-                }
+                shaderId = CompileShaderSource( glsl_source, shader_type );
             }
             else
             {
@@ -110,5 +80,40 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
     return shaderId;
 }
 
+GLuint CompileShaderSource( const char* src, GLenum type )
+{
+	GLuint shaderId;
+	GL_CHECK(shaderId = glCreateShader(type));
+	if (0 != shaderId)
+    {
+        // necessary to avoid -Werror raise on incompatible pointer type, when passed to glShaderSource
+        const char* sourceconst = src;
+        //int length[ 1 ];
+        //length[ 0 ] = strlen( src );
 
+        glShaderSource( shaderId, 1, &sourceconst, NULL );
+        glCompileShader( shaderId );
 
+        GLint compileSuccess;
+        glGetShaderiv( shaderId, GL_COMPILE_STATUS, &compileSuccess );
+
+        if ( compileSuccess == GL_FALSE )
+        {
+            GLint logLen;
+            glGetShaderiv( shaderId, GL_INFO_LOG_LENGTH, &logLen );
+
+            char* infoLog = new char[ logLen ]();
+            infoLog[ logLen ] = '\0';
+
+            glGetShaderInfoLog( shaderId, logLen, NULL, infoLog );
+
+            MLOG_ERROR( "SHADER COMPILE MLOG_ERROR: %s", infoLog );
+        }
+    }
+    else
+    {
+        MLOG_ERROR( "ERROR: Could not create a shader.\n" );
+    }
+
+	return shaderId;
+}

@@ -19,12 +19,13 @@
 
 - for rgbGen:
  	- vertex attributes:
- 		- fragPosition: interpolated position of vertex in the fragment shader 
+ 		- Each attribute should be used only when necessary.
+ 		- frag_Position: interpolated position of vertex in the fragment shader 
  			- NOTE: if it's possible for vertex data to be passed in local space,
  					this should be handled. For now, they're are assumed to be in world space (which is the case for map models, at the very least - entities themselves may be different)
- 		- fragTexCoords: interpolated tex coords in the fragment shader 
- 		- fragNormal: interpolated normal in the fragment shader
- 		- fragColor: yes
+ 		- frag_Tex: interpolated tex coords in the fragment shader 
+ 		- frag_Normal: interpolated normal in the fragment shader
+ 		- frag_Color: yes
  	- uniforms:
  		- for lightvol-based effects:
 	 		- vec3 dirToLight: direction to the lightmap for the shader.
@@ -35,10 +36,11 @@
 	 			- is normalized (i.e., is an array of 3 bytes in RGB format); use GL_TRUE as the normalized flag for specifying the vertex layout
 	 			-   
 	- Vertex -> 
-		fragment = vec4( texture( sampler, fragTexCoords ).rgb * fragColor.rgb, alphaGen ) 
+		fragment = vec4( texture( samplerImage, frag_Tex ).rgb * frag_Color.rgb, alphaGen ) * ambient
 	- oneMinusVertex -> 
-		fragment = vec4( vec3( 1.0 ) - texture( sampler, fragTexCoords ).rgb * fragColor.rgb, alphaGen ) 
+		fragment = vec4( vec3( 1.0 ) - texture( samplerImage, frag_Tex ).rgb * frag_Color.rgb, alphaGen ) * ambient
 	- lightingDiffuse -> (?: does this include specular?)
-		float diffuse = dot( dirToLight, fragPosition ); // compute our angle of incidence component
+		float diffuse = dot( dirToLight, frag_Position ); // compute our angle of incidence component
+		fragment = vec4( texture( samplerImage, frag_Tex ).rgb * diffuse * frag_Color.rgb, alphaGen ) * ambient
 
 		
