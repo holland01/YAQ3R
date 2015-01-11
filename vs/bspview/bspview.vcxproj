@@ -103,6 +103,7 @@
     <None Include="..\..\src\extern\stb_image.c" />
     <ClCompile Include="..\..\src\frustum.cpp" />
     <ClCompile Include="..\..\src\gldebug.cpp" />
+    <ClCompile Include="..\..\src\glutil.cpp" />
     <ClCompile Include="..\..\src\input.cpp" />
     <ClCompile Include="..\..\src\log.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />

@@ -79,6 +79,7 @@ public:
 
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags );
     void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags );
+	void	DrawFaceVerts( int faceIndex, int subdivLevel );
 
 	float   CalcFps( void ) const { return 60.0f / ( float )frameTime; }
 

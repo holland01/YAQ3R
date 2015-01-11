@@ -29,9 +29,10 @@ Impl:
       //- Each shader stage should be its own GLSL program. 
       //- GLSL program generation will begin after the initial parsing is finished. Remember: this doesn't need to be perfect; it just needs to get the job done.
       - Uniform blocks should exist for global entry parameters, in addition to the standard view/projection transforms.
-      - effect shader structs are stored in a std::map file. The next step is to create textures for every light stage which which references a texture file; 
-        this texture data will be stored in the light stage itself. Sampler objects should be used. Also, be sure to review the differences between "map" and "clampmap"
-        keywords.
+      //- effect shader structs are stored in a std::map file. The next step is to create textures for every light stage which which references a texture file; 
+       // this texture data will be stored in the light stage itself. Sampler objects should be used. Also, be sure to review the differences between "map" and "clampmap"
+       // keywords.
+      - In BSPRenderer::DrawFace - Iterate through the shader stages for every entity (the names of which are stored in the textures lump) and use the DrawFaceVerts function for every stage. If the face is a bezier patch, be sure to cache the subdivision level before passing it to the draw function.
 
   NOTES:
 

@@ -135,6 +135,11 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 
 			outInfo->surfparmStr.push_back( value );
 		}
+		else if ( strcmp( token, "q3map_lightimage" ) == 0 )
+		{
+			buffer = ReadToken( outInfo->lightimage, buffer );
+			outInfo->hasLightimage = 1;
+		}
 		else if ( strcmp( token, "polygonoffset" ) == 0 )
 		{
 			outInfo->hasPolygonOffset = true;	
@@ -186,7 +191,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 static uint8_t IsStubbedStage( const shaderStage_t* stage )
 {
 	// Last condition is for the rgbGen vars which are currently supported.
-	return ( stage->blendSrc == 0 || stage->blendDest == 0 || stage->rgbGen == 0 || ( stage->rgbGen != RGBGEN_VERTEX && stage->rgbGen != RGBGEN_ONE_MINUS_VERTEX ) );  
+	return ( stage->mapCmd == 0 || stage->blendSrc == 0 || stage->blendDest == 0 || stage->rgbGen == 0 || ( stage->rgbGen != RGBGEN_VERTEX && stage->rgbGen != RGBGEN_ONE_MINUS_VERTEX ) );  
 }
 
 static void ParseShader( shaderMap_t& entries, const std::string& filepath )
@@ -218,7 +223,7 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 	}
 }
 
-void LoadShaders( shaderMap_t& effectShaders, const char* dirRoot )
+void LoadShaders( const char* dirRoot, uint32_t loadFlags, shaderMap_t& effectShaders )
 {
 	std::string shaderRootDir( dirRoot );
 	shaderRootDir.append( "scripts/" );
@@ -331,6 +336,48 @@ void LoadShaders( shaderMap_t& effectShaders, const char* dirRoot )
 					GL_CHECK( uniform = glGetUniformLocation( shader.stageBuffer[ j ].programID, uniformStrings[ u ].c_str() ) );
 
 					shader.stageBuffer[ j ].uniforms.insert( std::pair< std::string, GLint >( uniformStrings[ u ], uniform ) );
+				}
+			}
+		}
+	}
+
+	// Generate textures from shader info
+	{
+		for ( auto& entry: effectShaders )
+		{
+			shaderInfo_t& shader = entry.second;
+			
+			for ( int i = 0; i < shader.stageCount; ++i )
+			{
+				if ( shader.stageBuffer[ i ].isStub )
+					continue;
+
+				shader.stageBuffer[ i ].texOffset = i;
+				GL_CHECK( glGenTextures( 1, &shader.stageBuffer[ i ].textureObj ) );
+				GL_CHECK( glGenSamplers( 1, &shader.stageBuffer[ i ].samplerObj ) );
+
+				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+
+				if ( strcmp( shader.stageBuffer[ i ].mapArg, "$lightmap" ) == 0  )
+				{
+					shader.stageBuffer[ i ].mapType = MAP_TYPE_LIGHT_MAP;
+				}
+				else if ( strcmp( shader.stageBuffer[ i ].mapArg, "$whiteimage" ) == 0 )
+				{
+					shader.stageBuffer[ i ].mapType = MAP_TYPE_WHITE_IMAGE;
+				}
+				else
+				{
+					assert( LoadImageFromFile( 
+						shader.stageBuffer[ i ].mapArg, 
+						shader.stageBuffer[ i ].textureObj, 
+						shader.stageBuffer[ i ].samplerObj, 
+						loadFlags,
+						shader.stageBuffer[ i ].mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT ) 
+					);
+
+					shader.stageBuffer[ i ].mapType = MAP_TYPE_IMAGE;
 				}
 			}
 		}

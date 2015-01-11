@@ -270,13 +270,15 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
 
 void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags )
 {
-    bspFace_t* face = map->data.faces + faceIndex;
+	const bspFace_t* face = map->data.faces + faceIndex;
 
     GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
     GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
 
+#ifndef USE_SHADERS
 	if ( map->glTextures[ face->texture ] != 0 )
 	{
+		GL_CHECK( glBindSampler( 0, map->glSamplers[ face->texture ] ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
 		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
 	}
@@ -294,33 +296,14 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
 		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
 	}
-	
-	if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
-	{
-		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ faceIndex ].indices[ 0 ] ) );
-	}
-	else if ( face->type == BSP_FACE_TYPE_PATCH )
-	{
-		// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
-		int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
-		int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
 
-		int c = 0;
-		for ( int i = 0; i < face->size[ 0 ]; i += stepWidth )
-			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
-				patchRenderer.controlPoints[ c++ ] = &map->data.vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
-				
-		patchRenderer.Tesselate( CalcSubdivision( pass, bounds ) );
-		patchRenderer.Render();
+	if ( face->type == BSP_FACE_TYPE_PATCH )
+		DrawFaceVerts( faceIndex, CalcSubdivision( pass, bounds ) );
+	else
+		DrawFaceVerts( faceIndex, 0 );
 
-		// Rebind after render since patchRenderer overrides with its own vao/vbo combo
-		LoadBuffer( vbo );
-	}
-	else // Billboards
-	{
-		// TODO
-		__nop();
-	}
+	GL_CHECK( glBindSampler( 0, 0 ) );
+#endif
 
 	// Evaluate optional settings
 	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
@@ -364,6 +347,38 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 	}
 
     pass.facesRendered[ faceIndex ] = 1;
+}
+
+void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
+{
+	const bspFace_t* face = map->data.faces + faceIndex;
+
+	if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
+	{
+		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ faceIndex ].indices[ 0 ] ) );
+	}
+	else if ( face->type == BSP_FACE_TYPE_PATCH )
+	{
+		// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
+		int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
+		int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
+
+		int c = 0;
+		for ( int i = 0; i < face->size[ 0 ]; i += stepWidth )
+			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
+				patchRenderer.controlPoints[ c++ ] = &map->data.vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
+				
+		patchRenderer.Tesselate( subdivLevel );
+		patchRenderer.Render();
+
+		// Rebind after render since patchRenderer overrides with its own vao/vbo combo
+		LoadBuffer( vbo );
+	}
+	else // Billboards
+	{
+		// TODO
+		__nop();
+	}
 }
 
 int BSPRenderer::CalcSubdivision( const RenderPass& pass, const AABB& bounds )

@@ -328,6 +328,7 @@ private:
 public:
 
 	std::vector< GLuint >		glTextures;		// has one->one map with texture indices
+	std::vector< GLuint >		glSamplers;		// has one->one map with glTextures
 	std::vector< mapModel_t >	glFaces;		// has one->one map with face indices
 	std::vector< GLuint >		glLightmaps;	// textures - has one->one map with lightmap indices
 

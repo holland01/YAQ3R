@@ -53,8 +53,16 @@ enum rgbGen_t
 
 enum mapCmd_t
 {
-	MAP_CMD_CLAMPMAP = 0,
+	MAP_CMD_UNDEFINED = 0,
+	MAP_CMD_CLAMPMAP,
 	MAP_CMD_MAP
+};
+
+enum mapType_t
+{
+	MAP_TYPE_IMAGE = 0,
+	MAP_TYPE_LIGHT_MAP,
+	MAP_TYPE_WHITE_IMAGE
 };
 
 struct shaderStage_t
@@ -62,12 +70,16 @@ struct shaderStage_t
 	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
 
 	GLuint programID;
+	GLuint textureObj;
+	GLuint samplerObj;
+	GLuint texOffset;
 
 	GLenum blendSrc;
 	GLenum blendDest;
 
 	rgbGen_t rgbGen;
 	mapCmd_t mapCmd;
+	mapType_t mapType;
 
 	float alphaGen; // if 0, use 1.0
 
@@ -79,6 +91,9 @@ struct shaderStage_t
 struct shaderInfo_t
 {
 	char name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	char lightimage[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+
+	uint8_t hasLightimage;
 	uint8_t hasPolygonOffset;
 
 	uint32_t surfaceParms;
@@ -92,4 +107,4 @@ struct shaderInfo_t
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-void LoadShaders( shaderMap_t& effectShaders, const char* dirRoot );
+void LoadShaders( const char* dirRoot, uint32_t loadFlags, shaderMap_t& effectShaders );

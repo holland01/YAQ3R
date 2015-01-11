@@ -1,17 +1,8 @@
-﻿Build started 1/10/2015 1:29:34 AM.
+﻿Build started 1/10/2015 8:32:50 PM.
      1>Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Dev\GH\lib\dml/glew-msvc/include" /IC:\Dev\GH\lib\dml/glm/ /IC:\Dev\GH\lib\dml/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\bezpatch.cpp ..\..\src\effect_shader.cpp ..\..\src\log.cpp ..\..\src\main.cpp ..\..\src\q3m_model.cpp ..\..\src\renderer.cpp ..\..\src\shader.cpp ..\..\src\tests\test.cpp ..\..\src\tests\trenderer.cpp
-         bezpatch.cpp
-         effect_shader.cpp
-         log.cpp
-         main.cpp
-         q3m_model.cpp
-         renderer.cpp
-         shader.cpp
-         test.cpp
-         trenderer.cpp
-         Generating Code...
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Dev\GH\lib\dml/glew-msvc/include" /IC:\Dev\GH\lib\dml/glm/ /IC:\Dev\GH\lib\dml/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\q3bsp.cpp
+         q3bsp.cpp
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"C:\Dev\GH\lib\dml/glew-msvc/lib/Release/Win32/" /LIBPATH:"C:\Dev\GH\lib\dml/glfw3/lib-msvc120" opengl32.lib glu32.lib glew32.lib glfw3dll.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.lib" /MACHINE:X86 /SAFESEH Release\aabb.obj
          Release\bezpatch.obj
@@ -19,6 +10,7 @@
          Release\eu_ang.obj
          Release\frustum.obj
          Release\gldebug.obj
+         Release\glutil.obj
          Release\input.obj
          Release\log.obj
          Release\main.obj
@@ -35,4 +27,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:07.93
+Time Elapsed 00:00:01.54

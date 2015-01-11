@@ -1,7 +1,7 @@
 #include "q3bsp.h"
 #include "log.h"
 #include "glutil.h"
-#include "extern/stb_image.c"
+
 #include "effect_shader.h"
 
 using namespace std;
@@ -309,20 +309,19 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	}
 
 
+	GLint oldAlign;
+	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+
+// This is just a hack to brute force load assets without taking into account the effect shader files.
 #ifndef USE_SHADERS
 	// Now, find and generate the textures. We first start with the image files.
 	glTextures.resize( data.numTextures, 0 );
 	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
 
-	// GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
-	// Some might consider this a hack, and to be fair it kind of is. However, it works. It's also simpler, portable, and more performant than traversing a number of directories
-	// using an OS-specific API. It's also only temporary :)
+	glSamplers.resize( data.numTextures, 0 );
+	GL_CHECK( glGenSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
 	{
-		GLint oldAlign;
-		GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
-		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
 		static const char* validImgExt[] = 
 		{
 			".jpg", ".png", ".tga", ".tiff", ".bmp"
@@ -332,7 +331,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 		for ( int t = 0; t < data.numTextures; t++ )
 		{
-			FILE* tf;
+			bool success = false;
 
 			std::string fname( data.textures[ t ].name );
 
@@ -344,110 +343,19 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			{
 				for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
 				{
-					const std::string& str = texPath + std::string( validImgExt[ i ] );
+				 	const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-					tf = fopen( str.c_str(), "rb" );
-			
-					// If we found a match, bail
-					if ( tf )
+					if ( LoadTextureFromFile( str.c_str(), glTextures[ t ], glSamplers[ t ], loadFlags, GL_REPEAT ) )
+					{
+						success = true;
 						break;
+					}
 				}
-			}
-			else
-			{
-				tf = fopen( texPath.c_str(), "rb" );
 			}
 		
 			// Stub out the texture for this iteration by continue; warn user
-			if ( !tf )
+			if ( !success )
 				goto FAIL_WARN;
-
-			// Load image
-			int width, height, bpp;
-			byte* imagePixels = stbi_load_from_file( tf, &width, &height, &bpp, STBI_default );
-
-			fclose( tf );
-
-			if ( !imagePixels )
-				 goto FAIL_WARN;
-
-			GLenum fmt;
-			GLenum internalFmt;
-
-			GLenum rgb, rgba;
-			
-			if ( loadFlags & Q3LOAD_TEXTURE_SRGB )
-			{
-				rgb = GL_SRGB8;
-				rgba = GL_SRGB8_ALPHA8;
-			}
-			else
-			{
-				rgb = GL_RGB8;
-				rgba = GL_RGBA8;
-			}
-
-			switch ( bpp )
-			{
-			case 1:
-				fmt = GL_R;
-				internalFmt = GL_R8; 
-				break;
-			case 3:
-				internalFmt = rgb;
-				fmt = GL_RGB;
-				break;
-			case 4:
-				internalFmt = rgba;
-				fmt = GL_RGBA;
-				break;
-			default:
-				MLOG_ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath.c_str() );
-				break;
-			}
-		
-			GL_CHECK( glBindTexture( GL_TEXTURE_2D, glTextures[ t ] ) );
-
-			int maxLevels = glm::min( ( int ) glm::log2( ( float ) width ), ( int ) glm::log2( ( float ) height ) ); 
-
-			GLenum minFilter;
-			if ( loadFlags & Q3LOAD_TEXTURE_MIPMAP )
-			{
-				int w = width;
-				int h = height;
-
-				for ( int mip = 0; h != 1 && w != 1; ++mip )
-				{
-					GL_CHECK( glTexImage2D( GL_TEXTURE_2D, mip, internalFmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
-
-					if ( h > 1 )
-						h /= 2;
-
-					if ( w > 1 )
-						w /= 2;
-				}
-
-				GL_CHECK( glGenerateMipmap( GL_TEXTURE_2D ) );
-				minFilter = GL_LINEAR_MIPMAP_LINEAR;
-			}
-			else
-			{
-				GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
-				minFilter = GL_LINEAR;
-			}
-		
-
-			if ( loadFlags & Q3LOAD_TEXTURE_ANISOTROPY )
-			{
-				GLfloat maxSamples;
-				GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
-				GL_CHECK( glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
-			}
-
-			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter ) );
-			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
-			GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
 
 			continue;
 
@@ -455,15 +363,17 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
 			glTextures[ t ] = 0;
+			glSamplers[ t ] = 0;
 		}
 
 		// Reset the alignment to maintain consistency
-		GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
+		
 	}
-#endif
-
+#else
 	// Load shaders
-	LoadShaders( effectShaders, data.basePath );
+	LoadShaders( data.basePath, loadFlags, effectShaders );
+#endif
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps, 0 );

@@ -38,3 +38,5 @@ INLINE void LoadBuffer( GLuint vbo )
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 	LoadVertexLayout();
 }
+
+bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap );
