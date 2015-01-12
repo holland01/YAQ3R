@@ -1,6 +1,5 @@
 #include "glutil.h"
 #include "q3bsp.h"
-#include "log.h"
 #include "extern/stb_image.c"
 
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap )
@@ -51,7 +50,6 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 	}
 
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texObj ) );
-
 
 	// Generate mipmaps ( if requested ) 
 	int maxLevels = glm::min( ( int ) glm::log2( ( float ) width ), ( int ) glm::log2( ( float ) height ) ); 

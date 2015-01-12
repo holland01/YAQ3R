@@ -53,7 +53,8 @@ class AABB;
 // Draw flags
 enum 
 {
-	RENDER_BSP_LIGHTMAP_INFO = 1
+	RENDER_BSP_LIGHTMAP_INFO = 1 << 0,
+	RENDER_BSP_EFFECT = 1 << 1
 };
 
 class BSPRenderer
@@ -78,6 +79,7 @@ public:
     void    Render( uint32_t renderFlags );
 
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags );
+	void	DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid );
     void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags );
 	void	DrawFaceVerts( int faceIndex, int subdivLevel );
 

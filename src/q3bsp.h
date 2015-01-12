@@ -158,16 +158,16 @@ struct bspTexture_t
     int     contentsFlags;
 };
 
+struct bspMeshVertex_t
+{
+    int offset;
+};
+
 struct bspEffect_t
 {
     char    name[ 64 ];
     int     brush;
     int     unknown;
-};
-
-struct bspMeshVertex_t
-{
-    int offset;
 };
 
 struct bspFace_t
@@ -285,6 +285,8 @@ struct mapData_t
     bspVertex_t*        vertexes;
     bspTexture_t*       textures;
     bspModel_t*         models;
+
+	bspEffect_t*		effects;
     bspFace_t*          faces;
 
     bspLeafFace_t*      leafFaces;
@@ -305,6 +307,8 @@ struct mapData_t
     int                 numVertexes;
     int                 numTextures;
     int                 numModels;
+
+	int					numEffects;
     int                 numFaces;
 
     int                 numLeafFaces;

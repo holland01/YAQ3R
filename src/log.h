@@ -27,7 +27,7 @@ void MyPrintf( const char* header, const char* fmt, ... );
 void MyFprintf( FILE* f, const char* header, const char* fmt, ... );
 void MyDateTime( const char* format, char* outBuffer, int length );
 
-void ExitOnGLError( const char* caller );
+void ExitOnGLError( int line, const char* glFunc, const char* callerFunc );
 
 void InitSysLog( void );
 void InitLogBSPData( Q3BspMap* map );
@@ -36,8 +36,10 @@ void KillSysLog( void );
 
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__
+#	define _LINE_NUM_ __LINE__
 #elif defined (_MSC_VER)
 #	define _FUNC_NAME_ __FUNCTION__
+#	define _LINE_NUM_ __LINE__
 #endif
 
 #define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"

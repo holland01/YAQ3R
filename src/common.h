@@ -37,6 +37,8 @@ typedef unsigned char byte;
 #define TRUE 1
 #define FALSE 0
 
+#define _DEBUG_USE_GL_GET_ERR
+
 // From: http://stackoverflow.com/a/4415646/763053 (originally named "COUNT_OF")
 #define UNSIGNED_LEN(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #define SIGNED_LEN(x) ((int)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))

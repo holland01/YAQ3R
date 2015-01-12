@@ -53,8 +53,10 @@ void glDebugInit( void )
     if ( !glLog )
         MLOG_ERROR( "Could not open gl.log" );
 
+#ifdef _DEBUG_USE_GL_ASYNC_CALLBACK
 	glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
 	glDebugMessageCallbackARB( glDebugOutProc, NULL );
+#endif
 }
 
 void glDebugKill( void )
@@ -67,9 +69,10 @@ void glDebugKill( void )
         dateTime = NULL;
     }
 
-    glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+#ifdef _DEBUG_USE_GL_ASYNC_CALLBACK
+	glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
     glDebugMessageCallbackARB( NULL, NULL );
-
+#endif
 }
 
 void glDebugSetCallInfo( const std::string& glFn, const std::string& calleeFn )

@@ -11,7 +11,7 @@ TRenderer::TRenderer( void )
     : Test( 1366, 768 ),
 	  currentTime( 0.0f ),
       renderer( NULL ),
-	  mapFilepath( railgunArena ),
+	  mapFilepath( egyptTemple ),
 	  mapLoadFlags( Q3LOAD_ALL )
 {
 }
@@ -65,12 +65,16 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 			mapRenderFlags ^= RENDER_BSP_LIGHTMAP_INFO;
 			break;
 
+		case GLFW_KEY_6:
+			mapLoadFlags ^= Q3LOAD_TEXTURE_ANISOTROPY;
+			break;
+
 		case GLFW_KEY_7:
 			mapLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
 			break;
 
-		case GLFW_KEY_6:
-			mapLoadFlags ^= Q3LOAD_TEXTURE_ANISOTROPY;
+		case GLFW_KEY_8:
+			mapRenderFlags ^= RENDER_BSP_EFFECT;
 			break;
 
 		case GLFW_KEY_9:

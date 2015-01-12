@@ -245,6 +245,9 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
         SwizzleCoords( data.models[ i ].boxMin );
     }
     
+	data.effects = ( bspEffect_t* )( data.buffer + data.header->directories[ BSP_LUMP_EFFECTS ].offset );
+	data.numEffects = data.header->directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
+
     data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
 	data.numFaces = data.header->directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
 
@@ -313,8 +316,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-// This is just a hack to brute force load assets without taking into account the effect shader files.
-#ifndef USE_SHADERS
+	// This is just a hack to brute force load assets without taking into account the effect shader files.
 	// Now, find and generate the textures. We first start with the image files.
 	glTextures.resize( data.numTextures, 0 );
 	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
@@ -367,14 +369,12 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		}
 
 		// Reset the alignment to maintain consistency
-		
 	}
-#else
+	
 	// Load shaders
 	LoadShaders( data.basePath, loadFlags, effectShaders );
-#endif
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps, 0 );
 	GL_CHECK( glGenTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );

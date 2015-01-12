@@ -4,6 +4,7 @@
 #include "math_util.h"
 #include "aabb.h"
 #include "glutil.h"
+#include "effect_shader.h"
 #include <glm/gtx/string_cast.hpp>
 
 using namespace std;
@@ -126,7 +127,7 @@ void BSPRenderer::Prep( void )
 	};
 
 	for ( size_t i = 0; i < uniforms.size(); ++i )
-		bspProgramUniforms[ uniforms[ i ] ] = GL_CHECK( glGetUniformLocation( bspProgram, uniforms[ i ].c_str() ) );
+		GL_CHECK( bspProgramUniforms[ uniforms[ i ] ] = glGetUniformLocation( bspProgram, uniforms[ i ].c_str() ) );
 	
 	GL_CHECK( glBindAttribLocation( bspProgram, 0, "position" ) );
     GL_CHECK( glBindAttribLocation( bspProgram, 1, "color" ) );
@@ -180,7 +181,7 @@ BSPRenderer::DrawWorld
 void BSPRenderer::Render( uint32_t renderFlags )
 { 
 	double startTime = glfwGetTime();
-	GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
+	GL_CHECK( glProgramUniformMatrix4fv( bspProgram, bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
 
     RenderPass pass( map, camera->ViewData() );
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
@@ -268,34 +269,35 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
     }
 }
 
-void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags )
+void BSPRenderer::DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid )
 {
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+    GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragTexSampler" ], 0 ) );
+
 	const bspFace_t* face = map->data.faces + faceIndex;
 
-    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-    GL_CHECK( glUniform1i( bspProgramUniforms[ "fragTexSampler" ], 0 ) );
-
-#ifndef USE_SHADERS
 	if ( map->glTextures[ face->texture ] != 0 )
 	{
 		GL_CHECK( glBindSampler( 0, map->glSamplers[ face->texture ] ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
-		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
+		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
 	}
 	else
 	{
-		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_COLOR ) );
+		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_COLOR ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	}
 
 	if ( face->lightmapIndex >= 0 )
 	{
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
-		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragLightmapSampler" ], 1 ) );
+		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragLightmapSampler" ], 1 ) );
 
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
-		GL_CHECK( glUniform1i( bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
+		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
 	}
+
+	GL_CHECK( glUseProgram( bspProgram ) );
 
 	if ( face->type == BSP_FACE_TYPE_PATCH )
 		DrawFaceVerts( faceIndex, CalcSubdivision( pass, bounds ) );
@@ -303,7 +305,40 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		DrawFaceVerts( faceIndex, 0 );
 
 	GL_CHECK( glBindSampler( 0, 0 ) );
-#endif
+	GL_CHECK( glUseProgram( 0 ) );
+}
+
+void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags )
+{
+	const bspFace_t* face = map->data.faces + faceIndex;
+
+	if ( ( renderFlags & RENDER_BSP_EFFECT ) && face->texture != -1 && map->effectShaders.count( map->data.textures[ face->texture ].name ) )
+	{
+		const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
+		const int subdivLevel = face->type == BSP_FACE_TYPE_PATCH ? CalcSubdivision( pass, bounds ) : 0;
+
+		GL_CHECK( glEnable( GL_BLEND ) );
+		for ( int i = 0; i < shader.stageCount; ++i )
+		{
+			if ( shader.stageBuffer[ i ].isStub )
+				continue;
+	
+			GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
+			GL_CHECK( glActiveTexture( GL_TEXTURE0 + shader.stageBuffer[ i ].texOffset ) );
+			GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
+			GL_CHECK( glBindSampler( shader.stageBuffer[ i ].texOffset, shader.stageBuffer[ i ].samplerObj ) );
+			GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
+
+			DrawFaceVerts( faceIndex, subdivLevel );
+		}
+		GL_CHECK( glDisable( GL_BLEND ) );
+		GL_CHECK( glUseProgram( 0 ) );
+		__nop();
+	}
+	else
+	{
+		DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
+	}
 
 	// Evaluate optional settings
 	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
@@ -318,32 +353,30 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		glm::mat4 viewTriOrigin( camera->ViewData().transform );
 
 		GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTriOrigin ) ) );
-		GL_CHECK( glBegin( GL_LINES ) );
+		glBegin( GL_LINES );
 
 		glm::vec3 s( face->lightmapStVecs[ 0 ].x, face->lightmapStVecs[ 0 ].y, face->lightmapStVecs[ 0 ].z );
 		glm::vec3 t( face->lightmapStVecs[ 1 ].x, face->lightmapStVecs[ 1 ].y, face->lightmapStVecs[ 1 ].z );
 
 		// Draw lightmap s vector
-		GL_CHECK( glColor3f( 1.0f, 0.0f, 0.0f ) );
-		GL_CHECK( glVertex3f( 0.0f, 0.0f, 0.0f ) );
-		GL_CHECK( glVertex3f( s.x, s.y, s.z ) ); 
+		glColor3f( 1.0f, 0.0f, 0.0f );
+		glVertex3f( 0.0f, 0.0f, 0.0f );
+		glVertex3f( s.x, s.y, s.z ); 
 
 		// Draw lightmap t vector
-		GL_CHECK( glColor3f( 0.0f, 1.0f, 0.0f ) );
-		GL_CHECK( glVertex3f( 0.0f, 0.0f, 0.0f ) );
-		GL_CHECK( glVertex3f( t.x, t.y, t.z ) ); 
+		glColor3f( 0.0f, 1.0f, 0.0f );
+		glVertex3f( 0.0f, 0.0f, 0.0f );
+		glVertex3f( t.x, t.y, t.z ); 
 		
-		GL_CHECK( glEnd() );
+		glEnd();
 
 		// Draw lightmap origin
-		GL_CHECK( glBegin( GL_POINTS ) );
-		GL_CHECK( glColor3f( 0.0f, 0.0f, 1.0f ) );
-		GL_CHECK( glVertex3f( face->lightmapOrigin.x, face->lightmapOrigin.y, face->lightmapOrigin.z ) );
-		GL_CHECK( glEnd() );
+		glBegin( GL_POINTS );
+		glColor3f( 0.0f, 0.0f, 1.0f );
+		glVertex3f( face->lightmapOrigin.x, face->lightmapOrigin.y, face->lightmapOrigin.z );
+		glEnd();
 		
 		GL_CHECK( glLoadIdentity() );
-
-		GL_CHECK( glUseProgram( bspProgram ) );
 	}
 
     pass.facesRendered[ faceIndex ] = 1;

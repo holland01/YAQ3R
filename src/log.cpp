@@ -77,7 +77,7 @@ ExitOnGLError
 ===============================
 */
 
-void ExitOnGLError( const char* caller )
+void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 {
     GLenum error = glGetError();
 
@@ -85,7 +85,7 @@ void ExitOnGLError( const char* caller )
     {
         const char* errorString = ( const char* ) gluErrorString( error );
 
-        MyPrintf( caller, "GL ERROR: %s", errorString );
+        MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'%s\'", callerFunc, glFunc, line, errorString );
         FlagExit();
     }
 }

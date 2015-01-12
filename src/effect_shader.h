@@ -65,6 +65,9 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
+using glHandleMap_t = std::map< std::string, GLint >;
+using glHandleMapEntry_t = std::pair< std::string, GLint >;
+
 struct shaderStage_t
 {
 	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
@@ -85,7 +88,7 @@ struct shaderStage_t
 
 	char mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	
-	std::map< std::string, GLint > uniforms;
+	glHandleMap_t uniforms;
 };
 
 struct shaderInfo_t
@@ -97,10 +100,9 @@ struct shaderInfo_t
 	uint8_t hasPolygonOffset;
 
 	uint32_t surfaceParms;
-
-	std::vector< std::string > surfparmStr;
 	
 	int stageCount;
+	int stageStubCount;
 	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
 };
 

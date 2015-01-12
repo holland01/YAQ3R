@@ -3,22 +3,33 @@
 #include "common.h"
 #include "q3bsp.h"
 #include "gldebug.h"
+#include "log.h"
 
 // Extensions
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 
-#ifdef _DEBUG
-#	define GL_CHECK( expr ) \
-		do					\
-		{					\
-			( expr );		\
-			glDebugSetCallInfo( std::string( #expr ), _FUNC_NAME_ );	\
-		}					\
+
+
+#if defined( _DEBUG_USE_GL_ASYNC_CALLBACK )
+#	define GL_CHECK( expr )\
+		do\
+		{\
+			( expr );\
+			glDebugSetCallInfo( std::string( #expr ), _FUNC_NAME_ );\
+		}\
+		while ( 0 )
+#elif defined( _DEBUG_USE_GL_GET_ERR )
+#	define GL_CHECK( expr )\
+		do\
+		{\
+			( expr );\
+			ExitOnGLError( _LINE_NUM_, #expr, _FUNC_NAME_ );\
+		}\
 		while ( 0 )
 #else
 #	define GL_CHECK( expr ) ( expr )
-#endif
+#endif // _DEBUG_USE_GL_ASYNC_CALLBACK
 
 INLINE void LoadVertexLayout( void )
 {

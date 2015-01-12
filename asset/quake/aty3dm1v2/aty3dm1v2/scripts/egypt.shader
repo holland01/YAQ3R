@@ -11,7 +11,6 @@ models\mapobjects\egypt\anubishead
 		rgbGen identityLighting
 		tcGen environment 
 	}
-
 	{
 		map $lightmap 
 		blendfunc filter

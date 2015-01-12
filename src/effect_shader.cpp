@@ -40,7 +40,8 @@ static INLINE const char* NextLine( const char* buffer )
 	while ( *buffer != '\n' )
 		buffer++;
 
-	return buffer;
+	// Add one to skip the newline
+	return buffer + 1;
 }
 
 static INLINE const char* SkipInvalid( const char* buffer )
@@ -102,10 +103,11 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 	if ( level == 0 )
 	{
 		// Find our entity string
-		char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-		memset( entCandidate, 0, sizeof( entCandidate ) );
+		//char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+		//memset( entCandidate, 0, sizeof( entCandidate ) );
 
 		buffer = ReadToken( outInfo->name, buffer );	
+
 		buffer = ParseEntry( outInfo, buffer + 1, level );
 	}
 	else
@@ -121,7 +123,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {}; 
 
 			buffer = ReadToken( value, buffer );
-			
+				
 			if ( strcmp( value, "nodamage" ) == 0 ) 
 				outInfo->surfaceParms |= SURFPARM_NO_DMG;	
 			else if ( strcmp( value, "nolightmap" ) == 0 ) 
@@ -133,7 +135,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			else if ( strcmp( value, "trans" ) == 0 ) 
 				outInfo->surfaceParms |= SURFPARM_TRANS;
 
-			outInfo->surfparmStr.push_back( value );
+		//outInfo->surfparmStr.push_back( value );
 		}
 		else if ( strcmp( token, "q3map_lightimage" ) == 0 )
 		{
@@ -163,7 +165,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				buffer = ReadToken( value, buffer );
 
 				outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_EnumFromStr( value );
-			
+				
 				memset( value, 0, sizeof( value ) );
 				buffer = ReadToken( value, buffer );
 
@@ -173,7 +175,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
-				
+					
 				if ( strcmp( value, "Vertex" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
 			}
@@ -201,23 +203,37 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 
 	fseek( file, 0, SEEK_END );
 	size_t charlen = ftell( file );
-	char* fileBuffer = new char[ charlen ]();
+	char* fileBuffer = new char[ charlen + 1 ]();
+	fileBuffer[ charlen ] = '\0';
 	fseek( file, 0, SEEK_SET );
 	fread( fileBuffer, 1, charlen, file );
 	fclose( file );
 
 	const char* pChar = fileBuffer;
+	const char* end = fileBuffer + charlen;
 
-	while ( *pChar )
+	while ( pChar )
 	{
 		pChar = SkipInvalid( pChar );
 		
-		shaderInfo_t entry = {};
+		shaderInfo_t entry;
+		memset( &entry, 0, sizeof( entry ) - sizeof( entry.stageBuffer ) );
+
+		for ( int i = 0; i < SHADER_MAX_NUM_STAGES; ++i )
+		{
+			memset( &entry.stageBuffer[ i ], 0, sizeof( entry.stageBuffer[ i ] ) - sizeof( entry.stageBuffer[ i ].uniforms ) );
+		}
+
 		pChar = ParseEntry( &entry, pChar, 0 );
 		
 		// Look for stages which are effectively "stubs" and therefore need to use default render parameters
 		for ( int i = 0; i < entry.stageCount; ++i )
+		{
 			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
+			
+			if ( entry.stageBuffer[ i ].isStub )
+				entry.stageStubCount += 1;
+		}
 
 		entries.insert( shaderMapEntry_t( entry.name, entry ) );
 	}
@@ -335,7 +351,7 @@ void LoadShaders( const char* dirRoot, uint32_t loadFlags, shaderMap_t& effectSh
 					GLint uniform;
 					GL_CHECK( uniform = glGetUniformLocation( shader.stageBuffer[ j ].programID, uniformStrings[ u ].c_str() ) );
 
-					shader.stageBuffer[ j ].uniforms.insert( std::pair< std::string, GLint >( uniformStrings[ u ], uniform ) );
+					shader.stageBuffer[ j ].uniforms.insert( glHandleMapEntry_t( uniformStrings[ u ], uniform ) );
 				}
 			}
 		}
@@ -369,8 +385,8 @@ void LoadShaders( const char* dirRoot, uint32_t loadFlags, shaderMap_t& effectSh
 				}
 				else
 				{
-					assert( LoadImageFromFile( 
-						shader.stageBuffer[ i ].mapArg, 
+					assert( LoadTextureFromFile( 
+						( std::string( dirRoot ) + std::string( shader.stageBuffer[ i ].mapArg ) ).c_str(), 
 						shader.stageBuffer[ i ].textureObj, 
 						shader.stageBuffer[ i ].samplerObj, 
 						loadFlags,
