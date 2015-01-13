@@ -12,6 +12,8 @@ enum tokType_t
 	TOKTYPE_COMMENT
 };
 
+static int gLineCount = 0;
+
 static INLINE GLenum GL_EnumFromStr( const char* str )
 {
 	if ( strcmp( str, "GL_SRC_ALPHA" ) == 0 )
@@ -25,12 +27,22 @@ static INLINE GLenum GL_EnumFromStr( const char* str )
 
 static INLINE tokType_t Token( const char* c )
 {
+	static const char syms[] = 
+	{
+		'\t', ' ', '\n', '\r',
+		'*', '[', ']', '(', ')'
+	};
+
+	if ( *c == '\n' )
+		gLineCount++;
+
 	// If we have an indent, space, newline, or a comment, then the token is invalid
 	if ( *c == '/' && *( c + 1 ) == '/' )
 		return TOKTYPE_COMMENT;
 
-	if ( *c == '\t' || *c == ' ' || *c == '\n' )
-		return TOKTYPE_GENERIC;
+	for ( int i = 0; i < SIGNED_LEN( syms ); ++i )
+		if ( *c == syms[ i ] )
+			return TOKTYPE_GENERIC;
 
 	return TOKTYPE_VALID;
 }
@@ -40,8 +52,10 @@ static INLINE const char* NextLine( const char* buffer )
 	while ( *buffer != '\n' )
 		buffer++;
 
+	//gLineCount++;
+
 	// Add one to skip the newline
-	return buffer + 1;
+	return buffer;
 }
 
 static INLINE const char* SkipInvalid( const char* buffer )
@@ -60,6 +74,8 @@ static INLINE const char* SkipInvalid( const char* buffer )
 
 static const char* ReadToken( char* out, const char* buffer )
 {
+	static int callCount = 0;
+
 	buffer = SkipInvalid( buffer );
 
 	// Parse token
@@ -71,13 +87,18 @@ static const char* ReadToken( char* out, const char* buffer )
 		charCount++;
 	}
 
+	callCount++;
+
 	return buffer;
 }
 
 // Returns the char count to increment the filebuffer by
 static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const int level )
 {
-	buffer = SkipInvalid( buffer );
+	if ( !( *( buffer = SkipInvalid( buffer ) ) ) )
+	{
+		return buffer;
+	}
 
 	// Begin stage?
 	if ( *buffer == '{' )
@@ -103,12 +124,11 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 	if ( level == 0 )
 	{
 		// Find our entity string
-		//char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-		//memset( entCandidate, 0, sizeof( entCandidate ) );
+		// char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+		// memset( entCandidate, 0, sizeof( entCandidate ) );
 
 		buffer = ReadToken( outInfo->name, buffer );	
-
-		buffer = ParseEntry( outInfo, buffer + 1, level );
+		buffer = ParseEntry( outInfo, buffer, level );
 	}
 	else
 	{
@@ -184,7 +204,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 		if ( outInfo->stageCount >= SHADER_MAX_NUM_STAGES )
 			__nop();
 
-		buffer = ParseEntry( outInfo, buffer + 1, level );
+		buffer = ParseEntry( outInfo, buffer, level );
 	}
 
 	return buffer;
@@ -203,8 +223,7 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 
 	fseek( file, 0, SEEK_END );
 	size_t charlen = ftell( file );
-	char* fileBuffer = new char[ charlen + 1 ]();
-	fileBuffer[ charlen ] = '\0';
+	char* fileBuffer = new char[ charlen ]();
 	fseek( file, 0, SEEK_SET );
 	fread( fileBuffer, 1, charlen, file );
 	fclose( file );
@@ -212,10 +231,8 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 	const char* pChar = fileBuffer;
 	const char* end = fileBuffer + charlen;
 
-	while ( pChar )
-	{
-		pChar = SkipInvalid( pChar );
-		
+	while ( *pChar )
+	{	
 		shaderInfo_t entry;
 		memset( &entry, 0, sizeof( entry ) - sizeof( entry.stageBuffer ) );
 
@@ -237,6 +254,8 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 
 		entries.insert( shaderMapEntry_t( entry.name, entry ) );
 	}
+
+	gLineCount = 0;
 }
 
 void LoadShaders( const char* dirRoot, uint32_t loadFlags, shaderMap_t& effectShaders )

@@ -39,7 +39,7 @@ Impl:
      
 
   NOTES:
-    ! The shader parser has an infinite recursion bug; repro with egypt.shader
+    ! The shader parser has an infinite recursion bug; repro with egypt.shader. It looks like this file has Windows line endings, however that doesn't appear to be the main cause of the issue.
 
     - clampmap should be of a category of parameter, such as "texParm"; there are other keywords which invoke
       similar operations and have various different parameters (e.g., "map $lightmap", "map /some/path/to/file", etc.)

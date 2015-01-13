@@ -22,7 +22,6 @@ Global include file, containing often-used or down-right-necessary files for eac
 #else
 #	define GL_PROC __attribute__( ( __cdecl ) ) // default to cdecl calling convention on 32-bit non-MSVC compilers
 #endif
-
 #ifdef __GNUC__
 #	include <stdint-gcc.h>
 #else
