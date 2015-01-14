@@ -312,33 +312,48 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 {
 	const bspFace_t* face = map->data.faces + faceIndex;
 
-	if ( ( renderFlags & RENDER_BSP_EFFECT ) && face->texture != -1 && map->effectShaders.count( map->data.textures[ face->texture ].name ) )
+	// For testing
+	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
+		SetPolygonOffsetState( true, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
+
+	// We use textures and effect names as keys into our effectShader map
+	if ( ( renderFlags & RENDER_BSP_EFFECT ) 
+	  && face->texture != -1 
+	  && map->effectShaders.count( map->data.textures[ face->texture ].name ) )
 	{
 		const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
-		const int subdivLevel = face->type == BSP_FACE_TYPE_PATCH ? CalcSubdivision( pass, bounds ) : 0;
+		const int subdivLevel = face->type == BSP_FACE_TYPE_PATCH ? CalcSubdivision( pass, bounds ) : 0;	
 
 		GL_CHECK( glEnable( GL_BLEND ) );
+		
 		for ( int i = 0; i < shader.stageCount; ++i )
 		{
 			if ( shader.stageBuffer[ i ].isStub )
-				continue;
-	
-			GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
-			GL_CHECK( glActiveTexture( GL_TEXTURE0 + shader.stageBuffer[ i ].texOffset ) );
-			GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
-			GL_CHECK( glBindSampler( shader.stageBuffer[ i ].texOffset, shader.stageBuffer[ i ].samplerObj ) );
-			GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
-
-			DrawFaceVerts( faceIndex, subdivLevel );
+			{
+				DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
+			}
+			else
+			{
+				GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
+				GL_CHECK( glActiveTexture( GL_TEXTURE0 + shader.stageBuffer[ i ].texOffset ) );
+				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
+				GL_CHECK( glBindSampler( shader.stageBuffer[ i ].texOffset, shader.stageBuffer[ i ].samplerObj ) );
+				GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
+				
+				DrawFaceVerts( faceIndex, subdivLevel );
+			}
 		}
+		
 		GL_CHECK( glDisable( GL_BLEND ) );
 		GL_CHECK( glUseProgram( 0 ) );
-		__nop();
 	}
 	else
 	{
 		DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
 	}
+
+	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
+		SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
 	// Evaluate optional settings
 	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )

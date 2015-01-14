@@ -9,8 +9,6 @@
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 
-
-
 #if defined( _DEBUG_USE_GL_ASYNC_CALLBACK )
 #	define GL_CHECK( expr )\
 		do\
@@ -31,7 +29,14 @@
 #	define GL_CHECK( expr ) ( expr )
 #endif // _DEBUG_USE_GL_ASYNC_CALLBACK
 
-INLINE void LoadVertexLayout( void )
+enum 
+{
+	GLUTIL_POLYGON_OFFSET_FILL = 1 << 0,
+	GLUTIL_POLYGON_OFFSET_LINE = 1 << 1,
+	GLUTIL_POLYGON_OFFSET_POINT = 1 << 2
+};
+
+static INLINE void LoadVertexLayout( void )
 {
 	GL_CHECK( glEnableVertexAttribArray( 0 ) );
     GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
@@ -44,10 +49,27 @@ INLINE void LoadVertexLayout( void )
 	GL_CHECK( glVertexAttribPointer( 3, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texCoords[ 1 ] ) ) ); // lightmap
 }
 
-INLINE void LoadBuffer( GLuint vbo )
+static INLINE void LoadBuffer( GLuint vbo )
 {
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 	LoadVertexLayout();
 }
+
+static INLINE void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
+{
+	if ( enable )
+	{
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_FILL ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_LINE ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_POINT ) );
+	}
+	else
+	{
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_FILL ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_LINE ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_POINT ) );
+	}
+}
+
 
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap );

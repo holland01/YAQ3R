@@ -54,7 +54,8 @@ class AABB;
 enum 
 {
 	RENDER_BSP_LIGHTMAP_INFO = 1 << 0,
-	RENDER_BSP_EFFECT = 1 << 1
+	RENDER_BSP_EFFECT = 1 << 1,
+	RENDER_BSP_ALWAYS_POLYGON_OFFSET = 1 << 2
 };
 
 class BSPRenderer

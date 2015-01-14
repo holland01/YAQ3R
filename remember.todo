@@ -35,14 +35,16 @@ Impl:
      // - In BSPRenderer::DrawFace - Iterate through the shader stages for every entity (the names of which are stored in the textures lump) and use the DrawFaceVerts function for every 
      //stage. If the face is a bezier patch, be sure to cache the subdivision level before passing it to the draw function.
      - Figure out where to go now; some lightmaps aren't being loaded (properly, at least) when the shaders are used, so that would probably be a good place to start.
-     - Merge shader_impl branch into master; let shader_impl overwrite any conflicts
+     //- Merge shader_impl branch into master; let shader_impl overwrite any conflicts
      
 
   NOTES:
-    ! The shader parser has an infinite recursion bug; repro with egypt.shader. It looks like this file has Windows line endings, however that doesn't appear to be the main cause of the issue.
-
-    - clampmap should be of a category of parameter, such as "texParm"; there are other keywords which invoke
-      similar operations and have various different parameters (e.g., "map $lightmap", "map /some/path/to/file", etc.)
+    - Let Railgun_Arena.shader be the main focus for now.
+    - TODO list ( in order of importance ):
+      - lightmaps
+      - rgbGen
+      - tcMod
+      - depthWrite
 
 Perf:
 //- Use the same vao for the bezier patches that is being used for the rest of the data

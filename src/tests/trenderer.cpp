@@ -12,7 +12,8 @@ TRenderer::TRenderer( void )
 	  currentTime( 0.0f ),
       renderer( NULL ),
 	  mapFilepath( egyptTemple ),
-	  mapLoadFlags( Q3LOAD_ALL )
+	  mapLoadFlags( Q3LOAD_ALL ),
+	  mapRenderFlags( 0 )
 {
 }
 
@@ -43,6 +44,7 @@ void TRenderer::Load( void )
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
     GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
+	GL_CHECK( glPolygonOffset( 1.0f, 1.0f ) );
 
 	//GL_CHECK( glEnable( GL_BLEND ) );
 	//GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
@@ -62,15 +64,23 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 		switch ( key )
 		{
 		case GLFW_KEY_0:
-			mapRenderFlags ^= RENDER_BSP_LIGHTMAP_INFO;
+			useSRGBFramebuffer = !useSRGBFramebuffer;
+			if ( useSRGBFramebuffer )
+				GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
+			else
+				GL_CHECK( glDisable( GL_FRAMEBUFFER_SRGB ) );
 			break;
 
-		case GLFW_KEY_6:
+		case GLFW_KEY_1:
 			mapLoadFlags ^= Q3LOAD_TEXTURE_ANISOTROPY;
 			break;
 
-		case GLFW_KEY_7:
+		case GLFW_KEY_2:
 			mapLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+			break;
+
+		case GLFW_KEY_7:
+			mapRenderFlags ^= RENDER_BSP_ALWAYS_POLYGON_OFFSET;
 			break;
 
 		case GLFW_KEY_8:
@@ -78,15 +88,11 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 			break;
 
 		case GLFW_KEY_9:
-			useSRGBFramebuffer = !useSRGBFramebuffer;
-			if ( useSRGBFramebuffer )
-				GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
-			else
-				GL_CHECK( glDisable( GL_FRAMEBUFFER_SRGB ) );
+			mapRenderFlags ^= RENDER_BSP_LIGHTMAP_INFO;
 			break;
 		}
 
-		if ( key == GLFW_KEY_7 || key == GLFW_KEY_6 )
+		if ( key == GLFW_KEY_2 || key == GLFW_KEY_1 )
 			renderer->Load( mapFilepath, mapLoadFlags );
 	}
 }
