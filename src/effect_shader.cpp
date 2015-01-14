@@ -124,10 +124,11 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 	if ( level == 0 )
 	{
 		// Find our entity string
-		// char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-		// memset( entCandidate, 0, sizeof( entCandidate ) );
+		//char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+		//memset( entCandidate, 0, sizeof( entCandidate ) );
 
-		buffer = ReadToken( outInfo->name, buffer );	
+		buffer = ReadToken( outInfo->name, buffer );		
+
 		buffer = ParseEntry( outInfo, buffer, level );
 	}
 	else
@@ -218,12 +219,13 @@ static uint8_t IsStubbedStage( const shaderStage_t* stage )
 
 static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 {
-	FILE* file = fopen( filepath.c_str(), "r" );
+	FILE* file = fopen( filepath.c_str(), "rb" );
 	MLOG_ASSERT( file, "Could not open file \'%s\'", filepath.c_str() );
 
 	fseek( file, 0, SEEK_END );
 	size_t charlen = ftell( file );
-	char* fileBuffer = new char[ charlen ]();
+	char* fileBuffer = new char[ charlen + 1 ]();
+	fileBuffer[ charlen ] = '\0';
 	fseek( file, 0, SEEK_SET );
 	fread( fileBuffer, 1, charlen, file );
 	fclose( file );
