@@ -39,6 +39,10 @@ Impl:
      
 
   NOTES:
+    - There appears to be a bug in the parser where data is getting parsed twice instead of only once:
+      For example, in Railgun_Arena.shader, there are only five instances of $lightmap, but the traversal in the recursive
+      function spots ten different cases
+
     - Let Railgun_Arena.shader be the main focus for now.
     - TODO list ( in order of importance ):
       - lightmaps

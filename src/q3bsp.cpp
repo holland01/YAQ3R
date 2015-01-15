@@ -372,7 +372,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	}
 	
 	// Load shaders
-	LoadShaders( data.basePath, loadFlags, effectShaders );
+	LoadShaders( &data, loadFlags, effectShaders );
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 	// And then generate all of the lightmaps

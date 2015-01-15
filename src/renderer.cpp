@@ -324,12 +324,15 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
 		const int subdivLevel = face->type == BSP_FACE_TYPE_PATCH ? CalcSubdivision( pass, bounds ) : 0;	
 
+		
+
 		GL_CHECK( glEnable( GL_BLEND ) );
 		
 		for ( int i = 0; i < shader.stageCount; ++i )
 		{
 			if ( shader.stageBuffer[ i ].isStub )
 			{
+				//continue;
 				DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
 			}
 			else
@@ -338,6 +341,24 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 				GL_CHECK( glActiveTexture( GL_TEXTURE0 + shader.stageBuffer[ i ].texOffset ) );
 				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
 				GL_CHECK( glBindSampler( shader.stageBuffer[ i ].texOffset, shader.stageBuffer[ i ].samplerObj ) );
+
+				GL_CHECK( glProgramUniformMatrix4fv( 
+					shader.stageBuffer[ i ].programID, 
+					glGetUniformLocation( shader.stageBuffer[ i ].programID, "modelToView" ), 
+					1, 
+					GL_FALSE, 
+					glm::value_ptr( pass.view.transform ) ) );
+
+				GL_CHECK( glProgramUniformMatrix4fv( 
+					shader.stageBuffer[ i ].programID, 
+					glGetUniformLocation( shader.stageBuffer[ i ].programID, "viewToClip" ), 
+					1, 
+					GL_FALSE, 
+					glm::value_ptr( pass.view.clipTransform ) ) );
+				
+				GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, glGetUniformLocation( shader.stageBuffer[ i ].programID, "sampler0" ), shader.stageBuffer[ i ].texOffset ) );
+
+				
 				GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
 				
 				DrawFaceVerts( faceIndex, subdivLevel );
@@ -349,7 +370,7 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 	}
 	else
 	{
-		DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
+		//DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
 	}
 
 	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )

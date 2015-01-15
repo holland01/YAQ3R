@@ -94,19 +94,23 @@ struct shaderStage_t
 struct shaderInfo_t
 {
 	char name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-	char lightimage[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 
-	uint8_t hasLightimage;
+	uint8_t hasLightmap;
 	uint8_t hasPolygonOffset;
 
+	GLuint samplerObj;
+	GLuint textureObj;
+
 	uint32_t surfaceParms;
-	
 	int stageCount;
 	int stageStubCount;
+
+	float surfaceLight; // 0 if no light
+
 	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
 };
 
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-void LoadShaders( const char* dirRoot, uint32_t loadFlags, shaderMap_t& effectShaders );
+void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectShaders );

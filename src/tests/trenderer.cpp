@@ -11,7 +11,7 @@ TRenderer::TRenderer( void )
     : Test( 1366, 768 ),
 	  currentTime( 0.0f ),
       renderer( NULL ),
-	  mapFilepath( egyptTemple ),
+	  mapFilepath( railgunArena ),
 	  mapLoadFlags( Q3LOAD_ALL ),
 	  mapRenderFlags( 0 )
 {
