@@ -60,7 +60,8 @@ enum mapCmd_t
 
 enum mapType_t
 {
-	MAP_TYPE_IMAGE = 0,
+	MAP_TYPE_UNDEFINED  =0,
+	MAP_TYPE_IMAGE,
 	MAP_TYPE_LIGHT_MAP,
 	MAP_TYPE_WHITE_IMAGE
 };
@@ -71,6 +72,7 @@ using glHandleMapEntry_t = std::pair< std::string, GLint >;
 struct shaderStage_t
 {
 	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
+	uint8_t isDepthPass;
 
 	GLuint programID;
 	GLuint textureObj;
@@ -79,6 +81,7 @@ struct shaderStage_t
 
 	GLenum blendSrc;
 	GLenum blendDest;
+	GLenum depthFunc; // Default is LEQUAL
 
 	rgbGen_t rgbGen;
 	mapCmd_t mapCmd;
@@ -89,6 +92,8 @@ struct shaderStage_t
 	char mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	
 	glHandleMap_t uniforms;
+
+	shaderStage_t( void );
 };
 
 struct shaderInfo_t
@@ -103,11 +108,12 @@ struct shaderInfo_t
 
 	uint32_t surfaceParms;
 	int stageCount;
-	int stageStubCount;
 
 	float surfaceLight; // 0 if no light
 
 	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
+
+	shaderInfo_t( void );
 };
 
 using shaderMap_t = std::map< std::string, shaderInfo_t >;

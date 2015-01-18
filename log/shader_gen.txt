@@ -1,0 +1,1160 @@
+------------------------------------------
+textures/aedm7/aecell_decal_logo1
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_decal_spawn1
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_gl
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_lg
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_mh
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_pg
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_quad
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_ra
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_rg
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_rl
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_sg
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_ya
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+layout( location = 1 ) in vec4 color;
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/bata3dm1/bata3dm1_floor6
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 1 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 2 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 3 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/force/clwhite
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/marsbase/glass
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 1 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/marsbase/grate
+[ 0 ] [ yes ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 1 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/marsbase/teleprtr_fx1
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 1 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 2 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 3 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/moon/light15k
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 1 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 2 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/moon/light2013
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 1 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+[ 2 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+
+------------------------------------------
+textures/water/waterfall
+[ 0 ] [ no ] [
+
+ Vertex 
+
+ #version 420
+layout( location = 0 ) in vec3 position;
+layout( location = 2 ) in vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+const float gamma = 1.0 / 2.2;
+const vec4 color = vec4( 1.0 );
+out vec2 frag_Tex;
+out vec4 frag_Color;
+void main() {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+frag_Tex = tex0;
+frag_Color = pow( color, vec4( gamma ) );
+}
+ 
+
+ Fragment 
+
+ #version 420
+in vec2 frag_Tex;
+in vec4 frag_Color;
+uniform sampler2D sampler0;
+out vec4 fragment;
+const float alphaGen = 1.0;
+void main() {
+	fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );
+}
+ 
+
+ ]
+

@@ -36,17 +36,26 @@ enum
 	GLUTIL_POLYGON_OFFSET_POINT = 1 << 2
 };
 
+
+static INLINE void MapAttribTexCoord( int location, size_t offset )
+{
+	GL_CHECK( glEnableVertexAttribArray( location ) );
+	GL_CHECK( glVertexAttribPointer( location, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
+}
+
 static INLINE void LoadVertexLayout( void )
 {
 	GL_CHECK( glEnableVertexAttribArray( 0 ) );
     GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
-    GL_CHECK( glEnableVertexAttribArray( 2 ) );
-	GL_CHECK( glEnableVertexAttribArray( 3 ) );
+    //GL_CHECK( glEnableVertexAttribArray( 2 ) );
+	//GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
     GL_CHECK( glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, position ) ) );
     GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
-    GL_CHECK( glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texCoords[ 0 ] ) ) ); // texture
-	GL_CHECK( glVertexAttribPointer( 3, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texCoords[ 1 ] ) ) ); // lightmap
+    MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) ); // texture
+	MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); // lightmap
+	//GL_CHECK( glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texCoords[ 0 ] ) ) ); // texture
+	//GL_CHECK( glVertexAttribPointer( 3, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, texCoords[ 1 ] ) ) ); // lightmap
 }
 
 static INLINE void LoadBuffer( GLuint vbo )
@@ -71,5 +80,13 @@ static INLINE void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
 	}
 }
 
+static INLINE void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
+{
+	GL_CHECK( glUseProgram( 0 ) );
+	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
+	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
+}
 
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap );

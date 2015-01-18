@@ -335,6 +335,7 @@ public:
 	std::vector< GLuint >		glSamplers;		// has one->one map with glTextures
 	std::vector< mapModel_t >	glFaces;		// has one->one map with face indices
 	std::vector< GLuint >		glLightmaps;	// textures - has one->one map with lightmap indices
+					GLuint		glLightmapSampler;
 
 	std::map< std::string, shaderInfo_t > effectShaders;
 

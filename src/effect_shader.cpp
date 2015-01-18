@@ -5,6 +5,42 @@
 #include "glutil.h"
 #include <sstream>
 
+shaderStage_t::shaderStage_t( void )
+{
+	isStub = FALSE;
+	isDepthPass = FALSE;
+
+	programID = 0;
+	textureObj = 0;
+	samplerObj = 0;
+	texOffset = 0;
+
+	blendSrc = GL_ONE;
+	blendDest = GL_ZERO;
+	depthFunc = GL_LEQUAL;
+
+	alphaGen = 0.0f;
+
+	rgbGen = RGBGEN_IDENTITY;
+	mapCmd = MAP_CMD_UNDEFINED;
+	mapType = MAP_TYPE_UNDEFINED;
+
+	memset( mapArg, 0, sizeof( mapArg ) );
+}
+
+shaderInfo_t::shaderInfo_t( void )
+{
+	memset( name, 0, sizeof( name ) );
+
+	hasLightmap = FALSE;
+	hasPolygonOffset = FALSE;
+	samplerObj = 0;
+	textureObj = 0;
+	surfaceParms = 0;
+	stageCount = 0;
+	surfaceLight = 0.0f;
+}
+
 enum tokType_t
 {
 	TOKTYPE_VALID = 0,
@@ -16,13 +52,26 @@ static int gLineCount = 0;
 
 static INLINE GLenum GL_EnumFromStr( const char* str )
 {
-	if ( strcmp( str, "GL_SRC_ALPHA" ) == 0 )
-		return GL_SRC_ALPHA;
+	if ( strcmp( str, "GL_SRC_ALPHA" ) == 0 ) return GL_SRC_ALPHA;
 	
-	if ( strcmp( str, "GL_ONE_MINUS_SRC_ALPHA" ) == 0 )
-		return GL_ONE_MINUS_SRC_ALPHA;
+	if ( strcmp( str, "GL_ONE_MINUS_SRC_ALPHA" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
+	if ( strcmp( str, "GL_ONE_MINUS_SRC_COLOR" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
+
+	if ( strcmp( str, "GL_DST_COLOR" ) == 0 ) return GL_DST_COLOR;
+	if ( strcmp( str, "GL_SRC_COLOR" ) == 0 ) return GL_SRC_COLOR;
+
+	if ( strcmp( str, "GL_ZERO" ) == 0 ) return GL_ZERO;
+	if ( strcmp( str, "GL_ONE" ) == 0 ) return GL_ONE;
 
 	return 0;
+}
+
+static INLINE GLenum GL_DepthFuncFromStr( const char* str )
+{
+	if ( strcmp( str, "equal" ) == 0 )
+		return GL_EQUAL;
+
+	return GL_LEQUAL;
 }
 
 static INLINE tokType_t Token( const char* c )
@@ -128,7 +177,6 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 		//memset( entCandidate, 0, sizeof( entCandidate ) );
 
 		buffer = ReadToken( outInfo->name, buffer );		
-
 		buffer = ParseEntry( outInfo, buffer, level );
 	}
 	else
@@ -181,19 +229,41 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
 
 				if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, "$lightmap" ) == 0 )
+				{
 					outInfo->hasLightmap = TRUE;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_SRC_ALPHA;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE_MINUS_SRC_ALPHA;
+				}
 			}
 			else if ( strcmp( token, "blendFunc" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
 
-				outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_EnumFromStr( value );
+				if ( strcmp( value, "add" ) == 0 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_ONE;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE;
+				}
+				else if ( strcmp( value, "blend" ) == 0 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_SRC_ALPHA;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE_MINUS_SRC_ALPHA;
+				}
+				else if ( strcmp( value, "filter" ) == 0 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_DST_COLOR;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ZERO;
+				}
+				else
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_EnumFromStr( value );
 				
-				memset( value, 0, sizeof( value ) );
-				buffer = ReadToken( value, buffer );
+					memset( value, 0, sizeof( value ) );
+					buffer = ReadToken( value, buffer );
 
-				outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_EnumFromStr( value ); 
+					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_EnumFromStr( value ); 
+				}
 			}
 			else if ( strcmp( token, "rgbGen" ) == 0 )
 			{
@@ -202,6 +272,20 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					
 				if ( strcmp( value, "Vertex" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
+				else if ( strcmp( value, "identity" ) == 0 )
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
+				else if ( strcmp( value, "identityLighting" ) == 0 )
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
+			}
+			else if ( strcmp( token, "depthFunc" ) == 0 )
+			{
+				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+				buffer = ReadToken( value, buffer );
+				outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = GL_DepthFuncFromStr( value );
+			}
+			else if ( strcmp( token, "depthWrite" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
 			}
 		}	
 
@@ -214,15 +298,10 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 	return buffer;
 }
 
-static uint8_t IsStubbedStage( shaderStage_t* stage )
+static uint8_t IsStubbedStage( const shaderStage_t* stage )
 {
 	// Last condition is for the rgbGen vars which are currently supported.
-	return ( stage->mapCmd == 0 
-		  || stage->blendSrc == 0 
-		  || stage->blendDest == 0 
-		  || stage->rgbGen == 0 
-		  || strcmp( stage->mapArg, "$whiteimage" ) == 0
-		  || ( stage->rgbGen != RGBGEN_VERTEX && stage->rgbGen != RGBGEN_ONE_MINUS_VERTEX && stage->rgbGen != RGBGEN_IDENTITY && stage->rgbGen != RGBGEN_IDENTITY_LIGHTING ) );  
+	return stage->isDepthPass;  
 }
 
 static void ParseShader( shaderMap_t& entries, const std::string& filepath )
@@ -244,33 +323,11 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 	while ( *pChar )
 	{	
 		shaderInfo_t entry;
-		memset( &entry, 0, sizeof( entry ) - sizeof( entry.stageBuffer ) );
-
-		for ( int i = 0; i < SHADER_MAX_NUM_STAGES; ++i )
-		{
-			memset( &entry.stageBuffer[ i ], 0, sizeof( entry.stageBuffer[ i ] ) - sizeof( entry.stageBuffer[ i ].uniforms ) );
-		}
 
 		pChar = ParseEntry( &entry, pChar, 0 );
-		
-		// Look for stages which are effectively "stubs" and therefore need to use default render parameters
+
 		for ( int i = 0; i < entry.stageCount; ++i )
-		{	
-			if ( IsStubbedStage( entry.stageBuffer + i ) )
-			{
-				// Define some defaults for lightmaps and remove their stub constraint
-				if ( strcmp( entry.stageBuffer[ i ].mapArg, "$lightmap" ) == 0 )
-				{
-					entry.stageBuffer[ i ].blendSrc = GL_SRC_ALPHA;
-					entry.stageBuffer[ i ].blendDest = GL_ONE_MINUS_SRC_ALPHA;
-				}
-				else
-				{
-					entry.stageStubCount += 1;
-					entry.stageBuffer[ i ].isStub = TRUE;
-				}
-			}
-		}
+			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
 
 		entries.insert( shaderMapEntry_t( entry.name, entry ) );
 	}
@@ -283,7 +340,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	// Base variables are required for all programs.
 	const char* baseVertex = "#version 420\n"
 							 "layout( location = 0 ) in vec3 position;\n"
-							 "layout( location = 1 ) in vec2 tex0;\n"
+							 "layout( location = 2 ) in vec2 tex0;\n"
 							 "uniform mat4 modelToView;\n"
 							 "uniform mat4 viewToClip;\n"
 							 "const float gamma = 1.0 / 2.2;\n";
@@ -295,16 +352,16 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 								"uniform sampler2D sampler0;\n"
 								"out vec4 fragment;\n";
 
+	FILE* f = fopen( "log/shader_gen.txt", "w" );
+
 	// Convert each effect stage to its GLSL equivalent
 	for ( auto& entry: effectShaders )
 	{
 		shaderInfo_t& shader = entry.second;
+		fprintf( f, "------------------------------------------\n%s\n", shader.name );
 
 		for ( int j = 0; j < shader.stageCount; ++j )
 		{
-			if ( shader.stageBuffer[ j ].isStub )
-				continue;
-
 			// These are the bodies of the main function in the programs
 			std::stringstream fragcmp, vertcmp;
 				
@@ -318,7 +375,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY || shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY_LIGHTING )
 				vertexSrc << "const vec4 color = vec4( 1.0 );\n";
 			else
-				vertexSrc << "layout( location = 2 ) in vec4 color;\n";
+				vertexSrc << "layout( location = 1 ) in vec4 color;\n";
+				
 
 			vertexSrc << "out vec2 frag_Tex;\n"
 						 "out vec4 frag_Color;\n";
@@ -337,19 +395,13 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				fragmentSrc << "const float alphaGen = " << shader.stageBuffer[ j ].alphaGen << ";\n";
 
 			// And fragment shader body...
-			const std::string& rgbCmp = "texture( sampler0, frag_Tex ).rgb * frag_Color.rgb";
-			switch ( shader.stageBuffer[ j ].rgbGen )
-			{
-			case RGBGEN_ONE_MINUS_VERTEX:
-				fragcmp << "fragment = vec4( vec3( 1.0 ) - " << rgbCmp << ", alphaGen );\n";
-				break;
-			default:
-				fragcmp << "fragment = vec4( " << rgbCmp << ", alphaGen );\n";
-				break;
-			}
+			//const std::string& rgbCmp = "texture( sampler0, frag_Tex ).rgb * frag_Color.rgb";
+			//fragcmp << "fragment = vec4( " << rgbCmp << ", alphaGen );\n";
 
-			vertexSrc << "void main() { \n" << vertcmp.str() << " }\n";
-			fragmentSrc << "void main() { \n" << fragcmp.str() << " }\n";
+			fragcmp << "fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );\n";
+
+			vertexSrc << "void main() {\n\t" << vertcmp.str() << "}\n";
+			fragmentSrc << "void main() {\n\t" << fragcmp.str() << "}\n";
 
 			GLuint shaders[] = 
 			{
@@ -365,8 +417,15 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				GL_CHECK( uniform = glGetUniformLocation( shader.stageBuffer[ j ].programID, uniformStrings[ u ].c_str() ) );
 				shader.stageBuffer[ j ].uniforms.insert( glHandleMapEntry_t( uniformStrings[ u ], uniform ) );
 			}
+
+			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n %s \n\n Fragment \n\n %s \n\n ]\n\n", 
+				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 
+				vertexSrc.str().c_str(), 
+				fragmentSrc.str().c_str() );
 		}
 	}
+
+	fclose( f );
 }
 
 static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectShaders )
@@ -375,6 +434,7 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 	{
 		shaderInfo_t& shader = entry.second;
 
+		/*
 		// HACK: search for a face in our map data with a corresponding lightmap index.
 		// This is a very, very temporary solution.
 		int lightmapIndex = -1;
@@ -389,7 +449,7 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 				}
 			}
 		}
-
+		*/
 		for ( int i = 0; i < shader.stageCount; ++i )
 		{
 			if ( shader.stageBuffer[ i ].isStub )
@@ -400,22 +460,17 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 			GL_CHECK( glGenTextures( 1, &shader.stageBuffer[ i ].textureObj ) );
 			GL_CHECK( glGenSamplers( 1, &shader.stageBuffer[ i ].samplerObj ) );
 
-			GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-			GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
-
 			std::string texFileRoot( map->basePath );
 
 			// LoadTextureFromFile already binds the texture for us, so for $lightmap it's actually necessary
-			if ( strcmp( shader.stageBuffer[ i ].mapArg, "$lightmap" ) == 0 )
+			if ( strcmp( shader.stageBuffer[ i ].mapArg, "$lightmap" ) == 0 || strcmp( shader.stageBuffer[ i ].mapArg, "$whiteimage" ) == 0 )
 			{
 				shader.stageBuffer[ i ].mapType = MAP_TYPE_LIGHT_MAP;
-				
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
-				GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, map->lightmaps[ lightmapIndex ].map ) );
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 
 				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_WRAP_S, GL_REPEAT ) );  
 				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_WRAP_T, GL_REPEAT ) ); 
+				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
 			}
 			else
 			{
@@ -424,11 +479,12 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 				texFileRoot.append( shader.stageBuffer[ i ].mapArg );
 
 				assert( LoadTextureFromFile( 
-					texFileRoot.c_str(), 
-					shader.stageBuffer[ i ].textureObj, 
-					shader.stageBuffer[ i ].samplerObj, 
-					loadFlags,
-					shader.stageBuffer[ i ].mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT ) 
+						texFileRoot.c_str(), 
+						shader.stageBuffer[ i ].textureObj, 
+						shader.stageBuffer[ i ].samplerObj, 
+						loadFlags,
+						shader.stageBuffer[ i ].mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT 
+					)
 				);
 			}
 		}
@@ -447,18 +503,11 @@ void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectS
 	file = FindFirstFileA( ( shaderRootDir + "*" ).c_str(), &findFileData ); 
 	int success = file != INVALID_HANDLE_VALUE;
 
-	while ( success )
+	while ( ( success = FindNextFileA( file, &findFileData ) ) )
 	{
-		success = FindNextFileA( file, &findFileData );
-
 		std::string ext;
-		if ( FileGetExt( ext, std::string( findFileData.cFileName ) ) )
-		{
-			if ( ext == "shader" )
-			{
-				ParseShader( effectShaders, shaderRootDir + std::string( findFileData.cFileName ) );
-			}
-		}
+		if ( FileGetExt( ext, std::string( findFileData.cFileName ) ) && ext == "shader" )
+			ParseShader( effectShaders, shaderRootDir + std::string( findFileData.cFileName ) );
 	}
 	
 	GenShaderPrograms( effectShaders );

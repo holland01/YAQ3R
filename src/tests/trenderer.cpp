@@ -12,8 +12,9 @@ TRenderer::TRenderer( void )
 	  currentTime( 0.0f ),
       renderer( NULL ),
 	  mapFilepath( railgunArena ),
+	  //mapLoadFlags( Q3LOAD_ALL ),
 	  mapLoadFlags( Q3LOAD_ALL ),
-	  mapRenderFlags( 0 )
+	  mapRenderFlags( RENDER_BSP_EFFECT )
 {
 }
 
@@ -39,15 +40,7 @@ void TRenderer::Load( void )
 {
     if ( !Test::Load( "I am a floating camera" ) )
         return;
-
-	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
-    GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
-	GL_CHECK( glPolygonOffset( 1.0f, 1.0f ) );
-
-	//GL_CHECK( glEnable( GL_BLEND ) );
-	//GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
+	//GL_CHECK( glPolygonOffset( 1.0f, 1.0f ) );
 
     renderer = new BSPRenderer;
     renderer->Prep();

@@ -70,6 +70,7 @@ Q3BspMap::Q3BspMap( void )
      :	mapAllocated( false ),
 		data( {} )
 {
+	glLightmapSampler = 0;
 }
 
 /*
@@ -107,6 +108,10 @@ void Q3BspMap::DestroyMap( void )
 
 		GL_CHECK( glDeleteTextures( glTextures.size(), &glTextures[ 0 ] ) );
 		GL_CHECK( glDeleteTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
+		GL_CHECK( glDeleteSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
+
+		if ( glLightmapSampler > 0 )
+			GL_CHECK( glDeleteSamplers( 1, &glLightmapSampler ) );
 
 		glTextures.clear();
 		glLightmaps.clear();
@@ -323,6 +328,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 	glSamplers.resize( data.numTextures, 0 );
 	GL_CHECK( glGenSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
+
 	{
 		static const char* validImgExt[] = 
 		{
@@ -370,7 +376,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 		// Reset the alignment to maintain consistency
 	}
-	
+
 	// Load shaders
 	LoadShaders( &data, loadFlags, effectShaders );
 
@@ -378,15 +384,16 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps, 0 );
 	GL_CHECK( glGenTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
-	
+	GL_CHECK( glGenSamplers( 1, &glLightmapSampler ) );
+
+	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
+	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
+
 	for ( int l = 0; l < data.numLightmaps; ++l )
 	{	
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glLightmaps[ l ] ) );
-
-		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
-		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
-		GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
 
 		GL_CHECK( glTexImage2D( 
 			GL_TEXTURE_2D, 
@@ -399,6 +406,8 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			GL_UNSIGNED_BYTE, 
 			data.lightmaps[ l ].map ) );	
 	}
+
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 }
 
 /*
