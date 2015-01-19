@@ -40,8 +40,8 @@ enum surfaceParms_t
 
 enum rgbGen_t
 {
-	RGBGEN_UNDEFINED = 0,
-	RGBGEN_VERTEX = 1,
+	//RGBGEN_UNDEFINED = 0,
+	RGBGEN_VERTEX = 0,
 	RGBGEN_ONE_MINUS_VERTEX,
 	RGBGEN_IDENTITY_LIGHTING,
 	RGBGEN_IDENTITY,
@@ -49,6 +49,14 @@ enum rgbGen_t
 	RGBGEN_ONE_MINUS_ENTITY,
 	RGBGEN_DIFFUSE_LIGHTING,
 	RGBGEN_WAVE
+};
+
+enum alphaFunc_t
+{
+	ALPHA_FUNC_UNDEFINED = 0,
+	ALPHA_FUNC_GEQUAL_128, // will pass fragment test if alpha value is >= ( 128 / 255 )
+	ALPHA_FUNC_GTHAN_0, // will pass fragment test if alpha value is > 0
+	ALPHA_FUNC_LTHAN_128 // will pass fragment test if alpha value is < ( 128 / 255 )
 };
 
 enum mapCmd_t
@@ -60,7 +68,7 @@ enum mapCmd_t
 
 enum mapType_t
 {
-	MAP_TYPE_UNDEFINED  =0,
+	MAP_TYPE_UNDEFINED = 0,
 	MAP_TYPE_IMAGE,
 	MAP_TYPE_LIGHT_MAP,
 	MAP_TYPE_WHITE_IMAGE
@@ -84,6 +92,7 @@ struct shaderStage_t
 	GLenum depthFunc; // Default is LEQUAL
 
 	rgbGen_t rgbGen;
+	alphaFunc_t alphaFunc;
 	mapCmd_t mapCmd;
 	mapType_t mapType;
 

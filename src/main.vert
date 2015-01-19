@@ -14,13 +14,11 @@ smooth out vec2 frag_Lightmap;
 
 uniform bool doGammaCorrect;
 
-const float gammaExp = 1.0 / 2.2;
-
 void main()
 {
     gl_Position = cameraToClip * modelToCamera * vec4( position, 1.0 );
 
-	frag_Color = pow( color, vec4( gammaExp ) );
+	frag_Color = color;
 
 	frag_Tex = tex0;
 	frag_Lightmap = lightmap;

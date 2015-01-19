@@ -16,20 +16,26 @@ uniform int fragWriteMode;
 
 uniform vec4 fragAmbient = vec4( 1.0 );
 
+const vec4 gamma = vec4( 1 / 2.2 );
+
 out vec4 fragment;
 
 void main()
 {
+	vec4 col;
+
 	switch ( fragWriteMode )
 	{
 	case FRAGWRITE_TEX:
-		fragment = texture(fragTexSampler, frag_Tex) * texture(fragLightmapSampler, frag_Lightmap);
+		col = texture(fragTexSampler, frag_Tex) * texture(fragLightmapSampler, frag_Lightmap);
 		break;
 	case FRAGWRITE_TEX_COLOR:
-		fragment = texture(fragTexSampler, frag_Tex) * vec4( texture(fragLightmapSampler, frag_Lightmap).xyz, 1.0 ) * frag_Color * fragAmbient;
+		col = vec4( texture(fragTexSampler, frag_Tex).rgb, 1.0 ) * texture(fragLightmapSampler, frag_Lightmap) * vec4( frag_Color.rgb, 1.0 ) * fragAmbient;
 		break;
 	case FRAGWRITE_COLOR:
-		fragment = frag_Color;
+		col = frag_Color * fragAmbient;
 		break;
     }
+
+	fragment = pow( col, gamma );
 }

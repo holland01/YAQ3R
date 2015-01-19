@@ -1,8 +1,26 @@
-﻿Build started 1/18/2015 12:55:09 AM.
-     1>Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Build target(s)).
+﻿Build started 1/19/2015 12:45:37 AM.
+     1>Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Rebuild target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Dev\GH\lib\dml/glew-msvc/include" /IC:\Dev\GH\lib\dml/glm/ /IC:\Dev\GH\lib\dml/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\effect_shader.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Dev\GH\lib\dml/glew-msvc/include" /IC:\Dev\GH\lib\dml/glm/ /IC:\Dev\GH\lib\dml/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\aabb.cpp ..\..\src\bezpatch.cpp ..\..\src\effect_shader.cpp ..\..\src\eu_ang.cpp ..\..\src\frustum.cpp ..\..\src\gldebug.cpp ..\..\src\glutil.cpp ..\..\src\input.cpp ..\..\src\log.cpp ..\..\src\main.cpp ..\..\src\math_util.cpp ..\..\src\mtrand.cpp ..\..\src\q3bsp.cpp ..\..\src\q3m_model.cpp ..\..\src\renderer.cpp ..\..\src\shader.cpp ..\..\src\tests\test.cpp ..\..\src\tests\trenderer.cpp
+         aabb.cpp
+         bezpatch.cpp
          effect_shader.cpp
+         eu_ang.cpp
+         frustum.cpp
+         gldebug.cpp
+         glutil.cpp
+         input.cpp
+         log.cpp
+         main.cpp
+         math_util.cpp
+         mtrand.cpp
+         q3bsp.cpp
+         q3m_model.cpp
+         renderer.cpp
+         shader.cpp
+         test.cpp
+         trenderer.cpp
+         Generating Code...
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"C:\Dev\GH\lib\dml/glew-msvc/lib/Release/Win32/" /LIBPATH:"C:\Dev\GH\lib\dml/glfw3/lib-msvc120" opengl32.lib glu32.lib glew32.lib glfw3dll.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.lib" /MACHINE:X86 /SAFESEH Release\aabb.obj
          Release\bezpatch.obj
@@ -23,8 +41,8 @@
          Release\test.obj
          Release\trenderer.obj
          bspview.vcxproj -> C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.exe
-     1>Done Building Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Build target(s)).
+     1>Done Building Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Rebuild target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.23
+Time Elapsed 00:00:14.30

@@ -40,6 +40,11 @@ Impl:
 
   NOTES:
     - Eventually, all terms should default to lower case when read by the parser, to eliminate issues with case sensitivity
+
+    - Integrate Uniform Buffer Objects for matrix transformations
+    - Look for other ways of optimizing the shaders; example, "conservative depth", for fragment discards
+    - Also, some resources for railgun_arena are missing. See if there's a workaround somehow around this.
+
     - Let Railgun_Arena.shader be the main focus for now.
     - TODO list ( in order of importance ):
       - lightmaps

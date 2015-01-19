@@ -22,6 +22,7 @@ shaderStage_t::shaderStage_t( void )
 	alphaGen = 0.0f;
 
 	rgbGen = RGBGEN_IDENTITY;
+	alphaFunc = ALPHA_FUNC_UNDEFINED;
 	mapCmd = MAP_CMD_UNDEFINED;
 	mapType = MAP_TYPE_UNDEFINED;
 
@@ -228,11 +229,18 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, buffer );
 				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
 
+				assert( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, "$whiteimage" ) != 0 && "No support for white image yet" );
+
 				if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, "$lightmap" ) == 0 )
 				{
 					outInfo->hasLightmap = TRUE;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_SRC_ALPHA;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE_MINUS_SRC_ALPHA;
+					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_DST_COLOR;
+					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE_MINUS_DST_ALPHA;
+				}
+				else
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
 				}
 			}
 			else if ( strcmp( token, "blendFunc" ) == 0 )
@@ -264,6 +272,19 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 
 					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_EnumFromStr( value ); 
 				}
+			}
+			else if ( strcmp( token, "alphaFunc" ) == 0 )
+			{
+				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+				buffer = ReadToken( value, buffer );
+				
+				if ( strcmp( value, "GE128" ) == 0 )
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
+				else if ( strcmp( value, "GT0" ) == 0 )
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
+				else if ( strcmp( value, "LT128" ) == 0 )
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
+
 			}
 			else if ( strcmp( token, "rgbGen" ) == 0 )
 			{
@@ -337,22 +358,27 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 
 static void GenShaderPrograms( shaderMap_t& effectShaders )
 {
-	// Base variables are required for all programs.
-	const char* baseVertex = "#version 420\n"
-							 "layout( location = 0 ) in vec3 position;\n"
-							 "layout( location = 2 ) in vec2 tex0;\n"
-							 "uniform mat4 modelToView;\n"
-							 "uniform mat4 viewToClip;\n"
-							 "const float gamma = 1.0 / 2.2;\n";
-							 
-
-	const char* baseFragment =	"#version 420\n"
-								"in vec2 frag_Tex;\n" 
-								"in vec4 frag_Color;\n"
-								"uniform sampler2D sampler0;\n"
-								"out vec4 fragment;\n";
+	// Base variables are required for all programs
 
 	FILE* f = fopen( "log/shader_gen.txt", "w" );
+
+	auto LWriteFragBody = []( std::stringstream& fragcmp, bool doGammaCorrect, const char* discardPredicate ) 
+	{
+		fragcmp << "\tvec4 t = texture( sampler0, frag_Tex );\n";
+		
+		if ( discardPredicate )
+		{
+			fragcmp << "\tif ( " << discardPredicate << " )\n"
+					<< "\t{\n"
+					<< "\t\tdiscard;\n"
+					<< "\t}\n";
+		}
+
+		if ( doGammaCorrect )
+			fragcmp << "\tfragment = pow( t * frag_Color.rgba, gamma );\n";
+		else
+			fragcmp << "\tfragment = t * frag_Color.rgba;\n";
+	};
 
 	// Convert each effect stage to its GLSL equivalent
 	for ( auto& entry: effectShaders )
@@ -371,24 +397,34 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			std::vector< std::string > uniformStrings = { "modelToView", "viewToClip", "sampler0" };
 
 			// Load vertex header;
-			vertexSrc << baseVertex;
-			if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY || shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY_LIGHTING )
-				vertexSrc << "const vec4 color = vec4( 1.0 );\n";
-			else
-				vertexSrc << "layout( location = 1 ) in vec4 color;\n";
-				
-
+			vertexSrc << "#version 420\n"
+					  << "layout( location = 0 ) in vec3 position;\n"
+					  << "layout( location = 1 ) in vec4 color;\n"
+					  << "layout( location = 2 ) in vec2 tex0;\n"
+					  << "uniform mat4 modelToView;\n"
+					  << "uniform mat4 viewToClip;\n";
+			
 			vertexSrc << "out vec2 frag_Tex;\n"
 						 "out vec4 frag_Color;\n";
 
 			// Load vertex shader body
-			vertcmp <<	"gl_Position = viewToClip * modelToView * vec4( position, 1.0 );\n"
-						"frag_Tex = tex0;\n"
-						"frag_Color = pow( color, vec4( gamma ) );\n";
+			vertcmp <<	"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );\n"
+						"\tfrag_Tex = tex0;\n";
+
+			if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY || shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY_LIGHTING )
+				vertcmp << "\tfrag_Color = vec4( 1.0 );\n";
+			else
+				vertcmp << "\tfrag_Color = color;\n";
 
 			// Load fragment header;
 			// Unspecified alphaGen implies a default 1.0 alpha channel
-			fragmentSrc << baseFragment;
+			fragmentSrc << "#version 420\n"
+						<< "in vec2 frag_Tex;\n" 
+						<< "in vec4 frag_Color;\n"
+						<< "const vec4 gamma = vec4( 1.0 / 2.2 );\n"
+						<< "uniform sampler2D sampler0;\n"
+						<< "out vec4 fragment;\n";
+
 			if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
 				fragmentSrc << "const float alphaGen = 1.0;\n";
 			else
@@ -398,10 +434,24 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			//const std::string& rgbCmp = "texture( sampler0, frag_Tex ).rgb * frag_Color.rgb";
 			//fragcmp << "fragment = vec4( " << rgbCmp << ", alphaGen );\n";
 
-			fragcmp << "fragment = texture( sampler0, frag_Tex ) * vec4( frag_Color.rgb, 1.0 );\n";
+			switch ( shader.stageBuffer[ j ].alphaFunc )
+			{
+			case ALPHA_FUNC_UNDEFINED:
+				LWriteFragBody( fragcmp, true, NULL );
+				break;
+			case ALPHA_FUNC_GEQUAL_128:
+				LWriteFragBody( fragcmp, true, "t.a < 0.5" );
+				break;
+			case ALPHA_FUNC_GTHAN_0:
+				LWriteFragBody( fragcmp, true, "t.a == 0" );
+				break;
+			case ALPHA_FUNC_LTHAN_128:
+				LWriteFragBody( fragcmp, true, "t.a >= 0.5" );
+				break;
+			}
 
-			vertexSrc << "void main() {\n\t" << vertcmp.str() << "}\n";
-			fragmentSrc << "void main() {\n\t" << fragcmp.str() << "}\n";
+			vertexSrc << "void main() {\n" << vertcmp.str() << "}\n";
+			fragmentSrc << "void main() {\n" << fragcmp.str() << "}\n";
 
 			GLuint shaders[] = 
 			{
@@ -418,7 +468,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				shader.stageBuffer[ j ].uniforms.insert( glHandleMapEntry_t( uniformStrings[ u ], uniform ) );
 			}
 
-			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n %s \n\n Fragment \n\n %s \n\n ]\n\n", 
+			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 
 				vertexSrc.str().c_str(), 
 				fragmentSrc.str().c_str() );
@@ -434,22 +484,6 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 	{
 		shaderInfo_t& shader = entry.second;
 
-		/*
-		// HACK: search for a face in our map data with a corresponding lightmap index.
-		// This is a very, very temporary solution.
-		int lightmapIndex = -1;
-		if ( shader.hasLightmap )
-		{
-			for ( int i = 0; i < map->numFaces; ++i )
-			{
-				if ( map->faces[ i ].texture != -1 && strcmp( map->textures[ map->faces[ i ].texture ].name, shader.name ) == 0 )
-				{
-					lightmapIndex = map->faces[ i ].lightmapIndex;
-					break;
-				}
-			}
-		}
-		*/
 		for ( int i = 0; i < shader.stageCount; ++i )
 		{
 			if ( shader.stageBuffer[ i ].isStub )
@@ -457,35 +491,23 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 
 			shader.stageBuffer[ i ].texOffset = i;
 
-			GL_CHECK( glGenTextures( 1, &shader.stageBuffer[ i ].textureObj ) );
-			GL_CHECK( glGenSamplers( 1, &shader.stageBuffer[ i ].samplerObj ) );
-
-			std::string texFileRoot( map->basePath );
-
-			// LoadTextureFromFile already binds the texture for us, so for $lightmap it's actually necessary
-			if ( strcmp( shader.stageBuffer[ i ].mapArg, "$lightmap" ) == 0 || strcmp( shader.stageBuffer[ i ].mapArg, "$whiteimage" ) == 0 )
+			if ( shader.stageBuffer[ i ].mapType == MAP_TYPE_IMAGE )
 			{
-				shader.stageBuffer[ i ].mapType = MAP_TYPE_LIGHT_MAP;
+				GL_CHECK( glGenTextures( 1, &shader.stageBuffer[ i ].textureObj ) );
+				GL_CHECK( glGenSamplers( 1, &shader.stageBuffer[ i ].samplerObj ) );
 
-				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_WRAP_S, GL_REPEAT ) );  
-				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_WRAP_T, GL_REPEAT ) ); 
-				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-				GL_CHECK( glSamplerParameteri( shader.stageBuffer[ i ].samplerObj, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
-			}
-			else
-			{
-				shader.stageBuffer[ i ].mapType = MAP_TYPE_IMAGE;
+				std::string texFileRoot( map->basePath );
 
 				texFileRoot.append( shader.stageBuffer[ i ].mapArg );
 
-				assert( LoadTextureFromFile( 
-						texFileRoot.c_str(), 
-						shader.stageBuffer[ i ].textureObj, 
-						shader.stageBuffer[ i ].samplerObj, 
-						loadFlags,
-						shader.stageBuffer[ i ].mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT 
-					)
-				);
+				bool success = LoadTextureFromFile( 
+					texFileRoot.c_str(), 
+					shader.stageBuffer[ i ].textureObj, 
+					shader.stageBuffer[ i ].samplerObj, 
+					loadFlags, 
+					shader.stageBuffer[ i ].mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT );
+
+				assert( success );
 			}
 		}
 	}

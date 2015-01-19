@@ -102,12 +102,16 @@ Load static, independent data which need not be re-initialized if multiple maps 
 void BSPRenderer::Prep( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glEnable( GL_BLEND ) );
 	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
-    GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
+
+    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glBlendEquationSeparate( GL_FUNC_ADD, GL_FUNC_ADD ) );
+	
 	GL_CHECK( glPointSize( 20.0f ) );
 	GL_CHECK( glPolygonOffset( 5.0f, 1.0f ) );
+
+	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
 
     GL_CHECK( glGenVertexArrays( 1, &vao ) );
     GL_CHECK( glGenBuffers( 1, &vbo ) );
@@ -277,13 +281,13 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
 
 void BSPRenderer::DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid )
 {
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-    GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragTexSampler" ], 0 ) );
-
 	const bspFace_t* face = map->data.faces + faceIndex;
 
 	if ( map->glTextures[ face->texture ] != 0 )
 	{
+		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragTexSampler" ], 0 ) );
+
 		GL_CHECK( glBindSampler( 0, map->glSamplers[ face->texture ] ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
 		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
@@ -312,6 +316,9 @@ void BSPRenderer::DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB&
 		DrawFaceVerts( faceIndex, 0 );
 
 	GL_CHECK( glUseProgram( 0 ) );
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	GL_CHECK( glBindSampler( 0, 0 ) );
 	GL_CHECK( glBindSampler( 1, 0 ) );
@@ -321,22 +328,16 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 {
 	const bspFace_t* face = map->data.faces + faceIndex;
 
-	// For testing
-	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
-		SetPolygonOffsetState( true, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
-
-	bool useEffectShader = ( face->texture != -1 && map->effectShaders.count( map->data.textures[ face->texture ].name ) ) 
-		|| ( face->effect != -1 && map->effectShaders.count( map->data.effectShaders[ face->effect ].name ) );
-
-	GL_CHECK( glEnable( GL_BLEND ) );
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
 	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-
 	DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
 
 	// We use textures and effect names as keys into our effectShader map
+	bool useEffectShader = ( face->texture != -1 && map->effectShaders.count( map->data.textures[ face->texture ].name ) ) 
+		|| ( face->effect != -1 && map->effectShaders.count( map->data.effectShaders[ face->effect ].name ) );
+
 	if ( ( renderFlags & RENDER_BSP_EFFECT ) && useEffectShader )
 	{
 		const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
@@ -350,39 +351,39 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			if ( shader.stageBuffer[ i ].isStub )
 				continue;
 
-			GL_CHECK( glActiveTexture( GL_TEXTURE0 + shader.stageBuffer[ i ].texOffset ) );
+			GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 
 			if ( shader.stageBuffer[ i ].mapType == MAP_TYPE_LIGHT_MAP )
 			{
 				MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 1 ] ) );
 				GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
+				GL_CHECK( glBindSampler( 0, map->glLightmapSampler ) );
 			}
 			else
 			{
 				MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
 				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
+				GL_CHECK( glBindSampler( 0, shader.stageBuffer[ i ].samplerObj ) );
 			}
 
 			GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
 			GL_CHECK( glDepthFunc( shader.stageBuffer[ i ].depthFunc ) );
 
-			GL_CHECK( glBindSampler( shader.stageBuffer[ i ].texOffset, shader.stageBuffer[ i ].samplerObj ) );
-
 			GL_CHECK( glProgramUniformMatrix4fv( 
 				shader.stageBuffer[ i ].programID, 
-				glGetUniformLocation( shader.stageBuffer[ i ].programID, "modelToView" ), 
+				shader.stageBuffer[ i ].uniforms.at( "modelToView" ), 
 				1, 
 				GL_FALSE, 
 				glm::value_ptr( pass.view.transform ) ) );
 
 			GL_CHECK( glProgramUniformMatrix4fv( 
 				shader.stageBuffer[ i ].programID, 
-				glGetUniformLocation( shader.stageBuffer[ i ].programID, "viewToClip" ), 
+				shader.stageBuffer[ i ].uniforms.at( "viewToClip" ), 
 				1, 
 				GL_FALSE, 
 				glm::value_ptr( pass.view.clipTransform ) ) );
 				
-			GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, glGetUniformLocation( shader.stageBuffer[ i ].programID, "sampler0" ), shader.stageBuffer[ i ].texOffset ) );
+			GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, glGetUniformLocation( shader.stageBuffer[ i ].programID, "sampler0" ), 0 ) );
 			GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
 
 			DrawFaceVerts( faceIndex, subdivLevel );
@@ -395,10 +396,11 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		GL_CHECK( glBindSampler( 0, 0 ) );
 		GL_CHECK( glUseProgram( 0 ) );
 	}
-	GL_CHECK( glDisable( GL_BLEND ) );
 
-	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
-		SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
+	//GL_CHECK( glDisable( GL_BLEND ) );
+
+	//if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
+		//SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
 	// Debug information
 	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
@@ -431,6 +433,8 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			hasLightmap = shader.hasLightmap;
 		}
 
+		GL_CHECK( glPointSize( 10.0f ) );
+
 		// Draw lightmap origin
 		glBegin( GL_POINTS );
 		if ( hasLightmap )
@@ -439,7 +443,19 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			glColor3f( 0.0f, 1.0f, 0.0f );
 		glVertex3f( face->lightmapOrigin.x, face->lightmapOrigin.y, face->lightmapOrigin.z );
 		glEnd();
-		
+
+		if ( useEffectShader )
+		{
+			GL_CHECK( glPointSize( 5.0f ) );
+			glBegin( GL_POINTS );
+			glColor3f( 1.0f, 1.0f, 1.0f );
+			for ( uint32_t i = 0; i < map->glFaces[ faceIndex ].indices.size(); ++i )
+			{
+				const vec3f_t& pos = map->data.vertexes[ map->glFaces[ faceIndex ].indices[ i ] ].position;
+				glVertex3f( pos.x, pos.y, pos.z );
+			}
+			glEnd();
+		}
 		GL_CHECK( glLoadIdentity() );
 	}
 
