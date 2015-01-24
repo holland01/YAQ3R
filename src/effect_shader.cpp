@@ -401,8 +401,10 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 					  << "layout( location = 0 ) in vec3 position;\n"
 					  << "layout( location = 1 ) in vec4 color;\n"
 					  << "layout( location = 2 ) in vec2 tex0;\n"
-					  << "uniform mat4 modelToView;\n"
-					  << "uniform mat4 viewToClip;\n";
+					  << "layout( std140 ) uniform Transforms {\n"
+					  << "\tmat4 viewToClip;\n"
+					  << "\tmat4 modelToView;\n"
+					  << "};\n";
 			
 			vertexSrc << "out vec2 frag_Tex;\n"
 						 "out vec4 frag_Color;\n";
@@ -467,6 +469,10 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				GL_CHECK( uniform = glGetUniformLocation( shader.stageBuffer[ j ].programID, uniformStrings[ u ].c_str() ) );
 				shader.stageBuffer[ j ].uniforms.insert( glHandleMapEntry_t( uniformStrings[ u ], uniform ) );
 			}
+
+			GLuint uniformBlockLoc;
+			GL_CHECK( uniformBlockLoc = glGetUniformBlockIndex( shader.stageBuffer[ j ].programID, "Transforms" ) );
+			GL_CHECK( glUniformBlockBinding( shader.stageBuffer[ j ].programID, uniformBlockLoc, 0 ) );
 
 			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 

@@ -129,10 +129,7 @@ void BSPRenderer::Prep( void )
 		"fragWriteMode",
 		"fragTexSampler",
 		"fragLightmapSampler",
-		"fragAmbient",
-		
-		"modelToCamera",
-		"cameraToClip"
+		"fragAmbient"
 	};
 
 	for ( size_t i = 0; i < uniforms.size(); ++i )
@@ -143,11 +140,25 @@ void BSPRenderer::Prep( void )
     GL_CHECK( glBindAttribLocation( bspProgram, 2, "tex0" ) );
 	GL_CHECK( glBindAttribLocation( bspProgram, 3, "lightmap" ) );
 
-	// Load projection transform
-    GL_CHECK( glUseProgram( bspProgram ) );
-    GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+	GL_CHECK( transformBlockIndex = glGetUniformBlockIndex( bspProgram, "Transforms" ) );
 
-    glUseProgram( bspProgram );
+	transformBlockSize = sizeof( glm::mat4 ) * 2;
+	transformBlockBindingIndex = 0;
+
+	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
+	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
+	GL_CHECK( glBufferData( GL_UNIFORM_BUFFER, transformBlockSize, NULL, GL_STREAM_DRAW ) );
+	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().clipTransform ) ) );
+	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
+
+	GL_CHECK( glUniformBlockBinding( bspProgram, transformBlockIndex, transformBlockBindingIndex ) );
+	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, transformBlockBindingIndex, transformBlockObj, 0, transformBlockSize ) );
+
+	// Load projection transform
+    //GL_CHECK( glUseProgram( bspProgram ) );
+    //GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+
+	
 }
 
 /*
@@ -190,7 +201,10 @@ BSPRenderer::DrawWorld
 void BSPRenderer::Render( uint32_t renderFlags )
 { 
 	double startTime = glfwGetTime();
-	GL_CHECK( glProgramUniformMatrix4fv( bspProgram, bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
+	//GL_CHECK( glProgramUniformMatrix4fv( bspProgram, bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
+
+	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
+	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().transform ) ) );
 
     RenderPass pass( map, camera->ViewData() );
 
@@ -369,20 +383,6 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
 			GL_CHECK( glDepthFunc( shader.stageBuffer[ i ].depthFunc ) );
 
-			GL_CHECK( glProgramUniformMatrix4fv( 
-				shader.stageBuffer[ i ].programID, 
-				shader.stageBuffer[ i ].uniforms.at( "modelToView" ), 
-				1, 
-				GL_FALSE, 
-				glm::value_ptr( pass.view.transform ) ) );
-
-			GL_CHECK( glProgramUniformMatrix4fv( 
-				shader.stageBuffer[ i ].programID, 
-				shader.stageBuffer[ i ].uniforms.at( "viewToClip" ), 
-				1, 
-				GL_FALSE, 
-				glm::value_ptr( pass.view.clipTransform ) ) );
-				
 			GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, glGetUniformLocation( shader.stageBuffer[ i ].programID, "sampler0" ), 0 ) );
 			GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
 

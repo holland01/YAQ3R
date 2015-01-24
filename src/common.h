@@ -1,18 +1,5 @@
 #pragma once
 
-/*
-==========================
-
-Author: Holland Schutte
-License: WTFPL
-
-    common.h
-
-Global include file, containing often-used or down-right-necessary files for each module.
-
-==========================
-*/
-
 #include <Windows.h> // This needs to be before GLFW includes to prevent APIENTRY macro redef error
 
 #if defined( _WIN32 )
@@ -28,17 +15,17 @@ Global include file, containing often-used or down-right-necessary files for eac
 #	include <stdint.h>
 #endif
 
-#define INLINE inline
+
 
 typedef unsigned int uint;
 typedef unsigned char byte;
 
+#define INLINE inline
 #define TRUE 1
 #define FALSE 0
-
 #define _DEBUG_USE_GL_GET_ERR
 
-// From: http://stackoverflow.com/a/4415646/763053 (originally named "COUNT_OF")
+// From: http://stackoverflow.com/a/4415646/763053
 #define UNSIGNED_LEN(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #define SIGNED_LEN(x) ((int)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))
 

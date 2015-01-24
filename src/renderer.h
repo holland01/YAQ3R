@@ -63,13 +63,16 @@ class BSPRenderer
 public:
 
     InputCamera*	camera;
-
     Frustum*		frustum;
-
 	BezPatch		patchRenderer;
 
 	int				mapDimsLength;
 	int				lodThreshold;
+
+	GLuint			transformBlockIndex;
+	GLuint			transformBlockObj;
+	size_t			transformBlockSize;
+	GLuint			transformBlockBindingIndex;
 
     BSPRenderer( void );
     ~BSPRenderer( void );

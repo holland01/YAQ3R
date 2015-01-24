@@ -15,7 +15,8 @@ Feature:
 
 Impl:
 - Shaders:
-	* The chunk of texture loading code used is good and should be saved.
+	* The chunk of texture loading code used is good and should be saved. This is actually necessary, since effect shaders don't necessarily specify paths to all of the texture 
+    assets listed in the folders.
 	* Railgun_Arena.shader is your friend; use it as a basis to go off of before moving onto more complex layouts.
 	* Test the map with the first draft of the parser when it's done. Think about the passes; each shader "name" (i.e., entry)
 	  has a multi-tier layer of passes which begin after the globals are specified in its own entry: those are the passes to focus
@@ -41,10 +42,15 @@ Impl:
   NOTES:
     - Eventually, all terms should default to lower case when read by the parser, to eliminate issues with case sensitivity
 
-    - Integrate Uniform Buffer Objects for matrix transformations
-    - Look for other ways of optimizing the shaders; example, "conservative depth", for fragment discards
+    //- Integrate Uniform Buffer Objects for matrix transformations
+    - Look for other ways of optimizing the shaders; example, "conservative depth", for fragment discards.
+    - Separate the OpenGL functionality from the BSP Renderer; 
     - Also, some resources for railgun_arena are missing. See if there's a workaround somehow around this.
-
+    - Let the BSPRenderer class serve as more of a "client"; the OpenGL functionality should be its own RenderServer or something like that.
+      * example: in effect_shader, the OpenGL functionality which is used to create the shader programs should be centralized, so that UBOs and various
+        other global state intrinsics can be set and taken care of in one area for every program. Right now would be a good time to do this, given
+        that the project isn't too far along towards completion, yet the understanding of what involved is far more solidified. Above all, KISS, but easy
+        to extend (e.g., for shadowmapping and texture coordinate transformations later)
     - Let Railgun_Arena.shader be the main focus for now.
     - TODO list ( in order of importance ):
       - lightmaps
