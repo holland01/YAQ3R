@@ -73,7 +73,6 @@ public:
 	GLuint			transformBlockIndex;
 	GLuint			transformBlockObj;
 	size_t			transformBlockSize;
-	GLuint			transformBlockBindingIndex;
 
     BSPRenderer( void );
     ~BSPRenderer( void );

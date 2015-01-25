@@ -59,7 +59,10 @@ BSPRenderer::BSPRenderer( void )
       vbo( 0 ),
       deltaTime( 0 ),
       currLeaf( NULL ),
-	  mapDimsLength( 0 )
+	  mapDimsLength( 0 ),
+	  transformBlockIndex( 0 ),
+	  transformBlockObj( 0 ),
+	  transformBlockSize( sizeof( glm::mat4 ) * 2 )
 {
 	viewParams_t view;
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
@@ -140,25 +143,15 @@ void BSPRenderer::Prep( void )
     GL_CHECK( glBindAttribLocation( bspProgram, 2, "tex0" ) );
 	GL_CHECK( glBindAttribLocation( bspProgram, 3, "lightmap" ) );
 
-	GL_CHECK( transformBlockIndex = glGetUniformBlockIndex( bspProgram, "Transforms" ) );
-
-	transformBlockSize = sizeof( glm::mat4 ) * 2;
-	transformBlockBindingIndex = 0;
-
 	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferData( GL_UNIFORM_BUFFER, transformBlockSize, NULL, GL_STREAM_DRAW ) );
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().clipTransform ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
 
-	GL_CHECK( glUniformBlockBinding( bspProgram, transformBlockIndex, transformBlockBindingIndex ) );
-	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, transformBlockBindingIndex, transformBlockObj, 0, transformBlockSize ) );
+	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, UBO_TRANSFORMS_BLOCK_BINDING, transformBlockObj, 0, transformBlockSize ) );
 
-	// Load projection transform
-    //GL_CHECK( glUseProgram( bspProgram ) );
-    //GL_CHECK( glUniformMatrix4fv( bspProgramUniforms[ "cameraToClip" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
-
-	
+	MapProgramToUBO( bspProgram, "Transforms" );
 }
 
 /*
@@ -211,6 +204,8 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
     DrawNode( 0, pass, true, renderFlags );
 	frameTime = glfwGetTime() - startTime;
+
+	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
 }
 
 /*
