@@ -12,7 +12,6 @@ class BezPatch
 {
 public:
     GLuint                      vbo;
-	GLuint						vao;
 
     std::vector< bspVertex_t >  vertices;
 

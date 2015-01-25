@@ -1,8 +1,7 @@
 #pragma once
 
-#include <Windows.h> // This needs to be before GLFW includes to prevent APIENTRY macro redef error
-
 #if defined( _WIN32 )
+#	include <Windows.h> // This needs to be before GLFW includes to prevent APIENTRY macro redef error
 #	define GL_PROC APIENTRY
 #elif defined( __GNUC__ ) && defined( __amd64__ )
 #	define GL_PROC // leave blank: calling convention should be taken care of on this architecture
@@ -14,23 +13,6 @@
 #else
 #	include <stdint.h>
 #endif
-
-
-
-typedef unsigned int uint;
-typedef unsigned char byte;
-
-#define INLINE inline
-#define TRUE 1
-#define FALSE 0
-#define _DEBUG_USE_GL_GET_ERR
-
-// From: http://stackoverflow.com/a/4415646/763053
-#define UNSIGNED_LEN(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
-#define SIGNED_LEN(x) ((int)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))
-
-#define Mem_Alloc( s ) ( malloc( ( s ) ) )
-#define Mem_Free( ptr ) ( free( ( ptr ) ) )
 
 #include "global.h"
 
@@ -62,7 +44,30 @@ typedef unsigned char byte;
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define INLINE inline
+
 #include "vec.h"
+
+typedef unsigned int uint;
+typedef unsigned char byte;
+
+using glHandleMap_t = std::map< std::string, GLint >;
+using glHandleMapEntry_t = std::pair< std::string, GLint >;
+
+// Windows.h defines these for us already
+#ifndef _WIN32
+#	define TRUE 1 
+#	define FALSE 0
+#endif
+
+#define _DEBUG_USE_GL_GET_ERR
+
+// From: http://stackoverflow.com/a/4415646/763053
+#define UNSIGNED_LEN( x ) ( ( sizeof( x ) / sizeof( 0[x] ) ) / ( ( size_t )( !( sizeof( x ) % sizeof( 0[x] ) ) ) ) )
+#define SIGNED_LEN( x ) ( ( int ) ( sizeof( x ) / sizeof( 0[x] ) ) / ( ( int )( !( sizeof( x ) % sizeof( 0[x] ) ) ) ) )
+
+#define Mem_Alloc( s ) ( malloc( ( s ) ) )
+#define Mem_Free( ptr ) ( free( ( ptr ) ) )
 
 INLINE bool FileGetExt( std::string& outExt, const std::string& filename  )
 {

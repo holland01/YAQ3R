@@ -74,13 +74,11 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
-using glHandleMap_t = std::map< std::string, GLint >;
-using glHandleMapEntry_t = std::pair< std::string, GLint >;
-
 struct shaderStage_t
 {
 	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
 	uint8_t isDepthPass;
+	uint8_t hasTexMod;
 
 	GLuint programID;
 	GLuint textureObj;
@@ -101,6 +99,9 @@ struct shaderStage_t
 	char mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	
 	glHandleMap_t uniforms;
+
+	std::vector< glm::mat2 > texTransformList;
+	glm::mat2 texTransform;
 
 	shaderStage_t( void );
 };

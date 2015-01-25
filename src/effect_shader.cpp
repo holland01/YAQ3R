@@ -6,6 +6,7 @@
 #include <sstream>
 
 shaderStage_t::shaderStage_t( void )
+	: texTransform( 1.0f )
 {
 	isStub = FALSE;
 	isDepthPass = FALSE;
@@ -142,6 +143,13 @@ static const char* ReadToken( char* out, const char* buffer )
 	return buffer;
 }
 
+static float ReadFloat( const char*& buffer )
+{
+	char f[ 12 ] = {};
+	buffer = ReadToken( f, buffer );
+	return ( float ) strtod( f, NULL );
+}
+
 // Returns the char count to increment the filebuffer by
 static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const int level )
 {
@@ -174,9 +182,6 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 	if ( level == 0 )
 	{
 		// Find our entity string
-		//char entCandidate[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-		//memset( entCandidate, 0, sizeof( entCandidate ) );
-
 		buffer = ReadToken( outInfo->name, buffer );		
 		buffer = ParseEntry( outInfo, buffer, level );
 	}
@@ -298,6 +303,21 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				else if ( strcmp( value, "identityLighting" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
 			}
+			else if ( strcmp( token, "tcMod" ) == 0 )
+			{
+				char type[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+				buffer = ReadToken( type, buffer );
+
+				outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
+
+				if ( strcmp( type, "scale" ) == 0 )
+				{
+					float s = ReadFloat( buffer );
+					float t = ReadFloat( buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].texTransformList.push_back( glm::mat2( s, s, t, t ) );
+				}
+			}
 			else if ( strcmp( token, "depthFunc" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
@@ -348,8 +368,19 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 		pChar = ParseEntry( &entry, pChar, 0 );
 
 		for ( int i = 0; i < entry.stageCount; ++i )
+		{
 			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
-
+			if ( entry.stageBuffer[ i ].isStub )
+				continue;
+			
+			// We right multiply the transforms, since the order each transform is specified
+			// in the effect shader is the order it needs to be transformed in
+			const auto end = entry.stageBuffer[ i ].texTransformList.rend(); 
+			for ( auto j = entry.stageBuffer[ i ].texTransformList.rbegin(); j != end; ++j )
+			{
+				entry.stageBuffer[ i ].texTransform *= *j;
+			}
+		}
 		entries.insert( shaderMapEntry_t( entry.name, entry ) );
 	}
 
@@ -358,26 +389,38 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 
 static void GenShaderPrograms( shaderMap_t& effectShaders )
 {
-	// Base variables are required for all programs
-
+	// Print the generated shaders to a text file
 	FILE* f = fopen( "log/shader_gen.txt", "w" );
 
-	auto LWriteFragBody = []( std::stringstream& fragcmp, bool doGammaCorrect, const char* discardPredicate ) 
+	auto LWriteFragBody = []( std::vector< std::string >& fragmentSrc, bool doGammaCorrect, const char* discardPredicate ) 
 	{
-		fragcmp << "\tvec4 t = texture( sampler0, frag_Tex );\n";
+		fragmentSrc.push_back( "\tvec4 t = texture( sampler0, frag_Tex );" );
 		
 		if ( discardPredicate )
 		{
-			fragcmp << "\tif ( " << discardPredicate << " )\n"
-					<< "\t{\n"
-					<< "\t\tdiscard;\n"
-					<< "\t}\n";
+			fragmentSrc.push_back( "\tif ( " + std::string( discardPredicate ) + " )" );
+			fragmentSrc.push_back( "\t{" );
+			fragmentSrc.push_back( "\t\tdiscard;" );
+			fragmentSrc.push_back( "\t}" );
 		}
 
 		if ( doGammaCorrect )
-			fragcmp << "\tfragment = pow( t * frag_Color.rgba, gamma );\n";
+			fragmentSrc.push_back( "\tfragment = pow( t * frag_Color.rgba, gamma );" );
 		else
-			fragcmp << "\tfragment = t * frag_Color.rgba;\n";
+			fragmentSrc.push_back( "\tfragment = t * frag_Color.rgba;" );
+	};
+
+	auto LJoinLines = []( const std::vector< std::string >& lines ) -> std::string
+	{
+		std::stringstream shaderSrc;
+
+		for ( const std::string& line: lines )
+			shaderSrc << line << "\n";
+
+		// Append the end bracket for the main function
+		shaderSrc << '}';
+
+		return shaderSrc.str();
 	};
 
 	// Convert each effect stage to its GLSL equivalent
@@ -387,97 +430,106 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		fprintf( f, "------------------------------------------\n%s\n", shader.name );
 
 		for ( int j = 0; j < shader.stageCount; ++j )
-		{
-			// These are the bodies of the main function in the programs
-			std::stringstream fragcmp, vertcmp;
-				
-			// Entire program source strings
-			std::stringstream vertexSrc, fragmentSrc;
-
+		{	
+			// Uniform variable names
 			std::vector< std::string > uniformStrings = { "modelToView", "viewToClip", "sampler0" };
 
 			// Load vertex header;
-			vertexSrc << "#version 420\n"
-					  << "layout( location = 0 ) in vec3 position;\n"
-					  << "layout( location = 1 ) in vec4 color;\n"
-					  << "layout( location = 2 ) in vec2 tex0;\n"
-					  << "layout( std140 ) uniform Transforms {\n"
-					  << "\tmat4 viewToClip;\n"
-					  << "\tmat4 modelToView;\n"
-					  << "};\n";
-			
-			vertexSrc << "out vec2 frag_Tex;\n"
-						 "out vec4 frag_Color;\n";
+			std::vector< std::string > vertexSrc = 
+			{	
+				"#version 420", 
+				"layout( location = 0 ) in vec3 position;", 
+				"layout( location = 1 ) in vec4 color;", 
+				"layout( location = 2 ) in vec2 tex0;",
+				"layout( std140 ) uniform Transforms {",
+				"\tmat4 viewToClip;",
+				"\tmat4 modelToView;",
+				"};",
+				"out vec2 frag_Tex;",
+				"out vec4 frag_Color;",
+				"void main(void) {",
+				"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );"
+			};
 
-			// Load vertex shader body
-			vertcmp <<	"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );\n"
-						"\tfrag_Tex = tex0;\n";
+			if ( shader.stageBuffer[ j ].hasTexMod )
+			{
+				vertexSrc.insert( vertexSrc.begin() + 4, "uniform mat2 texTransform;" );
+				vertexSrc.push_back( "\tfrag_Tex = texTransform * tex0;" );
+				uniformStrings.push_back( "texTransform" );
+			}
+			else
+			{
+				vertexSrc.push_back( "\tfrag_Tex = tex0;" );
+			}
 
 			if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY || shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY_LIGHTING )
-				vertcmp << "\tfrag_Color = vec4( 1.0 );\n";
+				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 			else
-				vertcmp << "\tfrag_Color = color;\n";
+				vertexSrc.push_back( "\tfrag_Color = color;" );
 
 			// Load fragment header;
 			// Unspecified alphaGen implies a default 1.0 alpha channel
-			fragmentSrc << "#version 420\n"
-						<< "in vec2 frag_Tex;\n" 
-						<< "in vec4 frag_Color;\n"
-						<< "const vec4 gamma = vec4( 1.0 / 2.2 );\n"
-						<< "uniform sampler2D sampler0;\n"
-						<< "out vec4 fragment;\n";
+			std::vector< std::string > fragmentSrc =
+			{
+				"#version 420",
+				"in vec2 frag_Tex;",
+				"in vec4 frag_Color;",
+				"const vec4 gamma = vec4( 1.0 / 2.2 );",
+				"uniform sampler2D sampler0;",
+				"out vec4 fragment;",
+				"void main(void) {"
+			};
 
 			if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
-				fragmentSrc << "const float alphaGen = 1.0;\n";
+				fragmentSrc.push_back( "const float alphaGen = 1.0;" );
 			else
-				fragmentSrc << "const float alphaGen = " << shader.stageBuffer[ j ].alphaGen << ";\n";
+				fragmentSrc.push_back( "const float alphaGen = " + std::to_string( shader.stageBuffer[ j ].alphaGen ) + std::to_string( ';' ) );
 
-			// And fragment shader body...
-			//const std::string& rgbCmp = "texture( sampler0, frag_Tex ).rgb * frag_Color.rgb";
-			//fragcmp << "fragment = vec4( " << rgbCmp << ", alphaGen );\n";
+			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
+			// given the potential for fragment discard if an alpha function is defined
+			if ( shader.stageBuffer[ j ].alphaFunc != ALPHA_FUNC_UNDEFINED )
+			{
+				// We enable extensions directly below the version decl to aid in readability
+				fragmentSrc.insert( fragmentSrc.begin() + 1, "#extension GL_ARB_conservative_depth: enable" );
+				fragmentSrc.push_back( "layout( depth_unchanged ) float gl_FragDepth;" );
+			}
 
 			switch ( shader.stageBuffer[ j ].alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-				LWriteFragBody( fragcmp, true, NULL );
+				LWriteFragBody( fragmentSrc, true, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-				LWriteFragBody( fragcmp, true, "t.a < 0.5" );
+				LWriteFragBody( fragmentSrc, true, "t.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-				LWriteFragBody( fragcmp, true, "t.a == 0" );
+				LWriteFragBody( fragmentSrc, true, "t.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-				LWriteFragBody( fragcmp, true, "t.a >= 0.5" );
+				LWriteFragBody( fragmentSrc, true, "t.a >= 0.5" );
 				break;
 			}
 
-			vertexSrc << "void main() {\n" << vertcmp.str() << "}\n";
-			fragmentSrc << "void main() {\n" << fragcmp.str() << "}\n";
+			const std::string& vertexString = LJoinLines( vertexSrc );
+			const std::string& fragmentString = LJoinLines( fragmentSrc );
 
 			GLuint shaders[] = 
 			{
-				CompileShaderSource( vertexSrc.str().c_str(), GL_VERTEX_SHADER ),
-				CompileShaderSource( fragmentSrc.str().c_str(), GL_FRAGMENT_SHADER )
+				CompileShaderSource( vertexString.c_str(), GL_VERTEX_SHADER ),
+				CompileShaderSource( fragmentString.c_str(), GL_FRAGMENT_SHADER )
 			};
 
 			shader.stageBuffer[ j ].programID = LinkProgram( shaders, 2 );
 
-			for ( uint32_t u = 0; u < uniformStrings.size(); ++u )
-			{
-				GLint uniform;
-				GL_CHECK( uniform = glGetUniformLocation( shader.stageBuffer[ j ].programID, uniformStrings[ u ].c_str() ) );
-				shader.stageBuffer[ j ].uniforms.insert( glHandleMapEntry_t( uniformStrings[ u ], uniform ) );
-			}
+			MapUniforms( shader.stageBuffer[ j ].uniforms, shader.stageBuffer[ j ].programID, uniformStrings );
 
-			GLuint uniformBlockLoc;
-			GL_CHECK( uniformBlockLoc = glGetUniformBlockIndex( shader.stageBuffer[ j ].programID, "Transforms" ) );
-			GL_CHECK( glUniformBlockBinding( shader.stageBuffer[ j ].programID, uniformBlockLoc, 0 ) );
+			// Load UBO for view/clip transformations
+			MapProgramToUBO( shader.stageBuffer[ j ].programID, "Transforms" );
 
 			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 
-				vertexSrc.str().c_str(), 
-				fragmentSrc.str().c_str() );
+				vertexString.c_str(), 
+				fragmentString.c_str() );
 		}
 	}
 

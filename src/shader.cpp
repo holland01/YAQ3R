@@ -107,7 +107,7 @@ GLuint CompileShaderSource( const char* src, GLenum type )
 
             glGetShaderInfoLog( shaderId, logLen, NULL, infoLog );
 
-            MLOG_ERROR( "SHADER COMPILE MLOG_ERROR: %s", infoLog );
+            MLOG_ERROR( "SHADER COMPILE MLOG_ERROR [ %s ]: %s", ( type == GL_VERTEX_SHADER ) ? "vertex" : "fragment", infoLog );
         }
     }
     else

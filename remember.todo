@@ -44,20 +44,13 @@ Impl:
 
     //- Integrate Uniform Buffer Objects for matrix transformations
     - Look for other ways of optimizing the shaders; example, "conservative depth", for fragment discards.
-    - Separate the OpenGL functionality from the BSP Renderer; 
     - Also, some resources for railgun_arena are missing. See if there's a workaround somehow around this.
-    - Let the BSPRenderer class serve as more of a "client"; the OpenGL functionality should be its own RenderServer or something like that.
-      * example: in effect_shader, the OpenGL functionality which is used to create the shader programs should be centralized, so that UBOs and various
-        other global state intrinsics can be set and taken care of in one area for every program. Right now would be a good time to do this, given
-        that the project isn't too far along towards completion, yet the understanding of what involved is far more solidified. Above all, KISS, but easy
-        to extend (e.g., for shadowmapping and texture coordinate transformations later)
     - Let Railgun_Arena.shader be the main focus for now.
     - TODO list ( in order of importance ):
-      - lightmaps
-        * Issue with lightmaps appears to more or less be a blending issue. The stage's source and dest blend values
-          fallback to alpha blending by default if there is a lightmap...however, this hasn't fixed it. Interesting.
-      - rgbGen
-      - tcMod
+      - lightmaps; test Railgun_Arena with other BSP renderer and compare to make sure this is working right
+      - vertexDeform; do this
+      - rgbGen ( need to test with other shaders )
+      - tcMod 
       - depthWrite
 
 Perf:

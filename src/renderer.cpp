@@ -201,7 +201,6 @@ BSPRenderer::DrawWorld
 void BSPRenderer::Render( uint32_t renderFlags )
 { 
 	double startTime = glfwGetTime();
-	//GL_CHECK( glProgramUniformMatrix4fv( bspProgram, bspProgramUniforms[ "modelToCamera" ], 1, GL_FALSE, glm::value_ptr( camera->ViewData().transform ) ) );
 
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().transform ) ) );
@@ -212,8 +211,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
     DrawNode( 0, pass, true, renderFlags );
 	frameTime = glfwGetTime() - startTime;
-
-	//MyPrintf( "Cam Pos", "%s", glm::to_string( pass.view.origin ) );
 }
 
 /*
@@ -380,10 +377,23 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 				GL_CHECK( glBindSampler( 0, shader.stageBuffer[ i ].samplerObj ) );
 			}
 
+			if ( shader.stageBuffer[ i ].hasTexMod )
+			{
+
+				glm::mat2 t( 1.0f );
+				if ( renderFlags & RENDER_BSP_USE_TCMOD )
+					t = shader.stageBuffer[ i ].texTransform;
+				
+				GL_CHECK( glProgramUniformMatrix2fv( 
+						shader.stageBuffer[ i ].programID, 
+						shader.stageBuffer[ i ].uniforms.at( "texTransform" ), 1, GL_FALSE, 
+						glm::value_ptr( t ) ) ); 
+			}
+
 			GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
 			GL_CHECK( glDepthFunc( shader.stageBuffer[ i ].depthFunc ) );
 
-			GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, glGetUniformLocation( shader.stageBuffer[ i ].programID, "sampler0" ), 0 ) );
+			GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, shader.stageBuffer[ i ].uniforms.at( "sampler0" ), 0 ) );
 			GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
 
 			DrawFaceVerts( faceIndex, subdivLevel );
@@ -397,10 +407,8 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		GL_CHECK( glUseProgram( 0 ) );
 	}
 
-	//GL_CHECK( glDisable( GL_BLEND ) );
-
-	//if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
-		//SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
+	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
+		SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
 	// Debug information
 	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
@@ -485,7 +493,7 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 		patchRenderer.Render();
 
 		// Rebind after render since patchRenderer overrides with its own vbo
-		LoadBuffer( vbo );
+		LoadBufferLayout( vbo );
 	}
 	else // Billboards
 	{

@@ -55,7 +55,8 @@ enum
 {
 	RENDER_BSP_LIGHTMAP_INFO = 1 << 0,
 	RENDER_BSP_EFFECT = 1 << 1,
-	RENDER_BSP_ALWAYS_POLYGON_OFFSET = 1 << 2
+	RENDER_BSP_ALWAYS_POLYGON_OFFSET = 1 << 2,
+	RENDER_BSP_USE_TCMOD = 1 << 3
 };
 
 class BSPRenderer
@@ -87,7 +88,7 @@ public:
     void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags );
 	void	DrawFaceVerts( int faceIndex, int subdivLevel );
 
-	float   CalcFps( void ) const { return 60.0f / ( float )frameTime; }
+	float   CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
     void    Update( float dt );
 

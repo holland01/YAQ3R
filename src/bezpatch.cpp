@@ -7,15 +7,12 @@ BezPatch::BezPatch( void )
 	: lastCount( 0 )
 {
 	GL_CHECK( glGenBuffers( 1, &vbo ) ); 
-	//GL_CHECK( glGenVertexArrays( 1, &vao ) );
-
 	memset( controlPoints, 0, sizeof( const bspVertex_t* ) * BEZ_CONTROL_POINT_COUNT );  
 }
 
 BezPatch::~BezPatch( void )
 {
 	GL_CHECK( glDeleteBuffers( 1, &vbo ) );
-	//GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
 }
 
 // From Paul Baker's Octagon project, as referenced in http://graphics.cs.brown.edu/games/quake/quake3.html
@@ -94,16 +91,12 @@ void BezPatch::Tesselate( int level )
 
 void BezPatch::Render( void ) const
 {
-	LoadBuffer( vbo );
+	LoadBufferLayout( vbo );
 
 	if ( lastCount < vertices.size() )
 		GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ], GL_DYNAMIC_DRAW ) );
 	else
 		GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ] ) );
-
-	//LoadVertexLayout();
-
-	//GL_CHECK( glDrawElements( GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, &indices[ 0 ] ) );
 
 	GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &rowIndices[ 0 ], subdivLevel ) );
 

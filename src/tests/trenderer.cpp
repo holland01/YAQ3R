@@ -12,7 +12,6 @@ TRenderer::TRenderer( void )
 	  currentTime( 0.0f ),
       renderer( NULL ),
 	  mapFilepath( railgunArena ),
-	  //mapLoadFlags( Q3LOAD_ALL ),
 	  mapLoadFlags( Q3LOAD_ALL ),
 	  mapRenderFlags( RENDER_BSP_EFFECT )
 {
@@ -31,7 +30,7 @@ void TRenderer::Run( void )
 
 	std::stringstream windowTitle;
 	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
-	windowTitle << gTitle << ": " << glm::min( ( 60.0f / deltaTime ), 1000.0f );
+	windowTitle << gTitle << ": " << glm::min( renderer->CalcFPS(), 1000.0f );
 
 	glfwSetWindowTitle( winPtr, windowTitle.str().c_str() );
 }
@@ -71,6 +70,10 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 		case GLFW_KEY_2:
 			mapLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
 			break;
+
+		case GLFW_KEY_6:
+			mapLoadFlags ^= RENDER_BSP_USE_TCMOD;
+			break;	
 
 		case GLFW_KEY_7:
 			mapRenderFlags ^= RENDER_BSP_ALWAYS_POLYGON_OFFSET;
