@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "bezpatch.h"
+#include "deform.h"
 
 /*
 =====================================================

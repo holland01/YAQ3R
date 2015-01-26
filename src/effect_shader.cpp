@@ -10,6 +10,7 @@ shaderStage_t::shaderStage_t( void )
 {
 	isStub = FALSE;
 	isDepthPass = FALSE;
+	hasTexMod = FALSE;
 
 	programID = 0;
 	textureObj = 0;
@@ -36,11 +37,23 @@ shaderInfo_t::shaderInfo_t( void )
 
 	hasLightmap = FALSE;
 	hasPolygonOffset = FALSE;
+	
+	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;
+	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
+	deformDiv = 0.0f;
+	deformBase = 0.0f;
+	deformAmplitude = 0.0f;
+	deformPhase = 0.0f;
+	deformFrequency = 0.0f;
+	
 	samplerObj = 0;
 	textureObj = 0;
+	
 	surfaceParms = 0;
 	stageCount = 0;
+	
 	surfaceLight = 0.0f;
+	tessSize = 0.0f;
 }
 
 enum tokType_t
@@ -209,7 +222,58 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				outInfo->surfaceParms |= SURFPARM_NO_MARKS;
 			else if ( strcmp( value, "trans" ) == 0 ) 
 				outInfo->surfaceParms |= SURFPARM_TRANS;
+		}
+		else if ( strcmp( token, "tessSize" ) == 0 )
+		{
+			outInfo->tessSize = ReadFloat( buffer );
+		}
+		else if ( strcmp( token, "deformVertexes" ) == 0 )
+		{
+			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+			buffer = ReadToken( value, buffer );
 
+			if ( strcmp( value, "wave" ) == 0 )
+				outInfo->deformCmd = VERTEXDEFORM_CMD_WAVE;
+			else if ( strcmp( value, "normal" ) == 0 )
+				outInfo->deformCmd = VERTEXDEFORM_CMD_NORMAL;
+			else if ( strcmp( value, "bulge" ) == 0 )
+				outInfo->deformCmd = VERTEXDEFORM_CMD_BULGE;
+
+			// Bulge and normal/wave signatures differ significantly, so we separate paths here
+			switch ( outInfo->deformCmd )
+			{
+			case VERTEXDEFORM_CMD_NORMAL:
+			case VERTEXDEFORM_CMD_WAVE:
+				outInfo->deformDiv = ReadFloat( buffer ); 
+			
+				memset( value, 0, sizeof( value ) );
+				buffer = ReadToken( value, buffer );
+
+				if ( strcmp( value, "triangle" ) == 0 )
+					outInfo->deformFn = VERTEXDEFORM_FUNC_TRIANGLE;
+				else if ( strcmp( value, "sin" ) == 0 )
+					outInfo->deformFn = VERTEXDEFORM_FUNC_SIN;
+				else if ( strcmp( value, "square" ) == 0 )
+					outInfo->deformFn = VERTEXDEFORM_FUNC_SQUARE;
+				else if ( strcmp( value, "sawtooth" ) == 0 )
+					outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
+				else if ( strcmp( value, "inversesawtooth" ) == 0 )
+					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
+
+				outInfo->deformBase = ReadFloat( buffer );
+				outInfo->deformAmplitude = ReadFloat( buffer );
+				
+				// Normal command has no phase translation
+				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
+					outInfo->deformPhase = ReadFloat( buffer );
+				
+				outInfo->deformFrequency = ReadFloat( buffer );
+
+				break;
+			case VERTEXDEFORM_CMD_BULGE:
+				MLOG_ERROR( "VERTEXDEFORM_CMD_BULGE is not supported yet" );
+				break;
+			}
 		}
 		else if ( strcmp( token, "q3map_surfacelight" ) == 0 )
 		{
@@ -367,14 +431,16 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 
 		pChar = ParseEntry( &entry, pChar, 0 );
 
+		// Perform post processing.
+		// We check for stubs (i.e., stages with features not taken into consideration yet),
+		// and right multiply any texture transforms, since the order each transform is specified
+		// in the effect shader is the order it needs to be transformed in ( and because we're using OpenGL ).
 		for ( int i = 0; i < entry.stageCount; ++i )
 		{
 			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
 			if ( entry.stageBuffer[ i ].isStub )
 				continue;
 			
-			// We right multiply the transforms, since the order each transform is specified
-			// in the effect shader is the order it needs to be transformed in
 			const auto end = entry.stageBuffer[ i ].texTransformList.rend(); 
 			for ( auto j = entry.stageBuffer[ i ].texTransformList.rbegin(); j != end; ++j )
 			{

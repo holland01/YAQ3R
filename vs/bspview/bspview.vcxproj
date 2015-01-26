@@ -97,7 +97,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\aabb.cpp" />
-    <ClCompile Include="..\..\src\bezpatch.cpp" />
+    <ClCompile Include="..\..\src\deform.cpp" />
     <ClCompile Include="..\..\src\effect_shader.cpp" />
     <ClCompile Include="..\..\src\eu_ang.cpp" />
     <None Include="..\..\src\extern\stb_image.c" />
@@ -118,7 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\aabb.h" />
-    <ClInclude Include="..\..\src\bezpatch.h" />
+    <ClInclude Include="..\..\src\deform.h" />
     <ClInclude Include="..\..\src\common.h" />
     <ClInclude Include="..\..\src\effect_shader.h" />
     <ClInclude Include="..\..\src\eu_ang.h" />

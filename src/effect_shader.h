@@ -38,6 +38,24 @@ enum surfaceParms_t
 	SURFPARM_WATER				= 1 << 24
 };	
 
+enum vertexDeformCmd_t
+{
+	VERTEXDEFORM_CMD_UNDEFINED = 0,
+	VERTEXDEFORM_CMD_WAVE,
+	VERTEXDEFORM_CMD_NORMAL,
+	VERTEXDEFORM_CMD_BULGE
+};
+
+enum vertexDeformFunc_t
+{
+	VERTEXDEFORM_FUNC_UNDEFINED = 0,
+	VERTEXDEFORM_FUNC_TRIANGLE,
+	VERTEXDEFORM_FUNC_SIN,
+	VERTEXDEFORM_FUNC_SQUARE,
+	VERTEXDEFORM_FUNC_SAWTOOTH,
+	VERTEXDEFORM_FUNC_INV_SAWTOOTH
+};
+
 enum rgbGen_t
 {
 	//RGBGEN_UNDEFINED = 0,
@@ -108,19 +126,39 @@ struct shaderStage_t
 
 struct shaderInfo_t
 {
-	char name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-
 	uint8_t hasLightmap;
 	uint8_t hasPolygonOffset;
+	
+	vertexDeformCmd_t	deformCmd;
 
+	union {
+		// Any cmd which is not bulge
+		struct {
+			vertexDeformFunc_t	deformFn;
+			float				deformDiv; // the wave spread for the vertex deformation
+			float				deformBase; // game unit distance in which the vertex is deplaced from the surface
+			float				deformAmplitude;
+			float				deformPhase;
+			float				deformFrequency;
+		};
+
+		// bulge only
+		struct {
+			float				deformBulgeWidth;
+			float				deformBulgeHeight;
+			float				deformBulgeSpeed;
+		};
+	};
 	GLuint samplerObj;
 	GLuint textureObj;
 
 	uint32_t surfaceParms;
+	float tessSize; // 0 if none
 	int stageCount;
 
 	float surfaceLight; // 0 if no light
 
+	char name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
 
 	shaderInfo_t( void );

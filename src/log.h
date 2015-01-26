@@ -3,20 +3,6 @@
 #include "common.h"
 #include "gldebug.h"
 
-/*
-=====================================================
-
-Author: Holland Schutte
-License: WTFPL
-
-                    log.h
-
-        Generic file for logging issues related
-        to OpenGL, the BSP data, and the Renderer/Camera.
-
-=====================================================
-*/
-
 struct bspFace_t;
 struct bspMeshVertex_t;
 class Q3BspMap;

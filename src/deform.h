@@ -7,6 +7,18 @@
 #define BEZ_CONTROL_POINT_COUNT 9
 
 struct bspVertex_t;
+struct shaderInfo_t;
+
+class DeformWave
+{
+private:
+	GLuint vbo;
+	std::vector< bspVertex_t > vertices;
+
+	void Tesslate( const shaderInfo_t& shader ) {}
+
+	void Render( void ) const {}
+};
 
 class BezPatch
 {
@@ -18,7 +30,6 @@ public:
 	mutable size_t lastCount;
 
     std::vector< int >          indices;
-
 	std::vector< int* >			rowIndices;
 	std::vector< int >			trisPerRow;
 
@@ -32,6 +43,4 @@ public:
     void						Tesselate( int level );
 
     void						Render( void ) const;
-
-	friend class				Q3BspMap;
 };

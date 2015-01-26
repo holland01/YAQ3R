@@ -1,7 +1,8 @@
-#include "bezpatch.h"
+#include "deform.h"
 #include "log.h"
 #include "q3bsp.h"
 #include "glutil.h"
+#include "effect_shader.h"
 
 BezPatch::BezPatch( void )
 	: lastCount( 0 )

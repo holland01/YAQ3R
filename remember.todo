@@ -47,7 +47,8 @@ Impl:
     - Also, some resources for railgun_arena are missing. See if there's a workaround somehow around this.
     - Let Railgun_Arena.shader be the main focus for now.
     - TODO list ( in order of importance ):
-      - lightmaps; test Railgun_Arena with other BSP renderer and compare to make sure this is working right
+      - lightmaps; test Railgun_Arena with other BSP renderer and compare to make sure this is working right;
+        - look into cull settings - this may alleviate some issues
       - vertexDeform; do this
       - rgbGen ( need to test with other shaders )
       - tcMod 
