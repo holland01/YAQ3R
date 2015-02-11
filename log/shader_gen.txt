@@ -8,7 +8,6 @@ textures/aedm7/aecell_decal_logo1
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -17,7 +16,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = color;
 } 
 
@@ -47,7 +46,6 @@ textures/aedm7/aecell_decal_spawn1
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -56,7 +54,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = color;
 } 
 
@@ -550,7 +548,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -559,7 +556,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -587,7 +584,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -596,7 +592,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -626,7 +622,6 @@ textures/force/clwhite
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -635,7 +630,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -665,7 +660,6 @@ textures/marsbase/glass
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -674,7 +668,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -702,7 +696,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -711,7 +704,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -741,7 +734,6 @@ textures/marsbase/grate
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -750,7 +742,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -784,7 +776,6 @@ layout( depth_unchanged ) float gl_FragDepth;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -793,7 +784,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -934,7 +925,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -943,7 +933,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -973,7 +963,6 @@ textures/moon/light15k
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -982,7 +971,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -1010,7 +999,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -1019,7 +1007,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -1047,7 +1035,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -1056,7 +1043,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -1086,7 +1073,6 @@ textures/moon/light2013
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -1095,7 +1081,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -1123,7 +1109,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -1132,7 +1117,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
@@ -1160,7 +1145,6 @@ const float alphaGen = 1.0;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-uniform mat2 texTransform;
 layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
@@ -1169,7 +1153,7 @@ out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
-	frag_Tex = texTransform * tex0;
+	frag_Tex = tex0;
 	frag_Color = vec4( 1.0 );
 } 
 
