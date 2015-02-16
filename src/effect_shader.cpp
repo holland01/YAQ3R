@@ -223,7 +223,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			else if ( strcmp( value, "trans" ) == 0 ) 
 				outInfo->surfaceParms |= SURFPARM_TRANS;
 		}
-		else if ( strcmp( token, "tessSize" ) == 0 )
+		else if ( strcmp( token, "tessSize" ) == 0 || strcmp( token, "q3map_tesssize" ) == 0 )
 		{
 			outInfo->tessSize = ReadFloat( buffer );
 		}

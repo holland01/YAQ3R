@@ -7,18 +7,11 @@
 #define BEZ_CONTROL_POINT_COUNT 9
 
 struct bspVertex_t;
+struct bspFace_t;
+struct triangle_t;
 struct shaderInfo_t;
-
-class DeformWave
-{
-private:
-	GLuint vbo;
-	std::vector< bspVertex_t > vertices;
-
-	void Tesslate( const shaderInfo_t& shader ) {}
-
-	void Render( void ) const {}
-};
+struct deformModel_t;
+struct mapModel_t;
 
 class BezPatch
 {
@@ -44,3 +37,5 @@ public:
 
     void						Render( void ) const;
 };
+
+void Tesselate( deformModel_t& outModel, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount );

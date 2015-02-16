@@ -6,21 +6,7 @@
 
 using namespace std;
 
-/*
-=====================================================
-
-SwizzleCoords
-
-Convert 3D vector formatted in Quake 3 coordinate system to a
-right-handed coordinate system 3D vector.
-
-original:       { x => -left/+right, y => -backward/+forward, z => -down/+up }
-right-handed:   { x => -left/+right, y => -down/+up,          z => +backward/-forward }
-
-=====================================================
-*/
-
-static void SwizzleCoords( vec3f_t& v )
+static void SwizzleCoords( glm::vec3& v )
 {
     float tmp = v.y;
 
@@ -29,7 +15,7 @@ static void SwizzleCoords( vec3f_t& v )
 }
 
 // Straight outta copypasta ( for integer vectors )
-static void SwizzleCoords( vec3i_t& v )
+static void SwizzleCoords( glm::ivec3& v )
 {
     int tmp = v.y;
 
@@ -37,34 +23,25 @@ static void SwizzleCoords( vec3i_t& v )
     v.z = -tmp;
 }
 
-static void ScaleCoords( vec3f_t& v, float scale )
+static void ScaleCoords( glm::vec3& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
     v.z *= scale;
 }
 
-static void ScaleCoords( vec2f_t& v, float scale )
+static void ScaleCoords( glm::vec2& v, float scale )
 {
     v.x *= scale;
     v.y *= scale;
 }
 
-static void ScaleCoords( vec3i_t& v, int scale )
+static void ScaleCoords( glm::ivec3& v, int scale )
 {
     v.x *= scale;
     v.y *= scale;
     v.z *= scale;
 }
-
-
-/*
-=====================================================
-
-Q3BspParser::Q3BspParser
-
-=====================================================
-*/
 
 Q3BspMap::Q3BspMap( void )
      :	mapAllocated( false ),
@@ -73,29 +50,37 @@ Q3BspMap::Q3BspMap( void )
 	glLightmapSampler = 0;
 }
 
-/*
-=====================================================
-
-Q3BspParser::~Q3BspParser
-
-=====================================================
-*/
-
 Q3BspMap::~Q3BspMap( void )
 {
     DestroyMap();
 }
 
-/*
-=====================================================
+const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
+{
+	const bspFace_t* face = data.faces + faceIndex;
 
-Q3BspParser::DestroyMap
+	if ( face->effect != -1 )
+	{
+		auto it = effectShaders.find( data.effectShaders[ face->effect ].name );
 
-Free all dynamically allocated data, and zero-out
-other data, thus prepping the map for re-use if need be.
+		if ( it != effectShaders.end() )
+		{
+			return &it->second;
+		}
+	}
 
-=====================================================
-*/
+	if ( face->texture != -1 )
+	{
+		auto it = effectShaders.find( data.textures[ face->texture ].name );
+	
+		if ( it != effectShaders.end() )
+		{
+			return &it->second;
+		}
+	}
+
+	return nullptr;
+}
 
 void Q3BspMap::DestroyMap( void )
 {
@@ -120,21 +105,6 @@ void Q3BspMap::DestroyMap( void )
         mapAllocated = false;
     }
 }
-
-/*
-=====================================================
-
-Q3BspParser::Read
-
-            read all map data into its respective
-            buffer, defined by structs.
-
-            "divisionScale" param is used to pre-divide
-            vertex, normals, and bounding box data
-            in the map by a specified size.
-
-=====================================================
-*/
 
 void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t loadFlags )
 {   
@@ -249,9 +219,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
         SwizzleCoords( data.models[ i ].boxMax );
         SwizzleCoords( data.models[ i ].boxMin );
     }
-    
-	data.effects = ( bspEffect_t* )( data.buffer + data.header->directories[ BSP_LUMP_EFFECTS ].offset );
-	data.numEffects = data.header->directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
 
     data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
 	data.numFaces = data.header->directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
@@ -299,23 +266,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	fclose( file );
 
     mapAllocated = true;
-
-	glFaces.resize( data.numFaces );
-
-	// Generate vbos; we simply cache the data already used for any polygon or mesh faces. For faces
-	// which aren't of these two categories, we leave them be.
-	for ( int i = 0; i < data.numFaces; ++i )
-	{
-		bspFace_t* face = data.faces + i;
-
-		if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
-		{
-			glFaces[ i ].indices.resize( face->numMeshVertexes );
-			for ( int j = 0; j < face->numMeshVertexes; ++j )
-				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
-		}
-	}
-
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
@@ -408,19 +358,59 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	}
 
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+
+	glFaces.resize( data.numFaces );
+
+	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
+	// which aren't of these two categories, we leave them be.
+	for ( int i = 0; i < data.numFaces; ++i )
+	{
+		const bspFace_t* face = data.faces + i;
+
+		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
+		{
+			glFaces[ i ].indices.resize( face->numMeshVertexes, 0 );
+			glFaces[ i ].vertices.resize( face->numMeshVertexes );
+			memset( &glFaces[ i ].controlPoints, 0, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
+
+			for ( int j = 0; j < face->numMeshVertexes; ++j )
+			{
+				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
+				glFaces[ i ].vertices[ j ] = data.vertexes[ glFaces[ i ].indices[ j ] ];
+			}
+		}
+		else if ( face->type == BSP_FACE_TYPE_PATCH )
+		{
+			// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
+			int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
+			int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
+
+			int c = 0;
+			for ( int k = 0; k < face->size[ 0 ]; k += stepWidth )
+			{
+				for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
+				{
+					int index = face->vertexOffset + j * face->size[ 0 ] + k;
+					glFaces[ i ].indices.push_back( index );
+					glFaces[ i ].controlPoints[ c++ ] = &data.vertexes[ index ];	
+				}
+		
+			}
+		}
+		else
+		{
+			continue;
+		}
+
+		const shaderInfo_t* shader = GetShaderInfo( i );
+
+		if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
+		{
+			deformModel_t model;
+			Tesselate( model, glFaces[ i ].indices, data.vertexes, shader->tessSize );
+		}
+	}
 }
-
-/*
-=====================================================
-
-Q3BspParser::FindClosestLeaf
-
-Find the closest map leaf-node to the given camera position.
-The leaf-node returned is further evaluated to detect faces the
-camera is looking at.
-
-=====================================================
-*/
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 {
@@ -449,18 +439,6 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 
     return &data.leaves[ nodeIndex ];
 }
-
-/*
-=====================================================
-
-Q3BspParser::IsClusterVisible
-
-Check to see if param sourceCluster can "see" param testCluster.
-The algorithm used is standard and can be derived from the documentation
-found in the link posted in q3bsp.h.
-
-=====================================================
-*/
 
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {

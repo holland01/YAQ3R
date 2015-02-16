@@ -340,26 +340,24 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
 	DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
 
-	// We use textures and effect names as keys into our effectShader map
-	bool useEffectShader = ( face->texture != -1 && map->effectShaders.count( map->data.textures[ face->texture ].name ) ) 
-		|| ( face->effect != -1 && map->effectShaders.count( map->data.effectShaders[ face->effect ].name ) );
+	const shaderInfo_t* shader = map->GetShaderInfo( faceIndex );
 
-	if ( ( renderFlags & RENDER_BSP_EFFECT ) && useEffectShader )
+	// We use textures and effect names as keys into our effectShader map
+	if ( ( renderFlags & RENDER_BSP_EFFECT ) && shader )
 	{
-		const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
 		const int subdivLevel = face->type == BSP_FACE_TYPE_PATCH ? CalcSubdivision( pass, bounds ) : 0;	
 
-		if ( shader.hasPolygonOffset )
+		if ( shader->hasPolygonOffset )
 			SetPolygonOffsetState( true, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
-		for ( int i = 0; i < shader.stageCount; ++i )
+		for ( int i = 0; i < shader->stageCount; ++i )
 		{			
-			if ( shader.stageBuffer[ i ].isStub )
+			if ( shader->stageBuffer[ i ].isStub )
 				continue;
 
 			GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 
-			if ( shader.stageBuffer[ i ].mapType == MAP_TYPE_LIGHT_MAP )
+			if ( shader->stageBuffer[ i ].mapType == MAP_TYPE_LIGHT_MAP )
 			{
 				MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 1 ] ) );
 				GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
@@ -368,33 +366,33 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			else
 			{
 				MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader.stageBuffer[ i ].textureObj ) );
-				GL_CHECK( glBindSampler( 0, shader.stageBuffer[ i ].samplerObj ) );
+				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader->stageBuffer[ i ].textureObj ) );
+				GL_CHECK( glBindSampler( 0, shader->stageBuffer[ i ].samplerObj ) );
 			}
 
-			if ( shader.stageBuffer[ i ].hasTexMod )
+			if ( shader->stageBuffer[ i ].hasTexMod )
 			{
 
 				glm::mat2 t( 1.0f );
 				if ( renderFlags & RENDER_BSP_USE_TCMOD )
-					t = shader.stageBuffer[ i ].texTransform;
+					t = shader->stageBuffer[ i ].texTransform;
 				
 				GL_CHECK( glProgramUniformMatrix2fv( 
-						shader.stageBuffer[ i ].programID, 
-						shader.stageBuffer[ i ].uniforms.at( "texTransform" ), 1, GL_FALSE, 
+						shader->stageBuffer[ i ].programID, 
+						shader->stageBuffer[ i ].uniforms.at( "texTransform" ), 1, GL_FALSE, 
 						glm::value_ptr( t ) ) ); 
 			}
 
-			GL_CHECK( glBlendFunc( shader.stageBuffer[ i ].blendSrc, shader.stageBuffer[ i ].blendDest ) );
-			GL_CHECK( glDepthFunc( shader.stageBuffer[ i ].depthFunc ) );
+			GL_CHECK( glBlendFunc( shader->stageBuffer[ i ].blendSrc, shader->stageBuffer[ i ].blendDest ) );
+			GL_CHECK( glDepthFunc( shader->stageBuffer[ i ].depthFunc ) );
 
-			GL_CHECK( glProgramUniform1i( shader.stageBuffer[ i ].programID, shader.stageBuffer[ i ].uniforms.at( "sampler0" ), 0 ) );
-			GL_CHECK( glUseProgram( shader.stageBuffer[ i ].programID ) );
+			GL_CHECK( glProgramUniform1i( shader->stageBuffer[ i ].programID, shader->stageBuffer[ i ].uniforms.at( "sampler0" ), 0 ) );
+			GL_CHECK( glUseProgram( shader->stageBuffer[ i ].programID ) );
 
 			DrawFaceVerts( faceIndex, subdivLevel );
 		}
 		
-		if ( shader.hasPolygonOffset )
+		if ( shader->hasPolygonOffset )
 			SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
@@ -410,27 +408,9 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 	{
 		ImPrep( pass.view.transform, pass.view.clipTransform );
 
-		/*
-		glBegin( GL_LINES );
-
-		glm::vec3 s( face->lightmapStVecs[ 0 ].x, face->lightmapStVecs[ 0 ].y, face->lightmapStVecs[ 0 ].z );
-		glm::vec3 t( face->lightmapStVecs[ 1 ].x, face->lightmapStVecs[ 1 ].y, face->lightmapStVecs[ 1 ].z );
-
-		// Draw lightmap s vector
-		glColor3f( 1.0f, 0.0f, 0.0f );
-		glVertex3f( 0.0f, 0.0f, 0.0f );
-		glVertex3f( s.x, s.y, s.z ); 
-
-		// Draw lightmap t vector
-		glColor3f( 0.0f, 1.0f, 0.0f );
-		glVertex3f( 0.0f, 0.0f, 0.0f );
-		glVertex3f( t.x, t.y, t.z ); 
-		
-		glEnd();
-		*/
 		uint8_t hasLightmap = FALSE;
 
-		if ( useEffectShader )
+		if ( shader )
 		{
 			const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
 			hasLightmap = shader.hasLightmap;
@@ -447,14 +427,14 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 		glVertex3f( face->lightmapOrigin.x, face->lightmapOrigin.y, face->lightmapOrigin.z );
 		glEnd();
 
-		if ( useEffectShader )
+		if ( shader )
 		{
 			GL_CHECK( glPointSize( 5.0f ) );
 			glBegin( GL_POINTS );
 			glColor3f( 1.0f, 1.0f, 1.0f );
 			for ( uint32_t i = 0; i < map->glFaces[ faceIndex ].indices.size(); ++i )
 			{
-				const vec3f_t& pos = map->data.vertexes[ map->glFaces[ faceIndex ].indices[ i ] ].position;
+				const glm::vec3& pos = map->data.vertexes[ map->glFaces[ faceIndex ].indices[ i ] ].position;
 				glVertex3f( pos.x, pos.y, pos.z );
 			}
 			glEnd();
@@ -475,15 +455,8 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 	}
 	else if ( face->type == BSP_FACE_TYPE_PATCH )
 	{
-		// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
-		int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
-		int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
+		memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
 
-		int c = 0;
-		for ( int i = 0; i < face->size[ 0 ]; i += stepWidth )
-			for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
-				patchRenderer.controlPoints[ c++ ] = &map->data.vertexes[ face->vertexOffset + j * face->size[ 0 ] + i ];	
-				
 		patchRenderer.Tesselate( subdivLevel );
 		patchRenderer.Render();
 

@@ -4,6 +4,154 @@
 #include "glutil.h"
 #include "effect_shader.h"
 
+static void SubDivide_r( 
+	deformModel_t& outModel, 
+	const triangle_t& candidate, 
+	const std::vector< bspVertex_t >& vertices, 
+	const int level,
+	const int max )
+{
+	if ( level == max )
+		return;
+
+	float maxLength = 0.0f;
+
+	int oIndex = 0;
+	int aIndex = 0;
+	int bIndex = 0;
+
+	glm::vec3 subend( 0.0f );
+
+	glm::mat3 baryToWorld( 
+		vertices[ candidate.indices[ 0 ] ].position, 
+		vertices[ candidate.indices[ 1 ] ].position, 
+		vertices[ candidate.indices[ 2 ] ].position );
+
+	for ( int i = 0; i < 3; ++i )
+	{
+		int a = ( i + 1 ) % 3;
+		int b = ( i + 2 ) % 3;
+
+		glm::vec3 baryOpposite( 0.0f );
+		baryOpposite[ a ] = 0.5f;
+		baryOpposite[ b ] = 0.5f;
+
+		glm::vec3 worldOpposite( baryToWorld * baryOpposite );
+
+		float lineLength = glm::length( worldOpposite - vertices[ candidate.indices[ i ] ].position );
+
+		if ( lineLength > maxLength )
+		{
+			subend = worldOpposite;
+
+			oIndex = i;
+			aIndex = a;
+			bIndex = b;
+
+			maxLength = lineLength;
+		}
+	}
+
+	bspVertex_t newVertex = 
+	{
+		subend, 
+		{ glm::vec2( 0.0f ), glm::vec2( 0.0f ) },
+		glm::vec3( 0.0f ),
+
+		{ 255, 255, 255, 255 }
+	};
+
+	std::vector< bspVertex_t > newBuffer = 
+	{
+		vertices[ candidate.indices[ 0 ] ], 
+		vertices[ candidate.indices[ 1 ] ],
+		vertices[ candidate.indices[ 2 ] ],
+		newVertex
+	};
+
+	triangle_t t1 = 
+	{
+		{
+			oIndex, 
+			aIndex,
+			3
+		}
+	};
+
+	triangle_t t2 = 
+	{
+		{
+			3,
+			bIndex,
+			oIndex
+		}
+	};
+
+	SubDivide_r( outModel, t1, newBuffer, level + 1, max );
+	SubDivide_r( outModel, t2, newBuffer, level + 1, max );
+
+	if ( ( level + 1 ) == max )
+	{
+		int base = outModel.vertices.size();
+
+		// If we're not empty, we need to sub by one to produce a zero-indexed offset
+		if ( base )
+			base -= 1;
+
+		for ( int i = 0; i < 3; ++i )
+		{
+			t1.indices[ i ] += base;
+			t2.indices[ i ] += base;
+		}
+
+		outModel.tris.push_back( t1 );
+		outModel.tris.push_back( t2 );
+		
+		outModel.vertices.reserve( outModel.vertices.size() + newBuffer.size() );
+
+		outModel.vertices.insert( outModel.vertices.end(), newBuffer.begin(), newBuffer.end() );
+	}
+}
+
+void Tesselate( deformModel_t& outModel, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount )
+{
+	assert( amount != 0 );
+
+	const float tessStep = 1.0f / amount;
+
+	for ( uint32_t i = 0; i < indices.size(); i += 3 )
+	{
+		triangle_t t = { 0, 0, 0 };
+
+		t.indices[ 0 ] = indices[ i ];
+		
+		float sweep = 0.0f;
+
+		glm::mat3 baryToWorld( 
+			vertices[ indices[ i ] ].position, 
+			vertices[ indices[ i + 1 ] ].position, 
+			vertices[ indices[ i + 2 ] ].position
+		);
+
+		int a0 = i % 3;
+		int a1 = ( i + 1 ) % 3;
+		int a2 = ( i + 2 ) % 3;
+
+		for ( float a = 0.0f; a <= amount; a += tessStep )
+		{
+			for ( float b = 0.0f; b <= amount; b += tessStep )
+			{
+				glm::vec3 p( 0.0f );
+				p[ a0 ] = 1.0f - a - b;
+				p[ a1 ] = a;
+				p[ a2 ] = b;
+
+							
+			}
+		}
+	}
+}
+
 BezPatch::BezPatch( void )
 	: lastCount( 0 )
 {
@@ -103,3 +251,4 @@ void BezPatch::Render( void ) const
 
 	lastCount = vertices.size();
 }
+

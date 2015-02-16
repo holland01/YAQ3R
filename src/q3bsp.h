@@ -56,7 +56,9 @@ enum
     BSP_FACE_TYPE_BILLBOARD = 0x4,
 
     BSP_LIGHTMAP_WIDTH = 128,
-    BSP_LIGHTMAP_HEIGHT = 128
+    BSP_LIGHTMAP_HEIGHT = 128,
+
+	BSP_NUM_CONTROL_POINTS = 9
 };
 
 // Map loader-specific flags
@@ -97,7 +99,7 @@ struct bspHeader_t
 
 struct bspPlane_t
 {
-    vec3f_t       normal;
+    glm::vec3       normal;
     float       distance;
 };
 
@@ -106,8 +108,8 @@ struct bspNode_t
     int     plane;
     int     children[ 2 ];
 
-    vec3i_t   boxMin;
-    vec3i_t   boxMax;
+    glm::ivec3   boxMin;
+    glm::ivec3   boxMax;
 };
 
 struct bspLeaf_t
@@ -115,8 +117,8 @@ struct bspLeaf_t
     int clusterIndex;
     int areaPortal;
 
-    vec3i_t   boxMin;
-    vec3i_t   boxMax;
+    glm::ivec3   boxMin;
+    glm::ivec3   boxMax;
 
     int leafFaceOffset;
     int numLeafFaces;
@@ -132,8 +134,8 @@ struct bspLeafFace_t
 
 struct bspModel_t
 {
-    vec3f_t boxMax;
-    vec3f_t boxMin;
+    glm::vec3 boxMax;
+    glm::vec3 boxMin;
 
     int faceOffset;
     int numFaces;
@@ -144,9 +146,9 @@ struct bspModel_t
 
 struct bspVertex_t
 {
-    vec3f_t position;
-    vec2f_t texCoords[ 2 ]; // 0 => surface, 1 => lightmap
-    vec3f_t normal;
+    glm::vec3 position;
+    glm::vec2 texCoords[ 2 ]; // 0 => surface, 1 => lightmap
+    glm::vec3 normal;
 
     byte color[ 4 ];
 };
@@ -186,9 +188,9 @@ struct bspFace_t
     int lightmapStartCorner[ 2 ];
     int lightmapSize[ 2 ];
 
-    vec3f_t lightmapOrigin; // in world space
-    vec3f_t lightmapStVecs[ 2 ]; // world space s/t unit vectors
-    vec3f_t normal;
+    glm::vec3 lightmapOrigin; // in world space
+    glm::vec3 lightmapStVecs[ 2 ]; // world space s/t unit vectors
+    glm::vec3 normal;
 
     int     size[ 2 ];
 };
@@ -261,9 +263,26 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 
 struct shaderInfo_t;
 
+struct triangle_t
+{
+	GLuint indices[ 3 ];
+};
+
 struct mapModel_t
 {
 	std::vector< GLuint > indices;
+	std::vector< bspVertex_t > vertices;
+
+	const bspVertex_t* controlPoints[ BSP_NUM_CONTROL_POINTS ];
+};
+
+struct deformModel_t
+{
+	std::vector< bspVertex_t > vertices;
+	std::vector< triangle_t > tris;
+	GLuint vbo;
+	GLuint ibo;
+	int face;
 };
 
 struct mapData_t
@@ -276,8 +295,6 @@ struct mapData_t
 
 	bspEntity_t         entities;
 
-	bspEffect_t*        effectShaders;
-
     bspNode_t*          nodes;
     bspLeaf_t*          leaves;
     bspPlane_t*         planes;
@@ -286,7 +303,7 @@ struct mapData_t
     bspTexture_t*       textures;
     bspModel_t*         models;
 
-	bspEffect_t*		effects;
+	bspEffect_t*		effectShaders;
     bspFace_t*          faces;
 
     bspLeafFace_t*      leafFaces;
@@ -353,6 +370,8 @@ public:
     bool						IsClusterVisible( int sourceCluster, int testCluster );
 
     bool						IsAllocated( void ) const { return mapAllocated; }
+
+	const shaderInfo_t*			GetShaderInfo( int faceIndex ) const;
 
     void						DestroyMap( void );
 };

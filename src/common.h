@@ -46,14 +46,6 @@
 
 #define INLINE inline
 
-#include "vec.h"
-
-typedef unsigned int uint;
-typedef unsigned char byte;
-
-using glHandleMap_t = std::map< std::string, GLint >;
-using glHandleMapEntry_t = std::pair< std::string, GLint >;
-
 // Windows.h defines these for us already
 #ifndef _WIN32
 #	define TRUE 1 
@@ -68,6 +60,12 @@ using glHandleMapEntry_t = std::pair< std::string, GLint >;
 
 #define Mem_Alloc( s ) ( malloc( ( s ) ) )
 #define Mem_Free( ptr ) ( free( ( ptr ) ) )
+
+typedef unsigned int uint;
+typedef unsigned char byte;
+
+using glHandleMap_t = std::map< std::string, GLint >;
+using glHandleMapEntry_t = std::pair< std::string, GLint >;
 
 INLINE bool FileGetExt( std::string& outExt, const std::string& filename  )
 {
