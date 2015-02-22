@@ -135,12 +135,14 @@ void Test::OnKeyPress( int key, int scancode, int action, int mods )
                     break;
 
                 default:
+					if ( camPtr )
                         camPtr->EvalKeyPress( key );
                     break;
             }
             break;
 
         case GLFW_RELEASE:
+			if ( camPtr )
                 camPtr->EvalKeyRelease( key );
             break;
 
@@ -151,14 +153,15 @@ void Test::OnKeyPress( int key, int scancode, int action, int mods )
 
 void Test::OnMouseMove( double x, double y )
 {
-	camPtr->lastMouse.x = mouseX;
-	camPtr->lastMouse.y = mouseY;
-
-	mouseX = ( float ) x;
-	mouseY = ( float ) y;
-
-	if ( !cursorVisible )
+	if ( camPtr )
 	{
-		camPtr->EvalMouseMove( mouseX, mouseY );
+		camPtr->lastMouse.x = mouseX;
+		camPtr->lastMouse.y = mouseY;
+
+		mouseX = ( float ) x;
+		mouseY = ( float ) y;
+
+		if ( !cursorVisible )
+			camPtr->EvalMouseMove( mouseX, mouseY );
 	}
 }

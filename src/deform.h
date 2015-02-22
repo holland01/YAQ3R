@@ -12,6 +12,7 @@ struct triangle_t;
 struct shaderInfo_t;
 struct deformModel_t;
 struct mapModel_t;
+struct mapData_t;
 
 class BezPatch
 {
@@ -38,4 +39,7 @@ public:
     void						Render( void ) const;
 };
 
-void Tesselate( deformModel_t& outModel, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount );
+
+void TessellateTri( std::vector< glm::vec3 >& outVerts, const float amount, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& surfaceNormal );
+
+void Tessellate( deformModel_t* outModel, const mapData_t* data, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount );

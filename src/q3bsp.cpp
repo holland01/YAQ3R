@@ -407,7 +407,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
 		{
 			deformModel_t model;
-			Tesselate( model, glFaces[ i ].indices, data.vertexes, shader->tessSize );
+			Tessellate( &model, &data, glFaces[ i ].indices, data.vertexes, shader->tessSize );
 		}
 	}
 }

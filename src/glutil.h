@@ -4,8 +4,10 @@
 #include "q3bsp.h"
 #include "gldebug.h"
 #include "log.h"
+#include <array>
 
 #define UBO_TRANSFORMS_BLOCK_BINDING 0
+#define ATTRIB_OFFSET( type, member )( ( void* ) offsetof( type, member ) ) 
 
 // Extensions
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
@@ -78,7 +80,7 @@ static INLINE void MapProgramToUBO( GLuint programID, const char* uboName )
 
 static INLINE GLuint GenVertexBuffer( void )
 {
-	
+	// TODO
 }
 
 static INLINE void LoadBufferLayout( GLuint vbo )
@@ -107,9 +109,30 @@ static INLINE void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clip
 {
 	GL_CHECK( glUseProgram( 0 ) );
 	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
+	GL_CHECK( glLoadIdentity() );
 	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
 	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glLoadIdentity() );
 	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
+}
+
+static INLINE void ImDrawAxes( const float size ) 
+{
+	std::array< glm::vec3, 6 > axes = 
+	{
+		glm::vec3( size, 0.0f, 0.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ),
+		glm::vec3( 0.0f, size, 0.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ),
+		glm::vec3( 0.0f, 0.0f, -size ), glm::vec3( 0.0f, 0.0f, 1.0f )
+	};
+	
+	glBegin( GL_LINES );
+	for ( int i = 0; i < 6; i += 2 )
+	{
+		glColor3fv( glm::value_ptr( axes[ i + 1 ] ) );
+		glVertex3f( 0.0f, 0.0f, 0.0f );
+		glVertex3fv( glm::value_ptr( axes[ i ] ) ); 
+	}
+	glEnd();
 }
 
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap );

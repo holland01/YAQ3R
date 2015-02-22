@@ -113,42 +113,90 @@ static void SubDivide_r(
 	}
 }
 
-void Tesselate( deformModel_t& outModel, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount )
+void TessellateTri( std::vector< glm::vec3 >& outVerts, const float amount, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& surfaceNormal )
+{
+	const float step = 1.0f / amount;
+
+	// Find matching winding order...
+	glm::vec3 e1( a - b );
+	glm::vec3 e2( c - a );
+
+	glm::vec3 norm( glm::cross( e1, e2 ) );
+
+	// Face opposing directions; so we reverse the ordering of the edges and recompute the cross
+	if ( glm::dot( norm, surfaceNormal ) < 0 )
+	{
+		e1 = a - c;
+		e2 = b - a;
+
+		norm = glm::cross( e1, e2 );
+		assert( glm::dot( norm, surfaceNormal ) > 0 );
+	}
+
+	// Use two of the edges to walk the triangle.
+	// We also pick an origin vertex with which we can use to
+	// offset our triangle walk relative to.
+	glm::vec3 v1 = e1;
+	glm::vec3 v2, v3, origin, origin3;
+		
+	// a is our tipping point; when v3 == v1 in our edge walk, we know 
+	// we're finished
+	if ( v1 == a - b )
+	{
+		v2 = c - b;
+		v3 = c - a;
+		origin = b;
+		origin3 = a;
+	}
+	else
+	{
+		v2 = b - c;
+		v3 = b - a;
+		origin = c;
+		origin3 = a; 
+	}
+
+	// TODO: to find if the generated vertices lie outside of the triangle, convert
+	// the worldspace coordinates to barycentric coordinates and test for values 
+	// which are > 1 or < 0.
+
+	for ( float walk1 = 0.0f; walk1 <= 1.0f; walk1 += step )
+	{
+		glm::vec3 offset1 = v1 * walk1;
+		
+		for ( float walk2 = 0.0f; walk2 <= 1.0f; walk2 += step )
+		{
+			glm::vec3 offset2 = v2 * walk2;
+			glm::vec3 offset3 = v3 * walk2;
+
+			//glm::vec3 baseLine = ( origin3 + offset3 ) - ( origin + offset2 );
+		//	float baseLineLen = glm::length( baseLine );
+
+			//if ( baseLineLen < 1.0f )
+				//break;
+
+			glm::vec3 left = origin + offset1 + offset2;
+			glm::vec3 right = origin + offset1 + offset2 + ( v2 * step );
+			glm::vec3 up = origin + offset1 + offset2 + ( v2 * step * 0.5f ) + ( v1 * step );
+
+			outVerts.push_back( left );
+			outVerts.push_back( right );
+			outVerts.push_back( up );
+		}
+	}
+}
+
+void Tessellate( deformModel_t* outModel, const mapData_t* data, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount )
 {
 	assert( amount != 0 );
 
-	const float tessStep = 1.0f / amount;
+	const float step = 1.0f / amount;
+
+	const bspFace_t* modelFace = data->faces + outModel->face;
 
 	for ( uint32_t i = 0; i < indices.size(); i += 3 )
 	{
-		triangle_t t = { 0, 0, 0 };
-
-		t.indices[ 0 ] = indices[ i ];
 		
-		float sweep = 0.0f;
-
-		glm::mat3 baryToWorld( 
-			vertices[ indices[ i ] ].position, 
-			vertices[ indices[ i + 1 ] ].position, 
-			vertices[ indices[ i + 2 ] ].position
-		);
-
-		int a0 = i % 3;
-		int a1 = ( i + 1 ) % 3;
-		int a2 = ( i + 2 ) % 3;
-
-		for ( float a = 0.0f; a <= amount; a += tessStep )
-		{
-			for ( float b = 0.0f; b <= amount; b += tessStep )
-			{
-				glm::vec3 p( 0.0f );
-				p[ a0 ] = 1.0f - a - b;
-				p[ a1 ] = a;
-				p[ a2 ] = b;
-
-							
-			}
-		}
 	}
 }
 

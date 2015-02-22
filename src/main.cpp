@@ -2,6 +2,7 @@
 #include "renderer.h"
 #include "log.h"
 #include "tests/trenderer.h"
+#include "tests/test_tessellation.h"
 
 // Is global
 void FlagExit( void )
@@ -20,8 +21,9 @@ int main( int argc, char** argv )
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
-    gAppTest = new TRenderer();
-    gAppTest->Load();
+    //gAppTest = new TRenderer();
+    gAppTest = new TessTest();
+	gAppTest->Load();
 
     int code = gAppTest->Exec();
 

@@ -114,6 +114,7 @@
     <ClCompile Include="..\..\src\renderer.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
+    <ClCompile Include="..\..\src\tests\test_tessellation.cpp" />
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +138,7 @@
     <ClInclude Include="..\..\src\renderer.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\tests\test.h" />
+    <ClInclude Include="..\..\src\tests\test_tessellation.h" />
     <ClInclude Include="..\..\src\tests\trenderer.h" />
   </ItemGroup>
   <ItemGroup>
