@@ -3,7 +3,13 @@ bspviewer
 
 Pretty simple: just view a BSP map. This is really more of a project for educational purposes than anything else.
 
-The focus right now is on effect shaders; I'm currently in the process of implementing tessellation using some funky barycentric coordinate formulas, which will then be used for vertex deformation coolness.
+The focus right now is on effect shaders; I'm currently in the process of implementing tessellation using some funky barycentric coordinate formulas, 
+which will then be used for vertex deformation coolness.
+
+### Disclaimer 
+
+I'm not gonna lie: this code is actually pretty bad in terms of structure and consistency. Right now, it's all hackity hack hack. I plan to clean things up eventually though. 
+(time is currently very limited, so prioritization is on getting shit done in the realm of making things work)
 
 ##Credits
 
