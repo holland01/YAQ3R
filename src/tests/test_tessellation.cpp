@@ -62,14 +62,14 @@ void TessTest::Load( void )
 	mainVertices = 
 	{
 		{ glm::vec3( size, 0.0f, 0.0f ), color },
-		{ glm::vec3( 0.0f, size, 0.0f ), color },
-		{ glm::vec3( -size, 0.0f, 0.0f ), color }
+		{ glm::vec3( 0.0f, size * 0.5f, 0.0f ), color },
+		{ glm::vec3( 0.0f, 0.0f, 0.0f ), color }
 	};
 
 	glm::vec3 normal = glm::cross( mainVertices[ 1 ].position - mainVertices[ 0 ].position, mainVertices[ 2 ].position - mainVertices[ 1 ].position );
 
 	std::vector< glm::vec3 > outVerts;
-	TessellateTri( outVerts, 64.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
+	TessellateTri( outVerts, 4.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
 
 	const glm::vec4 tessColor( 1.0f, 0.0f, 0.0f, 1.0f );
 
@@ -116,11 +116,11 @@ void TessTest::Run( void )
 	GL_CHECK( glUseProgram( program ) );
 	GL_CHECK( glUniformMatrix4fv( modelToViewLoc, 1, GL_FALSE, glm::value_ptr( view.transform ) ) );
 
-	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
+	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 	GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
 	
-	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
+	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, tessVertices.size() ) );
 

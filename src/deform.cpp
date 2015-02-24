@@ -115,73 +115,73 @@ static void SubDivide_r(
 
 void TessellateTri( std::vector< glm::vec3 >& outVerts, const float amount, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& surfaceNormal )
 {
+	
 	const float step = 1.0f / amount;
 
-	// Find matching winding order...
-	glm::vec3 e1( a - b );
-	glm::vec3 e2( c - a );
 
-	glm::vec3 norm( glm::cross( e1, e2 ) );
+	// this commented block isn't necessary at the moment, but it's kept here for reference just in case.
+	// source: http://math.stackexchange.com/a/28552/17278
+	/*
+	const float triAreaFrac = 1.0f / ( glm::length( glm::cross( v1, v2 ) ) * 0.5f );
 
-	// Face opposing directions; so we reverse the ordering of the edges and recompute the cross
-	if ( glm::dot( norm, surfaceNormal ) < 0 )
+	// Convert a point P to barycentric coordinates, using the triangle's vertices.
+	// If any of the barycentric coordinates (alpha, beta, gamma) are not in [0, 1], 
+	// then the point lies outside the bounds of the triangle
+	auto LPointInTriangle = [&a, &b, &c, &triAreaFrac]( const glm::vec3& p ) -> bool
 	{
-		e1 = a - c;
-		e2 = b - a;
+		glm::vec3 pb( b - p ), pa( a - p ), pc( c - p );
 
-		norm = glm::cross( e1, e2 );
-		assert( glm::dot( norm, surfaceNormal ) > 0 );
-	}
+	 	const float alpha = glm::length( glm::cross( pb, pa ) ) * 0.5f * triAreaFrac;
+		const float beta = glm::length( glm::cross( pb, pc ) ) * 0.5f * triAreaFrac;
+		const float gamma = 1.0f - alpha - beta;
+	
+		return ( 0.0f <= alpha && alpha <= 1.0f ) && ( 0.0f <= beta && beta <= 1.0f ) && ( 0.0f <= gamma && gamma <= 1.0f ) && ( alpha + beta + gamma ) <= 1.0f;
+	};
+	*/
 
-	// Use two of the edges to walk the triangle.
-	// We also pick an origin vertex with which we can use to
-	// offset our triangle walk relative to.
-	glm::vec3 v1 = e1;
-	glm::vec3 v2, v3, origin, origin3;
-		
-	// a is our tipping point; when v3 == v1 in our edge walk, we know 
-	// we're finished
-	if ( v1 == a - b )
+	const glm::vec3 a0( a * step );
+	const glm::vec3 b0( b * step );
+	const glm::vec3 c0( c * step );
+
+	const float numAB( glm::floor( glm::length( b - a ) / glm::length( b0 - a0 ) ) );
+	const float numBC( glm::floor( glm::length( c - b ) / glm::length( c0 - b0 ) ) );
+	const float numCA( glm::floor( glm::length( a - c ) / glm::length( a0 - c0 ) ) );
+
+	struct edgeData_t
 	{
-		v2 = c - b;
-		v3 = c - a;
-		origin = b;
-		origin3 = a;
-	}
-	else
+		float amount;
+		glm::vec3 subedge;
+		glm::vec3 start;
+	} 
+	edges[ 3 ] = 
 	{
-		v2 = b - c;
-		v3 = b - a;
-		origin = c;
-		origin3 = a; 
-	}
+		{ numAB, b0 - a0, a },
+		{ numBC, c0 - b0, b, },
+		{ numCA, a0 - c0, c }
+	};
 
-	// TODO: to find if the generated vertices lie outside of the triangle, convert
-	// the worldspace coordinates to barycentric coordinates and test for values 
-	// which are > 1 or < 0.
-
-	for ( float walk1 = 0.0f; walk1 <= 1.0f; walk1 += step )
+	// TODO: now that the perimeter is properly taken care of, find a way to fill in the blank spots.
+	// For a given outer row of triangles, the amount of upside down triangles (of the same dimensions)
+	// which will fit in the open areas of the row is the amount of triangles in the row minus one.
+	for ( int i = 0; i < 3; ++i )
 	{
-		glm::vec3 offset1 = v1 * walk1;
-		
-		for ( float walk2 = 0.0f; walk2 <= 1.0f; walk2 += step )
+		for ( float walk = 0.0f; walk < edges[ i ].amount; walk += 1.0f )
 		{
-			glm::vec3 offset2 = v2 * walk2;
-			glm::vec3 offset3 = v3 * walk2;
+			glm::vec3 offset( edges[ i ].start + edges[ i ].subedge * walk );
+			
+			// We subtract by this for each point to accomodate for the amount which the origin of
+			// the edge offsets each vertex of the triangle; without this, the first
+			// triangle for a given edge iteration will reside outside of the triangle. The subtraction
+			// ensures the vertices move in the opposite direction with respect to the edge origin
+			glm::vec3 diff( edges[ i ].start * step );
 
-			//glm::vec3 baseLine = ( origin3 + offset3 ) - ( origin + offset2 );
-		//	float baseLineLen = glm::length( baseLine );
-
-			//if ( baseLineLen < 1.0f )
-				//break;
-
-			glm::vec3 left = origin + offset1 + offset2;
-			glm::vec3 right = origin + offset1 + offset2 + ( v2 * step );
-			glm::vec3 up = origin + offset1 + offset2 + ( v2 * step * 0.5f ) + ( v1 * step );
-
-			outVerts.push_back( left );
-			outVerts.push_back( right );
-			outVerts.push_back( up );
+			glm::vec3 v1( offset + a0 - diff );
+			glm::vec3 v2( offset + b0 - diff );
+			glm::vec3 v3( offset + c0 - diff );
+			
+			outVerts.push_back( v1 );
+			outVerts.push_back( v2 );
+			outVerts.push_back( v3 );
 		}
 	}
 }
