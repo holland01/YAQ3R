@@ -101,6 +101,7 @@
     <ClCompile Include="..\..\src\effect_shader.cpp" />
     <ClCompile Include="..\..\src\eu_ang.cpp" />
     <None Include="..\..\README.md" />
+    <None Include="..\..\src\deform.inl" />
     <None Include="..\..\src\extern\stb_image.c" />
     <ClCompile Include="..\..\src\frustum.cpp" />
     <ClCompile Include="..\..\src\gldebug.cpp" />

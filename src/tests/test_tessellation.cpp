@@ -16,6 +16,19 @@ TessTest::~TessTest( void )
 	camera = nullptr;
 }
 
+static tessVert_t GenVertex( const glm::vec3& v, const tessellateInfo_t& info ) 
+{
+	float color = info.innerDistToCenter / info.outerDistToCenter;
+
+	tessVert_t vertex = 
+	{
+		v,
+		glm::vec4( color, color, color, 1.0f )
+	};
+
+	return vertex;
+}
+
 void TessTest::Load( void )
 {
 	bool good = Test::Load( "Tessellation" );
@@ -68,13 +81,9 @@ void TessTest::Load( void )
 
 	glm::vec3 normal = glm::cross( mainVertices[ 1 ].position - mainVertices[ 0 ].position, mainVertices[ 2 ].position - mainVertices[ 1 ].position );
 
-	std::vector< glm::vec3 > outVerts;
-	TessellateTri( outVerts, 4.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
+	TessellateTri< tessVert_t >( tessVertices, GenVertex, 16.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
 
 	const glm::vec4 tessColor( 1.0f, 0.0f, 0.0f, 1.0f );
-
-	for ( const glm::vec3& v: outVerts )
-		tessVertices.push_back( { v, tessColor } );
 
 	auto LLoadLayout = []( void ) 
 	{
@@ -105,6 +114,8 @@ void TessTest::Load( void )
 
 	camera->SetPerspective( glm::radians( 60.0f ), 16.0f / 9.0f, 0.1f, 10000.0f );
 	GL_CHECK( glProgramUniformMatrix4fv( program, viewToClipLoc, 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
+
+	GL_CHECK( glPointSize( 10.0f ) );
 }
 
 void TessTest::Run( void )
@@ -116,11 +127,11 @@ void TessTest::Run( void )
 	GL_CHECK( glUseProgram( program ) );
 	GL_CHECK( glUniformMatrix4fv( modelToViewLoc, 1, GL_FALSE, glm::value_ptr( view.transform ) ) );
 
-	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
+	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 	GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
 	
-	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
+	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, tessVertices.size() ) );
 
@@ -129,4 +140,15 @@ void TessTest::Run( void )
 	
 	ImPrep( view.transform, view.clipTransform );
 	ImDrawAxes( 1000.0f );
+
+	glBegin( GL_POINTS );
+	glColor3f( 1.0f, 0.0f, 0.0f );
+	glVertex3fv( glm::value_ptr( mainVertices[ 0 ].position ) );
+
+	glColor3f( 0.0f, 1.0f, 0.0f );
+	glVertex3fv( glm::value_ptr( mainVertices[ 1 ].position ) );
+
+	glColor3f( 0.0f, 0.0f, 1.0f );
+	glVertex3fv( glm::value_ptr( mainVertices[ 2 ].position ) );
+	glEnd();
 }

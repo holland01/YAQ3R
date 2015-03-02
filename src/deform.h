@@ -39,7 +39,22 @@ public:
     void						Render( void ) const;
 };
 
+struct tessellateInfo_t
+{
+	float outerDistToCenter;
+	float innerDistToCenter;
+};
 
-void TessellateTri( std::vector< glm::vec3 >& outVerts, const float amount, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& surfaceNormal );
+template < typename vertexType_t > static INLINE void TessellateTri( 
+	std::vector< vertexType_t >& outVerts, 
+	std::function< vertexType_t( const glm::vec3&, const tessellateInfo_t& ) > vertexGenFn,
+	const float amount, 
+	const glm::vec3& a, 
+	const glm::vec3& b, 
+	const glm::vec3& c, 
+	const glm::vec3& surfaceNormal 
+);
 
 void Tessellate( deformModel_t* outModel, const mapData_t* data, const std::vector< GLuint >& indices, const bspVertex_t* vertices, float amount );
+
+#include "deform.inl"
