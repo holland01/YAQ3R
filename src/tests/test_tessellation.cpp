@@ -16,14 +16,20 @@ TessTest::~TessTest( void )
 	camera = nullptr;
 }
 
+static int colorIndex = 0;
+
 static tessVert_t GenVertex( const glm::vec3& v, const tessellateInfo_t& info ) 
 {
-	float color = info.innerDistToCenter / info.outerDistToCenter;
+	glm::vec4 color( 0.0f, 0.0f, 0.0f, 1.0f );
+
+	color[ colorIndex ] = 1.0f;
+
+	colorIndex = ( colorIndex + 1 ) % 3;
 
 	tessVert_t vertex = 
 	{
 		v,
-		glm::vec4( color, color, color, 1.0f )
+		color
 	};
 
 	return vertex;

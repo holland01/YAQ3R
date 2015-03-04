@@ -41,8 +41,7 @@ public:
 
 struct tessellateInfo_t
 {
-	float outerDistToCenter;
-	float innerDistToCenter;
+	int edgeIndex;
 };
 
 template < typename vertexType_t > static INLINE void TessellateTri( 
