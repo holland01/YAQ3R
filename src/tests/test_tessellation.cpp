@@ -80,14 +80,14 @@ void TessTest::Load( void )
 
 	mainVertices = 
 	{
-		{ glm::vec3( size, 0.0f, 0.0f ), color },
-		{ glm::vec3( 0.0f, size * 0.5f, 0.0f ), color },
-		{ glm::vec3( 0.0f, 0.0f, 0.0f ), color }
+		{ glm::vec3( size * 0.5f, 0.0f, 0.0f ), color },
+		{ glm::vec3( size, size, 0.0f ), color },
+		{ glm::vec3( -size, 0.0f, size ), color }
 	};
 
 	glm::vec3 normal = glm::cross( mainVertices[ 1 ].position - mainVertices[ 0 ].position, mainVertices[ 2 ].position - mainVertices[ 1 ].position );
 
-	TessellateTri< tessVert_t >( tessVertices, GenVertex, 16.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
+	TessellateTri< tessVert_t >( tessVertices, GenVertex, 32.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
 
 	const glm::vec4 tessColor( 1.0f, 0.0f, 0.0f, 1.0f );
 

@@ -14,7 +14,7 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 		const glm::vec3 e1( v1 - v2 );
 		const glm::vec3 e2( v3 - v2 );
 
-		return 0.5f * glm::length( glm::cross( e1, e2 ) ) * glm::length( e2 );
+		return 0.5f * glm::length( glm::cross( e1, e2 ) );
 	};
 
 	// TODO:
@@ -80,13 +80,9 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 			{
 				glm::vec3 offset( edges[ i ].start + edges[ i ].subedge * walk );
 			
-				//glm::vec3 v1( offset + a0 - diff );
-				//glm::vec3 v2( offset + b0 - diff );
-				//glm::vec3 v3( offset + c0 - diff );
-
-				glm::vec3 v1( offset + edges[ 2 ].subedge );
-				glm::vec3 v2( v1 + edges[ 0 ].subedge );
-				glm::vec3 v3( v2 + edges[ 1 ].subedge );
+				glm::vec3 v1( offset );
+				glm::vec3 v2( v1 + edges[ i ].subedge );
+				glm::vec3 v3( v2 + edges[ ( i + 1 ) % 3 ].subedge );
 			
 				// Calculate indices before adding vertices, since the size of the buffer
 				// is the index of v1 ( thirdBase follows a pattern based on the ordering of the edges of the main triangle,
@@ -112,7 +108,7 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 			}
 		}
 
-		LTessellate_r( a2 + ( c0 - a2 ) + edges[ 0 ].subedge, b2 + ( a0 - b0 ) + edges[ 1 ].subedge, c2 + ( b0 - c0 ) + edges[ 2 ].subedge );
+		LTessellate_r( a2 + ( c0 - a0 ) + edges[ 0 ].subedge, b2 + ( a0 - b0 ) + edges[ 1 ].subedge, c2 + ( b0 - c0 ) + edges[ 2 ].subedge );
 	};
 
 	LTessellate_r( a, b, c );
