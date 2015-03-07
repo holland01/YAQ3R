@@ -1,6 +1,7 @@
 #include "test_tessellation.h"
 #include "../shader.h"
 #include "../glutil.h"
+#include <array>
 
 TessTest::TessTest( void )
 	:	Test( 1366, 768 ),
@@ -18,19 +19,29 @@ TessTest::~TessTest( void )
 
 static int colorIndex = 0;
 
+static std::array< glm::vec4, 3 > colorTable = 
+{
+	glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f ),
+	glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f ),
+	glm::vec4( 0.0f, 0.0f, 1.0f, 1.0f )
+};
+
+static int vcount = 0;
+
 static tessVert_t GenVertex( const glm::vec3& v, const tessellateInfo_t& info ) 
 {
-	glm::vec4 color( 0.0f, 0.0f, 0.0f, 1.0f );
-
-	color[ colorIndex ] = 1.0f;
-
-	colorIndex = ( colorIndex + 1 ) % 3;
-
 	tessVert_t vertex = 
 	{
 		v,
-		color
+		colorTable[ colorIndex ]
 	};
+
+	vcount++;
+
+	if ( vcount % 3 == 0 )
+	{
+		colorIndex = ( colorIndex + 1 ) % 3;
+	}
 
 	return vertex;
 }
@@ -80,14 +91,14 @@ void TessTest::Load( void )
 
 	mainVertices = 
 	{
-		{ glm::vec3( size * 0.5f, 0.0f, 0.0f ), color },
-		{ glm::vec3( size, size, 0.0f ), color },
-		{ glm::vec3( -size, 0.0f, size ), color }
+		{ glm::vec3( size, 0.0f, 0.0f ), color },
+		{ glm::vec3( 0.0f, size, 0.0f ), color },
+		{ glm::vec3( -size, 0.0f, 0.0f ), color }
 	};
 
 	glm::vec3 normal = glm::cross( mainVertices[ 1 ].position - mainVertices[ 0 ].position, mainVertices[ 2 ].position - mainVertices[ 1 ].position );
 
-	TessellateTri< tessVert_t >( tessVertices, GenVertex, 32.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
+	TessellateTri< tessVert_t >( tessVertices, GenVertex, 16.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
 
 	const glm::vec4 tessColor( 1.0f, 0.0f, 0.0f, 1.0f );
 
@@ -133,13 +144,13 @@ void TessTest::Run( void )
 	GL_CHECK( glUseProgram( program ) );
 	GL_CHECK( glUniformMatrix4fv( modelToViewLoc, 1, GL_FALSE, glm::value_ptr( view.transform ) ) );
 
-	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
+	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 	GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
 	
-	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
+	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
-	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, tessVertices.size() ) );
+	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, tessVertices.size() ) );
 
 	GL_CHECK( glBindVertexArray( 0 ) );
 	//GL_CHECK( glUseProgram( 0 ) );
