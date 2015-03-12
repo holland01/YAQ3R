@@ -85,9 +85,9 @@ TessTri::~TessTri( void )
 	GL_CHECK( glDeleteBuffers( 2, vbos ) );
 }
 
-void TessTri::Render( const glm::mat4& viewTransform, GLuint location )
+void TessTri::Render( const viewParams_t& view, GLuint location )
 {
-	GL_CHECK( glUniformMatrix4fv( location, 1, GL_FALSE, glm::value_ptr( viewTransform * modelTransform ) ) );
+	GL_CHECK( glUniformMatrix4fv( location, 1, GL_FALSE, glm::value_ptr( view.transform * modelTransform ) ) );
 
 	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 	GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
@@ -95,9 +95,25 @@ void TessTri::Render( const glm::mat4& viewTransform, GLuint location )
 	
 	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
-	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, tessVertices.size() ) );
+	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, tessVertices.size() ) );
 
 	GL_CHECK( glBindVertexArray( 0 ) );
+
+	GL_CHECK( glUseProgram( 0 ) );
+
+	ImPrep( view.transform * modelTransform, view.clipTransform );
+	ImDrawAxes( 1000.0f );
+
+	glBegin( GL_POINTS );
+		glColor3f( 1.0f, 0.0f, 0.0f );
+		glVertex3fv( glm::value_ptr( mainVertices[ 0 ].position ) );
+
+		glColor3f( 0.0f, 1.0f, 0.0f );
+		glVertex3fv( glm::value_ptr( mainVertices[ 1 ].position ) );
+
+		glColor3f( 0.0f, 0.0f, 1.0f );
+		glVertex3fv( glm::value_ptr( mainVertices[ 2 ].position ) );
+	glEnd();
 }
 
 //----------------------------------------------------------------
@@ -194,25 +210,9 @@ void TessTest::Run( void )
 
 	const viewParams_t& view = camera->ViewData();
 
-	GL_CHECK( glUseProgram( program ) );
-	
 	for ( TessTri* tri: tris )
-		tri->Render( view.transform, modelToViewLoc );
-
-	//GL_CHECK( glUseProgram( 0 ) );
-	
-	ImPrep( view.transform, view.clipTransform );
-	ImDrawAxes( 1000.0f );
-
-	/*
-	glBegin( GL_POINTS );
-	glColor3f( 1.0f, 0.0f, 0.0f );
-	glVertex3fv( glm::value_ptr( mainVertices[ 0 ].position ) );
-
-	glColor3f( 0.0f, 1.0f, 0.0f );
-	glVertex3fv( glm::value_ptr( mainVertices[ 1 ].position ) );
-
-	glColor3f( 0.0f, 0.0f, 1.0f );
-	glVertex3fv( glm::value_ptr( mainVertices[ 2 ].position ) );
-	glEnd();*/
+	{
+		GL_CHECK( glUseProgram( program ) );
+		tri->Render( view, modelToViewLoc );
+	}	
 }

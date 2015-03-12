@@ -45,42 +45,56 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 		if ( accumTris >= maxTris )
 			return;
 
-		float stripLen = glm::length( b2 - a2 );
+		float numStrips = glm::length( b2 - a2 ) / glm::length( b0 - a0 );
+		float rem = numStrips - glm::floor( numStrips );
+		numStrips -= rem;
+
 		// Path trace the edges of our triangle defined by vertices a2 and b2
 		const glm::vec3 e1( b0 - a0 );
 		const glm::vec3 e2( c0 - b0 );
 
-		float scalar = 0.0f;
+		float walk;
 
 		// if fmod( stripLen, sepLength ) != 0, then you need to come up with a resolution
 		// which involves "fitting" as much of a triangle as possible into the last
 		// very last iteration ( when walk == (stripLen - stepLength) )
 
 		// Iterate along the edge and produce two tris per step
-		for ( float walk = 0.0f; walk < stripLen; walk += stepLength )
+		for ( walk = 0.0f; walk < numStrips; walk++ )
 		{
-			glm::vec3 offset( a2 + e1 * scalar );
+			glm::vec3 offset( a2 + e1 * walk );
 			
-			glm::vec3 v1( offset );
-			glm::vec3 v2( v1 + e1 );
-			glm::vec3 v3( v2 + e2 );
+			glm::vec3 v2( offset + e1 );
+			glm::vec3 v3( offset + e2 );
 			
-			outVerts.push_back( vertexGenFn( v1, tessInfo ) );
+			outVerts.push_back( vertexGenFn( offset, tessInfo ) );
 			outVerts.push_back( vertexGenFn( v2, tessInfo ) );
 			outVerts.push_back( vertexGenFn( v3, tessInfo ) );
 			accumTris++;
 
-			if ( walk < stripLen - stepLength )
+			// Ensure we're not on the last iteration, otherwise we have
+			// a quad sticking out from the triangle edge
+			if ( walk < numStrips - 1.0f )
 			{
-				outVerts.push_back( vertexGenFn( v3 + e1, tessInfo ) );				
+				outVerts.push_back( vertexGenFn( v3, tessInfo ) );
+				outVerts.push_back( vertexGenFn( v3 + e1, tessInfo ) );
+				outVerts.push_back( vertexGenFn( v2, tessInfo ) );
 				accumTris++;
 			}
-			else
-			{ // Add a dummy vertex to produce a degenerate triangle so the strip doesn't get pwnt.
-				outVerts.push_back( outVerts[ outVerts.size() - 1 ] );
-			}
+		}
 
-			scalar += 1.0f;
+		// There's a little bit left to work with,
+		// so we add what we can
+		if ( rem != 0.0f )
+		{
+			glm::vec3 offset( a2 + e1 * walk );
+
+			glm::vec3 v2( offset + e1 * rem );
+			glm::vec3 v3( offset + e2 );
+
+			outVerts.push_back( vertexGenFn( offset, tessInfo ) );
+			outVerts.push_back( vertexGenFn( v2, tessInfo ) );
+			outVerts.push_back( vertexGenFn( v3, tessInfo ) );
 		}
 
 		LTessellate_r( a2 + aToC, b2 + bToC );

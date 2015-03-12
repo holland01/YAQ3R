@@ -24,7 +24,7 @@ public:
 
 	~TessTri( void );
 
-	void Render( const glm::mat4& viewTransform, GLuint location );
+	void Render( const viewParams_t& view, GLuint location );
 };
 
 class TessTest : public Test
