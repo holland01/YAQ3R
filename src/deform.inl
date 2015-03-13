@@ -65,10 +65,11 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 		const glm::vec3 bTop( a2 + aToB );
 		const glm::vec3 bLeft( b2 + bToC );
 
-		// if fmod( stripLen, sepLength ) != 0, then you need to come up with a resolution
-		// which involves "fitting" as much of a triangle as possible into the last
-		// very last iteration ( when walk == (stripLen - stepLength) )
-		// Iterate along the edge and produce two tris per step
+		// NOTE: consider stopping the traversal as soon as ( a2 + aToC == C ) && ( b2 + bToC == C ).
+		// One thing which needs to be taken account of and ensured is that both a2 and b2 reach C at the same time to ensure
+		// consistency in the tessellation traversal. This might be accomplished through scaling ( bToC = c0 - b0 ) so
+		// that its length matches that of ( aToC = c0 - a0 ). Slope / rise over run will be your friend here. Maybe scaling bToC by a scalar projection
+		// of the form bToC * ( dot( bToC, aToC ) / length( aToC ) ) will do this too.
 
 		bool remStripNeeded = false;
 		float walk;
