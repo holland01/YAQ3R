@@ -1,5 +1,6 @@
 
 #include <cmath>
+#include <glm/gtx/projection.hpp>
 
 template < typename vertexType_t > static INLINE void TessellateTri( 
 	std::vector< vertexType_t >& outVerts, 
@@ -40,26 +41,37 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 
 	float accumTris = 0;
 
+	auto LValidateClippedArea = []( const glm::vec3& top, const glm::vec3& bot, const glm::vec3& left ) -> bool
+	{
+		const glm::vec3& normal = left - bot;
+		  
+		return glm::length( normal ) >= glm::length( glm::proj( left - top, normal ) );
+	};
+
 	tessLambda_t LTessellate_r = [ & ]( const glm::vec3& a2, const glm::vec3& b2 )
 	{
 		if ( accumTris >= maxTris )
 			return;
 
-		float numStrips = glm::length( b2 - a2 ) / glm::length( b0 - a0 );
+		const glm::vec3 aToB( b2 - a2 );
+
+		float numStrips = glm::length( aToB ) / glm::length( b0 - a0 );
 		float rem = numStrips - glm::floor( numStrips );
 		numStrips -= rem;
 
 		// Path trace the edges of our triangle defined by vertices a2 and b2
 		const glm::vec3 e1( b0 - a0 );
-		const glm::vec3 e2( c0 - b0 );
-
-		float walk;
+		const glm::vec3 e2( c0 - a0 );
+		const glm::vec3 bTop( a2 + aToB );
+		const glm::vec3 bLeft( b2 + bToC );
 
 		// if fmod( stripLen, sepLength ) != 0, then you need to come up with a resolution
 		// which involves "fitting" as much of a triangle as possible into the last
 		// very last iteration ( when walk == (stripLen - stepLength) )
-
 		// Iterate along the edge and produce two tris per step
+
+		bool remStripNeeded = false;
+		float walk;
 		for ( walk = 0.0f; walk < numStrips; walk++ )
 		{
 			glm::vec3 offset( a2 + e1 * walk );
@@ -71,14 +83,26 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 			outVerts.push_back( vertexGenFn( v2, tessInfo ) );
 			outVerts.push_back( vertexGenFn( v3, tessInfo ) );
 			accumTris++;
-
-			// Ensure we're not on the last iteration, otherwise we have
-			// a quad sticking out from the triangle edge
-			if ( walk < numStrips - 1.0f )
+			
+			// If we're on the last iteration, verify we have enough 
+			// room left in order to append another triangle;
+			// a rem of 0 means that we indefinitely cannot fit another
+			// triangle of normal size; otherwise, we perform one last check
+			if ( walk >= numStrips - 1.0f )
+			{
+				if ( rem == 0.0f || !LValidateClippedArea( bTop, v2, bLeft ) )
+				{
+					// This obviously is irrelevant if rem is 0
+					remStripNeeded = true;
+					continue;
+				}
+			}
+			else 
 			{
 				outVerts.push_back( vertexGenFn( v3, tessInfo ) );
-				outVerts.push_back( vertexGenFn( v3 + e1, tessInfo ) );
 				outVerts.push_back( vertexGenFn( v2, tessInfo ) );
+				outVerts.push_back( vertexGenFn( v3 + e1, tessInfo ) );
+			
 				accumTris++;
 			}
 		}
@@ -87,17 +111,28 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 		// so we add what we can
 		if ( rem != 0.0f )
 		{
-			glm::vec3 offset( a2 + e1 * walk );
+			glm::vec3 v1( a2 + e1 * walk );
 
-			glm::vec3 v2( offset + e1 * rem );
-			glm::vec3 v3( offset + e2 );
+			glm::vec3 up = b2 - v1;
+			glm::vec3 left = bLeft - v1;
 
-			outVerts.push_back( vertexGenFn( offset, tessInfo ) );
+			glm::vec3 v2( v1 + up );
+			glm::vec3 v3( v1 + left );
+
+			// Adjust to the other side if necessary, taking winding order into account 
+			if ( remStripNeeded )
+			{
+				v1 = v2;
+				v2 = v3 + up;
+			}
+
+			outVerts.push_back( vertexGenFn( v1, tessInfo ) );
 			outVerts.push_back( vertexGenFn( v2, tessInfo ) );
 			outVerts.push_back( vertexGenFn( v3, tessInfo ) );
+			accumTris++;
 		}
 
-		LTessellate_r( a2 + aToC, b2 + bToC );
+		LTessellate_r( a2 + aToC, bLeft );
 	};
 
 	LTessellate_r( a, b );
