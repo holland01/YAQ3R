@@ -2,6 +2,19 @@
 #include "../shader.h"
 #include "../glutil.h"
 #include <array>
+#include <random>
+#include <cmath>
+#include <iomanip>
+
+bool operator == ( const tessVert_t& a, const tessVert_t& b )
+{
+	return a.position == b.position;
+}
+
+bool operator != ( const tessVert_t& a, const tessVert_t& b )
+{
+	return !( a == b );
+}
 
 static int colorIndex = 0;
 
@@ -14,7 +27,7 @@ static std::array< glm::vec4, 3 > colorTable =
 
 static int vcount = 0;
 
-static tessVert_t GenVertex( const glm::vec3& v, const tessellateInfo_t& info ) 
+static tessVert_t GenVertex( const glm::vec3& v ) 
 {
 	tessVert_t vertex = 
 	{
@@ -46,9 +59,7 @@ TessTri::TessTri( const glm::mat3& verts )
 		{ verts[ 2 ], color }
 	};
 
-	glm::vec3 normal = glm::cross( mainVertices[ 1 ].position - mainVertices[ 0 ].position, mainVertices[ 2 ].position - mainVertices[ 1 ].position );
-
-	TessellateTri< tessVert_t >( tessVertices, GenVertex, 16.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position, normal );
+	TessellateTri< tessVert_t >( tessVertices, tessIndices, GenVertex, 16.0f, mainVertices[ 0 ].position, mainVertices[ 1 ].position, mainVertices[ 2 ].position );
 
 	auto LLoadLayout = []( void ) 
 	{
@@ -60,7 +71,7 @@ TessTri::TessTri( const glm::mat3& verts )
 	};
 
 	GL_CHECK( glGenVertexArrays( 2, vaos ) );
-	GL_CHECK( glGenBuffers( 2, vbos ) );
+	GL_CHECK( glGenBuffers( 3, vbos ) );
 
 	GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbos[ 0 ] ) );
@@ -69,8 +80,12 @@ TessTri::TessTri( const glm::mat3& verts )
 
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbos[ 1 ] ) );
-	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( tessVert_t ) * tessVertices.size(), &tessVertices[ 0 ], GL_STATIC_DRAW ) );
+	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( tessVert_t ) * tessVertices.size(), &tessVertices[ 0 ], GL_STATIC_DRAW ) );	
 	LLoadLayout();
+
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
+	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * tessIndices.size(), &tessIndices[ 0 ], GL_STATIC_DRAW ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
 	GL_CHECK( glBindVertexArray( 0 ) );
@@ -82,20 +97,22 @@ TessTri::~TessTri( void )
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glDeleteVertexArrays( 2, vaos ) );
-	GL_CHECK( glDeleteBuffers( 2, vbos ) );
+	GL_CHECK( glDeleteBuffers( 3, vbos ) );
 }
 
 void TessTri::Render( const viewParams_t& view, GLuint location )
 {
 	GL_CHECK( glUniformMatrix4fv( location, 1, GL_FALSE, glm::value_ptr( view.transform * modelTransform ) ) );
 
-	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
+	GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 	GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
 	
-	//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
+    GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
-	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, tessVertices.size() ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
+	GL_CHECK( glDrawElements( GL_TRIANGLES, tessIndices.size(), GL_UNSIGNED_INT, NULL ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glBindVertexArray( 0 ) );
 
@@ -180,32 +197,34 @@ void TessTest::Load( void )
 	GL_CHECK( glProgramUniformMatrix4fv( program, viewToClipLoc, 1, GL_FALSE, glm::value_ptr( camera->ViewData().clipTransform ) ) );
 
 	GL_CHECK( glPointSize( 10.0f ) );
+	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
+	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glClearDepth( 1.0f ) );
 
-	TessTri* one = new TessTri( 
-		glm::mat3( 
-			1000.0f, 0.0f, 0.0f,
-			0.0f, 1000.0f, 0.0f,
-			0.0f, 0.0f, 1000.0f 
-		) 
-	);
+	std::random_device rd;
+	std::mt19937 e( rd() );
+	std::uniform_real_distribution< float > dist( 0.0f, 1000.0f );
 
-	tris.push_back( one );
+	for ( uint32_t i = 0; i < 5; ++i )
+	{
+		glm::vec3 a( dist( e ), 0.0f, 0.0f );
+		glm::vec3 b( 0.0f, dist( e ), 0.0f );
+		glm::vec3 c( 0.0f, 0.0f, dist( e ) );
 
-	TessTri* two = new TessTri(
-		glm::mat3(
-			600.0f, 0.0f, 0.0f,
-			0.0f, 400.0f, 0.0f,
-			0.0f, 0.0f, 200.0f 
-		)
-	);
+		glm::mat3 v( a, b, c );
 
-	two->modelTransform = glm::translate( glm::mat4( 1.0f ), glm::vec3( 1500.0f, 0.0f, 0.0f ) );
+		TessTri* t =  new TessTri( v );
 
-	tris.push_back( two );
+		t->modelTransform = glm::translate( glm::mat4( 1.0f ), glm::vec3( i * dist( e ), i * dist( e ), i * dist( e ) ) );
+
+		tris.push_back( t );
+	}
 }
 
 void TessTest::Run( void )
 {
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 	camera->Update();
 
 	const viewParams_t& view = camera->ViewData();

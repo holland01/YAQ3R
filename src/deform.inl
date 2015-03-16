@@ -1,15 +1,16 @@
 
 #include <cmath>
 #include <glm/gtx/projection.hpp>
+#include <memory>
 
 template < typename vertexType_t > static INLINE void TessellateTri( 
 	std::vector< vertexType_t >& outVerts, 
-	std::function< vertexType_t( const glm::vec3&, const tessellateInfo_t& ) > vertexGenFn,
+	std::vector< triangle_t >& outIndices,
+	std::function< vertexType_t( const glm::vec3& ) > vertexGenFn,
 	const float amount, 
 	const glm::vec3& a, 
 	const glm::vec3& b, 
-	const glm::vec3& c, 
-	const glm::vec3& surfaceNormal )
+	const glm::vec3& c )
 {
 	auto LTriArea = []( const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3 ) -> float
 	{
@@ -21,120 +22,151 @@ template < typename vertexType_t > static INLINE void TessellateTri(
 
 	using tessLambda_t = std::function< void( const glm::vec3& a2, const glm::vec3& b2 ) >;
 
-	const float aLength = glm::length( a );
-	const float bLength = glm::length( b );
-
 	float step = 1.0f / amount;
 
-	glm::vec3 a0( a * step );
-	glm::vec3 b0( b * step );
-	glm::vec3 c0( c * step );
+	// Use these as a basis for when either the a or b traversal vectors
+	// have passed vertex c
+	glm::vec3 aSig = glm::sign( c - a );
+	glm::vec3 bSig = glm::sign( c - b ); 
 
-	glm::vec3 bToC( c0 - b0 );
-	glm::vec3 aToC( c0 - a0 );
-	
-	float stepLength = glm::length( b0 - a0 );
-	float subdivAmount = amount;
-	float maxTris = LTriArea( a, b, c ) / LTriArea( a0, b0, c0 );
+	bool aPassed = false;
+	bool bPassed = false;
 
-	tessellateInfo_t tessInfo;
+	glm::vec3 bToC( ( c - b ) * step );
+ 	
+	glm::vec3 aToC( ( c - a ) * step ); 
+	aToC *= glm::length( bToC ) / glm::length( aToC );
 
-	float accumTris = 0;
+	std::unique_ptr< baryCoordSystem_t > triCoordSys( new baryCoordSystem_t( a, b, c ) );
 
-	auto LValidateClippedArea = []( const glm::vec3& top, const glm::vec3& bot, const glm::vec3& left ) -> bool
+	auto LPassedC = [ &c ]( const glm::vec3& point, const glm::vec3& sig ) -> bool
 	{
-		const glm::vec3& normal = left - bot;
-		  
-		return glm::length( normal ) >= glm::length( glm::proj( left - top, normal ) );
+		return ( glm::sign( c - point ) != sig );
 	};
 
-	tessLambda_t LTessellate_r = [ & ]( const glm::vec3& a2, const glm::vec3& b2 )
+	glm::vec3 a2( a );
+	glm::vec3 b2( b );
+
+	while ( a2 != c && b2 != c )
 	{
-		if ( accumTris >= maxTris )
-			return;
+		if ( glm::any( glm::isnan( a2 ) ) || glm::any( glm::isnan( b2 ) ) )
+			break;
 
-		const glm::vec3 aToB( b2 - a2 );
+		// If either of these are set to true, then we'll have
+		// triangles which exist outside of the parent tri.
+		if ( LPassedC( a2, aSig ) || LPassedC( b2, bSig ) )
+			break;
 
-		float numStrips = glm::length( aToB ) / glm::length( b0 - a0 );
-		float rem = numStrips - glm::floor( numStrips );
-		numStrips -= rem;
-
+		glm::vec3 aToB( b2 - a2 );
+		glm::vec3 aToBStep( aToB * step );
+		
 		// Path trace the edges of our triangle defined by vertices a2 and b2
-		const glm::vec3 e1( b0 - a0 );
-		const glm::vec3 e2( c0 - a0 );
-		const glm::vec3 bTop( a2 + aToB );
-		const glm::vec3 bLeft( b2 + bToC );
+		glm::vec3 end( a2 + aToB );
 
-		// NOTE: consider stopping the traversal as soon as ( a2 + aToC == C ) && ( b2 + bToC == C ).
-		// One thing which needs to be taken account of and ensured is that both a2 and b2 reach C at the same time to ensure
-		// consistency in the tessellation traversal. This might be accomplished through scaling ( bToC = c0 - b0 ) so
-		// that its length matches that of ( aToC = c0 - a0 ). Slope / rise over run will be your friend here. Maybe scaling bToC by a scalar projection
-		// of the form bToC * ( dot( bToC, aToC ) / length( aToC ) ) will do this too.
-
-		bool remStripNeeded = false;
-		float walk;
-		for ( walk = 0.0f; walk < numStrips; walk++ )
+		float walk = 0.0f;
+		float walkLength = 0.0f;
+		float walkStep = glm::length( aToBStep ) / glm::length( aToB );
+		float endLength = glm::length( aToB );
+		
+		while ( walkLength < endLength )
 		{
-			glm::vec3 offset( a2 + e1 * walk );
-			
-			glm::vec3 v2( offset + e1 );
-			glm::vec3 v3( offset + e2 );
-			
-			outVerts.push_back( vertexGenFn( offset, tessInfo ) );
-			outVerts.push_back( vertexGenFn( v2, tessInfo ) );
-			outVerts.push_back( vertexGenFn( v3, tessInfo ) );
-			accumTris++;
-			
-			// If we're on the last iteration, verify we have enough 
-			// room left in order to append another triangle;
-			// a rem of 0 means that we indefinitely cannot fit another
-			// triangle of normal size; otherwise, we perform one last check
-			if ( walk >= numStrips - 1.0f )
+			glm::vec3 v1( a2 + aToB * walk );
+			glm::vec3 v2( v1 + aToBStep );
+			glm::vec3 v3( v1 + aToC );
+					
+			// Clamp our second vertex at the top of the path
+			// for this strip if it's out of bounds
+			if ( !triCoordSys->IsInTri( v2 ) )
+				v2 = a2 + aToB;
+
+			// Clamp our third vertex to the next
+			// starting point for b2 if it's out of bounds
+			if ( !triCoordSys->IsInTri( v3 ) )
+				v3 = b2 + bToC;
+
+			size_t numVertices = outVerts.size();
+
+			vertexType_t gv1 = vertexGenFn( v1 );
+			vertexType_t gv2 = vertexGenFn( v2 );
+			vertexType_t gv3 = vertexGenFn( v3 );
+
+			triangle_t t1;
+
+			auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
+			if ( v1Iter == outVerts.end() )
 			{
-				if ( rem == 0.0f || !LValidateClippedArea( bTop, v2, bLeft ) )
+				outVerts.push_back( gv1 );
+				t1.indices[ 0 ] = numVertices++;
+			}
+			else
+			{
+				t1.indices[ 0 ] = v1Iter - outVerts.begin(); 
+			}
+
+			auto v2Iter = std::find( outVerts.begin(), outVerts.end(), gv2 );
+			if ( v2Iter == outVerts.end() )
+			{
+				outVerts.push_back( gv2 );
+				t1.indices[ 1 ] = numVertices++;
+			}
+			else
+			{
+				t1.indices[ 1 ] = v2Iter - outVerts.begin(); 
+			}
+
+			auto v3Iter = std::find( outVerts.begin(), outVerts.end(), gv3 );
+			if ( v3Iter == outVerts.end() )
+			{
+				outVerts.push_back( gv3 );
+				t1.indices[ 2 ] = numVertices++;
+			}
+			else
+			{
+				t1.indices[ 2 ] = v3Iter - outVerts.begin(); 
+			}
+
+			outIndices.push_back( t1 );
+			
+			// Attempt a second triangle, providing v4
+			// is within the bounds
+			glm::vec3 v4( v3 + aToBStep );
+			if ( !triCoordSys->IsInTri( v4 ) )
+				goto end_iteration;
+
+			{
+				vertexType_t gv4 = vertexGenFn( v4 );
+				auto v4Iter = std::find( outVerts.begin(), outVerts.end(), gv4 );
+
+				triangle_t t2 = 
 				{
-					// This obviously is irrelevant if rem is 0
-					remStripNeeded = true;
-					continue;
-				}
-			}
-			else 
-			{
-				outVerts.push_back( vertexGenFn( v3, tessInfo ) );
-				outVerts.push_back( vertexGenFn( v2, tessInfo ) );
-				outVerts.push_back( vertexGenFn( v3 + e1, tessInfo ) );
+					{
+						t1.indices[ 2 ],
+						t1.indices[ 1 ],
+						0
+					}
+				};
 			
-				accumTris++;
-			}
-		}
+				if ( v4Iter == outVerts.end() )
+				{
+					outVerts.push_back( gv4 );
+					t2.indices[ 2 ] = numVertices;
+				}
+				else
+				{
+					t2.indices[ 2 ] = v4Iter - outVerts.begin();
+				}
 
-		// There's a little bit left to work with,
-		// so we add what we can
-		if ( rem != 0.0f )
-		{
-			glm::vec3 v1( a2 + e1 * walk );
-
-			glm::vec3 up = b2 - v1;
-			glm::vec3 left = bLeft - v1;
-
-			glm::vec3 v2( v1 + up );
-			glm::vec3 v3( v1 + left );
-
-			// Adjust to the other side if necessary, taking winding order into account 
-			if ( remStripNeeded )
-			{
-				v1 = v2;
-				v2 = v3 + up;
+				outIndices.push_back( t2 );
 			}
 
-			outVerts.push_back( vertexGenFn( v1, tessInfo ) );
-			outVerts.push_back( vertexGenFn( v2, tessInfo ) );
-			outVerts.push_back( vertexGenFn( v3, tessInfo ) );
-			accumTris++;
+end_iteration:
+			walk += walkStep;
+			walkLength = glm::length( aToB * walk );
 		}
+		
+		a2 += aToC;
+		b2 += bToC;
+	}
 
-		LTessellate_r( a2 + aToC, bLeft );
-	};
-
-	LTessellate_r( a, b );
+	//LTessellate_r( a, b );
 }

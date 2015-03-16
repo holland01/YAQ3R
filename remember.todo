@@ -61,53 +61,10 @@ Impl:
       
       - vertexDeformation
         - On barycentric tessellation: 
-          * understand how to traverse the entire surface. You might be able to do something along the means of a "scan-line".
-          For example:
-            for (height = 0; height <= 1.0f; height += step)
-            {
-              for (traverse = 1.0 - height; traverse >= 0; traverse -= step)
-              {
-                float right0 = 1.0 - traverse - height;
-              }
-            }
-
-            height, traverse, and right0 will form a barycentric point p(p1, p2, p3).
-
-            Where,
-
-            p1 = traverse
-            p2 = height
-            p3 = right0
-
-            traverse will flow from left to right.
-
-            You need to find a means of producing two other points which will produce an equaliteral triangle.
-            Remember: think about how, once p has been defined for any iteration, adding a value to any of the weights
-            implies subtracting one from the other.
-
-            let u be some constant in the range [0, 0.5]
-
-            So, to add u to p3, you can subtract u from p1: this will effectively move the 
-            point toward p3, while remaining at the same "level" (i.e., p2's value is still the same)
-
-            here's c, the right point of the triangle:
-              c1 = traverse - u
-              c2 = height
-              c3 = right0 + u
-
-            and k, the top vertex:
-              k1 = traverse - u * 0.5
-              k2 = height
-              k3 = right0 + u * 0.5
-
-              This sets k between p and c. However, we still need to move it upwards while continuing to maintain the equation k1 + k2 + k3 = 1
-              
-              k1 = traverse - u * 0.5 - u
-              k2 = height + u
-              k3 = right0 + u * 0.5 - u
-
-              Provided we have a 3x3 matrix with a column basis matching each world-space position of the triangle,
-              we can take these weighted points and transform each one to produce corresponding world space points
+         Almost finished. The vertices generated, while not ideal, should be sufficient for now. However, the indices being
+		 generated aren't working properly. The result is a half-finished filled triangle, when there should be more
+		 of the tessellated triangle's area getting filled. This is most likely somewhere in the vertex generation
+		 loop, and may even have something to do with STL iterators.
 
         - it's important to verify whether or not the deformations should take place after a given triangle is subdivided, 
           *while* a given triangle is being subdivided (i.e., each subdivided triangle has the deform applied regardless of whether or not it's added

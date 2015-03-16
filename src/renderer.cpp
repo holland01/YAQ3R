@@ -457,7 +457,7 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 	{
 		memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
 
-		patchRenderer.Tesselate( subdivLevel );
+		patchRenderer.Tessellate( subdivLevel );
 		patchRenderer.Render();
 
 		// Rebind after render since patchRenderer overrides with its own vbo

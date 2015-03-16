@@ -2,20 +2,27 @@
 
 #include "test.h"
 
+struct triangle_t;
+
 struct tessVert_t
 {
 	glm::vec3 position;
 	glm::vec4 color;
 };
 
+
+bool operator == ( const tessVert_t& a, const tessVert_t& b );
+bool operator != ( const tessVert_t& a, const tessVert_t& b );
+
 class TessTri
 {
 private:
-	GLuint vbos[ 2 ];
+	GLuint vbos[ 3 ];
 	GLuint vaos[ 2 ];
 
 	std::vector< tessVert_t > mainVertices;
 	std::vector< tessVert_t > tessVertices;
+	std::vector< triangle_t > tessIndices;
 
 public:
 	glm::mat4 modelTransform;
