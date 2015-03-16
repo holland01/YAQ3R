@@ -109,7 +109,9 @@ void TessTri::Render( const viewParams_t& view, GLuint location )
 	GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
 	
     GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
+	
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
+
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
 	GL_CHECK( glDrawElements( GL_TRIANGLES, tessIndices.size(), GL_UNSIGNED_INT, NULL ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );

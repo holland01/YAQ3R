@@ -39,6 +39,8 @@ public:
     void						Render( void ) const;
 };
 
+// Computations shamelessly stolen
+// from http://gamedev.stackexchange.com/a/49370/8185
 struct baryCoordSystem_t
 {
 	glm::vec3 a;
