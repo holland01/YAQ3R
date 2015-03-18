@@ -167,6 +167,4 @@ end_iteration:
 		a2 += aToC;
 		b2 += bToC;
 	}
-
-	//LTessellate_r( a, b );
 }

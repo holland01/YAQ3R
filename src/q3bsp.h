@@ -209,6 +209,14 @@ INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
 	return vert;
 }
 
+INLINE bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
+{
+	return a.position == b.position 
+		&& a.texCoords[ 0 ] == b.texCoords[ 0 ]
+		&& a.texCoords[ 1 ] == b.texCoords[ 1 ]
+		&& a.normal == b.normal;
+}
+
 /*
 =====================================================
 
@@ -284,11 +292,12 @@ private:
 
 public:
 
-	std::vector< GLuint >		glTextures;		// has one->one map with texture indices
-	std::vector< GLuint >		glSamplers;		// has one->one map with glTextures
-	std::vector< mapModel_t >	glFaces;		// has one->one map with face indices
-	std::vector< GLuint >		glLightmaps;	// textures - has one->one map with lightmap indices
-					GLuint		glLightmapSampler;
+	std::vector< GLuint >			glTextures;		// has one->one map with texture indices
+	std::vector< GLuint >			glSamplers;		// has one->one map with glTextures
+	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
+	std::vector< deformModel_t >	glDeformed;		// has one->one map with any deform meshes
+	std::vector< GLuint >			glLightmaps;	// textures - has one->one map with lightmap indices
+					GLuint			glLightmapSampler;
 
 	std::map< std::string, shaderInfo_t > effectShaders;
 

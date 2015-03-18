@@ -35,7 +35,6 @@ public:
 	~BezPatch( void );
 
     void						Tessellate( int level );
-
     void						Render( void ) const;
 };
 

@@ -84,7 +84,7 @@ TessTri::TessTri( const glm::mat3& verts )
 	LLoadLayout();
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
-	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * tessIndices.size(), &tessIndices[ 0 ], GL_STATIC_DRAW ) );
+	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * tessIndices.size(), &tessIndices[ 0 ].indices[ 0 ], GL_STATIC_DRAW ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
@@ -113,7 +113,8 @@ void TessTri::Render( const viewParams_t& view, GLuint location )
 	GL_CHECK( glBindVertexArray( vaos[ 1 ] ) );
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
-	GL_CHECK( glDrawElements( GL_TRIANGLES, tessIndices.size(), GL_UNSIGNED_INT, NULL ) );
+	
+	GL_CHECK( glDrawElements( GL_TRIANGLES, tessIndices.size() * 3, GL_UNSIGNED_INT, NULL ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glBindVertexArray( 0 ) );

@@ -361,6 +361,42 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 	glFaces.resize( data.numFaces );
 
+
+	// TODO: clean up the shame that is this mess :|
+
+	int currDeformFace = 0;
+	auto LGenDeformVertex = [ &currDeformFace, this ]( const glm::vec3& position ) -> bspVertex_t
+	{
+		const bspFace_t* f = data.faces + currDeformFace;
+		const shaderInfo_t* shader = GetShaderInfo( currDeformFace );
+		bspVertex_t v;
+
+		switch ( shader->deformCmd )
+		{
+		case VERTEXDEFORM_CMD_WAVE:
+			{
+				switch ( shader->deformFn )
+				{
+				case VERTEXDEFORM_FUNC_TRIANGLE:
+					{
+						const glm::vec3 a( glm::mod( position * shader->deformFrequency + glm::vec3( shader->deformPhase ), glm::one< glm::vec3 >() ) );
+						const glm::vec3& b = 2.0f * shader->deformAmplitude * a - shader->deformAmplitude;
+
+						v.position = glm::abs( b ) - shader->deformAmplitude * 0.5f;
+					}
+					break;
+				}
+			}
+			break;
+
+		default:
+			MLOG_ERROR( "Non-implemented vertex deform command specified." );
+			break;
+		}
+
+		return v;
+	};
+
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
 	for ( int i = 0; i < data.numFaces; ++i )
@@ -377,6 +413,27 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			{
 				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
 				glFaces[ i ].vertices[ j ] = data.vertexes[ glFaces[ i ].indices[ j ] ];
+			}
+
+			const shaderInfo_t* shader = GetShaderInfo( i );
+
+			// Perform tessellation if requested.
+			if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
+			{
+				deformModel_t def;
+
+				// Shitty solution: declare a global
+				// outside of the loop which is caught and used by the outer lambda to deform the vertex deform.
+				currDeformFace = i;
+
+				for ( int j = 0; j < glFaces[ i ].indices.size(); j += 3 )
+				{
+					const bspVertex_t* a = &data.vertexes[ glFaces[ i ].indices[ j ] ];
+					const bspVertex_t* b = &data.vertexes[ glFaces[ i ].indices[ j + 1 ] ];
+					const bspVertex_t* c = &data.vertexes[ glFaces[ i ].indices[ j + 2 ] ];
+
+					TessellateTri< bspVertex_t >( def.vertices, def.tris, LGenDeformVertex, shader->tessSize, a->position, b->position, c->position );
+				}
 			}
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
@@ -400,14 +457,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 		else
 		{
 			continue;
-		}
-
-		const shaderInfo_t* shader = GetShaderInfo( i );
-
-		if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
-		{
-			//deformModel_t model;
-		//	Tessellate( &model, &data, glFaces[ i ].indices, data.vertexes, shader->tessSize );
 		}
 	}
 }
