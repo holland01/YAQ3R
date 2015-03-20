@@ -60,11 +60,13 @@ Impl:
         - Need to look into cull settings - this may alleviate some issues
       
       - vertexDeformation
-        - On barycentric tessellation: 
-         Almost finished. The vertices generated, while not ideal, should be sufficient for now. However, the indices being
-		 generated aren't working properly. The result is a half-finished filled triangle, when there should be more
-		 of the tessellated triangle's area getting filled. This is most likely somewhere in the vertex generation
-		 loop, and may even have something to do with STL iterators.
+        test out triangle; make sure that works properly by comparing the results with a different renderer. Then, refactor the ungodly mess which is Q3BspMap::Read.
+        Separate that into different functions; something like:
+          - Read data.
+          - Gen textures
+          - Gen models (BSP Patches, cached vertex data for polygon/mesh types, etc.)
+
+          Don't be afraid to be more cut and dry, though.
 
         - it's important to verify whether or not the deformations should take place after a given triangle is subdivided, 
           *while* a given triangle is being subdivided (i.e., each subdivided triangle has the deform applied regardless of whether or not it's added

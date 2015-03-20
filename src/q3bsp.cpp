@@ -364,11 +364,21 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 	// TODO: clean up the shame that is this mess :|
 
-	int currDeformFace = 0;
-	auto LGenDeformVertex = [ &currDeformFace, this ]( const glm::vec3& position ) -> bspVertex_t
+	/*
+	struct 
 	{
-		const bspFace_t* f = data.faces + currDeformFace;
-		const shaderInfo_t* shader = GetShaderInfo( currDeformFace );
+		int faceIndex;
+		int aIndex;
+		int bIndex;
+		int cIndex;
+	}
+	currDeformData;
+
+	int currDeformFace = 0;
+	auto LGenDeformVertex = [ &currDeformData, this ]( const glm::vec3& position ) -> bspVertex_t
+	{
+		const bspFace_t* f = data.faces + currDeformData.faceIndex;
+		const shaderInfo_t* shader = GetShaderInfo( currDeformData.faceIndex );
 		bspVertex_t v;
 
 		switch ( shader->deformCmd )
@@ -379,6 +389,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 				{
 				case VERTEXDEFORM_FUNC_TRIANGLE:
 					{
+						
 						const glm::vec3 a( glm::mod( position * shader->deformFrequency + glm::vec3( shader->deformPhase ), glm::one< glm::vec3 >() ) );
 						const glm::vec3& b = 2.0f * shader->deformAmplitude * a - shader->deformAmplitude;
 
@@ -396,6 +407,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 		return v;
 	};
+	*/
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
@@ -420,6 +432,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 			// Perform tessellation if requested.
 			if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
 			{
+				/*
 				deformModel_t def;
 
 				// Shitty solution: declare a global
@@ -434,6 +447,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 					TessellateTri< bspVertex_t >( def.vertices, def.tris, LGenDeformVertex, shader->tessSize, a->position, b->position, c->position );
 				}
+				*/
 			}
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )

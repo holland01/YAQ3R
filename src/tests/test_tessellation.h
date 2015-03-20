@@ -1,27 +1,36 @@
 #pragma once
 
 #include "test.h"
+#include "../q3m_model.h"
+#include <memory>
 
-struct triangle_t;
+struct bspVertex_t;
 
-struct tessVert_t
+struct Program
 {
-	glm::vec3 position;
-	glm::vec4 color;
+	GLuint program;
+	std::map< std::string, GLint > uniforms; 
+
+	Program( const char* vertexShader, const char* fragmentShader );
+	~Program( void );
+
+	void AddUnif( const std::string& name );
+
+	void LoadMatrix( const std::string& name, const glm::mat4& t );
+	void LoadVec4( const std::string& name, const glm::vec4& v );
+
+	void Bind( void );
+	void Release( void );
 };
-
-
-bool operator == ( const tessVert_t& a, const tessVert_t& b );
-bool operator != ( const tessVert_t& a, const tessVert_t& b );
 
 class TessTri
 {
 private:
 	GLuint vbos[ 3 ];
-	GLuint vaos[ 2 ];
+	GLuint vaos[ 3 ];
 
-	std::vector< tessVert_t > mainVertices;
-	std::vector< tessVert_t > tessVertices;
+	std::vector< bspVertex_t > mainVertices;
+	std::vector< bspVertex_t > tessVertices;
 	std::vector< triangle_t > tessIndices;
 
 public:
@@ -31,17 +40,14 @@ public:
 
 	~TessTri( void );
 
-	void Render( const viewParams_t& view, GLuint location );
+	void Render( int vaoIndex, const std::unique_ptr< Program >& program, const viewParams_t& view );
 };
 
 class TessTest : public Test
 {
 private:
 	
-	GLuint program;
-
-	GLint modelToViewLoc;
-	GLint viewToClipLoc;
+	std::unique_ptr< Program > fillProgram, lineProgram;
 
 	std::vector< TessTri* > tris;
 
