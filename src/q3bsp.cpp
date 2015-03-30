@@ -43,6 +43,111 @@ static void ScaleCoords( glm::ivec3& v, int scale )
     v.z *= scale;
 }
 
+//-------------------------------------------------------------------------------
+
+bspVertex_t::bspVertex_t( void )
+	: bspVertex_t( glm::zero< glm::vec3 >(), glm::zero< glm::vec3 >(), glm::zero< glm::vec2 >(), glm::zero< glm::vec2 >(), glm::zero< glm::u8vec4 >() )
+{
+}
+
+bspVertex_t::bspVertex_t( const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& surfTexCoords, const glm::vec2& lightmapTexCoords, const glm::u8vec4& color_ )
+	: position( pos ),
+	  normal( norm ),
+	  color( color_ )
+{
+	texCoords[ 0 ] = surfTexCoords;
+	texCoords[ 1 ] = lightmapTexCoords;
+}
+
+bspVertex_t::bspVertex_t( const bspVertex_t& v )
+	: position( v.position ),
+	  normal( v.normal ),
+	  color( v.color )
+{
+	memcpy( texCoords, v.texCoords, sizeof( texCoords ) );
+}
+
+bspVertex_t& bspVertex_t::operator=( bspVertex_t v )
+{
+	position = v.position;
+	normal = v.normal;
+	color = v.color;
+
+	memcpy( texCoords, v.texCoords, sizeof( texCoords ) );
+
+	return *this;
+}
+
+bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
+{
+	bspVertex_t vert;
+	
+	vert.position = a.position + b.position;
+
+	vert.color[ 0 ] = a.color[ 0 ];
+	vert.color[ 1 ] = a.color[ 1 ];
+	vert.color[ 2 ] = a.color[ 2 ];
+	vert.color[ 3 ] = a.color[ 3 ];
+	
+	vert.normal = a.normal + b.normal;
+	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
+
+	// TODO: lightmapCoords?
+
+	return vert;
+}
+
+bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b )
+{
+	bspVertex_t vert;
+	
+	vert.position = a.position - b.position;
+
+	vert.color = a.color;
+	
+	vert.normal = a.normal - b.normal;
+	vert.texCoords[ 0 ] = a.texCoords[ 0 ] - b.texCoords[ 0 ];
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] - b.texCoords[ 1 ];
+
+	return vert;
+}
+
+bspVertex_t operator *( const bspVertex_t& a, float b )
+{
+	bspVertex_t vert;
+	
+	vert.position = a.position * b;
+
+	vert.normal = a.normal * b;
+	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
+
+	vert.color = a.color;
+
+	return vert;
+}
+
+bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b )
+{
+	a.position += b.position;
+	a.normal += b.normal;
+	a.texCoords[ 0 ] += b.texCoords[ 0 ];
+	a.texCoords[ 1 ] += b.texCoords[ 1 ];
+
+	return a;
+}
+
+bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
+{
+	return a.position == b.position 
+		&& a.texCoords[ 0 ] == b.texCoords[ 0 ]
+		&& a.texCoords[ 1 ] == b.texCoords[ 1 ]
+		&& a.normal == b.normal;
+}
+
+//-------------------------------------------------------------------------------
+
 Q3BspMap::Q3BspMap( void )
      :	mapAllocated( false ),
 		data( {} )

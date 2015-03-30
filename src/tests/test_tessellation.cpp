@@ -73,24 +73,18 @@ TessTri::TessTri( const glm::mat3& verts )
 {
 	auto LGenVertex = [ &verts ]( int index ) -> bspVertex_t
 	{
-		bspVertex_t v = 
-		{
-			verts[ index ],
-			{ 
-				glm::vec2( 0.0f ),
-				glm::vec2( 0.0f )
-			},
-			glm::vec3( 0.0f ),
+		bspVertex_t v;
 
-			{
-				255, 
-				255, 
-				255,
-				255
-			}
-		};
+		v.position = verts[ index ];
+		v.color[ 0 ] = v.color[ 1 ] = v.color[ 2 ] = v.color[ 3 ] = 255;
 
 		return v;
+	};
+
+	auto LSetTexCoords = [ & ]( int which, float s, float t ) 
+	{
+		mainVertices[ which ].texCoords[ 0 ].s = mainVertices[ which ].texCoords[ 1 ].s = s;
+		mainVertices[ which ].texCoords[ 0 ].t = mainVertices[ which ].texCoords[ 1 ].t = t;
 	};
 
 	mainVertices = 
@@ -100,7 +94,13 @@ TessTri::TessTri( const glm::mat3& verts )
 		LGenVertex( 2 )
 	};
 
-	TessellateTri( tessVertices, tessIndices, 16.0f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
+	LSetTexCoords( 2, 0.0f, 0.0f );
+	LSetTexCoords( 1, 0.5f, 1.0f );
+	LSetTexCoords( 0, 1.0f, 0.0f );
+
+	float f = glm::length( glm::cross( mainVertices[ 0 ].position, mainVertices[ 1 ].position ) ) / ( glm::length( mainVertices[ 0 ].position ) * glm::length( mainVertices[ 1 ].position ) );
+
+	TessellateTri( tessVertices, tessIndices, 64.0f * f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
 
 	auto LLoadLayout = []( GLuint vao, GLuint vbo, bool hasColor, bool writeData, const std::vector< bspVertex_t >& vertexData ) 
 	{
@@ -311,6 +311,8 @@ void TessTest::Run( void )
 		tri->Render( 1, fillProgram, view );
 
 		lineProgram->LoadVec4( "frag_Color", glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f ) );
+
+		//GL_CHECK( glPolygonOffset( 0.75f, 20.0f ) );
 		tri->Render( 2, lineProgram, view );
 	}	
 }

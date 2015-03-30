@@ -179,7 +179,11 @@ void TessellateTri(
 		return ( glm::sign( c.position - point ) != sig );
 	};
 
-	
+	auto LSetTexCoords = []( bspVertex_t& vert, float x, float y )
+	{
+		vert.texCoords[ 0 ].x = vert.texCoords[ 1 ].x = x;
+		vert.texCoords[ 0 ].y = vert.texCoords[ 1 ].y = y;
+	};
 
 	using tessLambda_t = std::function< void( const glm::vec3& a2, const glm::vec3& b2 ) >;
 
@@ -195,100 +199,73 @@ void TessellateTri(
 
 	std::unique_ptr< baryCoordSystem_t > triCoordSys( new baryCoordSystem_t( a.position, b.position, c.position ) );
 
-	glm::vec3 a2( a.position );
-	glm::vec3 b2( b.position );
+	//glm::vec3 bToC( ( c.position - b.position ) * step );
+	//glm::vec3 aToC( ( c.position - a.position ) * step );
 
-	float minLength = std::numeric_limits< float >::min() * 10.0f;
+	bspVertex_t bToC( ( c - b ) * step );
+	bspVertex_t aToC( ( c - a ) * step );
+	bspVertex_t aToBStep( ( b - a ) * step );
 
-	// Used to find adjacent triangles from a previous strip
-	float indexMapRatio = 0.0f;
-	std::vector< triangle_t > prevStrip, curStrip;
+	//glm::vec3 aToBStep( ( b.position - a.position )  * step );
 
-	auto LIsValidTriangle = [ & ]( const triangle_t& tri ) -> bool
-	{
-		if ( indexMapRatio == 0.0f )
-			return true;
 
-		// Find adjacent triangle; use curStrip.size() as a 0-indexed counter to map into the triangle's prevStrip.
-		int index = ( int )( glm::max< float >( 0.0f, glm::floor( indexMapRatio * ( ( ( float )curStrip.size() ) ) ) ) );
-		
-		if ( index >= prevStrip.size() )
-			return true;
 
-		const triangle_t& adj = prevStrip[ index ];
+	std::vector< triangle_t > curStrip;
 
-		// Check to see if any of this triangle's vertices reside
-		// within the adjacent triangle
-		baryCoordSystem_t adjCoordSys( 
-			outVerts[ adj.indices[ 0 ] ].position, 
-			outVerts[ adj.indices[ 1 ] ].position, 
-			outVerts[ adj.indices[ 2 ] ].position 
-		);
+	// Points which walk along the edges
+	//glm::vec3 a2( a.position );
+	//glm::vec3 b2( b.position );
 
-		return !adjCoordSys.IsInTri( outVerts[ tri.indices[ 0 ] ].position ) 
-			&& !adjCoordSys.IsInTri( outVerts[ tri.indices[ 1 ] ].position )
-			&& !adjCoordSys.IsInTri( outVerts[ tri.indices[ 2 ] ].position );
-	};
+	bspVertex_t a2( a );
+	bspVertex_t b2( b );
 
 	while ( true )
 	{
-		if ( glm::any( glm::isnan( a2 ) ) || glm::any( glm::isnan( b2 ) ) )
+		if ( glm::any( glm::isnan( a2.position ) ) || glm::any( glm::isnan( b2.position ) ) )
 			break;
 
 		// If either of these are set to true, then we'll have
 		// triangles which exist outside of the parent tri.
-		if ( LPassedC( a2, aSig ) || LPassedC( b2, bSig ) )
+		if ( LPassedC( a2.position, aSig ) || LPassedC( b2.position, bSig ) )
 			break;
 
-		if ( a2 == c.position || b2 == c.position )
+		if ( a2.position == c.position || b2.position == c.position )
 			break;
 
-		if ( glm::length( a2 ) <= minLength || glm::length( b2 ) <= minLength )
-			break;
-
-		glm::vec3 aToB( b2 - a2 );
-
-		glm::vec3 bToC( ( c.position - b2 ) );
-		glm::vec3 aToC( ( c.position - a2 ) );
-
-		if ( glm::length( bToC ) > step )
-			bToC *= step;
-
-		if ( glm::length( aToC ) > step )
-			aToC *= step;
-
-		// Keep a2 moving at the same proportion as b2
-		aToC *= glm::length( bToC ) / glm::length( aToC );
-
-		glm::vec3 aToBStep( aToB * step );
-		
+		//glm::vec3 aToB( b2 - a2 );
+		 
 		// Path trace the edges of our triangle defined by vertices a2 and b2
-		glm::vec3 end( a2 + aToB );
+		//glm::vec3 end( a2 + aToB );
+
+		bspVertex_t aToB( b2 - a2 );
+		bspVertex_t end( a2 + aToB );
 
 		float walk = 0.0f;
 		float walkLength = 0.0f;
-		float walkStep = glm::length( aToBStep ) / glm::length( aToB );
-		float endLength = glm::length( aToB );
+		float walkStep = glm::length( aToBStep.position ) / glm::length( aToB.position );
+		float endLength = glm::length( aToB.position );
 		
 		while ( walkLength < endLength )
 		{
-			glm::vec3 v1( a2 + aToB * walk );
-			glm::vec3 v2( v1 + aToBStep );
-			glm::vec3 v3( v1 + aToC );
-					
-			// Clamp our second vertex at the top of the path
-			// for this strip if it's out of bounds
-			if ( !triCoordSys->IsInTri( v2 ) )
-				v2 = a2 + aToB;
+			//glm::vec3 v1( a2 + aToB * walk );
+			//glm::vec3 v2( v1 + aToBStep );
+			//glm::vec3 v3( v1 + aToC );
 
-			// Clamp our third vertex to the next
-			// starting point for b2 if it's out of bounds
-			if ( !triCoordSys->IsInTri( v3 ) )
-				v3 = b2 + bToC;
+			bspVertex_t gv1( a2 + aToB * walk ); 
+			bspVertex_t gv2( gv1 + aToBStep );
+			bspVertex_t gv3( gv1 + aToC );
+			bspVertex_t gv4( gv3 + aToBStep );
+
+			//gv1.position = v1;
+			//gv2.position = v2;
+			//gv3.position = v3;
+			
+			// There should be a reasonable workaround for this; maybe scale
+			// the vertices or something like that.
+			if ( !triCoordSys->IsInTri( gv3.position ) || !triCoordSys->IsInTri( gv2.position ) )
+				goto end_iteration;
 
 			size_t numVertices = outVerts.size();
-
-			bspVertex_t gv1, gv2, gv3;
 
 			gv1.color[ 0 ] = 255;
 			gv1.color[ 1 ] = 0;
@@ -305,63 +282,55 @@ void TessellateTri(
 			gv3.color[ 2 ] = 255;
 			gv3.color[ 3 ] = 255;
 
-			gv1.position = v1;
-			gv2.position = v2;
-			gv3.position = v3;
-
 			triangle_t t1;
 
-			auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
-			if ( v1Iter == outVerts.end() )
 			{
-				outVerts.push_back( gv1 );
-				t1.indices[ 0 ] = numVertices++;
-			}
-			else
-			{
-				t1.indices[ 0 ] = v1Iter - outVerts.begin(); 
+				auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
+				if ( v1Iter == outVerts.end() )
+				{
+					outVerts.push_back( gv1 );
+					t1.indices[ 0 ] = numVertices++;
+				}
+				else
+				{
+					t1.indices[ 0 ] = v1Iter - outVerts.begin(); 
+				}
+
+				auto v2Iter = std::find( outVerts.begin(), outVerts.end(), gv2 );
+				if ( v2Iter == outVerts.end() )
+				{
+					outVerts.push_back( gv2 );
+					t1.indices[ 1 ] = numVertices++;
+				}
+				else
+				{
+					t1.indices[ 1 ] = v2Iter - outVerts.begin(); 
+				}
+
+				auto v3Iter = std::find( outVerts.begin(), outVerts.end(), gv3 );
+				if ( v3Iter == outVerts.end() )
+				{
+					outVerts.push_back( gv3 );
+					t1.indices[ 2 ] = numVertices++;
+				}
+				else
+				{
+					t1.indices[ 2 ] = v3Iter - outVerts.begin(); 
+				}
 			}
 
-			auto v2Iter = std::find( outVerts.begin(), outVerts.end(), gv2 );
-			if ( v2Iter == outVerts.end() )
-			{
-				outVerts.push_back( gv2 );
-				t1.indices[ 1 ] = numVertices++;
-			}
-			else
-			{
-				t1.indices[ 1 ] = v2Iter - outVerts.begin(); 
-			}
+			curStrip.push_back( t1 );
 
-			auto v3Iter = std::find( outVerts.begin(), outVerts.end(), gv3 );
-			if ( v3Iter == outVerts.end() )
-			{
-				outVerts.push_back( gv3 );
-				t1.indices[ 2 ] = numVertices++;
-			}
-			else
-			{
-				t1.indices[ 2 ] = v3Iter - outVerts.begin(); 
-			}
-
-
-			if ( LIsValidTriangle( t1 ) )
-			{
-				curStrip.push_back( t1 );
-			}
-			else
-			{
-				__nop();
-			}
 			// Attempt a second triangle, providing v4
 			// is within the bounds
-			glm::vec3 v4( v3 + aToBStep );
-			if ( !triCoordSys->IsInTri( v4 ) )
+			//glm::vec3 v4( v3 + aToBStep );
+			
+			if ( !triCoordSys->IsInTri( gv4.position ) )
 				goto end_iteration;
 
 			{
-				bspVertex_t gv4;
-				gv4.position = v4;
+				//bspVertex_t gv4;
+				//gv4.position = v4;
 				auto v4Iter = std::find( outVerts.begin(), outVerts.end(), gv4 );
 
 				triangle_t t2 = 
@@ -383,25 +352,19 @@ void TessellateTri(
 					t2.indices[ 2 ] = v4Iter - outVerts.begin();
 				}
 
-				if ( LIsValidTriangle( t2 ) )
-					curStrip.push_back( t2 );
+				curStrip.push_back( t2 );
 			}	
 
 end_iteration:
 			walk += walkStep;
-			walkLength = glm::length( aToB * walk );
+			walkLength = glm::length( aToB.position * walk );
 		}
 		
 		outIndices.insert( outIndices.end(), curStrip.begin(), curStrip.end() );
-		prevStrip = curStrip;
 		curStrip.clear();
 
 		a2 += aToC;
 		b2 += bToC;
-
-		glm::vec3 nextAToBStep( ( b2 - a2 ) * step );
-
-		indexMapRatio = glm::length( aToBStep ) / glm::length( nextAToBStep );
 	}
 }
 

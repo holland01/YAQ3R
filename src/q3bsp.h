@@ -106,8 +106,21 @@ struct bspVertex_t
     glm::vec2 texCoords[ 2 ]; // 0 => surface, 1 => lightmap
     glm::vec3 normal;
 
-    byte color[ 4 ];
+    glm::u8vec4 color;
+
+	bspVertex_t( void );
+	bspVertex_t( const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& surfTexCoords, const glm::vec2& lightmapTexCoords, const glm::u8vec4& colors );
+	bspVertex_t( const bspVertex_t& v );
+	bspVertex_t& operator=( bspVertex_t v );
 };
+
+
+bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b );
+bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b );
+bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b );
+bspVertex_t operator *( const bspVertex_t& a, float b );
+
+bool operator == ( const bspVertex_t&a, const bspVertex_t& b );
 
 struct bspTexture_t
 {
@@ -170,52 +183,6 @@ struct bspVisdata_t
 
     byte*   bitsets;
 };
-
-INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
-{
-	bspVertex_t vert;
-	
-	vert.position = a.position + b.position;
-
-	vert.color[ 0 ] = a.color[ 0 ];
-	vert.color[ 1 ] = a.color[ 1 ];
-	vert.color[ 2 ] = a.color[ 2 ];
-	vert.color[ 3 ] = a.color[ 3 ];
-	
-	vert.normal = a.normal + b.normal;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
-    vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
-
-	// TODO: lightmapCoords?
-
-	return vert;
-}
-
-INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
-{
-	bspVertex_t vert;
-	
-	vert.position = a.position * b;
-
-	vert.normal = a.normal * b;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
-    vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
-
-	memcpy( vert.color, a.color, sizeof( vert.color ) );
-	
-	// TODO: lightmapCoords?
-	// TODO: colors with floats?
-
-	return vert;
-}
-
-INLINE bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
-{
-	return a.position == b.position 
-		&& a.texCoords[ 0 ] == b.texCoords[ 0 ]
-		&& a.texCoords[ 1 ] == b.texCoords[ 1 ]
-		&& a.normal == b.normal;
-}
 
 /*
 =====================================================
