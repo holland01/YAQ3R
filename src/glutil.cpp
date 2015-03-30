@@ -5,13 +5,33 @@
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap )
 {
 	// Load image
+	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
+	std::vector< byte > pixels;
 	int width, height, bpp;
-	byte* imagePixels = stbi_load( texPath, &width, &height, &bpp, STBI_default );
-
-	if ( !imagePixels )
 	{
-		MLOG_WARNING( "No file found for \'%s\'", texPath );
-		return false;
+		byte* imagePixels = stbi_load( texPath, &width, &height, &bpp, STBI_default );
+
+		if ( !imagePixels )
+		{
+			MLOG_WARNING( "No file found for \'%s\'", texPath );
+			return false;
+		}
+		
+		pixels.resize( width * height * bpp, 0 );
+
+		for ( int y = 0; y < height; ++y )
+		{
+			for ( int x = 0; x < width; ++x )
+			{
+				int i = ( width * y + x ) * bpp;
+				int j = ( width * ( height - ( y + 1 ) ) + x ) * bpp;
+
+				for ( int k = 0; k < bpp; ++k )
+					pixels[ i + k ] = imagePixels[ j + k ];
+			}
+		}
+
+		stbi_image_free( imagePixels );
 	}
 
 	GLenum fmt;
@@ -61,7 +81,7 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 
 		for ( int mip = 0; h != 1 && w != 1; ++mip )
 		{
-			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, mip, internalFmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
+			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, mip, internalFmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
 
 			if ( h > 1 )
 				h /= 2;
@@ -75,11 +95,9 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 	}
 	else
 	{
-		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, imagePixels ) );
+		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
 		minFilter = GL_LINEAR;
 	}
-	
-	stbi_image_free( imagePixels );
 
 	// Configure sampler params
 	if ( loadFlags & Q3LOAD_TEXTURE_ANISOTROPY )

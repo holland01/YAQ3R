@@ -33,6 +33,8 @@ Program::Program( const char* vertexShader, const char* fragmentShader )
 
 	AddUnif( "modelToView" );
 	AddUnif( "viewToClip" );
+
+	AddAttrib( "position" );
 }
 
 Program::~Program( void )
@@ -46,6 +48,11 @@ void Program::AddUnif( const std::string& name )
 	GL_CHECK( uniforms[ name ] = glGetUniformLocation( program, name.c_str() ) ); 
 }
 
+void Program::AddAttrib( const std::string& name )
+{
+	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
+}
+
 void Program::LoadMatrix( const std::string& name, const glm::mat4& t )
 {
 	GL_CHECK( glProgramUniformMatrix4fv( program, uniforms[ name ], 1, GL_FALSE, glm::value_ptr( t ) ) );
@@ -54,6 +61,11 @@ void Program::LoadMatrix( const std::string& name, const glm::mat4& t )
 void Program::LoadVec4( const std::string& name, const glm::vec4& v )
 {
 	GL_CHECK( glProgramUniform4fv( program, uniforms[ name ], 1, glm::value_ptr( v ) ) );
+}
+
+void Program::LoadInt( const std::string& name, int v )
+{
+	GL_CHECK( glProgramUniform1i( program, uniforms[ name ], v ) );
 }
 
 void Program::Bind( void )
@@ -66,10 +78,18 @@ void Program::Release( void )
 	GL_CHECK( glUseProgram( 0 ) );
 }
 
+enum 
+{
+	LAYOUT_WRITE_DATA = 0x1,
+	LAYOUT_HAS_ATTRIB_COLOR = 0x2,
+	LAYOUT_HAS_ATTRIB_UV = 0x4
+};
+
 //----------------------------------------------------------------
 
-TessTri::TessTri( const glm::mat3& verts )
-	: modelTransform( 1.0f )
+TessTri::TessTri( const TessTest* test, const glm::mat3& verts )
+	: modelTransform( 1.0f ),
+	  sharedTest( test )
 {
 	auto LGenVertex = [ &verts ]( int index ) -> bspVertex_t
 	{
@@ -102,30 +122,36 @@ TessTri::TessTri( const glm::mat3& verts )
 
 	TessellateTri( tessVertices, tessIndices, 64.0f * f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
 
-	auto LLoadLayout = []( GLuint vao, GLuint vbo, bool hasColor, bool writeData, const std::vector< bspVertex_t >& vertexData ) 
+	auto LLoadLayout = []( const std::unique_ptr< Program >& prog, GLuint vao, GLuint vbo, uint32_t flags, const std::vector< bspVertex_t >& vertexData ) 
 	{
 		GL_CHECK( glBindVertexArray( vao ) );
 		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 
-		if ( writeData )
+		if ( ( flags & LAYOUT_WRITE_DATA ) != 0 )
 			GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertexData.size(), &vertexData[ 0 ], GL_STATIC_DRAW ) );
 
-		GL_CHECK( glEnableVertexAttribArray( 0 ) );
-		GL_CHECK( glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ATTRIB_OFFSET( bspVertex_t, position ) ) );
+		GL_CHECK( glEnableVertexAttribArray( prog->attribs[ "position" ] ) );
+		GL_CHECK( glVertexAttribPointer( prog->attribs[ "position" ], 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ATTRIB_OFFSET( bspVertex_t, position ) ) );
 		
-		if ( hasColor )
+		if ( ( flags & LAYOUT_HAS_ATTRIB_COLOR ) != 0 )
 		{
-			GL_CHECK( glEnableVertexAttribArray( 1 ) );
-			GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ATTRIB_OFFSET( bspVertex_t, color ) ) );
+			GL_CHECK( glEnableVertexAttribArray( prog->attribs[ "color" ] ) );
+			GL_CHECK( glVertexAttribPointer( prog->attribs[ "color" ], 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ATTRIB_OFFSET( bspVertex_t, color ) ) );
+		}
+
+		if ( ( flags & LAYOUT_HAS_ATTRIB_UV ) != 0 )
+		{
+			GL_CHECK( glEnableVertexAttribArray( prog->attribs[ "uv" ] ) );
+			GL_CHECK( glVertexAttribPointer( prog->attribs[ "uv" ], 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ATTRIB_OFFSET( bspVertex_t, texCoords[ 0 ] ) ) );
 		}
 	};
 
 	GL_CHECK( glGenVertexArrays( 3, vaos ) );
 	GL_CHECK( glGenBuffers( 3, vbos ) );
 
-	LLoadLayout( vaos[ 0 ], vbos[ 0 ], true, true, mainVertices );
-	LLoadLayout( vaos[ 1 ], vbos[ 1 ], true, true, tessVertices );
-	LLoadLayout( vaos[ 2 ], vbos[ 1 ], false, false, tessVertices );
+	LLoadLayout( test->fillProgram, vaos[ 0 ], vbos[ 0 ], LAYOUT_HAS_ATTRIB_COLOR | LAYOUT_WRITE_DATA, mainVertices );
+	LLoadLayout( test->fillProgram, vaos[ 1 ], vbos[ 1 ], LAYOUT_HAS_ATTRIB_COLOR | LAYOUT_HAS_ATTRIB_UV | LAYOUT_WRITE_DATA, tessVertices );
+	LLoadLayout( test->lineProgram, vaos[ 2 ], vbos[ 1 ], 0, tessVertices );
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
 	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * tessIndices.size(), &tessIndices[ 0 ].indices[ 0 ], GL_STATIC_DRAW ) );
@@ -154,9 +180,9 @@ void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& progra
 	{
 		case 1:
 		{
-			GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
-			GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
-			GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
+			//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
+			//GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
+			//GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
 			GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 		}
 		break;
@@ -220,28 +246,45 @@ void TessTest::Load( void )
 	camPtr = camera;
 
 	{
+		GL_CHECK( glGenTextures( 1, &texture ) );
+		GL_CHECK( glGenSamplers( 1, &sampler ) );
+		bool test = LoadTextureFromFile( "asset/random/image/business_cat.jpg", texture, sampler, Q3LOAD_TEXTURE_SRGB, GL_CLAMP_TO_EDGE );
+		assert( test );
+	}
+
+	{
 		const char* vertexShaderSrc = 
 			"#version 420\n" \
 			"layout(location = 0) in vec3 position;\n"	\
-			"layout(location = 1) in vec4 color;\n"	\
+			"layout(location = 1) in vec2 uv;\n" \
+			"layout(location = 2) in vec4 color;\n"	\
 			"uniform mat4 modelToView;\n" \
 			"uniform mat4 viewToClip;\n" \
 			"out vec4 frag_Color;\n" \
+			"out vec2 frag_UV; \n" \
+			"const vec4 gammaDecode = vec4( 2.2 );"
 			"void main(void) {\n" \
 			"   vec4 clipPos = viewToClip * modelToView * vec4( position, 1.0 );\n"	\
 			"   gl_Position = clipPos;\n" \
-			"   frag_Color = color;\n" \
+			"   frag_Color = pow( color, gammaDecode );\n" \
+			"   frag_UV = uv;\n" \
 			"}\n";
 
 		const char* fragmentShaderSrc = 
 			"#version 420\n" \
 			"in vec4 frag_Color;\n" \
+			"in vec2 frag_UV;\n" \
+			"uniform sampler2D texSampler;\n" \
 			"out vec4 fragment;\n" \
 			"void main(void) {\n" \
-			"   fragment = frag_Color;\n" \
+			"   fragment = pow( frag_Color * pow( texture( texSampler, frag_UV ), vec4( 2.2 ) ), vec4( 1.0 / 2.2 ) );\n" \
 			"}\n";
 
 		fillProgram.reset( new Program( vertexShaderSrc, fragmentShaderSrc ) );
+		fillProgram->AddAttrib( "uv" );
+		fillProgram->AddAttrib( "color" );
+		fillProgram->AddUnif( "texSampler" );
+		fillProgram->LoadInt( "texSampler", 0 );
 	}
 
 	{
@@ -290,7 +333,7 @@ void TessTest::Load( void )
 
 		glm::mat3 v( a, b, c );
 
-		TessTri* t =  new TessTri( v );
+		TessTri* t =  new TessTri( this, v );
 
 		t->modelTransform = glm::translate( glm::mat4( 1.0f ), glm::vec3( i * dist( e ), i * dist( e ), i * dist( e ) ) );
 
@@ -306,13 +349,19 @@ void TessTest::Run( void )
 
 	const viewParams_t& view = camera->ViewData();
 
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texture ) );
+	GL_CHECK( glBindSampler( 0, sampler ) );
+
 	for ( TessTri* tri: tris )
 	{
 		tri->Render( 1, fillProgram, view );
 
-		lineProgram->LoadVec4( "frag_Color", glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f ) );
+		//lineProgram->LoadVec4( "frag_Color", glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f ) );
 
-		//GL_CHECK( glPolygonOffset( 0.75f, 20.0f ) );
-		tri->Render( 2, lineProgram, view );
+		//tri->Render( 2, lineProgram, view );
 	}	
+
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	GL_CHECK( glBindSampler( 0, 0 ) );
 }
