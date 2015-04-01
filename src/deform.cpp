@@ -199,23 +199,13 @@ void TessellateTri(
 
 	std::unique_ptr< baryCoordSystem_t > triCoordSys( new baryCoordSystem_t( a.position, b.position, c.position ) );
 
-	//glm::vec3 bToC( ( c.position - b.position ) * step );
-	//glm::vec3 aToC( ( c.position - a.position ) * step );
-
 	bspVertex_t bToC( ( c - b ) * step );
 	bspVertex_t aToC( ( c - a ) * step );
 	bspVertex_t aToBStep( ( b - a ) * step );
 
-	//glm::vec3 aToBStep( ( b.position - a.position )  * step );
-
-
-
 	std::vector< triangle_t > curStrip;
 
 	// Points which walk along the edges
-	//glm::vec3 a2( a.position );
-	//glm::vec3 b2( b.position );
-
 	bspVertex_t a2( a );
 	bspVertex_t b2( b );
 
@@ -231,11 +221,8 @@ void TessellateTri(
 
 		if ( a2.position == c.position || b2.position == c.position )
 			break;
-
-		//glm::vec3 aToB( b2 - a2 );
 		 
 		// Path trace the edges of our triangle defined by vertices a2 and b2
-		//glm::vec3 end( a2 + aToB );
 
 		bspVertex_t aToB( b2 - a2 );
 		bspVertex_t end( a2 + aToB );
@@ -249,19 +236,11 @@ void TessellateTri(
 
 		while ( walkLength < endLength )
 		{
-			//glm::vec3 v1( a2 + aToB * walk );
-			//glm::vec3 v2( v1 + aToBStep );
-			//glm::vec3 v3( v1 + aToC );
-
 			bspVertex_t gv1( a2 + aToB * walk ); 
 			bspVertex_t gv2( gv1 + aToBStep );
 			bspVertex_t gv3( gv1 + aToC );
 			bspVertex_t gv4( gv3 + aToBStep );
 			glm::u8vec4 color;
-
-			//gv1.position = v1;
-			//gv2.position = v2;
-			//gv3.position = v3;
 			
 			// There should be a reasonable workaround for this; maybe scale
 			// the vertices or something like that.

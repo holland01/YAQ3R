@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "deform.h"
+#include <memory>
 
 /*
 =====================================================
@@ -114,7 +115,6 @@ struct bspVertex_t
 	bspVertex_t& operator=( bspVertex_t v );
 };
 
-
 bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b );
 bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b );
 bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b );
@@ -194,12 +194,8 @@ struct bspVisdata_t
 
 struct shaderInfo_t;
 
-
-
 struct mapData_t
 {
-	const char*			basePath; // root directory of the map
-
 	byte*				buffer;  // all file memory comes from this
 
 	bspHeader_t*		header;
@@ -246,6 +242,8 @@ struct mapData_t
 	int					numLightvols;
 
     int                 numVisdataVecs;
+
+	std::string			basePath; // root directory of the map
 };
 
 class Q3BspMap
@@ -255,14 +253,20 @@ private:
     Q3BspMap( const Q3BspMap& ) = delete;
     Q3BspMap& operator=( Q3BspMap ) = delete;
 
-    bool						mapAllocated;
+    bool							mapAllocated;
+
+	void							ReadFile( const std::string& filepath, const int scale );
+	
+	void							GenNonShaderTextures( uint32_t loadFlags );
+	
+	void							GenRenderData( void );
 
 public:
 
 	std::vector< GLuint >			glTextures;		// has one->one map with texture indices
 	std::vector< GLuint >			glSamplers;		// has one->one map with glTextures
 	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
-	std::vector< deformModel_t >	glDeformed;		// has one->one map with any deform meshes
+	std::map< int, deformModel_t* >	glDeformed;		// has one->one map with any deform meshes
 	std::vector< GLuint >			glLightmaps;	// textures - has one->one map with lightmap indices
 					GLuint			glLightmapSampler;
 

@@ -129,7 +129,6 @@ void BSPRenderer::Prep( void )
 
 	const std::vector< std::string > uniforms = 
 	{
-		"fragWriteMode",
 		"fragTexSampler",
 		"fragLightmapSampler",
 		"fragAmbient"
@@ -296,12 +295,6 @@ void BSPRenderer::DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB&
 
 		GL_CHECK( glBindSampler( 0, map->glSamplers[ face->texture ] ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
-		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
-	}
-	else
-	{
-		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_COLOR ) );
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	}
 
 	if ( face->lightmapIndex >= 0 )
@@ -311,7 +304,6 @@ void BSPRenderer::DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB&
 
 		GL_CHECK( glBindSampler( 1, map->glLightmapSampler ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
-		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragWriteMode" ], FRAGWRITE_TEX_COLOR ) );
 	}
 
 	GL_CHECK( glUseProgram( bspProgram ) );
@@ -372,7 +364,6 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 
 			if ( shader->stageBuffer[ i ].hasTexMod )
 			{
-
 				glm::mat2 t( 1.0f );
 				if ( renderFlags & RENDER_BSP_USE_TCMOD )
 					t = shader->stageBuffer[ i ].texTransform;
@@ -455,10 +446,19 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 	}
 	else if ( face->type == BSP_FACE_TYPE_PATCH )
 	{
-		memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
+		if ( map->glDeformed.find( faceIndex ) != map->glDeformed.end() )
+		{
+			const deformModel_t* dm = map->glDeformed[ faceIndex ];
 
-		patchRenderer.Tessellate( subdivLevel );
-		patchRenderer.Render();
+			LoadBufferLayout( dm->vbo );
+			DrawElementBuffer( dm->ibo, dm->tris.size() * 3 );
+		}
+		else
+		{
+			memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
+			patchRenderer.Tessellate( subdivLevel );
+			patchRenderer.Render();
+		}
 
 		// Rebind after render since patchRenderer overrides with its own vbo
 		LoadBufferLayout( vbo );

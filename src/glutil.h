@@ -78,15 +78,34 @@ static INLINE void MapProgramToUBO( GLuint programID, const char* uboName )
 	}
 }
 
-static INLINE GLuint GenVertexBuffer( void )
+static INLINE GLuint GenBufferObject( GLenum target, const size_t size, const void* data, GLenum usage )
 {
-	// TODO
+	GLuint obj;
+	GL_CHECK( glGenBuffers( 1, &obj ) );
+	GL_CHECK( glBindBuffer( target, obj ) );
+	GL_CHECK( glBufferData( target, size, data, usage ) );
+	GL_CHECK( glBindBuffer( target, 0 ) );
+	return obj;
+}
+
+static INLINE void DelBufferObject( GLenum target, GLuint* obj, size_t numObj )
+{
+	// Unbind to prevent driver from lazy deletion
+	GL_CHECK( glBindBuffer( target, 0 ) );
+	GL_CHECK( glDeleteBuffers( numObj, obj ) );
 }
 
 static INLINE void LoadBufferLayout( GLuint vbo )
 {
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 	LoadVertexLayout();
+}
+
+static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
+{
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo ) );
+	GL_CHECK( glDrawElements( GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 }
 
 static INLINE void SetPolygonOffsetState( bool enable, uint32_t polyFlags )

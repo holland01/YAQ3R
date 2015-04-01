@@ -1,24 +1,17 @@
-﻿Build started 2/15/2015 5:20:25 PM.
-     1>Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Rebuild target(s)).
+﻿Build started 4/1/2015 12:06:43 AM.
+     1>Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Dev\Lib\gl_util/glew-msvc/include" /IC:\Dev\Lib\gl_util/glm/ /IC:\Dev\Lib\gl_util/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\aabb.cpp ..\..\src\deform.cpp ..\..\src\effect_shader.cpp ..\..\src\eu_ang.cpp ..\..\src\frustum.cpp ..\..\src\gldebug.cpp ..\..\src\glutil.cpp ..\..\src\input.cpp ..\..\src\log.cpp ..\..\src\main.cpp ..\..\src\math_util.cpp ..\..\src\mtrand.cpp ..\..\src\q3bsp.cpp ..\..\src\q3m_model.cpp ..\..\src\renderer.cpp ..\..\src\shader.cpp ..\..\src\tests\test.cpp ..\..\src\tests\trenderer.cpp
-         aabb.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Dev\Lib\gl_util/glew-msvc/include" /IC:\Dev\Lib\gl_util/glm/ /IC:\Dev\Lib\gl_util/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\deform.cpp ..\..\src\effect_shader.cpp ..\..\src\glutil.cpp ..\..\src\log.cpp ..\..\src\main.cpp ..\..\src\q3bsp.cpp ..\..\src\q3m_model.cpp ..\..\src\shader.cpp ..\..\src\tests\test.cpp ..\..\src\tests\test_tessellation.cpp ..\..\src\tests\trenderer.cpp
          deform.cpp
          effect_shader.cpp
-         eu_ang.cpp
-         frustum.cpp
-         gldebug.cpp
          glutil.cpp
-         input.cpp
          log.cpp
          main.cpp
-         math_util.cpp
-         mtrand.cpp
          q3bsp.cpp
          q3m_model.cpp
-         renderer.cpp
          shader.cpp
          test.cpp
+         test_tessellation.cpp
          trenderer.cpp
          Generating Code...
        Link:
@@ -39,10 +32,11 @@
          Release\renderer.obj
          Release\shader.obj
          Release\test.obj
+         Release\test_tessellation.obj
          Release\trenderer.obj
          bspview.vcxproj -> C:\Dev\GH\bspview\bspviewer\vs\bspview\Release\bspview.exe
-     1>Done Building Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Rebuild target(s)).
+     1>Done Building Project "C:\Dev\GH\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:13.82
+Time Elapsed 00:00:10.06

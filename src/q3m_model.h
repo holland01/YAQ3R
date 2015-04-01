@@ -69,6 +69,8 @@ struct deformModel_t
 	std::vector< triangle_t > tris;
 	GLuint vbo;
 	GLuint ibo;
-	int face;
+
+	deformModel_t( void );
+	~deformModel_t( void );
 };
 

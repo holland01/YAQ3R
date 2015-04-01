@@ -191,7 +191,6 @@ void Q3BspMap::DestroyMap( void )
 {
     if ( mapAllocated )
     {
-		delete[] data.basePath;
 		delete[] data.visdata->bitsets;
         delete[] data.buffer;	
 		memset( &data, 0, sizeof( mapData_t ) );
@@ -201,12 +200,24 @@ void Q3BspMap::DestroyMap( void )
 		GL_CHECK( glDeleteSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
 
 		if ( glLightmapSampler > 0 )
+		{	
 			GL_CHECK( glDeleteSamplers( 1, &glLightmapSampler ) );
+		}
 
 		glTextures.clear();
 		glLightmaps.clear();
 		glFaces.clear();
 		
+		for ( auto dm: glDeformed )
+		{
+			if ( dm.second )
+			{
+				delete dm.second;
+			}
+		}
+
+		glDeformed.clear();
+
         mapAllocated = false;
     }
 }
@@ -216,8 +227,123 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	if ( IsAllocated() )
 		DestroyMap();
 
-	assert( scale != 0 );
+	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
+	ReadFile( filepath, scale );
 
+	LoadShaders( &data, loadFlags, effectShaders );
+	GenNonShaderTextures( loadFlags );
+	GenRenderData();
+
+	mapAllocated = true;
+}
+
+void Q3BspMap::GenRenderData( void )
+{
+	glFaces.resize( data.numFaces );
+
+	auto LGenDeformVertex = []( const bspVertex_t& in, const shaderInfo_t* shader ) -> bspVertex_t
+	{
+		bspVertex_t out( in );
+
+		switch ( shader->deformCmd )
+		{
+		case VERTEXDEFORM_CMD_WAVE:
+			{
+				switch ( shader->deformFn )
+				{
+				case VERTEXDEFORM_FUNC_TRIANGLE:
+					{
+						glm::vec3 vertex( glm::mod( in.position * shader->deformFrequency + glm::vec3( shader->deformPhase ), glm::one< glm::vec3 >() ) );
+						vertex = 2.0f * shader->deformAmplitude * vertex - shader->deformAmplitude;
+
+						out.position = glm::abs( vertex ) - shader->deformAmplitude * 0.5f;
+					}
+					break;
+				}
+			}
+			break;
+
+		default:
+			MLOG_ERROR( "Non-implemented vertex deform command specified." );
+			break;
+		}
+
+		return out;
+	};
+
+	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
+	// which aren't of these two categories, we leave them be.
+	for ( int i = 0; i < data.numFaces; ++i )
+	{
+		const bspFace_t* face = data.faces + i;
+
+		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
+		{
+			glFaces[ i ].indices.resize( face->numMeshVertexes, 0 );
+			glFaces[ i ].vertices.resize( face->numMeshVertexes );
+			memset( &glFaces[ i ].controlPoints, 0, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
+
+			for ( int j = 0; j < face->numMeshVertexes; ++j )
+			{
+				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
+				glFaces[ i ].vertices[ j ] = data.vertexes[ glFaces[ i ].indices[ j ] ];
+			}
+		}
+		else if ( face->type == BSP_FACE_TYPE_PATCH )
+		{
+			// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
+			int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
+			int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
+
+			int c = 0;
+			for ( int k = 0; k < face->size[ 0 ]; k += stepWidth )
+			{
+				for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
+				{
+					int index = face->vertexOffset + j * face->size[ 0 ] + k;
+					glFaces[ i ].indices.push_back( index );
+					glFaces[ i ].controlPoints[ c++ ] = &data.vertexes[ index ];	
+				}
+			}
+		}
+		else
+		{
+			continue;
+		}
+
+		const shaderInfo_t* shader = GetShaderInfo( i );
+
+		// Perform tessellation, if requested.
+		if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
+		{
+			deformModel_t* def = new deformModel_t();
+
+			// Tessellate each triangle
+			for ( size_t j = 0; j < glFaces[ i ].indices.size(); j += 3 )
+			{
+				const bspVertex_t& a = data.vertexes[ glFaces[ i ].indices[ j ] ];
+				const bspVertex_t& b = data.vertexes[ glFaces[ i ].indices[ j + 1 ] ];
+				const bspVertex_t& c = data.vertexes[ glFaces[ i ].indices[ j + 2 ] ];
+					
+				TessellateTri( def->vertices, def->tris, shader->tessSize, a, b, c );
+			}
+
+			// Grab all of the vertices produced by every tessellation and do the deform
+			for ( bspVertex_t& vertex: def->vertices )
+			{
+				vertex = LGenDeformVertex( vertex, shader );
+			}
+
+			def->vbo = GenBufferObject( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * def->vertices.size(), &def->vertices[ 0 ], GL_STATIC_DRAW );
+			def->ibo = GenBufferObject( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * def->tris.size(), &def->tris[ 0 ].indices[ 0 ], GL_STATIC_DRAW );
+
+			glDeformed[ i ] = def;
+		}
+	}
+}
+
+void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
+{
 	// Open file, verify it if we succeed
     FILE* file = fopen( filepath.c_str(), "rb" );
 
@@ -232,18 +358,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	fseek( file, 0, SEEK_SET );
 	fread( data.buffer, fsize, 1, file );
 	rewind( file );
-
-	{
-		const std::string& rootdir = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../"; // FIXME: replace /root/maps/../ with just /root/
-
-		char* basePath = new char[ rootdir.size() + 1 ]();
-		basePath[ rootdir.size() ] = 0;
-		memcpy( basePath, &rootdir[ 0 ], sizeof( char ) * rootdir.size() );
-
-		data.basePath = basePath;
-
-		__nop();
-	}
 
 	data.header = ( bspHeader_t* )data.buffer;
 
@@ -369,9 +483,10 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	fread( data.visdata->bitsets, size, 1, file );
 
 	fclose( file );
+}
 
-    mapAllocated = true;
-
+void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
+{
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
@@ -384,58 +499,52 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	glSamplers.resize( data.numTextures, 0 );
 	GL_CHECK( glGenSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
 
+	static const char* validImgExt[] = 
 	{
-		static const char* validImgExt[] = 
-		{
-			".jpg", ".png", ".tga", ".tiff", ".bmp"
-		};
+		".jpg", ".png", ".tga", ".tiff", ".bmp"
+	};
 
-		const std::string& root = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
+//	const std::string& root = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 
-		for ( int t = 0; t < data.numTextures; t++ )
-		{
-			bool success = false;
+	for ( int t = 0; t < data.numTextures; t++ )
+	{
+		bool success = false;
 
-			std::string fname( data.textures[ t ].name );
+		std::string fname( data.textures[ t ].name );
 
-			const std::string& texPath = root + fname;
+		const std::string& texPath = data.basePath + fname;
 		
-			// If we don't have a file extension appended in the name,
-			// try to find one for it which is valid
-			if ( fname.find_last_of( '.' ) == std::string::npos )
+		// If we don't have a file extension appended in the name,
+		// try to find one for it which is valid
+		if ( fname.find_last_of( '.' ) == std::string::npos )
+		{
+			for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
 			{
-				for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
-				{
-				 	const std::string& str = texPath + std::string( validImgExt[ i ] );
+				const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-					if ( LoadTextureFromFile( str.c_str(), glTextures[ t ], glSamplers[ t ], loadFlags, GL_REPEAT ) )
-					{
-						success = true;
-						break;
-					}
+				if ( LoadTextureFromFile( str.c_str(), glTextures[ t ], glSamplers[ t ], loadFlags, GL_REPEAT ) )
+				{
+					success = true;
+					break;
 				}
 			}
-		
-			// Stub out the texture for this iteration by continue; warn user
-			if ( !success )
-				goto FAIL_WARN;
-
-			continue;
-
-	FAIL_WARN:
-			MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-			GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
-			glTextures[ t ] = 0;
-			glSamplers[ t ] = 0;
 		}
+		
+		// Stub out the texture for this iteration by continue; warn user
+		if ( !success )
+			goto FAIL_WARN;
 
-		// Reset the alignment to maintain consistency
+		continue;
+
+FAIL_WARN:
+		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
+		GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
+		glTextures[ t ] = 0;
+		glSamplers[ t ] = 0;
 	}
 
-	// Load shaders
-	LoadShaders( &data, loadFlags, effectShaders );
-
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
+
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps, 0 );
 	GL_CHECK( glGenTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
@@ -463,121 +572,6 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	}
 
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
-
-	glFaces.resize( data.numFaces );
-
-
-	// TODO: clean up the shame that is this mess :|
-
-	/*
-	struct 
-	{
-		int faceIndex;
-		int aIndex;
-		int bIndex;
-		int cIndex;
-	}
-	currDeformData;
-
-	int currDeformFace = 0;
-	auto LGenDeformVertex = [ &currDeformData, this ]( const glm::vec3& position ) -> bspVertex_t
-	{
-		const bspFace_t* f = data.faces + currDeformData.faceIndex;
-		const shaderInfo_t* shader = GetShaderInfo( currDeformData.faceIndex );
-		bspVertex_t v;
-
-		switch ( shader->deformCmd )
-		{
-		case VERTEXDEFORM_CMD_WAVE:
-			{
-				switch ( shader->deformFn )
-				{
-				case VERTEXDEFORM_FUNC_TRIANGLE:
-					{
-						
-						const glm::vec3 a( glm::mod( position * shader->deformFrequency + glm::vec3( shader->deformPhase ), glm::one< glm::vec3 >() ) );
-						const glm::vec3& b = 2.0f * shader->deformAmplitude * a - shader->deformAmplitude;
-
-						v.position = glm::abs( b ) - shader->deformAmplitude * 0.5f;
-					}
-					break;
-				}
-			}
-			break;
-
-		default:
-			MLOG_ERROR( "Non-implemented vertex deform command specified." );
-			break;
-		}
-
-		return v;
-	};
-	*/
-
-	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
-	// which aren't of these two categories, we leave them be.
-	for ( int i = 0; i < data.numFaces; ++i )
-	{
-		const bspFace_t* face = data.faces + i;
-
-		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
-		{
-			glFaces[ i ].indices.resize( face->numMeshVertexes, 0 );
-			glFaces[ i ].vertices.resize( face->numMeshVertexes );
-			memset( &glFaces[ i ].controlPoints, 0, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
-
-			for ( int j = 0; j < face->numMeshVertexes; ++j )
-			{
-				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
-				glFaces[ i ].vertices[ j ] = data.vertexes[ glFaces[ i ].indices[ j ] ];
-			}
-
-			const shaderInfo_t* shader = GetShaderInfo( i );
-
-			// Perform tessellation if requested.
-			if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
-			{
-				/*
-				deformModel_t def;
-
-				// Shitty solution: declare a global
-				// outside of the loop which is caught and used by the outer lambda to deform the vertex deform.
-				currDeformFace = i;
-
-				for ( int j = 0; j < glFaces[ i ].indices.size(); j += 3 )
-				{
-					const bspVertex_t* a = &data.vertexes[ glFaces[ i ].indices[ j ] ];
-					const bspVertex_t* b = &data.vertexes[ glFaces[ i ].indices[ j + 1 ] ];
-					const bspVertex_t* c = &data.vertexes[ glFaces[ i ].indices[ j + 2 ] ];
-
-					TessellateTri< bspVertex_t >( def.vertices, def.tris, LGenDeformVertex, shader->tessSize, a->position, b->position, c->position );
-				}
-				*/
-			}
-		}
-		else if ( face->type == BSP_FACE_TYPE_PATCH )
-		{
-			// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
-			int stepWidth = ( face->size[ 0 ] - 1 ) / 2;
-			int stepHeight = ( face->size[ 1 ] - 1 ) / 2;
-
-			int c = 0;
-			for ( int k = 0; k < face->size[ 0 ]; k += stepWidth )
-			{
-				for ( int j = 0; j < face->size[ 1 ]; j += stepHeight )
-				{
-					int index = face->vertexOffset + j * face->size[ 0 ] + k;
-					glFaces[ i ].indices.push_back( index );
-					glFaces[ i ].controlPoints[ c++ ] = &data.vertexes[ index ];	
-				}
-		
-			}
-		}
-		else
-		{
-			continue;
-		}
-	}
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

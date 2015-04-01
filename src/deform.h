@@ -38,8 +38,6 @@ public:
     void						Render( void ) const;
 };
 
-
-
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 
 	std::vector< triangle_t >& triIndices,

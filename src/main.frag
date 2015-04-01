@@ -1,9 +1,5 @@
 #version 420
 
-const int FRAGWRITE_TEX = 0;
-const int FRAGWRITE_TEX_COLOR = 1;
-const int FRAGWRITE_COLOR = 2;
-
 smooth in vec4 frag_Color;
 smooth in vec2 frag_Tex;
 smooth in vec2 frag_Lightmap;
@@ -12,11 +8,12 @@ uniform sampler2D fragTexSampler;
 
 uniform sampler2D fragLightmapSampler;
 
-uniform int fragWriteMode;
+uniform vec4 fragAmbient = vec4( 0.3, 0.5, 0.7, 1.0 );
 
-uniform vec4 fragAmbient = vec4( 1.0 );
+const float gamma = 2.2;
 
-const vec4 gamma = vec4( 1 / 2.2 );
+const vec4 gammaDecode = vec4( gamma );
+const vec4 gammaEncode = vec4( 1 / gamma );
 
 out vec4 fragment;
 
@@ -24,18 +21,10 @@ void main()
 {
 	vec4 col;
 
-	switch ( fragWriteMode )
-	{
-	case FRAGWRITE_TEX:
-		col = texture(fragTexSampler, frag_Tex) * texture(fragLightmapSampler, frag_Lightmap);
-		break;
-	case FRAGWRITE_TEX_COLOR:
-		col = vec4( texture(fragTexSampler, frag_Tex).rgb, 1.0 ) * texture(fragLightmapSampler, frag_Lightmap) * vec4( frag_Color.rgb, 1.0 ) * fragAmbient;
-		break;
-	case FRAGWRITE_COLOR:
-		col = frag_Color * fragAmbient;
-		break;
-    }
+	vec4 image = texture( fragTexSampler, frag_Tex );
+	vec4 lightmap = texture( fragLightmapSampler, frag_Lightmap );
 
-	fragment = pow( col, gamma );
+	col = image * lightmap * frag_Color * fragAmbient;
+
+	fragment = pow( col, gammaEncode );
 }
