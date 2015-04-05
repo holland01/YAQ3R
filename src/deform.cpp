@@ -231,8 +231,6 @@ void TessellateTri(
 		float walkLength = 0.0f;
 		float walkStep = glm::length( aToBStep.position ) / glm::length( aToB.position );
 		float endLength = glm::length( aToB.position );
-		
-		int colorCounter = 0;
 
 		while ( walkLength < endLength )
 		{
@@ -248,23 +246,10 @@ void TessellateTri(
 				goto end_iteration;
 
 			size_t numVertices = outVerts.size();
-				
-			switch ( colorCounter++ % 3 )
-			{
-			case 0:
-				color = glm::u8vec4( 0, 0, 0, 255 );  
-				break;
-			case 1:
-				color = glm::u8vec4( 128, 128, 128, 255 );
-				break;
-			case 2:
-				color = glm::u8vec4( 255, 255, 255, 255 );
-				break;
-			}
 
-			gv1.color = color;
-			gv2.color = color;
-			gv3.color = color;
+			gv1.color = glm::u8vec4( 255 );
+			gv2.color = glm::u8vec4( 255 );
+			gv3.color = glm::u8vec4( 255 );
 
 			triangle_t t1;
 

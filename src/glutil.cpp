@@ -2,6 +2,52 @@
 #include "q3bsp.h"
 #include "extern/stb_image.c"
 
+static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
+{
+	int destOfs = ( width * destY + destX ) * bpp;
+	int srcOfs = ( width * srcY + srcX ) * bpp;
+
+	for ( int k = 0; k < bpp; ++k )
+		dest[ destOfs + k ] = src[ srcOfs + k ];
+}
+
+static INLINE void FlipBytes( std::vector< byte >& out, const byte* src, int width, int height, int bpp )
+{
+	for ( int y = 0; y < height; ++y )
+	{
+		for ( int x = 0; x < width; ++x )
+		{
+			SetPixel( &out[ 0 ], src, width, height, bpp, x, height - y - 1, x, y );
+		}
+	}
+}
+
+// Assumes square dimensions; solution based off of an image rotation algorithm from "Cracking the Coding Interview"
+static INLINE void RotateBytes90CCW( std::vector< byte >& image, int width, int height, int bpp )
+{
+	const int layerCount = height / 2;
+	for ( int y = height - 1; y >= layerCount; --y )
+	{
+		int upMost = y;
+		int downMost = height - y + 1;
+		for ( int x = downMost; x < width - downMost; ++x )
+		{
+			int up = ( width * upMost + width - 1 - x ) * bpp; 
+			int down = ( width * downMost + x ) * bpp;
+			int left = ( width * x + downMost ) * bpp;
+			int right = ( width * ( downMost + x ) + ( y - 1 ) ) * bpp;
+
+			byte tmp[ 4 ] = { 0, 0, 0, 0 };
+			memcpy( tmp, &image[ up ], sizeof( byte ) * bpp );
+		
+			memcpy( &image[ up ], &image[ left ], sizeof( byte ) * bpp );
+			memcpy( &image[ left ], &image[ down ], sizeof( byte ) * bpp );
+			memcpy( &image[ down ], &image[ right ], sizeof( byte ) * bpp );
+			memcpy( &image[ right ], tmp, sizeof( byte ) * bpp );
+		}
+	}
+}
+
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap )
 {
 	// Load image
@@ -18,18 +64,8 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 		}
 		
 		pixels.resize( width * height * bpp, 0 );
-
-		for ( int y = 0; y < height; ++y )
-		{
-			for ( int x = 0; x < width; ++x )
-			{
-				int i = ( width * y + x ) * bpp;
-				int j = ( width * ( height - ( y + 1 ) ) + x ) * bpp;
-
-				for ( int k = 0; k < bpp; ++k )
-					pixels[ i + k ] = imagePixels[ j + k ];
-			}
-		}
+		FlipBytes( pixels, imagePixels, width, height, bpp );	
+		RotateBytes90CCW( pixels, width, height, bpp );
 
 		stbi_image_free( imagePixels );
 	}

@@ -3,6 +3,7 @@
 #include "test.h"
 #include "../q3m_model.h"
 #include <memory>
+#include <array>
 
 struct bspVertex_t;
 
@@ -29,10 +30,12 @@ struct Program
 
 class TessTest;
 
+static const int TESS_TEST_NUM_VBOS = 4;
+
 class TessTri
 {
 private:
-	GLuint vbos[ 3 ];
+	GLuint vbos[ TESS_TEST_NUM_VBOS ];
 	GLuint vaos[ 3 ];
 
 	std::vector< bspVertex_t > mainVertices;
@@ -44,7 +47,7 @@ private:
 public:
 	glm::mat4 modelTransform;
 
-	TessTri( const TessTest* test, const glm::mat3& verts );
+	TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts );
 
 	~TessTri( void );
 

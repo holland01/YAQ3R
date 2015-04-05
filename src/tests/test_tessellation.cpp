@@ -87,7 +87,7 @@ enum
 
 //----------------------------------------------------------------
 
-TessTri::TessTri( const TessTest* test, const glm::mat3& verts )
+TessTri::TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts )
 	: modelTransform( 1.0f ),
 	  sharedTest( test )
 {
@@ -111,16 +111,19 @@ TessTri::TessTri( const TessTest* test, const glm::mat3& verts )
 	{
 		LGenVertex( 0 ),
 		LGenVertex( 1 ),
-		LGenVertex( 2 )
+		LGenVertex( 2 ),
+		LGenVertex( 3 ),
 	};
 
+	LSetTexCoords( 3, 1.0f, 1.0f );
 	LSetTexCoords( 2, 0.0f, 0.0f );
-	LSetTexCoords( 1, 0.5f, 1.0f );
+	LSetTexCoords( 1, 0.0f, 1.0f );
 	LSetTexCoords( 0, 1.0f, 0.0f );
 
 	float f = glm::length( glm::cross( mainVertices[ 0 ].position, mainVertices[ 1 ].position ) ) / ( glm::length( mainVertices[ 0 ].position ) * glm::length( mainVertices[ 1 ].position ) );
 
-	TessellateTri( tessVertices, tessIndices, 64.0f * f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
+	TessellateTri( tessVertices, tessIndices, 32.0f * f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
+	TessellateTri( tessVertices, tessIndices, 32.0f * f, mainVertices[ 0 ], mainVertices[ 3 ], mainVertices[ 1 ] );
 
 	auto LLoadLayout = []( const std::unique_ptr< Program >& prog, GLuint vao, GLuint vbo, uint32_t flags, const std::vector< bspVertex_t >& vertexData ) 
 	{
@@ -147,14 +150,22 @@ TessTri::TessTri( const TessTest* test, const glm::mat3& verts )
 	};
 
 	GL_CHECK( glGenVertexArrays( 3, vaos ) );
-	GL_CHECK( glGenBuffers( 3, vbos ) );
+	GL_CHECK( glGenBuffers( TESS_TEST_NUM_VBOS, vbos ) );
 
-	LLoadLayout( test->fillProgram, vaos[ 0 ], vbos[ 0 ], LAYOUT_HAS_ATTRIB_COLOR | LAYOUT_WRITE_DATA, mainVertices );
+	LLoadLayout( test->fillProgram, vaos[ 0 ], vbos[ 0 ], LAYOUT_HAS_ATTRIB_COLOR | LAYOUT_HAS_ATTRIB_UV | LAYOUT_WRITE_DATA, mainVertices );
 	LLoadLayout( test->fillProgram, vaos[ 1 ], vbos[ 1 ], LAYOUT_HAS_ATTRIB_COLOR | LAYOUT_HAS_ATTRIB_UV | LAYOUT_WRITE_DATA, tessVertices );
 	LLoadLayout( test->lineProgram, vaos[ 2 ], vbos[ 1 ], 0, tessVertices );
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
 	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * tessIndices.size(), &tessIndices[ 0 ].indices[ 0 ], GL_STATIC_DRAW ) );
+
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 3 ] ) );
+	GLuint mainVertIndices[] = 
+	{
+		0, 1, 2, 0, 3, 1
+	};
+	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( mainVertIndices ), mainVertIndices, GL_STATIC_DRAW ) );
+	
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
@@ -168,7 +179,7 @@ TessTri::~TessTri( void )
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	GL_CHECK( glDeleteVertexArrays( 3, vaos ) );
-	GL_CHECK( glDeleteBuffers( 3, vbos ) );
+	GL_CHECK( glDeleteBuffers( TESS_TEST_NUM_VBOS, vbos ) );
 }
 
 void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& program, const viewParams_t& view )
@@ -182,7 +193,8 @@ void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& progra
 		{
 			//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 			//GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
-			//GL_CHECK( glDrawArrays( GL_TRIANGLES, 0, 3 ) );
+			//GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 3 ] ) );
+			//GL_CHECK( glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL ) );
 			GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 		}
 		break;
@@ -327,13 +339,26 @@ void TessTest::Load( void )
 
 	for ( uint32_t i = 0; i < 5; ++i )
 	{
-		glm::vec3 a( dist( e ), 0.0f, 0.0f );
-		glm::vec3 b( 0.0f, dist( e ), 0.0f );
-		glm::vec3 c( 0.0f, 0.0f, dist( e ) );
+		float base = dist( e );
+		std::uniform_real_distribution< float > vertexDist( base, base + 5.0f );
 
-		glm::mat3 v( a, b, c );
+		glm::vec3 a( vertexDist( e ), 0.0f, 0.0f );
+		glm::vec3 b( 0.0f, vertexDist( e ), 0.0f );
+		glm::vec3 c( 0.0f, 0.0f, 0.0f );
+		glm::vec3 d( a.x, b.y, 0.0f );
 
-		TessTri* t =  new TessTri( this, v );
+		glm::vec3 e1( glm::normalize( a - b ) );
+		glm::vec3 e2( glm::normalize( c - b ) );
+		glm::vec3 n( glm::normalize( glm::cross( e2, e1 ) ) );
+
+		float dn = glm::dot( a, n );
+		float distToPlane = glm::dot( d, n ) - dn;
+		
+		d = d - glm::normalize( n ) * distToPlane;
+
+		std::array< glm::vec3, 4 > v = { a, b, c, d };
+
+		TessTri* t = new TessTri( this, v );
 
 		t->modelTransform = glm::translate( glm::mat4( 1.0f ), glm::vec3( i * dist( e ), i * dist( e ), i * dist( e ) ) );
 
