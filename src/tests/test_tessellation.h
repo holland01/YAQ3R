@@ -37,6 +37,7 @@ class TessTri
 private:
 	GLuint vbos[ TESS_TEST_NUM_VBOS ];
 	GLuint vaos[ 3 ];
+	GLuint texture, sampler;
 
 	std::vector< bspVertex_t > mainVertices;
 	std::vector< bspVertex_t > tessVertices;

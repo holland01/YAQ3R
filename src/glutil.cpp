@@ -11,45 +11,49 @@ static INLINE void SetPixel( byte* dest, const byte* src, int width, int height,
 		dest[ destOfs + k ] = src[ srcOfs + k ];
 }
 
-static INLINE void FlipBytes( std::vector< byte >& out, const byte* src, int width, int height, int bpp )
+static INLINE void FlipBytes( byte* out, const byte* src, int width, int height, int bpp )
 {
 	for ( int y = 0; y < height; ++y )
 	{
 		for ( int x = 0; x < width; ++x )
 		{
-			SetPixel( &out[ 0 ], src, width, height, bpp, x, height - y - 1, x, y );
+			SetPixel( out, src, width, height, bpp, x, height - y - 1, x, y );
 		}
 	}
 }
 
 // Assumes square dimensions; solution based off of an image rotation algorithm from "Cracking the Coding Interview"
-static INLINE void RotateBytes90CCW( std::vector< byte >& image, int width, int height, int bpp )
+static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims, int bpp )
 {
-	const int layerCount = height / 2;
-	for ( int y = height - 1; y >= layerCount; --y )
+	const int layerCount = dims / 2;
+	for ( int y = dims - 1; y >= layerCount; --y )
 	{
 		int upMost = y;
-		int downMost = height - y + 1;
-		for ( int x = downMost; x < width - downMost; ++x )
+		int downMost = dims - y - 1;
+		for ( int x = downMost; x <= upMost; ++x )
 		{
-			int up = ( width * upMost + width - 1 - x ) * bpp; 
-			int down = ( width * downMost + x ) * bpp;
-			int left = ( width * x + downMost ) * bpp;
-			int right = ( width * ( downMost + x ) + ( y - 1 ) ) * bpp;
+			// Pixel Base: ( width * row + column ) * bytes per pixel
+
+			int up = ( dims * upMost + dims - x - 1 ) * bpp; 
+			int down = ( dims * downMost + x ) * bpp;
+			int left = ( dims * ( dims - x - 1 ) + downMost ) * bpp;
+			int right = ( dims * x + upMost ) * bpp;
 
 			byte tmp[ 4 ] = { 0, 0, 0, 0 };
-			memcpy( tmp, &image[ up ], sizeof( byte ) * bpp );
-		
-			memcpy( &image[ up ], &image[ left ], sizeof( byte ) * bpp );
-			memcpy( &image[ left ], &image[ down ], sizeof( byte ) * bpp );
-			memcpy( &image[ down ], &image[ right ], sizeof( byte ) * bpp );
-			memcpy( &image[ right ], tmp, sizeof( byte ) * bpp );
+			memcpy( tmp, &image[ left ], sizeof( byte ) * ( bpp ) );
+			
+			memcpy( &image[ left ], &image[ up ], sizeof( byte ) * bpp );
+			memcpy( &image[ up ], &image[ right ], sizeof( byte ) * bpp );
+			memcpy( &image[ right ], &image[ down ], sizeof( byte ) * bpp );
+			memcpy( &image[ down ], &tmp, sizeof( byte ) * bpp );
 		}
 	}
 }
 
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap )
 {
+	static int fuckIt = 0;
+
 	// Load image
 	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
 	std::vector< byte > pixels;
@@ -64,8 +68,12 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 		}
 		
 		pixels.resize( width * height * bpp, 0 );
-		FlipBytes( pixels, imagePixels, width, height, bpp );	
-		RotateBytes90CCW( pixels, width, height, bpp );
+		FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
+		
+		if ( fuckIt++ % 2 )
+		{
+			RotateSquareImage90CCW( pixels, width, bpp );
+		}
 
 		stbi_image_free( imagePixels );
 	}

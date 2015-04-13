@@ -89,8 +89,17 @@ enum
 
 TessTri::TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts )
 	: modelTransform( 1.0f ),
-	  sharedTest( test )
+	  sharedTest( test ),
+	  texture( 0 ),
+	  sampler( 0 )
 {
+	{
+		GL_CHECK( glGenTextures( 1, &texture ) );
+		GL_CHECK( glGenSamplers( 1, &sampler ) );
+		bool test = LoadTextureFromFile( "asset/random/image/business_cat.jpg", texture, sampler, Q3LOAD_TEXTURE_SRGB, GL_CLAMP_TO_EDGE );
+		assert( test );
+	}
+
 	auto LGenVertex = [ &verts ]( int index ) -> bspVertex_t
 	{
 		bspVertex_t v;
@@ -184,6 +193,9 @@ TessTri::~TessTri( void )
 
 void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& program, const viewParams_t& view )
 {
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texture ) );
+	GL_CHECK( glBindSampler( 0, sampler ) );
+
 	program->LoadMatrix( "modelToView", view.transform * modelTransform );
 	program->Bind();
 
@@ -192,9 +204,9 @@ void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& progra
 		case 1:
 		{
 			//GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
-			//GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
-			//GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 3 ] ) );
-			//GL_CHECK( glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL ) );
+			GL_CHECK( glBindVertexArray( vaos[ 0 ] ) );
+			GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 3 ] ) );
+			GL_CHECK( glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL ) );
 			GL_CHECK( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 		}
 		break;
@@ -206,13 +218,14 @@ void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& progra
 		break;
 	}
 
+	/*
 	GL_CHECK( glBindVertexArray( vaos[ tessVaoIndex ] ) );
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbos[ 2 ] ) );
 	
 	GL_CHECK( glDrawElements( GL_TRIANGLES, tessIndices.size() * 3, GL_UNSIGNED_INT, NULL ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
-
+	*/
 	GL_CHECK( glBindVertexArray( 0 ) );
 
 	program->Release();
@@ -257,12 +270,7 @@ void TessTest::Load( void )
 	camera = new InputCamera();
 	camPtr = camera;
 
-	{
-		GL_CHECK( glGenTextures( 1, &texture ) );
-		GL_CHECK( glGenSamplers( 1, &sampler ) );
-		bool test = LoadTextureFromFile( "asset/random/image/business_cat.jpg", texture, sampler, Q3LOAD_TEXTURE_SRGB, GL_CLAMP_TO_EDGE );
-		assert( test );
-	}
+	
 
 	{
 		const char* vertexShaderSrc = 
@@ -340,10 +348,10 @@ void TessTest::Load( void )
 	for ( uint32_t i = 0; i < 5; ++i )
 	{
 		float base = dist( e );
-		std::uniform_real_distribution< float > vertexDist( base, base + 5.0f );
+		//std::uniform_real_distribution< float > vertexDist( base, base + 5.0f );
 
-		glm::vec3 a( vertexDist( e ), 0.0f, 0.0f );
-		glm::vec3 b( 0.0f, vertexDist( e ), 0.0f );
+		glm::vec3 a( base, 0.0f, 0.0f );
+		glm::vec3 b( 0.0f, base, 0.0f );
 		glm::vec3 c( 0.0f, 0.0f, 0.0f );
 		glm::vec3 d( a.x, b.y, 0.0f );
 
@@ -364,6 +372,8 @@ void TessTest::Load( void )
 
 		tris.push_back( t );
 	}
+
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 }
 
 void TessTest::Run( void )
@@ -373,10 +383,6 @@ void TessTest::Run( void )
 	camera->Update();
 
 	const viewParams_t& view = camera->ViewData();
-
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texture ) );
-	GL_CHECK( glBindSampler( 0, sampler ) );
 
 	for ( TessTri* tri: tris )
 	{
