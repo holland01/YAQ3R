@@ -34,9 +34,11 @@ public:
 	BezPatch( void );
 	~BezPatch( void );
 
-    void						Tessellate( int level );
+    void						Tessellate( int level, const shaderInfo_t* shader );
     void						Render( void ) const;
 };
+
+float GenDeformScale( const shaderInfo_t* shader );
 
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 

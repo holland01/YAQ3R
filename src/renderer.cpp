@@ -456,7 +456,7 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 		else
 		{
 			memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
-			patchRenderer.Tessellate( subdivLevel );
+			patchRenderer.Tessellate( subdivLevel, map->GetShaderInfo( faceIndex ) );
 			patchRenderer.Render();
 		}
 

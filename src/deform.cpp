@@ -76,12 +76,14 @@ BezPatch::~BezPatch( void )
 }
 
 // From Paul Baker's Octagon project, as referenced in http://graphics.cs.brown.edu/games/quake/quake3.html
-void BezPatch::Tessellate( int level )
+void BezPatch::Tessellate( int level, const shaderInfo_t* shader )
 {
 	// Vertex count along a side is 1 + number of edges
-    const int L1 = level + 1;
+    const int L1 = shader ? ( int )shader->tessSize : level + 1;
 
 	vertices.resize( L1 * L1 );
+
+	float scale = GenDeformScale( shader );
 	
 	// Compute the first spline along the edge
 	for ( int i = 0; i <= level; ++i )
@@ -95,7 +97,7 @@ void BezPatch::Tessellate( int level )
 			*( controlPoints[ 6 ] ) * ( a * a );
 	}
 
-	// Go deep and fill in the gaps; outer is the first layer of curves
+	// Go deep and fill in the gaps; outer loop is the first layer of curves
 	for ( int i = 1; i <= level; ++i )
 	{
 		float a = ( float )i / ( float )level;
@@ -111,6 +113,8 @@ void BezPatch::Tessellate( int level )
 				*( controlPoints[ k + 0 ] ) * ( b * b ) + 
 				*( controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
 				*( controlPoints[ k + 2 ] ) * ( a * a );
+
+			tmp[ j ].position += tmp[ j ].normal * scale;
 		}
 
 		// Compute the inner layer of the bezier spline
@@ -119,10 +123,14 @@ void BezPatch::Tessellate( int level )
 			float a1 = ( float )j / ( float )level;
 			float b1 = 1.0f - a1;
 
-			vertices[ i * L1 + j ] = 
+			bspVertex_t& v = vertices[ i * L1 + j ];
+
+			v = 
 				tmp[ 0 ] * ( b1 * b1 ) + 
 				tmp[ 1 ] * ( 2 * b1 * a1 ) +
 				tmp[ 2 ] * ( a1 * a1 );
+
+			//v.position += v.normal * scale;
 		}
  	}
 
@@ -161,6 +169,42 @@ void BezPatch::Render( void ) const
 	GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &rowIndices[ 0 ], subdivLevel ) );
 
 	lastCount = vertices.size();
+}
+
+//----------------------------------------------------------
+
+static const float twoPi = 2.0f * glm::pi< float >();
+
+float GenDeformScale( const shaderInfo_t* shader )
+{
+	if ( !shader )
+		return 0.0f;
+
+	switch ( shader->deformCmd )
+	{
+	case VERTEXDEFORM_CMD_WAVE:
+		{
+			switch ( shader->deformFn )
+			{
+			case VERTEXDEFORM_FUNC_TRIANGLE:
+				{
+					float t = ( float ) glfwGetTime() * twoPi * shader->deformFrequency + ( -twoPi * shader->deformFrequency * shader->deformPhase );
+
+					float x = shader->deformAmplitude * ( 2.0f * glm::abs( 2.0f * ( t - glm::floor( t + 0.5f ) ) ) - 1.0f ) + shader->deformBase;
+
+					return x;
+				}
+				break;
+			}
+		}
+		break;
+
+	default:
+		//MLOG_ERROR( "Non-implemented vertex deform command specified." );
+		break;
+	}
+
+	return 0.0f;
 }
 
 //----------------------------------------------------------

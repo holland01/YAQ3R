@@ -241,36 +241,6 @@ void Q3BspMap::GenRenderData( void )
 {
 	glFaces.resize( data.numFaces );
 
-	auto LGenDeformVertex = []( const bspVertex_t& in, const shaderInfo_t* shader ) -> bspVertex_t
-	{
-		bspVertex_t out( in );
-
-		switch ( shader->deformCmd )
-		{
-		case VERTEXDEFORM_CMD_WAVE:
-			{
-				switch ( shader->deformFn )
-				{
-				case VERTEXDEFORM_FUNC_TRIANGLE:
-					{
-						glm::vec3 vertex( glm::mod( in.position * shader->deformFrequency + glm::vec3( shader->deformPhase ), glm::one< glm::vec3 >() ) );
-						vertex = 2.0f * shader->deformAmplitude * vertex - shader->deformAmplitude;
-
-						out.position = glm::abs( vertex ) - shader->deformAmplitude * 0.5f;
-					}
-					break;
-				}
-			}
-			break;
-
-		default:
-			MLOG_ERROR( "Non-implemented vertex deform command specified." );
-			break;
-		}
-
-		return out;
-	};
-
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
 	for ( int i = 0; i < data.numFaces; ++i )
@@ -316,16 +286,17 @@ void Q3BspMap::GenRenderData( void )
 		// Perform tessellation, if requested.
 		if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
 		{
+			/*
 			deformModel_t* def = new deformModel_t();
 
 			// Tessellate each triangle
 			for ( size_t j = 0; j < glFaces[ i ].indices.size(); j += 3 )
 			{
-				const bspVertex_t& a = data.vertexes[ glFaces[ i ].indices[ j ] ];
-				const bspVertex_t& b = data.vertexes[ glFaces[ i ].indices[ j + 1 ] ];
-				const bspVertex_t& c = data.vertexes[ glFaces[ i ].indices[ j + 2 ] ];
+				//const bspVertex_t& a = data.vertexes[ glFaces[ i ].indices[ j ] ];
+				//const bspVertex_t& b = data.vertexes[ glFaces[ i ].indices[ j + 1 ] ];
+				//const bspVertex_t& c = data.vertexes[ glFaces[ i ].indices[ j + 2 ] ];
 					
-				TessellateTri( def->vertices, def->tris, shader->tessSize, a, b, c );
+				//TessellateTri( def->vertices, def->tris, shader->tessSize, a, b, c );
 			}
 
 			// Grab all of the vertices produced by every tessellation and do the deform
@@ -338,6 +309,7 @@ void Q3BspMap::GenRenderData( void )
 			def->ibo = GenBufferObject( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * def->tris.size(), &def->tris[ 0 ].indices[ 0 ], GL_STATIC_DRAW );
 
 			glDeformed[ i ] = def;
+			*/
 		}
 	}
 }

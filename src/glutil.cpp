@@ -40,7 +40,7 @@ static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims,
 			int right = ( dims * x + upMost ) * bpp;
 
 			byte tmp[ 4 ] = { 0, 0, 0, 0 };
-			memcpy( tmp, &image[ left ], sizeof( byte ) * ( bpp ) );
+			memcpy( tmp, &image[ left ], sizeof( byte ) * bpp );
 			
 			memcpy( &image[ left ], &image[ up ], sizeof( byte ) * bpp );
 			memcpy( &image[ up ], &image[ right ], sizeof( byte ) * bpp );
@@ -52,8 +52,6 @@ static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims,
 
 bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap )
 {
-	static int fuckIt = 0;
-
 	// Load image
 	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
 	std::vector< byte > pixels;
@@ -70,7 +68,7 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 		pixels.resize( width * height * bpp, 0 );
 		FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
 		
-		if ( fuckIt++ % 2 )
+		if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
 		{
 			RotateSquareImage90CCW( pixels, width, bpp );
 		}
