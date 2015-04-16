@@ -3,8 +3,11 @@ bspviewer
 
 Pretty simple: just view a BSP map. This is really more of a project for educational purposes than anything else.
 
-The focus right now is on effect shaders; I'm currently in the process of implementing tessellation using some funky barycentric coordinate formulas, 
-which will then be used for vertex deformation coolness.
+Current Focuses:
+
+- Vertex deformation (effect shader)
+- Texcoord mod functions (effect shader)
+- Refactoring (need to do)
 
 ### Disclaimer 
 
