@@ -11,7 +11,10 @@ Current Focuses:
 
 ### Disclaimer 
 
-I'm not gonna lie: this code is actually pretty bad in terms of structure and consistency. Right now, it's all hackity hack hack. I plan to clean things up eventually though. 
+I'm not gonna lie: this code is actually pretty bad in terms of structure and consistency. Right now, it's all hackity hack hack in the sense that I'm doing things like leaving unused code lying around and just commenting random blocks or throwing ifdefs in the source wild-west style. 
+
+Don't get me wrong: the solutions/algorithms used are fine (so far). It's just ugly as hell. I plan to clean things up eventually though. 
+
 (time is currently very limited, so prioritization is on getting shit done in the realm of making things work)
 
 ##Credits
