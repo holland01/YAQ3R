@@ -19,12 +19,12 @@ out vec4 fragment;
 
 void main()
 {
-	vec4 col;
+    vec4 col;
 
-	vec4 image = texture( fragTexSampler, frag_Tex );
-	vec4 lightmap = texture( fragLightmapSampler, frag_Lightmap );
+    vec4 image = texture( fragTexSampler, frag_Tex );
+    vec4 lightmap = texture( fragLightmapSampler, frag_Lightmap );
 
-	col = image * lightmap * frag_Color * fragAmbient;
+    col = image * lightmap * frag_Color * fragAmbient;
 
-	fragment = pow( col, gammaEncode );
+    fragment = pow( col, gammaEncode );
 }

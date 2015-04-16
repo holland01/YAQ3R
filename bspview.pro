@@ -9,10 +9,11 @@ QMAKE_CXXFLAGS += \
 -Wno-missing-field-initializers
 
 debug {
-   QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
+   QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-multi-line-comment
 }
 
 unix {
+    INCLUDEPATH += /home/amsterdam/include/glm
     LIBS += -lGL -lGLU -lGLEW -lglfw3 -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 }
 
@@ -31,15 +32,16 @@ HEADERS += \
     src/mtrand.h \
     src/input.h \
     src/eu_ang.h \
-    src/tests/jpeg.h \
     src/tests/test_util.h \
     src/q3bsp.h \
     src/frustum.h \
     src/plane.h \
     src/aabb.h \
-    src/bezpatch.h \
     src/tests/test.h \
-    src/tests/tbezsurf.h
+    src/tests/test_tessellation.h \
+    src/deform.h \
+    src/effect_shader.h \
+    src/glutil.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -81,12 +83,13 @@ SOURCES += \
     src/mtrand.cpp \
     src/input.cpp \
     src/eu_ang.cpp \
-    src/tests/jpeg.cpp \
     src/extern/stb_image.c \
     src/q3bsp.cpp \
     src/frustum.cpp \
     src/aabb.cpp \
-    src/bezpatch.cpp \
     src/tests/test.cpp \
-    src/tests/tbezsurf.cpp
+    src/tests/test_tessellation.cpp \
+    src/deform.cpp \
+    src/effect_shader.cpp \
+    src/glutil.cpp
 

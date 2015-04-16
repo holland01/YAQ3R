@@ -21,8 +21,8 @@ void main()
 {
     gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 
-	frag_Color = color;
+    frag_Color = color;
 
-	frag_Tex = tex0;
-	frag_Lightmap = lightmap;
+    frag_Tex = tex0;
+    frag_Lightmap = lightmap;
 }

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <memory>
 #include <limits>
+#include <algorithm>
 
 // Computations shamelessly stolen
 // from http://gamedev.stackexchange.com/a/49370/8185
@@ -195,6 +196,8 @@ float GenDeformScale( const shaderInfo_t* shader )
 					return x;
 				}
 				break;
+            default:
+                break;
 			}
 		}
 		break;
@@ -223,23 +226,12 @@ void TessellateTri(
 		return ( glm::sign( c.position - point ) != sig );
 	};
 
-	auto LSetTexCoords = []( bspVertex_t& vert, float x, float y )
-	{
-		vert.texCoords[ 0 ].x = vert.texCoords[ 1 ].x = x;
-		vert.texCoords[ 0 ].y = vert.texCoords[ 1 ].y = y;
-	};
-
-	using tessLambda_t = std::function< void( const glm::vec3& a2, const glm::vec3& b2 ) >;
-
 	float step = 1.0f / amount;
 
 	// Use these as a basis for when either the a or b traversal vectors
 	// have passed vertex c
 	glm::vec3 aSig = glm::sign( c.position - a.position );
 	glm::vec3 bSig = glm::sign( c.position - b.position ); 
-
-	bool aPassed = false;
-	bool bPassed = false;
 
 	std::unique_ptr< baryCoordSystem_t > triCoordSys( new baryCoordSystem_t( a.position, b.position, c.position ) );
 
@@ -269,7 +261,6 @@ void TessellateTri(
 		// Path trace the edges of our triangle defined by vertices a2 and b2
 
 		bspVertex_t aToB( b2 - a2 );
-		bspVertex_t end( a2 + aToB );
 
 		float walk = 0.0f;
 		float walkLength = 0.0f;
@@ -282,23 +273,22 @@ void TessellateTri(
 			bspVertex_t gv2( gv1 + aToBStep );
 			bspVertex_t gv3( gv1 + aToC );
 			bspVertex_t gv4( gv3 + aToBStep );
-			glm::u8vec4 color;
+            size_t numVertices;
+            triangle_t t1;
 			
 			// There should be a reasonable workaround for this; maybe scale
 			// the vertices or something like that.
 			if ( !triCoordSys->IsInTri( gv3.position ) || !triCoordSys->IsInTri( gv2.position ) )
 				goto end_iteration;
 
-			size_t numVertices = outVerts.size();
+            numVertices = outVerts.size();
 
 			gv1.color = glm::u8vec4( 255 );
 			gv2.color = glm::u8vec4( 255 );
 			gv3.color = glm::u8vec4( 255 );
 
-			triangle_t t1;
-
 			{
-				auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
+                auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
 				if ( v1Iter == outVerts.end() )
 				{
 					outVerts.push_back( gv1 );
@@ -336,14 +326,10 @@ void TessellateTri(
 
 			// Attempt a second triangle, providing v4
 			// is within the bounds
-			//glm::vec3 v4( v3 + aToBStep );
-			
 			if ( !triCoordSys->IsInTri( gv4.position ) )
 				goto end_iteration;
 
 			{
-				//bspVertex_t gv4;
-				//gv4.position = v4;
 				auto v4Iter = std::find( outVerts.begin(), outVerts.end(), gv4 );
 
 				triangle_t t2 = 

@@ -284,7 +284,7 @@ void Q3BspMap::GenRenderData( void )
 		const shaderInfo_t* shader = GetShaderInfo( i );
 
 		// Perform tessellation, if requested.
-		if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_FUNC_UNDEFINED )
+        if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_CMD_UNDEFINED )
 		{
 			/*
 			deformModel_t* def = new deformModel_t();

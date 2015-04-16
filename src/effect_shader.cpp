@@ -270,8 +270,8 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				outInfo->deformFrequency = ReadFloat( buffer );
 
 				break;
-			case VERTEXDEFORM_CMD_BULGE:
-				MLOG_ERROR( "VERTEXDEFORM_CMD_BULGE is not supported yet" );
+            default:
+                MLOG_WARNING( "Unsupported vertex deform found!" );
 				break;
 			}
 		}

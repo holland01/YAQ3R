@@ -116,6 +116,7 @@ struct bspVertex_t
 };
 
 bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b );
+
 bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b );
 bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b );
 bspVertex_t operator *( const bspVertex_t& a, float b );

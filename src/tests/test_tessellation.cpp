@@ -88,10 +88,10 @@ enum
 //----------------------------------------------------------------
 
 TessTri::TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts )
-	: modelTransform( 1.0f ),
-	  sharedTest( test ),
-	  texture( 0 ),
-	  sampler( 0 )
+    : texture( 0 ),
+      sampler( 0 ),
+      sharedTest( test ),
+      modelTransform( 1.0f )
 {
 	{
 		GL_CHECK( glGenTextures( 1, &texture ) );

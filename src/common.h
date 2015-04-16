@@ -50,6 +50,9 @@
 #ifndef _WIN32
 #	define TRUE 1 
 #	define FALSE 0
+
+static void __nop( void )
+{}
 #endif
 
 #define _DEBUG_USE_GL_GET_ERR
@@ -76,5 +79,5 @@ INLINE bool FileGetExt( std::string& outExt, const std::string& filename  )
 		outExt = filename.substr( index + 1 );
 		return true;
 	}
-	return index >= 0;
+    return false;
 }

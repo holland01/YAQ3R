@@ -53,16 +53,17 @@ BSPRenderer::BSPRenderer
 BSPRenderer::BSPRenderer( void )
     : camera( NULL ),
       frustum( NULL ),
-	  map ( NULL ),
-      bspProgram( 0 ),
-      vao( 0 ),
-      vbo( 0 ),
-      deltaTime( 0 ),
-      currLeaf( NULL ),
 	  mapDimsLength( 0 ),
 	  transformBlockIndex( 0 ),
 	  transformBlockObj( 0 ),
-	  transformBlockSize( sizeof( glm::mat4 ) * 2 )
+      transformBlockSize( sizeof( glm::mat4 ) * 2 ),
+      map ( NULL ),
+      bspProgram( 0 ),
+      vao( 0 ),
+      vbo( 0 ),
+      deltaTime( 0.0 ),
+      frameTime( 0.0f ),
+      currLeaf( NULL )
 {
 	viewParams_t view;
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
