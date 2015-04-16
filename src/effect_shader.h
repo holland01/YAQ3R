@@ -118,7 +118,7 @@ struct shaderStage_t
 	
 	glHandleMap_t uniforms;
 
-	std::vector< glm::mat2 > texTransformList;
+	std::stack< glm::mat2 > texTransformStack;
 	glm::mat2 texTransform;
 
 	shaderStage_t( void );
@@ -135,7 +135,7 @@ struct shaderInfo_t
 		// Any cmd which is not bulge
 		struct {
 			vertexDeformFunc_t	deformFn;
-			float				deformDiv; // the wave spread for the vertex deformation
+			float				deformSpread; // the wave spread for the vertex deformation
 			float				deformBase; // game unit distance in which the vertex is deplaced from the surface
 			float				deformAmplitude;
 			float				deformPhase;

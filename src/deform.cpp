@@ -80,11 +80,9 @@ BezPatch::~BezPatch( void )
 void BezPatch::Tessellate( int level, const shaderInfo_t* shader )
 {
 	// Vertex count along a side is 1 + number of edges
-    const int L1 = shader ? ( int )shader->tessSize : level + 1;
+    const int L1 = level + 1;
 
 	vertices.resize( L1 * L1 );
-
-	float scale = GenDeformScale( shader );
 	
 	// Compute the first spline along the edge
 	for ( int i = 0; i <= level; ++i )
@@ -115,6 +113,8 @@ void BezPatch::Tessellate( int level, const shaderInfo_t* shader )
 				*( controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
 				*( controlPoints[ k + 2 ] ) * ( a * a );
 
+			float scale = GenDeformScale( tmp[ k ].position, shader );
+
 			tmp[ j ].position += tmp[ j ].normal * scale;
 		}
 
@@ -130,8 +130,6 @@ void BezPatch::Tessellate( int level, const shaderInfo_t* shader )
 				tmp[ 0 ] * ( b1 * b1 ) + 
 				tmp[ 1 ] * ( 2 * b1 * a1 ) +
 				tmp[ 2 ] * ( a1 * a1 );
-
-			//v.position += v.normal * scale;
 		}
  	}
 
@@ -176,7 +174,7 @@ void BezPatch::Render( void ) const
 
 static const float twoPi = 2.0f * glm::pi< float >();
 
-float GenDeformScale( const shaderInfo_t* shader )
+float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 {
 	if ( !shader )
 		return 0.0f;
@@ -189,7 +187,11 @@ float GenDeformScale( const shaderInfo_t* shader )
 			{
 			case VERTEXDEFORM_FUNC_TRIANGLE:
 				{
-					float t = ( float ) glfwGetTime() * twoPi * shader->deformFrequency + ( -twoPi * shader->deformFrequency * shader->deformPhase );
+					// From quake 3's source code: take the dot product of the vertex position with the deform spread to produce a correct offset
+					// from the phase shift
+					float offset = ( position.x + position.y + position.z ) * shader->deformSpread;
+
+					float t = ( float ) glfwGetTime() * twoPi * shader->deformFrequency + ( -twoPi * shader->deformFrequency * shader->deformPhase + offset );
 
 					float x = shader->deformAmplitude * ( 2.0f * glm::abs( 2.0f * ( t - glm::floor( t + 0.5f ) ) ) - 1.0f ) + shader->deformBase;
 
@@ -215,7 +217,8 @@ float GenDeformScale( const shaderInfo_t* shader )
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 
 	std::vector< triangle_t >& outIndices,
-	const float amount, 
+	float amount,
+	float normalOffsetScale,
 	const bspVertex_t& a, 
 	const bspVertex_t& b, 
 	const bspVertex_t& c
@@ -259,7 +262,6 @@ void TessellateTri(
 			break;
 		 
 		// Path trace the edges of our triangle defined by vertices a2 and b2
-
 		bspVertex_t aToB( b2 - a2 );
 
 		float walk = 0.0f;
@@ -273,6 +275,12 @@ void TessellateTri(
 			bspVertex_t gv2( gv1 + aToBStep );
 			bspVertex_t gv3( gv1 + aToC );
 			bspVertex_t gv4( gv3 + aToBStep );
+
+			gv1.position += gv1.normal * normalOffsetScale;
+			gv2.position += gv2.normal * normalOffsetScale;
+			gv3.position += gv3.normal * normalOffsetScale;
+			gv4.position += gv4.normal * normalOffsetScale;
+
             size_t numVertices;
             triangle_t t1;
 			

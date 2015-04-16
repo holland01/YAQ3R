@@ -131,8 +131,8 @@ TessTri::TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts 
 
 	float f = glm::length( glm::cross( mainVertices[ 0 ].position, mainVertices[ 1 ].position ) ) / ( glm::length( mainVertices[ 0 ].position ) * glm::length( mainVertices[ 1 ].position ) );
 
-	TessellateTri( tessVertices, tessIndices, 32.0f * f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
-	TessellateTri( tessVertices, tessIndices, 32.0f * f, mainVertices[ 0 ], mainVertices[ 3 ], mainVertices[ 1 ] );
+	TessellateTri( tessVertices, tessIndices, 32.0f * f, 0.0f, mainVertices[ 0 ], mainVertices[ 1 ], mainVertices[ 2 ] );
+	TessellateTri( tessVertices, tessIndices, 32.0f * f, 0.0f, mainVertices[ 0 ], mainVertices[ 3 ], mainVertices[ 1 ] );
 
 	auto LLoadLayout = []( const std::unique_ptr< Program >& prog, GLuint vao, GLuint vbo, uint32_t flags, const std::vector< bspVertex_t >& vertexData ) 
 	{

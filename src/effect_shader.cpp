@@ -40,7 +40,7 @@ shaderInfo_t::shaderInfo_t( void )
 	
 	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;
 	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
-	deformDiv = 0.0f;
+	deformSpread = 0.0f;
 	deformBase = 0.0f;
 	deformAmplitude = 0.0f;
 	deformPhase = 0.0f;
@@ -244,7 +244,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			{
 			case VERTEXDEFORM_CMD_NORMAL:
 			case VERTEXDEFORM_CMD_WAVE:
-				outInfo->deformDiv = ReadFloat( buffer ); 
+				outInfo->deformSpread = ReadFloat( buffer ); 
 			
 				memset( value, 0, sizeof( value ) );
 				buffer = ReadToken( value, buffer );
@@ -379,7 +379,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					float s = ReadFloat( buffer );
 					float t = ReadFloat( buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].texTransformList.push_back( glm::mat2( s, s, t, t ) );
+					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( s, t, s, t ) );
 				}
 			}
 			else if ( strcmp( token, "depthFunc" ) == 0 )
@@ -440,11 +440,11 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
 			if ( entry.stageBuffer[ i ].isStub )
 				continue;
-			
-			const auto end = entry.stageBuffer[ i ].texTransformList.rend(); 
-			for ( auto j = entry.stageBuffer[ i ].texTransformList.rbegin(); j != end; ++j )
+
+			while ( entry.stageBuffer[ i ].texTransformStack.size() > 0 )
 			{
-				entry.stageBuffer[ i ].texTransform *= *j;
+				entry.stageBuffer[ i ].texTransform *= entry.stageBuffer[ i ].texTransformStack.top();
+				entry.stageBuffer[ i ].texTransformStack.pop();
 			}
 		}
 		entries.insert( shaderMapEntry_t( entry.name, entry ) );
@@ -460,7 +460,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 	auto LWriteFragBody = []( std::vector< std::string >& fragmentSrc, bool doGammaCorrect, const char* discardPredicate ) 
 	{
-		fragmentSrc.push_back( "\tvec4 t = texture( sampler0, frag_Tex );" );
+		fragmentSrc.push_back( "\tvec4 t = texture( sampler0, st );" );
 		
 		if ( discardPredicate )
 		{
@@ -517,6 +517,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );"
 			};
 
+#ifdef USE_PER_VERTEX_TCMOD
 			if ( shader.stageBuffer[ j ].hasTexMod )
 			{
 				vertexSrc.insert( vertexSrc.begin() + 4, "uniform mat2 texTransform;" );
@@ -524,6 +525,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				uniformStrings.push_back( "texTransform" );
 			}
 			else
+#endif
 			{
 				vertexSrc.push_back( "\tfrag_Tex = tex0;" );
 			}
@@ -545,6 +547,19 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"out vec4 fragment;",
 				"void main(void) {"
 			};
+
+#ifndef USE_PER_VERTEX_TCMOD
+			if ( shader.stageBuffer[ j ].hasTexMod )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + 3, "uniform mat2 texTransform;" );
+				fragmentSrc.push_back( "\tvec2 st = texTransform * frag_Tex;" );
+				uniformStrings.push_back( "texTransform" );
+			}
+			else
+#endif
+			{
+				fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+			}
 
 			if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
 				fragmentSrc.push_back( "const float alphaGen = 1.0;" );

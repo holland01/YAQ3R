@@ -38,12 +38,13 @@ public:
     void						Render( void ) const;
 };
 
-float GenDeformScale( const shaderInfo_t* shader );
+float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
 
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 
 	std::vector< triangle_t >& triIndices,
-	const float amount, 
+	float amount,
+	float normalOffsetScale,	// where vertex = vertex + ( normal * normalOffsetScale )
 	const bspVertex_t& a, 
 	const bspVertex_t& b, 
 	const bspVertex_t& c

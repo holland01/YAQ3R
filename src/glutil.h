@@ -88,6 +88,13 @@ static INLINE GLuint GenBufferObject( GLenum target, const size_t size, const vo
 	return obj;
 }
 
+static INLINE void UpdateBufferObject( GLuint obj, GLenum target, const size_t size, const void* data ) 
+{
+	GL_CHECK( glBindBuffer( target, obj ) );
+	GL_CHECK( glBufferSubData( target, 0, size, data ) );
+	GL_CHECK( glBindBuffer( target, 0 ) );
+}
+
 static INLINE void DelBufferObject( GLenum target, GLuint* obj, size_t numObj )
 {
 	// Unbind to prevent driver from lazy deletion

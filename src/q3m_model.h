@@ -66,6 +66,8 @@ struct mapModel_t
 
 struct deformModel_t
 {
+	float deformScale;
+
 	std::vector< bspVertex_t > vertices;
 	std::vector< triangle_t > tris;
 	GLuint vbo;

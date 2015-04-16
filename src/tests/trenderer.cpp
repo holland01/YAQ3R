@@ -13,7 +13,7 @@ TRenderer::TRenderer( void )
       renderer( NULL ),
 	  mapFilepath( railgunArena ),
 	  mapLoadFlags( Q3LOAD_ALL ),
-	  mapRenderFlags( RENDER_BSP_EFFECT )
+	  mapRenderFlags( RENDER_BSP_EFFECT | RENDER_BSP_USE_TCMOD )
 {
 }
 
@@ -57,10 +57,15 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 		{
 		case GLFW_KEY_0:
 			useSRGBFramebuffer = !useSRGBFramebuffer;
+			
 			if ( useSRGBFramebuffer )
+			{
 				GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
+			}
 			else
+			{
 				GL_CHECK( glDisable( GL_FRAMEBUFFER_SRGB ) );
+			}
 			break;
 
 		case GLFW_KEY_1:
@@ -88,7 +93,10 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 			break;
 		}
 
-		if ( key == GLFW_KEY_2 || key == GLFW_KEY_1 )
+		// Perform a reload only if we've pressed keys 0-9
+		if ( 48 <= key && key <= 57 )
+		{
 			renderer->Load( mapFilepath, mapLoadFlags );
+		}
 	}
 }

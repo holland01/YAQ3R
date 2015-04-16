@@ -449,15 +449,31 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 	{
 		if ( map->glDeformed.find( faceIndex ) != map->glDeformed.end() )
 		{
-			const deformModel_t* dm = map->glDeformed[ faceIndex ];
+			deformModel_t* dm = map->glDeformed[ faceIndex ];
 
 			LoadBufferLayout( dm->vbo );
 			DrawElementBuffer( dm->ibo, dm->tris.size() * 3 );
+
+			/*
+			float scale = GenDeformScale( map->GetShaderInfo( faceIndex ) );
+
+			for ( bspVertex_t& vertices: dm->vertices )
+			{
+				vertices.position -= ( vertices.normal * dm->deformScale );
+				vertices.position += ( vertices.normal * scale );
+			}
+
+			dm->deformScale = scale;
+			UpdateBufferObject( dm->vbo, GL_ARRAY_BUFFER, dm->vertices.size() * sizeof( bspVertex_t ), &dm->vertices[ 0 ] );
+			*/
 		}
 		else
 		{
 			memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
-			patchRenderer.Tessellate( subdivLevel, map->GetShaderInfo( faceIndex ) );
+			
+			const shaderInfo_t* s = map->GetShaderInfo( faceIndex );
+			
+			patchRenderer.Tessellate( s ? ( int ) s->tessSize : subdivLevel, map->GetShaderInfo( faceIndex ) );
 			patchRenderer.Render();
 		}
 
