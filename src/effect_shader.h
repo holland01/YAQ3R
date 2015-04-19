@@ -53,7 +53,7 @@ enum vertexDeformFunc_t
 	VERTEXDEFORM_FUNC_SIN,
 	VERTEXDEFORM_FUNC_SQUARE,
 	VERTEXDEFORM_FUNC_SAWTOOTH,
-	VERTEXDEFORM_FUNC_INV_SAWTOOTH
+	VERTEXDEFORM_FUNC_INV_SAWTOOTH,
 };
 
 enum rgbGen_t
@@ -92,6 +92,31 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
+// For vertex deforms, texcoord modifications, etc.
+struct funcParms_t
+{
+	bool enabled: 1;
+
+	union 
+	{
+		struct 
+		{
+			float spread;
+			float base;
+			float amplitude;
+			float phase;
+			float frequency;
+		};
+
+		struct 
+		{
+			float bulgeWidth;
+			float bulgeHeight;
+			float bulgeSpeed;
+		};
+	};
+};
+
 struct shaderStage_t
 {
 	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
@@ -112,6 +137,8 @@ struct shaderStage_t
 	mapCmd_t mapCmd;
 	mapType_t mapType;
 
+	funcParms_t tcModTurb;
+
 	float alphaGen; // if 0, use 1.0
 
 	char mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
@@ -130,25 +157,9 @@ struct shaderInfo_t
 	uint8_t hasPolygonOffset;
 	
 	vertexDeformCmd_t	deformCmd;
-
-	union {
-		// Any cmd which is not bulge
-		struct {
-			vertexDeformFunc_t	deformFn;
-			float				deformSpread; // the wave spread for the vertex deformation
-			float				deformBase; // game unit distance in which the vertex is deplaced from the surface
-			float				deformAmplitude;
-			float				deformPhase;
-			float				deformFrequency;
-		};
-
-		// bulge only
-		struct {
-			float				deformBulgeWidth;
-			float				deformBulgeHeight;
-			float				deformBulgeSpeed;
-		};
-	};
+	vertexDeformFunc_t	deformFn;
+	funcParms_t			deformParms;
+	
 	GLuint samplerObj;
 	GLuint textureObj;
 

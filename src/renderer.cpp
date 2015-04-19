@@ -5,6 +5,7 @@
 #include "aabb.h"
 #include "glutil.h"
 #include "effect_shader.h"
+#include "deform.h"
 #include <glm/gtx/string_cast.hpp>
 
 using namespace std;
@@ -469,9 +470,9 @@ void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
 		}
 		else
 		{
-			memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
-			
 			const shaderInfo_t* s = map->GetShaderInfo( faceIndex );
+
+			memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
 			
 			patchRenderer.Tessellate( s ? ( int ) s->tessSize : subdivLevel, map->GetShaderInfo( faceIndex ) );
 			patchRenderer.Render();

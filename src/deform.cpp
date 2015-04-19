@@ -7,6 +7,7 @@
 #include <memory>
 #include <limits>
 #include <algorithm>
+#include <array>
 
 // Computations shamelessly stolen
 // from http://gamedev.stackexchange.com/a/49370/8185
@@ -113,9 +114,10 @@ void BezPatch::Tessellate( int level, const shaderInfo_t* shader )
 				*( controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
 				*( controlPoints[ k + 2 ] ) * ( a * a );
 
-			float scale = GenDeformScale( tmp[ k ].position, shader );
-
-			tmp[ j ].position += tmp[ j ].normal * scale;
+			if ( shader )
+			{
+				tmp[ j ].position += tmp[ j ].normal * GenDeformScale( tmp[ k ].position, shader ); 
+			}
 		}
 
 		// Compute the inner layer of the bezier spline
@@ -174,6 +176,41 @@ void BezPatch::Render( void ) const
 
 static const float twoPi = 2.0f * glm::pi< float >();
 
+#define TABLE_SIZE 1024
+#define TABLE_SIZE_LOG_2 10
+#define TABLE_MASK ( TABLE_SIZE - 1 )
+
+// Algorithm behind table generation is taken from here: https://github.com/id-Software/Quake-III-Arena/blob/master/code/renderer/tr_init.c#L1042
+// The first half of the table is laid out in the following format:
+// [0.0, 0.01, 0.02, ..., 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, ..., 0.02, 0.01, 0.0]
+// where all of the numbers are in the range [0, 1], and distributed as a segment of 256.
+// The second half is literally just the negatives of these same values.
+static std::array< float, TABLE_SIZE > triTable = []( void )-> std::array< float, TABLE_SIZE > 
+{
+	std::array< float, TABLE_SIZE > ret;
+
+	for ( int i = 0; i < TABLE_SIZE; ++i )
+	{
+		if ( i < TABLE_SIZE / 2 )
+		{
+			if ( i < TABLE_SIZE / 4 )
+			{
+				ret[ i ] = ( float ) i / ( TABLE_SIZE / 4 );
+			}
+			else
+			{
+				ret[ i ] = 1.0f - ret[ i - TABLE_SIZE / 4 ];
+			}
+		}
+		else
+		{
+			ret[ i ] = -ret[ i - TABLE_SIZE / 2 ];
+		}
+	}
+
+	return ret;
+}();
+
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 {
 	if ( !shader )
@@ -187,15 +224,9 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 			{
 			case VERTEXDEFORM_FUNC_TRIANGLE:
 				{
-					// From quake 3's source code: take the dot product of the vertex position with the deform spread to produce a correct offset
-					// from the phase shift
-					float offset = ( position.x + position.y + position.z ) * shader->deformSpread;
+					float offset = shader->deformParms.phase + ( position.x + position.y + position.z ) * shader->deformParms.spread;
 
-					float t = ( float ) glfwGetTime() * twoPi * shader->deformFrequency + ( -twoPi * shader->deformFrequency * shader->deformPhase + offset );
-
-					float x = shader->deformAmplitude * ( 2.0f * glm::abs( 2.0f * ( t - glm::floor( t + 0.5f ) ) ) - 1.0f ) + shader->deformBase;
-
-					return x;
+					return shader->deformParms.base + triTable[ int( offset + glfwGetTime() * shader->deformParms.frequency * TABLE_SIZE ) & TABLE_MASK ] * shader->deformParms.amplitude;
 				}
 				break;
             default:

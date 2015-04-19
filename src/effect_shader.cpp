@@ -23,6 +23,8 @@ shaderStage_t::shaderStage_t( void )
 
 	alphaGen = 0.0f;
 
+	memset( &tcModTurb, 0, sizeof( funcParms_t ) );
+
 	rgbGen = RGBGEN_IDENTITY;
 	alphaFunc = ALPHA_FUNC_UNDEFINED;
 	mapCmd = MAP_CMD_UNDEFINED;
@@ -40,11 +42,7 @@ shaderInfo_t::shaderInfo_t( void )
 	
 	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;
 	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
-	deformSpread = 0.0f;
-	deformBase = 0.0f;
-	deformAmplitude = 0.0f;
-	deformPhase = 0.0f;
-	deformFrequency = 0.0f;
+	memset( &deformParms, 0, sizeof( funcParms_t ) );
 	
 	samplerObj = 0;
 	textureObj = 0;
@@ -244,7 +242,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			{
 			case VERTEXDEFORM_CMD_NORMAL:
 			case VERTEXDEFORM_CMD_WAVE:
-				outInfo->deformSpread = ReadFloat( buffer ); 
+				outInfo->deformParms.spread = ReadFloat( buffer ); 
 			
 				memset( value, 0, sizeof( value ) );
 				buffer = ReadToken( value, buffer );
@@ -260,14 +258,14 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				else if ( strcmp( value, "inversesawtooth" ) == 0 )
 					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
 
-				outInfo->deformBase = ReadFloat( buffer );
-				outInfo->deformAmplitude = ReadFloat( buffer );
+				outInfo->deformParms.base = ReadFloat( buffer );
+				outInfo->deformParms.amplitude = ReadFloat( buffer );
 				
 				// Normal command has no phase translation
 				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
-					outInfo->deformPhase = ReadFloat( buffer );
+					outInfo->deformParms.phase = ReadFloat( buffer );
 				
-				outInfo->deformFrequency = ReadFloat( buffer );
+				outInfo->deformParms.frequency = ReadFloat( buffer );
 
 				break;
             default:
@@ -380,6 +378,15 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					float t = ReadFloat( buffer );
 
 					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( s, t, s, t ) );
+				}
+				else if ( strcmp( type, "turb" ) == 0 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.base = ReadFloat( buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.amplitude = ReadFloat( buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.phase = ReadFloat( buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.frequency = ReadFloat( buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.enabled = true;
 				}
 			}
 			else if ( strcmp( token, "depthFunc" ) == 0 )
@@ -551,6 +558,11 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 #ifndef USE_PER_VERTEX_TCMOD
 			if ( shader.stageBuffer[ j ].hasTexMod )
 			{
+				if ( shader.stageBuffer[ j ].tcModTurb.enabled )
+				{
+					//shader.stageBuffer[ j ].
+				}
+
 				fragmentSrc.insert( fragmentSrc.begin() + 3, "uniform mat2 texTransform;" );
 				fragmentSrc.push_back( "\tvec2 st = texTransform * frag_Tex;" );
 				uniformStrings.push_back( "texTransform" );
