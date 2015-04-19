@@ -213,6 +213,8 @@ static std::array< float, TABLE_SIZE > triTable = []( void )-> std::array< float
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 {
+	// The solution here is also snagged from the Q3 engine.
+
 	if ( !shader )
 		return 0.0f;
 
@@ -224,6 +226,7 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 			{
 			case VERTEXDEFORM_FUNC_TRIANGLE:
 				{
+					// Distribute the "weight" of the tessellation spread across the length of the vertex position vector, where the vertex's tail is located at the world origin.
 					float offset = shader->deformParms.phase + ( position.x + position.y + position.z ) * shader->deformParms.spread;
 
 					return shader->deformParms.base + triTable[ int( offset + glfwGetTime() * shader->deformParms.frequency * TABLE_SIZE ) & TABLE_MASK ] * shader->deformParms.amplitude;
