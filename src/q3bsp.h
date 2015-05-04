@@ -89,6 +89,11 @@ struct bspLeafFace_t
     int index;
 };
 
+struct bspLeafBrush_t
+{
+	int index;
+};
+
 struct bspModel_t
 {
     glm::vec3 boxMax;
@@ -99,6 +104,19 @@ struct bspModel_t
 
     int brushOffset;
     int numBrushes;
+};
+
+struct bspBrush_t
+{
+	int brushSide;
+	int numBrushSides;
+	int texture;
+};
+
+struct bspBrushSide_t
+{
+	int plane;
+	int texture;
 };
 
 struct bspVertex_t
@@ -204,17 +222,23 @@ struct mapData_t
 	bspEntity_t         entities;
 
     bspNode_t*          nodes;
+
     bspLeaf_t*          leaves;
+	bspLeafBrush_t*		leafBrushes;
+	bspLeafFace_t*      leafFaces;
+
     bspPlane_t*         planes;
+	bspVertex_t*        vertexes;
 
-    bspVertex_t*        vertexes;
+	bspBrush_t*			brushes;
+	bspBrushSide_t*		brushSides;
+
     bspTexture_t*       textures;
-    bspModel_t*         models;
-
+	bspModel_t*         models;
+ 	
 	bspEffect_t*		effectShaders;
     bspFace_t*          faces;
-
-    bspLeafFace_t*      leafFaces;
+	
     bspMeshVertex_t*    meshVertexes;
 
 	bspLightmap_t*		lightmaps;
@@ -226,17 +250,24 @@ struct mapData_t
     int                 numEffectShaders;
 
     int                 numNodes;
+
     int                 numLeaves;
+	int                 numLeafFaces;
+	int					numLeafBrushes;
+
     int                 numPlanes;
 
     int                 numVertexes;
+
+	int					numBrushes;
+	int					numBrushSides;
+
     int                 numTextures;
     int                 numModels;
 
 	int					numEffects;
     int                 numFaces;
 
-    int                 numLeafFaces;
     int                 numMeshVertexes;
 
 	int					numLightmaps;
@@ -266,9 +297,8 @@ public:
 
 	std::vector< GLuint >			glTextures;		// has one->one map with texture indices
 	std::vector< GLuint >			glSamplers;		// has one->one map with glTextures
-	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
-	std::map< int, deformModel_t* >	glDeformed;		// has one->one map with any deform meshes
 	std::vector< GLuint >			glLightmaps;	// textures - has one->one map with lightmap indices
+	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
 					GLuint			glLightmapSampler;
 
 	std::map< std::string, shaderInfo_t > effectShaders;

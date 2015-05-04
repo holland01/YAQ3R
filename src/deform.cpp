@@ -7,7 +7,6 @@
 #include <memory>
 #include <limits>
 #include <algorithm>
-#include <array>
 
 // Computations shamelessly stolen
 // from http://gamedev.stackexchange.com/a/49370/8185
@@ -63,158 +62,59 @@ struct baryCoordSystem_t
 	}
 };
 
-//-------------------------------------------------
-
-BezPatch::BezPatch( void )
-	: lastCount( 0 )
-{
-	GL_CHECK( glGenBuffers( 1, &vbo ) ); 
-	memset( controlPoints, 0, sizeof( const bspVertex_t* ) * BEZ_CONTROL_POINT_COUNT );  
-}
-
-BezPatch::~BezPatch( void )
-{
-	GL_CHECK( glDeleteBuffers( 1, &vbo ) );
-}
-
-// From Paul Baker's Octagon project, as referenced in http://graphics.cs.brown.edu/games/quake/quake3.html
-void BezPatch::Tessellate( int level, const shaderInfo_t* shader )
-{
-	// Vertex count along a side is 1 + number of edges
-    const int L1 = level + 1;
-
-	vertices.resize( L1 * L1 );
-	
-	// Compute the first spline along the edge
-	for ( int i = 0; i <= level; ++i )
-	{
-		float a = ( float )i / ( float )level;
-		float b = 1.0f - a;
-
-		vertices[ i ] = 
-			*( controlPoints[ 0 ] ) * ( b * b ) +
-		 	*( controlPoints[ 3 ] ) * ( 2 * b * a ) + 
-			*( controlPoints[ 6 ] ) * ( a * a );
-	}
-
-	// Go deep and fill in the gaps; outer loop is the first layer of curves
-	for ( int i = 1; i <= level; ++i )
-	{
-		float a = ( float )i / ( float )level;
-		float b = 1.0f - a;
-
-		bspVertex_t tmp[ 3 ];
-
-		// Compute three verts for a triangle
-		for ( int j = 0; j < 3; ++j )
-		{
-			int k = j * 3;
-			tmp[ j ] = 
-				*( controlPoints[ k + 0 ] ) * ( b * b ) + 
-				*( controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
-				*( controlPoints[ k + 2 ] ) * ( a * a );
-
-			if ( shader )
-			{
-				tmp[ j ].position += tmp[ j ].normal * GenDeformScale( tmp[ k ].position, shader ); 
-			}
-		}
-
-		// Compute the inner layer of the bezier spline
-		for ( int j = 0; j <= level; ++j )
-		{
-			float a1 = ( float )j / ( float )level;
-			float b1 = 1.0f - a1;
-
-			bspVertex_t& v = vertices[ i * L1 + j ];
-
-			v = 
-				tmp[ 0 ] * ( b1 * b1 ) + 
-				tmp[ 1 ] * ( 2 * b1 * a1 ) +
-				tmp[ 2 ] * ( a1 * a1 );
-		}
- 	}
-
-	// Compute the indices, which are designed to be used for a tri strip.
-	indices.resize( level * L1 * 2 );
-
-	for ( int row = 0; row < level; ++row )
-	{
-		for ( int col = 0; col <= level; ++col )
-		{
-			indices[ ( row * L1 + col ) * 2 + 0 ] = ( row + 1 ) * L1 + col;
-			indices[ ( row * L1 + col ) * 2 + 1 ] = row * L1 + col;
-		}
-	}
-
-	rowIndices.resize( level );
-	trisPerRow.resize( level );
-	for ( int row = 0; row < level; ++row )
-	{
-		trisPerRow[ row ] = 2 * L1;
-		rowIndices[ row ] = &indices[ row * 2 * L1 ];  
-	}
-
-	subdivLevel = level;
-}
-
-void BezPatch::Render( void ) const
-{
-	LoadBufferLayout( vbo );
-
-	if ( lastCount < vertices.size() )
-		GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ], GL_DYNAMIC_DRAW ) );
-	else
-		GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * vertices.size(), &vertices[ 0 ] ) );
-
-	GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &rowIndices[ 0 ], subdivLevel ) );
-
-	lastCount = vertices.size();
-}
-
-//----------------------------------------------------------
-
-static const float twoPi = 2.0f * glm::pi< float >();
-
-#define TABLE_SIZE 1024
-#define TABLE_SIZE_LOG_2 10
-#define TABLE_MASK ( TABLE_SIZE - 1 )
-
 // Algorithm behind table generation is taken from here: https://github.com/id-Software/Quake-III-Arena/blob/master/code/renderer/tr_init.c#L1042
+// 
+// On the triangle wave:
 // The first half of the table is laid out in the following format:
 // [0.0, 0.01, 0.02, ..., 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, ..., 0.02, 0.01, 0.0]
 // where all of the numbers are in the range [0, 1], and distributed as a segment of 256.
 // The second half is literally just the negatives of these same values.
-static std::array< float, TABLE_SIZE > triTable = []( void )-> std::array< float, TABLE_SIZE > 
-{
-	std::array< float, TABLE_SIZE > ret;
-
-	for ( int i = 0; i < TABLE_SIZE; ++i )
+deformGlobal_t deformCache = 
+{ 
+	// sine wave table
+	[]( void )-> std::array< float, DEFORM_TABLE_SIZE >
 	{
-		if ( i < TABLE_SIZE / 2 )
+		std::array< float, DEFORM_TABLE_SIZE > ret;
+
+		for ( int i = 0; i < DEFORM_TABLE_SIZE; ++i )
 		{
-			if ( i < TABLE_SIZE / 4 )
+			ret[ i ] = glm::sin( ( float ) i / DEFORM_TABLE_SIZE );
+		}
+
+		return ret;
+	}(),
+
+	// triangle wave table
+	[]( void )-> std::array< float, DEFORM_TABLE_SIZE > 
+	{
+		std::array< float, DEFORM_TABLE_SIZE > ret;
+
+		for ( int i = 0; i < DEFORM_TABLE_SIZE; ++i )
+		{
+			if ( i < DEFORM_TABLE_SIZE / 2 )
 			{
-				ret[ i ] = ( float ) i / ( TABLE_SIZE / 4 );
+				if ( i < DEFORM_TABLE_SIZE / 4 )
+				{
+					ret[ i ] = ( float ) i / ( DEFORM_TABLE_SIZE / 4 );
+				}
+				else
+				{
+					ret[ i ] = 1.0f - ret[ i - DEFORM_TABLE_SIZE / 4 ];
+				}
 			}
 			else
 			{
-				ret[ i ] = 1.0f - ret[ i - TABLE_SIZE / 4 ];
+				ret[ i ] = -ret[ i - DEFORM_TABLE_SIZE / 2 ];
 			}
 		}
-		else
-		{
-			ret[ i ] = -ret[ i - TABLE_SIZE / 2 ];
-		}
-	}
 
-	return ret;
-}();
+		return ret;
+	}() 
+};
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 {
 	// The solution here is also snagged from the Q3 engine.
-
 	if ( !shader )
 		return 0.0f;
 
@@ -229,7 +129,7 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 					// Distribute the "weight" of the tessellation spread across the length of the vertex position vector, where the vertex's tail is located at the world origin.
 					float offset = shader->deformParms.phase + ( position.x + position.y + position.z ) * shader->deformParms.spread;
 
-					return shader->deformParms.base + triTable[ int( offset + glfwGetTime() * shader->deformParms.frequency * TABLE_SIZE ) & TABLE_MASK ] * shader->deformParms.amplitude;
+					return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.base, offset, glfwGetTime(), shader->deformParms.frequency, shader->deformParms.amplitude );
 				}
 				break;
             default:
@@ -239,7 +139,7 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 		break;
 
 	default:
-		//MLOG_ERROR( "Non-implemented vertex deform command specified." );
+		MLOG_WARNING( "Non-implemented vertex deform command specified." );
 		break;
 	}
 

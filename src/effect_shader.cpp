@@ -465,7 +465,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	// Print the generated shaders to a text file
 	FILE* f = fopen( "log/shader_gen.txt", "w" );
 
-	auto LWriteFragBody = []( std::vector< std::string >& fragmentSrc, bool doGammaCorrect, const char* discardPredicate ) 
+	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, bool doGammaCorrect, const char* discardPredicate ) 
 	{
 		fragmentSrc.push_back( "\tvec4 t = texture( sampler0, st );" );
 		
@@ -478,9 +478,13 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		}
 
 		if ( doGammaCorrect )
+		{
 			fragmentSrc.push_back( "\tfragment = pow( t * frag_Color.rgba, gamma );" );
+		}
 		else
+		{
 			fragmentSrc.push_back( "\tfragment = t * frag_Color.rgba;" );
+		}
 	};
 
 	auto LJoinLines = []( const std::vector< std::string >& lines ) -> std::string
@@ -488,7 +492,9 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		std::stringstream shaderSrc;
 
 		for ( const std::string& line: lines )
-			shaderSrc << line << "\n";
+		{
+			shaderSrc << line << '\n';
+		}
 
 		// Append the end bracket for the main function
 		shaderSrc << '}';
@@ -524,23 +530,16 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );"
 			};
 
-#ifdef USE_PER_VERTEX_TCMOD
-			if ( shader.stageBuffer[ j ].hasTexMod )
-			{
-				vertexSrc.insert( vertexSrc.begin() + 4, "uniform mat2 texTransform;" );
-				vertexSrc.push_back( "\tfrag_Tex = texTransform * tex0;" );
-				uniformStrings.push_back( "texTransform" );
-			}
-			else
-#endif
-			{
-				vertexSrc.push_back( "\tfrag_Tex = tex0;" );
-			}
-
+			vertexSrc.push_back( "\tfrag_Tex = tex0;" );
+			
 			if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY || shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY_LIGHTING )
+			{
 				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
+			}
 			else
+			{
 				vertexSrc.push_back( "\tfrag_Color = color;" );
+			}
 
 			// Load fragment header;
 			// Unspecified alphaGen implies a default 1.0 alpha channel
@@ -555,34 +554,40 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"void main(void) {"
 			};
 
-#ifndef USE_PER_VERTEX_TCMOD
+			// If we have a matrix transform for the texcoord, go with that first.
 			if ( shader.stageBuffer[ j ].hasTexMod )
 			{
-				if ( shader.stageBuffer[ j ].tcModTurb.enabled )
-				{
-					//shader.stageBuffer[ j ].
-				}
-
 				fragmentSrc.insert( fragmentSrc.begin() + 3, "uniform mat2 texTransform;" );
 				fragmentSrc.push_back( "\tvec2 st = texTransform * frag_Tex;" );
 				uniformStrings.push_back( "texTransform" );
 			}
 			else
-#endif
 			{
 				fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
 			}
 
+			// Modify the texture coordinate as necessary before we write to the texture
+			if ( shader.stageBuffer[ j ].tcModTurb.enabled )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + 3, "uniform float tcModTurb;" );
+				fragmentSrc.push_back( "\tst += tcModTurb;" );
+				uniformStrings.push_back( "tcModTurb" );
+			}
+
 			if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
+			{
 				fragmentSrc.push_back( "const float alphaGen = 1.0;" );
+			}
 			else
+			{
 				fragmentSrc.push_back( "const float alphaGen = " + std::to_string( shader.stageBuffer[ j ].alphaGen ) + std::to_string( ';' ) );
+			}
 
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
 			// given the potential for fragment discard if an alpha function is defined
 			if ( shader.stageBuffer[ j ].alphaFunc != ALPHA_FUNC_UNDEFINED )
 			{
-				// We enable extensions directly below the version decl to aid in readability
+				// Enable extensions directly below the version decl to aid in readability
 				fragmentSrc.insert( fragmentSrc.begin() + 1, "#extension GL_ARB_conservative_depth: enable" );
 				fragmentSrc.push_back( "layout( depth_unchanged ) float gl_FragDepth;" );
 			}
@@ -590,16 +595,16 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			switch ( shader.stageBuffer[ j ].alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-				LWriteFragBody( fragmentSrc, true, NULL );
+				LWriteTexture( fragmentSrc, true, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-				LWriteFragBody( fragmentSrc, true, "t.a < 0.5" );
+				LWriteTexture( fragmentSrc, true, "t.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-				LWriteFragBody( fragmentSrc, true, "t.a == 0" );
+				LWriteTexture( fragmentSrc, true, "t.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-				LWriteFragBody( fragmentSrc, true, "t.a >= 0.5" );
+				LWriteTexture( fragmentSrc, true, "t.a >= 0.5" );
 				break;
 			}
 

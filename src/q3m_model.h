@@ -56,24 +56,14 @@ struct triangle_t
 	GLuint indices[ 3 ];
 };
 
+struct leafModel_t
+{
+	std::vector< int > modelIndices;
+};
+
 struct mapModel_t
 {
 	std::vector< GLuint > indices;
-	std::vector< bspVertex_t > vertices;
-
 	const bspVertex_t* controlPoints[ BSP_NUM_CONTROL_POINTS ];
-};
-
-struct deformModel_t
-{
-	float deformScale;
-
-	std::vector< bspVertex_t > vertices;
-	std::vector< triangle_t > tris;
-	GLuint vbo;
-	GLuint ibo;
-
-	deformModel_t( void );
-	~deformModel_t( void );
 };
 

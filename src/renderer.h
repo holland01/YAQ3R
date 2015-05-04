@@ -4,6 +4,7 @@
 #include "q3bsp.h"
 #include "input.h"
 #include "frustum.h"
+#include "aabb.h"
 
 /*
 =====================================================
@@ -37,7 +38,7 @@ public:
 	const bspLeaf_t*		leaf;
     const viewParams_t&     view;
 
-    std::vector< unsigned char >     facesRendered;
+    std::vector< byte >     facesRendered;
 };
 
 /*
@@ -48,8 +49,6 @@ public:
 =====================================================
 */
 
-class AABB;
-
 // Draw flags
 enum 
 {
@@ -59,13 +58,29 @@ enum
 	RENDER_BSP_USE_TCMOD = 1 << 3
 };
 
+struct drawFace_t
+{
+	bool isSolid: 1;
+
+	int faceIndex;
+	int subdivLevel;
+
+	uint32_t renderFlags;
+
+	RenderPass* pass;
+	AABB* bounds;
+	
+	const bspBrush_t* brush;
+	const bspFace_t* face;
+	const shaderInfo_t* shader;
+};
+
 class BSPRenderer
 {
 public:
 
     InputCamera*	camera;
     Frustum*		frustum;
-	BezPatch		patchRenderer;
 
 	int				mapDimsLength;
 	int				lodThreshold;
@@ -83,9 +98,9 @@ public:
     void    Render( uint32_t renderFlags );
 
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags );
-	void	DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid );
-    void    DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags );
-	void	DrawFaceVerts( int faceIndex, int subdivLevel );
+	void	DrawFaceNoEffect( drawFace_t* parms );
+    void    DrawFace( drawFace_t* parms );
+	void	DrawFaceVerts( drawFace_t* parms );
 
 	float   CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
@@ -94,6 +109,9 @@ public:
 private:
 
     Q3BspMap*           map;
+	const bspLeaf_t*    currLeaf;
+
+	patchData_t			patch;
 
     GLuint              bspProgram;
     GLuint              vao, vbo;
@@ -101,9 +119,11 @@ private:
     float               deltaTime;
 	double				frameTime;
 
-    const bspLeaf_t*    currLeaf;
-
 	std::map< std::string, GLint > bspProgramUniforms;
 
+	void SetFaceParmData( drawFace_t* parms );
+
 	int CalcSubdivision( const RenderPass& pass, const AABB& bounds );
+
+	void Tessellate( drawFace_t* parms );	
 };

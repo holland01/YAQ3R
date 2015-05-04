@@ -1231,12 +1231,14 @@ void main(void) {
 #version 420
 in vec2 frag_Tex;
 in vec4 frag_Color;
+uniform float tcModTurb;
 uniform mat2 texTransform;
 const vec4 gamma = vec4( 1.0 / 2.2 );
 uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
+	st += tcModTurb;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
 	fragment = pow( t * frag_Color.rgba, gamma );

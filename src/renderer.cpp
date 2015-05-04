@@ -2,7 +2,6 @@
 #include "shader.h"
 #include "log.h"
 #include "math_util.h"
-#include "aabb.h"
 #include "glutil.h"
 #include "effect_shader.h"
 #include "deform.h"
@@ -52,27 +51,27 @@ BSPRenderer::BSPRenderer
 */
 
 BSPRenderer::BSPRenderer( void )
-    : camera( NULL ),
-      frustum( NULL ),
+    : camera( nullptr ),
+      frustum( new Frustum() ),
 	  mapDimsLength( 0 ),
 	  transformBlockIndex( 0 ),
 	  transformBlockObj( 0 ),
       transformBlockSize( sizeof( glm::mat4 ) * 2 ),
-      map ( NULL ),
+      map ( new Q3BspMap() ),
+	  currLeaf( nullptr ),
       bspProgram( 0 ),
       vao( 0 ),
       vbo( 0 ),
       deltaTime( 0.0 ),
-      frameTime( 0.0f ),
-      currLeaf( NULL )
+      frameTime( 0.0f )
 {
 	viewParams_t view;
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
 
-    frustum = new Frustum();
-    map = new Q3BspMap();
+	patch.vbo = 0;
+	patch.lastVertexCount = 0;
 }
 
 /*
@@ -85,10 +84,11 @@ BSPRenderer::~BSPRenderer
 
 BSPRenderer::~BSPRenderer( void )
 {
-    glDeleteVertexArrays( 1, &vao );
-	glDeleteBuffers( 1, &vbo );
-    glDeleteProgram( bspProgram );
-    
+    GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
+	GL_CHECK( glDeleteBuffers( 1, &vbo ) );
+	GL_CHECK( glDeleteBuffers( 1, &patch.vbo ) );
+	GL_CHECK( glDeleteProgram( bspProgram ) );
+
     delete map;
     delete frustum;
     delete camera;
@@ -153,6 +153,8 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, UBO_TRANSFORMS_BLOCK_BINDING, transformBlockObj, 0, transformBlockSize ) );
 
 	MapProgramToUBO( bspProgram, "Transforms" );
+
+	GL_CHECK( glGenBuffers( 1, &patch.vbo ) );
 }
 
 /*
@@ -204,6 +206,44 @@ void BSPRenderer::Render( uint32_t renderFlags )
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 
     DrawNode( 0, pass, true, renderFlags );
+	
+	drawFace_t parms = { 0 };
+	parms.pass = &pass;
+
+	parms.bounds = new AABB();
+
+	for ( int i = 1; i < map->data.numModels; ++i )
+	{
+		bspModel_t* model = &map->data.models[ i ];
+
+		parms.bounds->maxPoint = model->boxMax;
+		parms.bounds->minPoint = model->boxMin;
+
+		if ( !frustum->IntersectsBox( *parms.bounds ) )
+			continue;
+
+		for ( int j = 0; j < model->numFaces; ++j )
+		{
+			if ( pass.facesRendered[ model->faceOffset + j ] )
+				continue;
+
+			parms.faceIndex = model->faceOffset + j;
+			SetFaceParmData( &parms );
+			DrawFace( &parms );
+
+			/*
+			for ( int k = 0; k < model->numBrushes; ++k )
+			{
+				parms.brush = &map->data.brushes[ model->brushOffset + k ];
+				DrawFace( &parms );
+			}*/
+		}
+	}
+
+	delete parms.bounds;
+	
+	//DrawNode( 0, pass, false , renderFlags );
+
 	frameTime = glfwGetTime() - startTime;
 
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
@@ -235,32 +275,58 @@ BSPRenderer::DrawNodes
 =====================================================
 */
 
+void BSPRenderer::SetFaceParmData( drawFace_t* parms )
+{
+	parms->face = &map->data.faces[ parms->faceIndex ];
+	parms->shader = map->GetShaderInfo( parms->faceIndex );
+			
+	if ( parms->face->type == BSP_FACE_TYPE_PATCH )
+	{
+		if ( parms->shader && parms->shader->tessSize != 0.0f )
+		{
+			parms->subdivLevel = ( int ) parms->shader->tessSize; 
+		}
+		else
+		{	
+			parms->subdivLevel = CalcSubdivision( *( parms->pass ), *( parms->bounds ) );	
+		}
+	}
+}
+
 void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags )
 {
     if ( nodeIndex < 0 )
     {
-        const bspLeaf_t* const viewLeaf = &map->data.leaves[ -( nodeIndex + 1 ) ];
+		drawFace_t parms = { 0 };
+
+        const bspLeaf_t* viewLeaf = &map->data.leaves[ -( nodeIndex + 1 ) ];
 
         if ( !map->IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
             return;
 
-        AABB bounds( 
-			glm::vec3( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z ), 
-			glm::vec3( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z ) 
-		);
+		AABB leafBounds;
+		leafBounds.maxPoint = glm::vec3( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z );
+		leafBounds.minPoint = glm::vec3( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z );
 
-        if ( !frustum->IntersectsBox( bounds ) )
+        if ( !frustum->IntersectsBox( leafBounds ) )
             return;
+
+		parms.pass = &pass;
+		parms.isSolid = isSolid;
+		parms.renderFlags = renderFlags;
+		parms.subdivLevel = 0;
+		parms.bounds = &leafBounds;
 
         for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
         {
-            int index = map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index;
+            parms.faceIndex = map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index;
 
-            if ( pass.facesRendered[ index ] )
+            if ( pass.facesRendered[ parms.faceIndex ] )
                 continue;
 
-            DrawFace( index, pass, bounds, isSolid, renderFlags );
-        }
+			SetFaceParmData( &parms );
+			DrawFace( &parms );
+		}
     }
     else
     {
@@ -276,8 +342,8 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
         if ( isSolid == ( d > plane->distance ) )
         {
             DrawNode( node->children[ 0 ], pass, isSolid, renderFlags );
-            DrawNode( node->children[ 1 ], pass, isSolid, renderFlags );
-        }
+			DrawNode( node->children[ 1 ], pass, isSolid, renderFlags );
+		}
         else
         {
             DrawNode( node->children[ 1 ], pass, isSolid, renderFlags );
@@ -286,126 +352,137 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
     }
 }
 
-void BSPRenderer::DrawFaceNoEffect( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid )
+void BSPRenderer::DrawFaceNoEffect( drawFace_t* parms )
 {
-	const bspFace_t* face = map->data.faces + faceIndex;
-
-	if ( map->glTextures[ face->texture ] != 0 )
+	if ( map->glTextures[ parms->face->texture ] != 0 )
 	{
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragTexSampler" ], 0 ) );
 
-		GL_CHECK( glBindSampler( 0, map->glSamplers[ face->texture ] ) );
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ face->texture ] ) );
+		GL_CHECK( glBindSampler( 0, map->glSamplers[ parms->face->texture ] ) );
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glTextures[ parms->face->texture ] ) );
 	}
 
-	if ( face->lightmapIndex >= 0 )
+	if ( parms->face->lightmapIndex >= 0 )
 	{
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
 		GL_CHECK( glProgramUniform1i( bspProgram, bspProgramUniforms[ "fragLightmapSampler" ], 1 ) );
 
 		GL_CHECK( glBindSampler( 1, map->glLightmapSampler ) );
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
+		GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ parms->face->lightmapIndex ] ) );
 	}
 
 	GL_CHECK( glUseProgram( bspProgram ) );
-
-	if ( face->type == BSP_FACE_TYPE_PATCH )
-		DrawFaceVerts( faceIndex, CalcSubdivision( pass, bounds ) );
-	else
-		DrawFaceVerts( faceIndex, 0 );
+	
+	DrawFaceVerts( parms );
 
 	GL_CHECK( glUseProgram( 0 ) );
+	
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	
 	GL_CHECK( glBindSampler( 0, 0 ) );
 	GL_CHECK( glBindSampler( 1, 0 ) );
 }
 
-void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds, bool isSolid, uint32_t renderFlags )
+void BSPRenderer::DrawFace( drawFace_t* parms )
 {
-	const bspFace_t* face = map->data.faces + faceIndex;
-
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
 	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-	DrawFaceNoEffect( faceIndex, pass, bounds, isSolid );
-
-	const shaderInfo_t* shader = map->GetShaderInfo( faceIndex );
 
 	// We use textures and effect names as keys into our effectShader map
-	if ( ( renderFlags & RENDER_BSP_EFFECT ) && shader )
+	if ( ( parms->renderFlags & RENDER_BSP_EFFECT ) && parms->shader )
 	{
-		const int subdivLevel = face->type == BSP_FACE_TYPE_PATCH ? CalcSubdivision( pass, bounds ) : 0;	
-
-		if ( shader->hasPolygonOffset )
+		if ( parms->shader->hasPolygonOffset )
+		{
 			SetPolygonOffsetState( true, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
+		}
 
-		for ( int i = 0; i < shader->stageCount; ++i )
+		for ( int i = 0; i < parms->shader->stageCount; ++i )
 		{			
-			if ( shader->stageBuffer[ i ].isStub )
+			if ( parms->shader->stageBuffer[ i ].isStub )
 				continue;
 
 			GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 
-			if ( shader->stageBuffer[ i ].mapType == MAP_TYPE_LIGHT_MAP )
+			if ( parms->shader->stageBuffer[ i ].mapType == MAP_TYPE_LIGHT_MAP )
 			{
 				MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 1 ] ) );
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ face->lightmapIndex ] ) );
+				GL_CHECK( glBindTexture( GL_TEXTURE_2D, map->glLightmaps[ parms->face->lightmapIndex ] ) );
 				GL_CHECK( glBindSampler( 0, map->glLightmapSampler ) );
 			}
 			else
 			{
 				MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, shader->stageBuffer[ i ].textureObj ) );
-				GL_CHECK( glBindSampler( 0, shader->stageBuffer[ i ].samplerObj ) );
+				GL_CHECK( glBindTexture( GL_TEXTURE_2D, parms->shader->stageBuffer[ i ].textureObj ) );
+				GL_CHECK( glBindSampler( 0, parms->shader->stageBuffer[ i ].samplerObj ) );
 			}
 
-			if ( shader->stageBuffer[ i ].hasTexMod )
+			if ( parms->renderFlags & RENDER_BSP_USE_TCMOD )
 			{
-				glm::mat2 t( 1.0f );
-				if ( renderFlags & RENDER_BSP_USE_TCMOD )
-					t = shader->stageBuffer[ i ].texTransform;
-				
-				GL_CHECK( glProgramUniformMatrix2fv( 
-						shader->stageBuffer[ i ].programID, 
-						shader->stageBuffer[ i ].uniforms.at( "texTransform" ), 1, GL_FALSE, 
-						glm::value_ptr( t ) ) ); 
+				if ( parms->shader->stageBuffer[ i ].hasTexMod )
+				{
+					GL_CHECK( glProgramUniformMatrix2fv( 
+							parms->shader->stageBuffer[ i ].programID, 
+							parms->shader->stageBuffer[ i ].uniforms.at( "texTransform" ), 1, GL_FALSE, 
+							glm::value_ptr( parms->shader->stageBuffer[ i ].texTransform ) ) ); 
+				}
+
+				if ( parms->shader->stageBuffer[ i ].tcModTurb.enabled )
+				{
+					GL_CHECK( glProgramUniform1f( 
+						parms->shader->stageBuffer[ i ].programID, 
+						parms->shader->stageBuffer[ i ].uniforms.at( "tcModTurb" ), 
+						DEFORM_CALC_TABLE( 
+							deformCache.sinTable, 
+							0,										   // base 
+							parms->shader->stageBuffer[ i ].tcModTurb.phase,  // offset
+							glfwGetTime(),
+							parms->shader->stageBuffer[ i ].tcModTurb.frequency,
+							parms->shader->stageBuffer[ i ].tcModTurb.amplitude )
+					) );
+				}
 			}
 
-			GL_CHECK( glBlendFunc( shader->stageBuffer[ i ].blendSrc, shader->stageBuffer[ i ].blendDest ) );
-			GL_CHECK( glDepthFunc( shader->stageBuffer[ i ].depthFunc ) );
+			GL_CHECK( glBlendFunc( parms->shader->stageBuffer[ i ].blendSrc, parms->shader->stageBuffer[ i ].blendDest ) );
+			GL_CHECK( glDepthFunc( parms->shader->stageBuffer[ i ].depthFunc ) );
 
-			GL_CHECK( glProgramUniform1i( shader->stageBuffer[ i ].programID, shader->stageBuffer[ i ].uniforms.at( "sampler0" ), 0 ) );
-			GL_CHECK( glUseProgram( shader->stageBuffer[ i ].programID ) );
+			GL_CHECK( glProgramUniform1i( parms->shader->stageBuffer[ i ].programID, parms->shader->stageBuffer[ i ].uniforms.at( "sampler0" ), 0 ) );
+			GL_CHECK( glUseProgram( parms->shader->stageBuffer[ i ].programID ) );
 
-			DrawFaceVerts( faceIndex, subdivLevel );
+			DrawFaceVerts( parms );
 		}
 		
-		if ( shader->hasPolygonOffset )
+		if ( parms->shader->hasPolygonOffset )
 			SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 		GL_CHECK( glBindSampler( 0, 0 ) );
 		GL_CHECK( glUseProgram( 0 ) );
 	}
+	else
+	{
+		DrawFaceNoEffect( parms );
+	}
 
-	if ( renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
+	if ( parms->renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
 		SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 
 	// Debug information
-	if ( renderFlags & RENDER_BSP_LIGHTMAP_INFO )
+	if ( parms->renderFlags & RENDER_BSP_LIGHTMAP_INFO )
 	{
-		ImPrep( pass.view.transform, pass.view.clipTransform );
+		ImPrep( parms->pass->view.transform, parms->pass->view.clipTransform );
 
 		uint8_t hasLightmap = FALSE;
 
-		if ( shader )
+		if ( parms->shader )
 		{
-			const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ face->texture ].name );
+			const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ parms->face->texture ].name );
 			hasLightmap = shader.hasLightmap;
 		}
 
@@ -417,74 +494,150 @@ void BSPRenderer::DrawFace( int faceIndex, RenderPass& pass, const AABB& bounds,
 			glColor3f( 0.0f, 0.0f, 1.0f );
 		else
 			glColor3f( 0.0f, 1.0f, 0.0f );
-		glVertex3f( face->lightmapOrigin.x, face->lightmapOrigin.y, face->lightmapOrigin.z );
+		glVertex3f( parms->face->lightmapOrigin.x, parms->face->lightmapOrigin.y, parms->face->lightmapOrigin.z );
 		glEnd();
 
-		if ( shader )
+		if ( parms->shader )
 		{
 			GL_CHECK( glPointSize( 5.0f ) );
 			glBegin( GL_POINTS );
 			glColor3f( 1.0f, 1.0f, 1.0f );
-			for ( uint32_t i = 0; i < map->glFaces[ faceIndex ].indices.size(); ++i )
+			for ( uint32_t i = 0; i < map->glFaces[ parms->faceIndex ].indices.size(); ++i )
 			{
-				const glm::vec3& pos = map->data.vertexes[ map->glFaces[ faceIndex ].indices[ i ] ].position;
+				const glm::vec3& pos = map->data.vertexes[ map->glFaces[ parms->faceIndex ].indices[ i ] ].position;
 				glVertex3f( pos.x, pos.y, pos.z );
 			}
 			glEnd();
 		}
+
 		GL_CHECK( glLoadIdentity() );
 	}
 
-    pass.facesRendered[ faceIndex ] = 1;
+    parms->pass->facesRendered[ parms->faceIndex ] = 1;
 }
 
-void BSPRenderer::DrawFaceVerts( int faceIndex, int subdivLevel )
+void BSPRenderer::DrawFaceVerts( drawFace_t* parms )
 {
-	const bspFace_t* face = map->data.faces + faceIndex;
-
-	if ( face->type == BSP_FACE_TYPE_POLYGON || face->type == BSP_FACE_TYPE_MESH )
+	if ( parms->face->type == BSP_FACE_TYPE_POLYGON || parms->face->type == BSP_FACE_TYPE_MESH )
 	{
-		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ faceIndex ].indices[ 0 ] ) );
+		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ parms->faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ parms->faceIndex ].indices[ 0 ] ) );
 	}
-	else if ( face->type == BSP_FACE_TYPE_PATCH )
+	else if ( parms->face->type == BSP_FACE_TYPE_PATCH )
 	{
-		if ( map->glDeformed.find( faceIndex ) != map->glDeformed.end() )
+		Tessellate( parms );
+
+		LoadBufferLayout( patch.vbo );
+
+		if ( patch.lastVertexCount != patch.vertices.size() )
 		{
-			deformModel_t* dm = map->glDeformed[ faceIndex ];
-
-			LoadBufferLayout( dm->vbo );
-			DrawElementBuffer( dm->ibo, dm->tris.size() * 3 );
-
-			/*
-			float scale = GenDeformScale( map->GetShaderInfo( faceIndex ) );
-
-			for ( bspVertex_t& vertices: dm->vertices )
-			{
-				vertices.position -= ( vertices.normal * dm->deformScale );
-				vertices.position += ( vertices.normal * scale );
-			}
-
-			dm->deformScale = scale;
-			UpdateBufferObject( dm->vbo, GL_ARRAY_BUFFER, dm->vertices.size() * sizeof( bspVertex_t ), &dm->vertices[ 0 ] );
-			*/
+			GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) *  patch.vertices.size(), &patch.vertices[ 0 ], GL_DYNAMIC_DRAW ) );
 		}
 		else
 		{
-			const shaderInfo_t* s = map->GetShaderInfo( faceIndex );
-
-			memcpy( patchRenderer.controlPoints, map->glFaces[ faceIndex ].controlPoints, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
-			
-			patchRenderer.Tessellate( s ? ( int ) s->tessSize : subdivLevel, map->GetShaderInfo( faceIndex ) );
-			patchRenderer.Render();
+			GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * patch.vertices.size(), &patch.vertices[ 0 ] ) );
 		}
 
-		// Rebind after render since patchRenderer overrides with its own vbo
+		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, & patch.trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &patch.rowIndices[ 0 ], parms->subdivLevel ) );
+
+		patch.lastVertexCount = patch.vertices.size();
+		
 		LoadBufferLayout( vbo );
 	}
 	else // Billboards
 	{
 		// TODO
 		__nop();
+	}
+}
+
+void BSPRenderer::Tessellate( drawFace_t* parms )
+{
+	// Vertex count along a side is 1 + number of edges
+    const int L1 = parms->subdivLevel + 1;
+
+	const shaderInfo_t* shader = map->GetShaderInfo( parms->faceIndex );
+	const mapModel_t* model = &map->glFaces[ parms->faceIndex ];
+
+	patch.vertices.resize( L1 * L1 );
+	
+	// Compute the first spline along the edge
+	for ( int i = 0; i <= parms->subdivLevel; ++i )
+	{
+		float a = ( float )i / ( float )parms->subdivLevel;
+		float b = 1.0f - a;
+
+		patch.vertices[ i ] = 
+			*( model->controlPoints[ 0 ] ) * ( b * b ) +
+		 	*( model->controlPoints[ 3 ] ) * ( 2 * b * a ) + 
+			*( model->controlPoints[ 6 ] ) * ( a * a );
+	}
+
+	// Go deep and fill in the gaps; outer loop is the first layer of curves
+	for ( int i = 1; i <= parms->subdivLevel; ++i )
+	{
+		float a = ( float )i / ( float )parms->subdivLevel;
+		float b = 1.0f - a;
+
+		bspVertex_t tmp[ 3 ];
+
+		// Compute three verts for a triangle
+		for ( int j = 0; j < 3; ++j )
+		{
+			int k = j * 3;
+			tmp[ j ] = 
+				*( model->controlPoints[ k + 0 ] ) * ( b * b ) + 
+				*( model->controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
+				*( model->controlPoints[ k + 2 ] ) * ( a * a );
+		}
+
+		// Compute the inner layer of the bezier spline
+		for ( int j = 0; j <= parms->subdivLevel; ++j )
+		{
+			float a1 = ( float )j / ( float )parms->subdivLevel;
+			float b1 = 1.0f - a1;
+
+			bspVertex_t& v = patch.vertices[ i * L1 + j ];
+
+			v = tmp[ 0 ] * ( b1 * b1 ) + 
+				tmp[ 1 ] * ( 2 * b1 * a1 ) +
+				tmp[ 2 ] * ( a1 * a1 );
+
+			if ( shader && shader->tessSize != 0.0f )
+			{
+				float scale = GenDeformScale( v.position, shader );
+
+				if ( parms->brush )
+				{
+					const bspPlane_t* plane = &map->data.planes[ map->data.brushSides[ parms->brush->brushSide + ( i % parms->brush->numBrushSides ) ].plane ];
+					v.position += plane->normal * scale;
+				}
+				else
+				{
+					v.position += v.normal * scale;
+				}
+			}
+		}
+ 	}
+
+	// Compute the indices, which are designed to be used for a tri strip.
+	patch.indices.resize( parms->subdivLevel * L1 * 2 );
+
+	for ( int row = 0; row < parms->subdivLevel; ++row )
+	{
+		for ( int col = 0; col <= parms->subdivLevel; ++col )
+		{
+			patch.indices[ ( row * L1 + col ) * 2 + 0 ] = ( row + 1 ) * L1 + col;
+			patch.indices[ ( row * L1 + col ) * 2 + 1 ] = row * L1 + col;
+		}
+	}
+
+	patch.rowIndices.resize( parms->subdivLevel );
+	patch.trisPerRow.resize( parms->subdivLevel );
+
+	for ( int row = 0; row < parms->subdivLevel; ++row )
+	{
+		patch.trisPerRow[ row ] = 2 * L1;
+		patch.rowIndices[ row ] = &patch.indices[ row * 2 * L1 ];  
 	}
 }
 

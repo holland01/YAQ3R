@@ -1,4 +1,5 @@
 #include "q3bsp.h"
+#include "aabb.h"
 #include "log.h"
 #include "glutil.h"
 
@@ -207,16 +208,6 @@ void Q3BspMap::DestroyMap( void )
 		glTextures.clear();
 		glLightmaps.clear();
 		glFaces.clear();
-		
-		for ( auto dm: glDeformed )
-		{
-			if ( dm.second )
-			{
-				delete dm.second;
-			}
-		}
-
-		glDeformed.clear();
 
         mapAllocated = false;
     }
@@ -250,13 +241,11 @@ void Q3BspMap::GenRenderData( void )
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
 			glFaces[ i ].indices.resize( face->numMeshVertexes, 0 );
-			glFaces[ i ].vertices.resize( face->numMeshVertexes );
 			memset( &glFaces[ i ].controlPoints, 0, sizeof( bspVertex_t* ) * BSP_NUM_CONTROL_POINTS );
 
 			for ( int j = 0; j < face->numMeshVertexes; ++j )
 			{
 				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
-				glFaces[ i ].vertices[ j ] = data.vertexes[ glFaces[ i ].indices[ j ] ];
 			}
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
@@ -280,34 +269,6 @@ void Q3BspMap::GenRenderData( void )
 		{
 			continue;
 		}
-
-		/*
-		const shaderInfo_t* shader = GetShaderInfo( i );
-
-		// Perform tessellation, if requested.
-        if ( shader && shader->tessSize != 0.0f && shader->deformCmd != VERTEXDEFORM_CMD_UNDEFINED )
-		{
-			deformModel_t* def = new deformModel_t();
-
-			float scale = GenDeformScale( shader );
-			def->deformScale = scale;
-
-			// Tessellate each triangle
-			for ( size_t j = 0; j < glFaces[ i ].indices.size(); j += 3 )
-			{
-				const bspVertex_t& a = data.vertexes[ glFaces[ i ].indices[ j ] ];
-				const bspVertex_t& b = data.vertexes[ glFaces[ i ].indices[ j + 1 ] ];
-				const bspVertex_t& c = data.vertexes[ glFaces[ i ].indices[ j + 2 ] ];
-					
-				TessellateTri( def->vertices, def->tris, shader->tessSize, scale, a, b, c );
-			}
-
-			def->vbo = GenBufferObject( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * def->vertices.size(), &def->vertices[ 0 ], GL_STATIC_DRAW );
-			def->ibo = GenBufferObject( GL_ELEMENT_ARRAY_BUFFER, sizeof( triangle_t ) * def->tris.size(), &def->tris[ 0 ].indices[ 0 ], GL_STATIC_DRAW );
-
-			glDeformed[ i ] = def;
-		}
-		*/
 	}
 }
 
@@ -427,6 +388,9 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
     data.leafFaces = ( bspLeafFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_FACES ].offset );
 	data.numLeafFaces = data.header->directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
 
+	data.leafBrushes = ( bspLeafBrush_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_BRUSHES ].offset );
+	data.numLeafBrushes = data.header->directories[ BSP_LUMP_LEAF_BRUSHES ].length / sizeof( bspLeafBrush_t );
+
     data.meshVertexes = ( bspMeshVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_MESH_VERTEXES ].offset );
 	data.numMeshVertexes = data.header->directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( bspMeshVertex_t );
 
@@ -438,6 +402,12 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
 	data.lightvols = ( bspLightvol_t* )( data.buffer + data.header->directories[ BSP_LUMP_LIGHTVOLS ].offset );
 	data.numLightvols = data.header->directories[ BSP_LUMP_LIGHTVOLS ].length / sizeof( bspLightvol_t );
+
+	data.brushes = ( bspBrush_t* )( data.buffer + data.header->directories[ BSP_LUMP_BRUSHES ].offset ); 
+	data.numBrushes = data.header->directories[ BSP_LUMP_BRUSHES ].length / sizeof( bspBrush_t );
+
+	data.brushSides = ( bspBrushSide_t* )( data.buffer + data.header->directories[ BSP_LUMP_BRUSH_SIDES ].offset );
+	data.numBrushSides = data.header->directories[ BSP_LUMP_BRUSH_SIDES ].length / sizeof( bspBrushSide_t );
 
     data.visdata = ( bspVisdata_t* )( data.buffer + data.header->directories[ BSP_LUMP_VISDATA ].offset );
 	data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;

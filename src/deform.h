@@ -3,9 +3,17 @@
 #include "common.h"
 #include "vec.h"
 #include "q3m_model.h"
+#include <array>
 
 #define BEZ_BUF_COUNT 2
 #define BEZ_CONTROL_POINT_COUNT 9
+
+#define DEFORM_TABLE_SIZE 1024
+#define DEFORM_TABLE_SIZE_LOG_2 10
+#define DEFORM_TABLE_MASK ( DEFORM_TABLE_SIZE - 1 )
+
+#define DEFORM_CALC_TABLE( table, base, offset, t, f, a ) \
+	( ( base ) + ( table )[ int ( ( offset ) + ( t ) * ( f ) * DEFORM_TABLE_SIZE ) & DEFORM_TABLE_MASK ] * ( a ) )
 
 struct bspVertex_t;
 struct bspFace_t;
@@ -14,29 +22,24 @@ struct deformModel_t;
 struct mapModel_t;
 struct mapData_t;
 
-class BezPatch
+struct patchData_t
 {
-public:
-    GLuint                      vbo;
+	GLuint						vbo;
+	size_t						lastVertexCount;
 
-    std::vector< bspVertex_t >  vertices;
-
-	mutable size_t lastCount;
-
-    std::vector< int >          indices;
+	std::vector< bspVertex_t >	vertices;
+	std::vector< int >			indices;
 	std::vector< int* >			rowIndices;
 	std::vector< int >			trisPerRow;
-
-	int							subdivLevel;
-
-    const bspVertex_t*			controlPoints[ BEZ_CONTROL_POINT_COUNT ];
-
-	BezPatch( void );
-	~BezPatch( void );
-
-    void						Tessellate( int level, const shaderInfo_t* shader );
-    void						Render( void ) const;
 };
+
+struct deformGlobal_t
+{
+	std::array< float, DEFORM_TABLE_SIZE > sinTable;
+	std::array< float, DEFORM_TABLE_SIZE > triTable;
+};
+
+extern deformGlobal_t deformCache;
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
 

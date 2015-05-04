@@ -25,6 +25,8 @@ public:
 
     AABB&       operator =( AABB toAssign );
 
+	bool		Encloses( const AABB& box ) const;
+
     void        Add( const glm::vec3& p );
 
     void        Empty( void ); // Sets maxPoint to -pseudoInfinity, and minPoint to pseudoInfinity
@@ -59,4 +61,9 @@ public:
 INLINE glm::vec4 AABB::Corner4( int32_t index ) const
 {
 	return glm::vec4( Corner( index ), 1.0f );
+}
+
+INLINE bool	AABB::Encloses( const AABB& box ) const
+{
+	return !glm::any( glm::lessThan( box.minPoint, minPoint ) ) && !glm::any( glm::greaterThan( box.maxPoint, maxPoint ) );
 }
