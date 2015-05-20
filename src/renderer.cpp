@@ -230,13 +230,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			parms.faceIndex = model->faceOffset + j;
 			SetFaceParmData( &parms );
 			DrawFace( &parms );
-
-			/*
-			for ( int k = 0; k < model->numBrushes; ++k )
-			{
-				parms.brush = &map->data.brushes[ model->brushOffset + k ];
-				DrawFace( &parms );
-			}*/
 		}
 	}
 
@@ -284,11 +277,11 @@ void BSPRenderer::SetFaceParmData( drawFace_t* parms )
 	{
 		if ( parms->shader && parms->shader->tessSize != 0.0f )
 		{
-			parms->subdivLevel = ( int ) parms->shader->tessSize; 
+			parms->subdivLevel = 3; //( int ) parms->shader->tessSize; 
 		}
 		else
 		{	
-			parms->subdivLevel = CalcSubdivision( *( parms->pass ), *( parms->bounds ) );	
+			parms->subdivLevel = 5; //CalcSubdivision( *( parms->pass ), *( parms->bounds ) );	
 		}
 	}
 }
@@ -459,7 +452,9 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 		}
 		
 		if ( parms->shader->hasPolygonOffset )
+		{
 			SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
+		}
 
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 		GL_CHECK( glBindSampler( 0, 0 ) );
@@ -471,7 +466,9 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 	}
 
 	if ( parms->renderFlags & RENDER_BSP_ALWAYS_POLYGON_OFFSET )
+	{
 		SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
+	}
 
 	// Debug information
 	if ( parms->renderFlags & RENDER_BSP_LIGHTMAP_INFO )
@@ -524,33 +521,31 @@ void BSPRenderer::DrawFaceVerts( drawFace_t* parms )
 	}
 	else if ( parms->face->type == BSP_FACE_TYPE_PATCH )
 	{
-		Tessellate( parms );
-
-		LoadBufferLayout( patch.vbo );
-
-		if ( patch.lastVertexCount != patch.vertices.size() )
+		for ( size_t i = 0; i < map->glFaces[ parms->faceIndex ].controlPoints.size(); ++i )
 		{
-			GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) *  patch.vertices.size(), &patch.vertices[ 0 ], GL_DYNAMIC_DRAW ) );
-		}
-		else
-		{
-			GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * patch.vertices.size(), &patch.vertices[ 0 ] ) );
-		}
+			Tessellate( parms, i );
 
-		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, & patch.trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &patch.rowIndices[ 0 ], parms->subdivLevel ) );
+			LoadBufferLayout( patch.vbo );
 
-		patch.lastVertexCount = patch.vertices.size();
+			if ( patch.lastVertexCount != patch.vertices.size() )
+			{
+				GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * patch.vertices.size(), &patch.vertices[ 0 ], GL_DYNAMIC_DRAW ) );
+			}
+			else
+			{
+				GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * patch.vertices.size(), &patch.vertices[ 0 ] ) );
+			}
+		
+			GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &patch.trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &patch.rowIndices[ 0 ], parms->subdivLevel ) );
+
+			patch.lastVertexCount = patch.vertices.size();
+		}
 		
 		LoadBufferLayout( vbo );
 	}
-	else // Billboards
-	{
-		// TODO
-		__nop();
-	}
 }
 
-void BSPRenderer::Tessellate( drawFace_t* parms )
+void BSPRenderer::Tessellate( drawFace_t* parms, int patchIndex )
 {
 	// Vertex count along a side is 1 + number of edges
     const int L1 = parms->subdivLevel + 1;
@@ -567,9 +562,9 @@ void BSPRenderer::Tessellate( drawFace_t* parms )
 		float b = 1.0f - a;
 
 		patch.vertices[ i ] = 
-			*( model->controlPoints[ 0 ] ) * ( b * b ) +
-		 	*( model->controlPoints[ 3 ] ) * ( 2 * b * a ) + 
-			*( model->controlPoints[ 6 ] ) * ( a * a );
+			*( model->controlPoints[ patchIndex ].points[ 0 ] ) * ( b * b ) +
+		 	*( model->controlPoints[ patchIndex ].points[ 3 ] ) * ( 2 * b * a ) + 
+			*( model->controlPoints[ patchIndex ].points[ 6 ] ) * ( a * a );
 	}
 
 	// Go deep and fill in the gaps; outer loop is the first layer of curves
@@ -585,9 +580,9 @@ void BSPRenderer::Tessellate( drawFace_t* parms )
 		{
 			int k = j * 3;
 			tmp[ j ] = 
-				*( model->controlPoints[ k + 0 ] ) * ( b * b ) + 
-				*( model->controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
-				*( model->controlPoints[ k + 2 ] ) * ( a * a );
+				*( model->controlPoints[ patchIndex ].points[ k + 0 ] ) * ( b * b ) + 
+				*( model->controlPoints[ patchIndex ].points[ k + 1 ] ) * ( 2 * b * a ) +
+				*( model->controlPoints[ patchIndex ].points[ k + 2 ] ) * ( a * a );
 		}
 
 		// Compute the inner layer of the bezier spline
@@ -605,16 +600,7 @@ void BSPRenderer::Tessellate( drawFace_t* parms )
 			if ( shader && shader->tessSize != 0.0f )
 			{
 				float scale = GenDeformScale( v.position, shader );
-
-				if ( parms->brush )
-				{
-					const bspPlane_t* plane = &map->data.planes[ map->data.brushSides[ parms->brush->brushSide + ( i % parms->brush->numBrushSides ) ].plane ];
-					v.position += plane->normal * scale;
-				}
-				else
-				{
-					v.position += v.normal * scale;
-				}
+				v.position += v.normal * scale;
 			}
 		}
  	}

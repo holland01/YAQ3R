@@ -125,5 +125,5 @@ private:
 
 	int CalcSubdivision( const RenderPass& pass, const AABB& bounds );
 
-	void Tessellate( drawFace_t* parms );	
+	void Tessellate( drawFace_t* parms, int patchIndex );	
 };

@@ -61,9 +61,14 @@ struct leafModel_t
 	std::vector< int > modelIndices;
 };
 
+struct controlPointList_t
+{
+	const bspVertex_t* points[ 9 ];
+};
+
 struct mapModel_t
 {
 	std::vector< GLuint > indices;
-	const bspVertex_t* controlPoints[ BSP_NUM_CONTROL_POINTS ];
+	std::vector< controlPointList_t > controlPoints;
 };
 
