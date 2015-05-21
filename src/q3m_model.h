@@ -61,14 +61,29 @@ struct leafModel_t
 	std::vector< int > modelIndices;
 };
 
-struct controlPointList_t
+struct bezPatch_t
 {
-	const bspVertex_t* points[ 9 ];
+	GLuint						vbo;
+	int							subdivLevel;
+
+	const bspVertex_t*			controlPoints[ 9 ];
+
+	std::vector< bspVertex_t >	vertices;
+	std::vector< int  >			indices;
+	std::vector< int* >			rowIndices;
+	std::vector< int  >			trisPerRow;
+
+	 bezPatch_t( void );
+	~bezPatch_t( void );
 };
 
 struct mapModel_t
 {
+	GLuint				  vao;
 	std::vector< GLuint > indices;
-	std::vector< controlPointList_t > controlPoints;
+	std::vector< bezPatch_t* > patches;
+
+	mapModel_t( void );
+	~mapModel_t( void );
 };
 

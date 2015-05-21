@@ -78,6 +78,13 @@ static INLINE void MapProgramToUBO( GLuint programID, const char* uboName )
 	}
 }
 
+static INLINE GLuint GenVertexArrayObject( void )
+{
+	GLuint vao;
+	GL_CHECK( glGenVertexArrays( 1, &vao ) );
+	return vao;
+}
+
 static INLINE GLuint GenBufferObject( GLenum target, const size_t size, const void* data, GLenum usage )
 {
 	GLuint obj;

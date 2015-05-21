@@ -22,17 +22,6 @@ struct deformModel_t;
 struct mapModel_t;
 struct mapData_t;
 
-struct patchData_t
-{
-	GLuint						vbo;
-	size_t						lastVertexCount;
-
-	std::vector< bspVertex_t >	vertices;
-	std::vector< int >			indices;
-	std::vector< int* >			rowIndices;
-	std::vector< int >			trisPerRow;
-};
-
 struct deformGlobal_t
 {
 	std::array< float, DEFORM_TABLE_SIZE > sinTable;
@@ -42,6 +31,8 @@ struct deformGlobal_t
 extern deformGlobal_t deformCache;
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
+
+void GenPatch( bezPatch_t* patch, const shaderInfo_t* shader );
 
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 

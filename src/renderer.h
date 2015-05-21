@@ -111,8 +111,6 @@ private:
     Q3BspMap*           map;
 	const bspLeaf_t*    currLeaf;
 
-	patchData_t			patch;
-
     GLuint              bspProgram;
     GLuint              vao, vbo;
 
@@ -121,9 +119,5 @@ private:
 
 	std::map< std::string, GLint > bspProgramUniforms;
 
-	void SetFaceParmData( drawFace_t* parms );
-
 	int CalcSubdivision( const RenderPass& pass, const AABB& bounds );
-
-	void Tessellate( drawFace_t* parms, int patchIndex );	
 };

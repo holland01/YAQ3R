@@ -69,9 +69,6 @@ BSPRenderer::BSPRenderer( void )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-
-	patch.vbo = 0;
-	patch.lastVertexCount = 0;
 }
 
 /*
@@ -86,7 +83,6 @@ BSPRenderer::~BSPRenderer( void )
 {
     GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
 	GL_CHECK( glDeleteBuffers( 1, &vbo ) );
-	GL_CHECK( glDeleteBuffers( 1, &patch.vbo ) );
 	GL_CHECK( glDeleteProgram( bspProgram ) );
 
     delete map;
@@ -153,8 +149,6 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, UBO_TRANSFORMS_BLOCK_BINDING, transformBlockObj, 0, transformBlockSize ) );
 
 	MapProgramToUBO( bspProgram, "Transforms" );
-
-	GL_CHECK( glGenBuffers( 1, &patch.vbo ) );
 }
 
 /*
@@ -228,7 +222,9 @@ void BSPRenderer::Render( uint32_t renderFlags )
 				continue;
 
 			parms.faceIndex = model->faceOffset + j;
-			SetFaceParmData( &parms );
+			parms.face = &map->data.faces[ parms.faceIndex ];
+			parms.shader = map->GetShaderInfo( parms.faceIndex );
+
 			DrawFace( &parms );
 		}
 	}
@@ -258,32 +254,6 @@ void BSPRenderer::Update( float dt )
     deltaTime = dt;
     camera->Update();
     frustum->Update( camera->ViewData() );
-}
-
-/*
-=====================================================
-
-BSPRenderer::DrawNodes
-
-=====================================================
-*/
-
-void BSPRenderer::SetFaceParmData( drawFace_t* parms )
-{
-	parms->face = &map->data.faces[ parms->faceIndex ];
-	parms->shader = map->GetShaderInfo( parms->faceIndex );
-			
-	if ( parms->face->type == BSP_FACE_TYPE_PATCH )
-	{
-		if ( parms->shader && parms->shader->tessSize != 0.0f )
-		{
-			parms->subdivLevel = 3; //( int ) parms->shader->tessSize; 
-		}
-		else
-		{	
-			parms->subdivLevel = 5; //CalcSubdivision( *( parms->pass ), *( parms->bounds ) );	
-		}
-	}
 }
 
 void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags )
@@ -317,7 +287,9 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
             if ( pass.facesRendered[ parms.faceIndex ] )
                 continue;
 
-			SetFaceParmData( &parms );
+			parms.face = &map->data.faces[ parms.faceIndex ];
+			parms.shader = map->GetShaderInfo( parms.faceIndex );
+
 			DrawFace( &parms );
 		}
     }
@@ -521,109 +493,18 @@ void BSPRenderer::DrawFaceVerts( drawFace_t* parms )
 	}
 	else if ( parms->face->type == BSP_FACE_TYPE_PATCH )
 	{
-		for ( size_t i = 0; i < map->glFaces[ parms->faceIndex ].controlPoints.size(); ++i )
+		for ( const bezPatch_t* patch: map->glFaces[ parms->faceIndex ].patches )
 		{
-			Tessellate( parms, i );
-
-			LoadBufferLayout( patch.vbo );
-
-			if ( patch.lastVertexCount != patch.vertices.size() )
-			{
-				GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * patch.vertices.size(), &patch.vertices[ 0 ], GL_DYNAMIC_DRAW ) );
-			}
-			else
-			{
-				GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof( bspVertex_t ) * patch.vertices.size(), &patch.vertices[ 0 ] ) );
-			}
-		
-			GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &patch.trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &patch.rowIndices[ 0 ], parms->subdivLevel ) );
-
-			patch.lastVertexCount = patch.vertices.size();
+			LoadBufferLayout( patch->vbo );		
+			
+			GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
+				&patch->trisPerRow[ 0 ], 
+				GL_UNSIGNED_INT, 
+				( const GLvoid** ) &patch->rowIndices[ 0 ], 
+				parms->subdivLevel ) );
 		}
-		
+
 		LoadBufferLayout( vbo );
-	}
-}
-
-void BSPRenderer::Tessellate( drawFace_t* parms, int patchIndex )
-{
-	// Vertex count along a side is 1 + number of edges
-    const int L1 = parms->subdivLevel + 1;
-
-	const shaderInfo_t* shader = map->GetShaderInfo( parms->faceIndex );
-	const mapModel_t* model = &map->glFaces[ parms->faceIndex ];
-
-	patch.vertices.resize( L1 * L1 );
-	
-	// Compute the first spline along the edge
-	for ( int i = 0; i <= parms->subdivLevel; ++i )
-	{
-		float a = ( float )i / ( float )parms->subdivLevel;
-		float b = 1.0f - a;
-
-		patch.vertices[ i ] = 
-			*( model->controlPoints[ patchIndex ].points[ 0 ] ) * ( b * b ) +
-		 	*( model->controlPoints[ patchIndex ].points[ 3 ] ) * ( 2 * b * a ) + 
-			*( model->controlPoints[ patchIndex ].points[ 6 ] ) * ( a * a );
-	}
-
-	// Go deep and fill in the gaps; outer loop is the first layer of curves
-	for ( int i = 1; i <= parms->subdivLevel; ++i )
-	{
-		float a = ( float )i / ( float )parms->subdivLevel;
-		float b = 1.0f - a;
-
-		bspVertex_t tmp[ 3 ];
-
-		// Compute three verts for a triangle
-		for ( int j = 0; j < 3; ++j )
-		{
-			int k = j * 3;
-			tmp[ j ] = 
-				*( model->controlPoints[ patchIndex ].points[ k + 0 ] ) * ( b * b ) + 
-				*( model->controlPoints[ patchIndex ].points[ k + 1 ] ) * ( 2 * b * a ) +
-				*( model->controlPoints[ patchIndex ].points[ k + 2 ] ) * ( a * a );
-		}
-
-		// Compute the inner layer of the bezier spline
-		for ( int j = 0; j <= parms->subdivLevel; ++j )
-		{
-			float a1 = ( float )j / ( float )parms->subdivLevel;
-			float b1 = 1.0f - a1;
-
-			bspVertex_t& v = patch.vertices[ i * L1 + j ];
-
-			v = tmp[ 0 ] * ( b1 * b1 ) + 
-				tmp[ 1 ] * ( 2 * b1 * a1 ) +
-				tmp[ 2 ] * ( a1 * a1 );
-
-			if ( shader && shader->tessSize != 0.0f )
-			{
-				float scale = GenDeformScale( v.position, shader );
-				v.position += v.normal * scale;
-			}
-		}
- 	}
-
-	// Compute the indices, which are designed to be used for a tri strip.
-	patch.indices.resize( parms->subdivLevel * L1 * 2 );
-
-	for ( int row = 0; row < parms->subdivLevel; ++row )
-	{
-		for ( int col = 0; col <= parms->subdivLevel; ++col )
-		{
-			patch.indices[ ( row * L1 + col ) * 2 + 0 ] = ( row + 1 ) * L1 + col;
-			patch.indices[ ( row * L1 + col ) * 2 + 1 ] = row * L1 + col;
-		}
-	}
-
-	patch.rowIndices.resize( parms->subdivLevel );
-	patch.trisPerRow.resize( parms->subdivLevel );
-
-	for ( int row = 0; row < parms->subdivLevel; ++row )
-	{
-		patch.trisPerRow[ row ] = 2 * L1;
-		patch.rowIndices[ row ] = &patch.indices[ row * 2 * L1 ];  
 	}
 }
 

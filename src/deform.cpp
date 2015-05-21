@@ -148,6 +148,104 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 
 //----------------------------------------------------------
 
+void GenPatch( bezPatch_t* patch, const shaderInfo_t* shader )
+{
+	bool deform = false;
+	if ( !patch->subdivLevel )
+	{
+		if ( shader && shader->tessSize != 0.0f )
+		{
+			patch->subdivLevel = ( int )shader->tessSize;
+			deform = true;
+		}
+		else
+		{
+			patch->subdivLevel = 5;
+		}
+	}
+
+	// Vertex count along a side is 1 + number of edges
+    const int L1 = patch->subdivLevel + 1;
+
+	patch->vertices.resize( L1 * L1 );
+	
+	// Compute the first spline along the edge
+	for ( int i = 0; i <= patch->subdivLevel; ++i )
+	{
+		float a = ( float )i / ( float )patch->subdivLevel;
+		float b = 1.0f - a;
+
+		patch->vertices[ i ] = 
+			*( patch->controlPoints[ 0 ] ) * ( b * b ) +
+		 	*( patch->controlPoints[ 3 ] ) * ( 2 * b * a ) + 
+			*( patch->controlPoints[ 6 ] ) * ( a * a );
+	}
+
+	// Go deep and fill in the gaps; outer loop is the first layer of curves
+	for ( int i = 1; i <= patch->subdivLevel; ++i )
+	{
+		float a = ( float )i / ( float )patch->subdivLevel;
+		float b = 1.0f - a;
+
+		bspVertex_t tmp[ 3 ];
+
+		// Compute three verts for a triangle
+		for ( int j = 0; j < 3; ++j )
+		{
+			int k = j * 3;
+			tmp[ j ] = 
+				*( patch->controlPoints[ k + 0 ] ) * ( b * b ) + 
+				*( patch->controlPoints[ k + 1 ] ) * ( 2 * b * a ) +
+				*( patch->controlPoints[ k + 2 ] ) * ( a * a );
+		}
+
+		// Compute the inner layer of the bezier spline
+		for ( int j = 0; j <= patch->subdivLevel; ++j )
+		{
+			float a1 = ( float )j / ( float )patch->subdivLevel;
+			float b1 = 1.0f - a1;
+
+			bspVertex_t& v = patch->vertices[ i * L1 + j ];
+
+			v = tmp[ 0 ] * ( b1 * b1 ) + 
+				tmp[ 1 ] * ( 2 * b1 * a1 ) +
+				tmp[ 2 ] * ( a1 * a1 );
+
+			if ( deform )
+			{
+				v.position += v.normal * GenDeformScale( v.position, shader );
+			}
+		}
+ 	}
+
+	// Compute the indices, which are designed to be used for a tri strip.
+	patch->indices.resize( patch->subdivLevel * L1 * 2 );
+
+	for ( int row = 0; row < patch->subdivLevel; ++row )
+	{
+		for ( int col = 0; col <= patch->subdivLevel; ++col )
+		{
+			patch->indices[ ( row * L1 + col ) * 2 + 0 ] = ( row + 1 ) * L1 + col;
+			patch->indices[ ( row * L1 + col ) * 2 + 1 ] = row * L1 + col;
+		}
+	}
+
+	patch->rowIndices.resize( patch->subdivLevel );
+	patch->trisPerRow.resize( patch->subdivLevel );
+
+	for ( int row = 0; row < patch->subdivLevel; ++row )
+	{
+		patch->trisPerRow[ row ] = 2 * L1;
+		patch->rowIndices[ row ] = &patch->indices[ row * 2 * L1 ];  
+	}
+
+	patch->vbo = GenBufferObject( GL_ARRAY_BUFFER, 
+		sizeof( bspVertex_t ) * patch->vertices.size(), 
+		&patch->vertices[ 0 ], deform ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW );
+}
+
+//----------------------------------------------------------
+
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 
 	std::vector< triangle_t >& outIndices,

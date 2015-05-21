@@ -1,21 +1,33 @@
 #include "q3m_model.h"
 #include "glutil.h"
 
-deformModel_t::deformModel_t( void )
+bezPatch_t::bezPatch_t( void )
 	: vbo( 0 ),
-	  ibo( 0 )
+	  subdivLevel( 0 )
+{
+	memset( controlPoints, 0, sizeof( controlPoints ) );
+}
+
+bezPatch_t::~bezPatch_t( void )
+{
+	GL_CHECK( glDeleteBuffers( 1, &vbo ) );
+}
+
+mapModel_t::mapModel_t( void )
+	: vao( 0 )
 {
 }
 
-deformModel_t::~deformModel_t( void )
+mapModel_t::~mapModel_t( void )
 {
-	if ( vbo )
+	if ( vao )
 	{
-		DelBufferObject( GL_ARRAY_BUFFER, &vbo, 1 );
+		GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
 	}
 
-	if ( ibo )
+	for ( bezPatch_t* patch: patches )
 	{
-		DelBufferObject( GL_ELEMENT_ARRAY_BUFFER, &ibo, 1 );
+		delete patch;
 	}
 }
+

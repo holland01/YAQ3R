@@ -207,7 +207,7 @@ void Q3BspMap::DestroyMap( void )
 
 		glTextures.clear();
 		glLightmaps.clear();
-		//glFaces.clear();
+		glFaces.clear();
 
         mapAllocated = false;
     }
@@ -249,27 +249,30 @@ void Q3BspMap::GenRenderData( void )
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
-			// The amount of increments we need to make for each dimension, so we have the (potentially) shared points between patches
+			//glFaces[ i ].vao = GenVertexArrayObject();
+
+			// amount of patches = width * height;
 			int width = ( face->size[ 0 ] - 1 ) / 2;
 			int height = ( face->size[ 1 ] - 1 ) / 2;
 
+			// ( k, j ) maps to a ( row, col ) index scheme referring to the beginning of a patch 
 			int n, m, k, j;
 			for ( n = 0, k = 0; n < width; ( ++n, k = 2 * n ) )
 			{
 				for ( m = 0, j = 0; m < height; ( ++m, j = 2 * m ) )
 				{
-					controlPointList_t list;
-					memset( &list, 0, sizeof( list ) );
+					bezPatch_t* p = new bezPatch_t();
 					int base = face->vertexOffset + j * face->size[ 0 ] + k;
 
 					for ( int c = 0; c < 3; ++c )
 					{
-						list.points[ c * 3 + 0 ] = &data.vertexes[ base + c * 3 + 0 ];
-						list.points[ c * 3 + 1 ] = &data.vertexes[ base + c * 3 + 1 ];
-						list.points[ c * 3 + 2 ] = &data.vertexes[ base + c * 3 + 2 ];
+						p->controlPoints[ c * 3 + 0 ] = &data.vertexes[ base + c * 3 + 0 ];
+						p->controlPoints[ c * 3 + 1 ] = &data.vertexes[ base + c * 3 + 1 ];
+						p->controlPoints[ c * 3 + 2 ] = &data.vertexes[ base + c * 3 + 2 ];
 					}
 					
-					glFaces[ i ].controlPoints.push_back( list );
+					GenPatch( p, GetShaderInfo( i ) );
+					glFaces[ i ].patches.push_back( p );
 				}
 			}
 		}
