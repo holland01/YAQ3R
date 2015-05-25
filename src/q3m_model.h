@@ -61,27 +61,17 @@ struct leafModel_t
 	std::vector< int > modelIndices;
 };
 
-struct bezPatch_t
-{
-	GLuint						vbo;
-	int							subdivLevel;
-
-	const bspVertex_t*			controlPoints[ 9 ];
-
-	std::vector< bspVertex_t >	vertices;
-	std::vector< int  >			indices;
-	std::vector< int* >			rowIndices;
-	std::vector< int  >			trisPerRow;
-
-	 bezPatch_t( void );
-	~bezPatch_t( void );
-};
-
 struct mapModel_t
 {
-	GLuint				  vao;
-	std::vector< GLuint > indices;
-	std::vector< bezPatch_t* > patches;
+	bool						deform;
+	GLuint						vbo;
+	int32_t						subdivLevel;
+
+	std::vector< int32_t >				indices;
+	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
+	std::vector< bspVertex_t >			vertices;
+	std::vector< int32_t* >				rowIndices;
+	std::vector< int32_t  >				trisPerRow;
 
 	mapModel_t( void );
 	~mapModel_t( void );

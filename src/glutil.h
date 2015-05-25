@@ -46,16 +46,19 @@ static INLINE void MapAttribTexCoord( int location, size_t offset )
 	GL_CHECK( glVertexAttribPointer( location, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
 }
 
-static INLINE void LoadVertexLayout( void )
+static INLINE void LoadVertexLayout( bool mapTexCoords )
 {
 	GL_CHECK( glEnableVertexAttribArray( 0 ) );
     GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
 
     GL_CHECK( glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, position ) ) );
     GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
-    
-	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) ); // texture
-	MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); // lightmap
+   
+	if ( mapTexCoords )
+	{
+		MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) ); // texture
+		MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); // lightmap
+	}
 }
 
 static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID, const std::vector< std::string >& uniforms )
@@ -85,34 +88,36 @@ static INLINE GLuint GenVertexArrayObject( void )
 	return vao;
 }
 
-static INLINE GLuint GenBufferObject( GLenum target, const size_t size, const void* data, GLenum usage )
+template < typename T >
+static INLINE GLuint GenBufferObject( GLenum target, const std::vector< T >& data, GLenum usage )
 {
 	GLuint obj;
 	GL_CHECK( glGenBuffers( 1, &obj ) );
 	GL_CHECK( glBindBuffer( target, obj ) );
-	GL_CHECK( glBufferData( target, size, data, usage ) );
+	GL_CHECK( glBufferData( target, data.size() * sizeof( T ), &data[ 0 ], usage ) );
 	GL_CHECK( glBindBuffer( target, 0 ) );
 	return obj;
 }
 
-static INLINE void UpdateBufferObject( GLuint obj, GLenum target, const size_t size, const void* data ) 
+template < typename T >
+static INLINE void UpdateBufferObject( GLenum target, GLuint obj, const std::vector< T >& data ) 
 {
 	GL_CHECK( glBindBuffer( target, obj ) );
-	GL_CHECK( glBufferSubData( target, 0, size, data ) );
+	GL_CHECK( glBufferSubData( target, 0, data.size() * sizeof( T ), &data[ 0 ] ) );
 	GL_CHECK( glBindBuffer( target, 0 ) );
 }
 
-static INLINE void DelBufferObject( GLenum target, GLuint* obj, size_t numObj )
+static INLINE void DeleteBufferObject( GLenum target, GLuint obj )
 {
 	// Unbind to prevent driver from lazy deletion
 	GL_CHECK( glBindBuffer( target, 0 ) );
-	GL_CHECK( glDeleteBuffers( numObj, obj ) );
+	GL_CHECK( glDeleteBuffers( 1, &obj ) );
 }
 
-static INLINE void LoadBufferLayout( GLuint vbo )
+static INLINE void LoadBufferLayout( GLuint vbo, bool mapTexCoords )
 {
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-	LoadVertexLayout();
+	LoadVertexLayout( mapTexCoords );
 }
 
 static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )

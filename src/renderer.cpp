@@ -163,15 +163,15 @@ BSPRenderer::Load
 
 void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 {
+	
     map->Read( filepath, 1, mapLoadFlags );
 
 	// Allocate vertex data from map and store it all in a single vbo
 	GL_CHECK( glBindVertexArray( vao ) );
-
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
     GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->data.numVertexes, map->data.vertexes, GL_STATIC_DRAW ) );
 
-	LoadVertexLayout();
+	LoadVertexLayout( true );
 
 	const bspNode_t* root = &map->data.nodes[ 0 ];
 
@@ -179,14 +179,6 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 	mapDimsLength = ( int ) glm::length( glm::vec3( root->boxMax.x, root->boxMax.y, root->boxMax.z ) );
 	lodThreshold = mapDimsLength / 2;
 }
-
-/*
-=====================================================
-
-BSPRenderer::DrawWorld
-
-=====================================================
-*/
 
 void BSPRenderer::Render( uint32_t renderFlags )
 { 
@@ -204,16 +196,16 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	drawFace_t parms = { 0 };
 	parms.pass = &pass;
 
-	parms.bounds = new AABB();
+	AABB bounds;
 
 	for ( int i = 1; i < map->data.numModels; ++i )
 	{
 		bspModel_t* model = &map->data.models[ i ];
 
-		parms.bounds->maxPoint = model->boxMax;
-		parms.bounds->minPoint = model->boxMin;
+		bounds.maxPoint = model->boxMax;
+		bounds.minPoint = model->boxMin;
 
-		if ( !frustum->IntersectsBox( *parms.bounds ) )
+		if ( !frustum->IntersectsBox( bounds ) )
 			continue;
 
 		for ( int j = 0; j < model->numFaces; ++j )
@@ -228,8 +220,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			DrawFace( &parms );
 		}
 	}
-
-	delete parms.bounds;
 	
 	//DrawNode( 0, pass, false , renderFlags );
 
@@ -277,7 +267,6 @@ void BSPRenderer::DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint3
 		parms.pass = &pass;
 		parms.isSolid = isSolid;
 		parms.renderFlags = renderFlags;
-		parms.subdivLevel = 0;
 		parms.bounds = &leafBounds;
 
         for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
@@ -359,7 +348,7 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
 	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-
+	
 	// We use textures and effect names as keys into our effectShader map
 	if ( ( parms->renderFlags & RENDER_BSP_EFFECT ) && parms->shader )
 	{
@@ -367,6 +356,9 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 		{
 			SetPolygonOffsetState( true, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 		}
+
+		// Each effect pass is allowed only one texture, so we don't need a second texcoord
+		GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
 		for ( int i = 0; i < parms->shader->stageCount; ++i )
 		{			
@@ -397,7 +389,7 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 							parms->shader->stageBuffer[ i ].uniforms.at( "texTransform" ), 1, GL_FALSE, 
 							glm::value_ptr( parms->shader->stageBuffer[ i ].texTransform ) ) ); 
 				}
-
+				
 				if ( parms->shader->stageBuffer[ i ].tcModTurb.enabled )
 				{
 					GL_CHECK( glProgramUniform1f( 
@@ -428,9 +420,10 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 			SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 		}
 
+		GL_CHECK( glEnableVertexAttribArray( 3 ) );
 		GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 		GL_CHECK( glBindSampler( 0, 0 ) );
-		GL_CHECK( glUseProgram( 0 ) );
+		GL_CHECK( glUseProgram( 0 ) );	
 	}
 	else
 	{
@@ -487,25 +480,43 @@ void BSPRenderer::DrawFace( drawFace_t* parms )
 
 void BSPRenderer::DrawFaceVerts( drawFace_t* parms )
 {
+	mapModel_t* m = &map->glFaces[ parms->faceIndex ];
+
 	if ( parms->face->type == BSP_FACE_TYPE_POLYGON || parms->face->type == BSP_FACE_TYPE_MESH )
 	{
-		GL_CHECK( glDrawElements( GL_TRIANGLES, map->glFaces[ parms->faceIndex ].indices.size(), GL_UNSIGNED_INT, &map->glFaces[ parms->faceIndex ].indices[ 0 ] ) );
+		GL_CHECK( glDrawElements( GL_TRIANGLES, m->indices.size(), GL_UNSIGNED_INT, &m->indices[ 0 ] ) );
 	}
 	else if ( parms->face->type == BSP_FACE_TYPE_PATCH )
 	{
-		for ( const bezPatch_t* patch: map->glFaces[ parms->faceIndex ].patches )
+		if ( parms->shader && parms->shader->tessSize != 0.0f )
 		{
-			LoadBufferLayout( patch->vbo );		
-			
-			GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
-				&patch->trisPerRow[ 0 ], 
-				GL_UNSIGNED_INT, 
-				( const GLvoid** ) &patch->rowIndices[ 0 ], 
-				parms->subdivLevel ) );
+			DeformVertexes( m, parms );
 		}
 
-		LoadBufferLayout( vbo );
+		LoadBufferLayout( m->vbo, parms->shader == nullptr || ( parms->shader && parms->shader->stageCount == 0 ) );		
+		
+		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
+			&m->trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &m->rowIndices[ 0 ], m->trisPerRow.size() ) );
+
+		LoadBufferLayout( vbo, true );
 	}
+}
+
+void BSPRenderer::DeformVertexes( mapModel_t* m, drawFace_t* parms )
+{
+	std::vector< bspVertex_t > verts = m->vertices;
+	
+	int32_t stride = m->subdivLevel + 1;
+	int32_t numPatchVerts = stride * stride;
+	int32_t numPatches = verts.size() / numPatchVerts;
+
+	for ( uint32_t i = 0; i < verts.size(); ++i )
+	{
+		verts[ i ].position += 
+			verts[ i ].normal * GenDeformScale( verts[ i ].position, parms->shader );
+	}
+
+	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, m->vbo, verts );
 }
 
 int BSPRenderer::CalcSubdivision( const RenderPass& pass, const AABB& bounds )

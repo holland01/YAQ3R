@@ -30,7 +30,7 @@ shaderStage_t::shaderStage_t( void )
 	mapCmd = MAP_CMD_UNDEFINED;
 	mapType = MAP_TYPE_UNDEFINED;
 
-	memset( mapArg, 0, sizeof( mapArg ) );
+	memset( texturePath, 0, sizeof( texturePath ) );
 }
 
 shaderInfo_t::shaderInfo_t( void )
@@ -288,17 +288,17 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 		{
 			if ( strcmp( token, "clampmap" ) == 0 )
 			{
-				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, buffer );
+				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
 				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
 			}
 			else if ( strcmp( token, "map" ) == 0 )
 			{
-				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, buffer );
+				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
 				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
 
-				assert( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, "$whiteimage" ) != 0 && "No support for white image yet" );
+				assert( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) != 0 && "No support for white image yet" );
 
-				if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].mapArg, "$lightmap" ) == 0 )
+				if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
 				{
 					outInfo->hasLightmap = TRUE;
 					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
@@ -479,11 +479,11 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 		if ( doGammaCorrect )
 		{
-			fragmentSrc.push_back( "\tfragment = pow( t * frag_Color.rgba, gamma );" );
+			fragmentSrc.push_back( "\tfragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );" );
 		}
 		else
 		{
-			fragmentSrc.push_back( "\tfragment = t * frag_Color.rgba;" );
+			fragmentSrc.push_back( "\tfragment = t * vec4( frag_Color.rgb, alphaGen );" );
 		}
 	};
 
@@ -576,7 +576,14 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
 			{
-				fragmentSrc.push_back( "const float alphaGen = 1.0;" );
+				if ( shader.surfaceParms & SURFPARM_TRANS )
+				{
+					fragmentSrc.push_back( "const float alphaGen = 0.2;" );
+				}
+				else
+				{
+					fragmentSrc.push_back( "const float alphaGen = 1.0;" );
+				}
 			}
 			else
 			{
@@ -654,7 +661,7 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 
 				std::string texFileRoot( map->basePath );
 
-				texFileRoot.append( shader.stageBuffer[ i ].mapArg );
+				texFileRoot.append( shader.stageBuffer[ i ].texturePath );
 
 				bool success = LoadTextureFromFile( 
 					texFileRoot.c_str(), 

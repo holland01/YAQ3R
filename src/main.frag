@@ -8,7 +8,7 @@ uniform sampler2D fragTexSampler;
 
 uniform sampler2D fragLightmapSampler;
 
-uniform vec4 fragAmbient = vec4( 0.3, 0.5, 0.7, 1.0 );
+uniform vec4 fragAmbient = vec4( 0.5, 0.5, 0.5, 1.0 );
 
 const float gamma = 2.2;
 
@@ -24,7 +24,7 @@ void main()
     vec4 image = texture( fragTexSampler, frag_Tex );
     vec4 lightmap = texture( fragLightmapSampler, frag_Lightmap );
 
-    col = image * lightmap * frag_Color * fragAmbient;
+    col = frag_Color * image * lightmap;
 
     fragment = pow( col, gammaEncode );
 }

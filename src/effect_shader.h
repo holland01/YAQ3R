@@ -141,7 +141,7 @@ struct shaderStage_t
 
 	float alphaGen; // if 0, use 1.0
 
-	char mapArg[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	char texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	
 	glHandleMap_t uniforms;
 

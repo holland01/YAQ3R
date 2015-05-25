@@ -44,6 +44,30 @@ static void ScaleCoords( glm::ivec3& v, int scale )
     v.z *= scale;
 }
 
+static const float INVERSE_255 = 1.0f / 255.0f;
+
+static glm::u8vec4 BlendColor( const glm::u8vec4& a, const glm::u8vec4& b )
+{
+	float aaNorm = a[ 3 ] * INVERSE_255;
+ 	float alpha = aaNorm + b[ 3 ] * INVERSE_255 * ( 1.0f - aaNorm ); 
+	float inverseAlpha = 1.0f / alpha;
+
+	glm::vec3 anorm( glm::vec3( a ) * INVERSE_255 );
+	glm::vec3 bnorm( glm::vec3( b ) * INVERSE_255 );
+
+	glm::vec3 rgb( ( anorm * aaNorm + bnorm * ( 1.0f - aaNorm ) ) * inverseAlpha );
+
+	glm::u8vec4 ret;
+
+	ret.r = ( uint8_t )( rgb.r * 255.0f );
+	ret.g = ( uint8_t )( rgb.g * 255.0f );
+	ret.b = ( uint8_t )( rgb.b * 255.0f );
+	ret.a = ( uint8_t )( alpha * 255.0f );
+
+	return ret;
+}
+
+
 //-------------------------------------------------------------------------------
 
 bspVertex_t::bspVertex_t( void )
@@ -84,12 +108,7 @@ bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
 	bspVertex_t vert;
 	
 	vert.position = a.position + b.position;
-
-	vert.color[ 0 ] = a.color[ 0 ];
-	vert.color[ 1 ] = a.color[ 1 ];
-	vert.color[ 2 ] = a.color[ 2 ];
-	vert.color[ 3 ] = a.color[ 3 ];
-	
+	vert.color = BlendColor( a.color, b.color );
 	vert.normal = a.normal + b.normal;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
     vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
@@ -104,9 +123,7 @@ bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b )
 	bspVertex_t vert;
 	
 	vert.position = a.position - b.position;
-
-	vert.color = a.color;
-	
+	vert.color = BlendColor( b.color, a.color );
 	vert.normal = a.normal - b.normal;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] - b.texCoords[ 0 ];
     vert.texCoords[ 1 ] = a.texCoords[ 1 ] - b.texCoords[ 1 ];
@@ -119,7 +136,6 @@ bspVertex_t operator *( const bspVertex_t& a, float b )
 	bspVertex_t vert;
 	
 	vert.position = a.position * b;
-
 	vert.normal = a.normal * b;
 	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
     vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
@@ -236,49 +252,61 @@ void Q3BspMap::GenRenderData( void )
 	// which aren't of these two categories, we leave them be.
 	for ( int i = 0; i < data.numFaces; ++i )
 	{
+		mapModel_t* mod = &glFaces[ i ]; 
+
 		const bspFace_t* face = data.faces + i;
 
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
-			glFaces[ i ].indices.resize( face->numMeshVertexes, 0 );
+			mod->indices.resize( face->numMeshVertexes, 0 );
 
 			for ( int j = 0; j < face->numMeshVertexes; ++j )
 			{
-				glFaces[ i ].indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
+				mod->indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
 			}
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
-			//glFaces[ i ].vao = GenVertexArrayObject();
-
 			// amount of patches = width * height;
 			int width = ( face->size[ 0 ] - 1 ) / 2;
 			int height = ( face->size[ 1 ] - 1 ) / 2;
+			const shaderInfo_t* shader = GetShaderInfo( i );
+
+			GLenum bufferUsage = shader && shader->tessSize != 0.0f ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
 			// ( k, j ) maps to a ( row, col ) index scheme referring to the beginning of a patch 
-			int n, m, k, j;
-			for ( n = 0, k = 0; n < width; ( ++n, k = 2 * n ) )
+			int n, m;
+			mod->controlPoints.resize( width * height * 9 );
+
+			for ( n = 0; n < width; ++n )
 			{
-				for ( m = 0, j = 0; m < height; ( ++m, j = 2 * m ) )
+				for ( m = 0; m < height; ++m )
 				{
-					bezPatch_t* p = new bezPatch_t();
-					int base = face->vertexOffset + j * face->size[ 0 ] + k;
+					int baseSource = face->vertexOffset + 2 * m * width + 2 * n;
+					int baseDest = ( m * width + n ) * 9;
 
 					for ( int c = 0; c < 3; ++c )
 					{
-						p->controlPoints[ c * 3 + 0 ] = &data.vertexes[ base + c * 3 + 0 ];
-						p->controlPoints[ c * 3 + 1 ] = &data.vertexes[ base + c * 3 + 1 ];
-						p->controlPoints[ c * 3 + 2 ] = &data.vertexes[ base + c * 3 + 2 ];
+						mod->controlPoints[ baseDest + c * 3 + 0 ] = &data.vertexes[ baseSource + c * face->size[ 0 ] + 0 ];
+						mod->controlPoints[ baseDest + c * 3 + 1 ] = &data.vertexes[ baseSource + c * face->size[ 0 ] + 1 ];
+						mod->controlPoints[ baseDest + c * 3 + 2 ] = &data.vertexes[ baseSource + c * face->size[ 0 ] + 2 ];
 					}
 					
-					GenPatch( p, GetShaderInfo( i ) );
-					glFaces[ i ].patches.push_back( p );
+					GenPatch( mod, shader, baseDest );
 				}
 			}
-		}
-		else
-		{
-			continue;
+
+			const uint32_t L1 = mod->subdivLevel + 1;
+			mod->rowIndices.resize( width * height * mod->subdivLevel, 0 );
+			mod->trisPerRow.resize( width * height * mod->subdivLevel, 0 );
+
+			for ( size_t row = 0; row < glFaces[ i ].rowIndices.size(); ++row )
+			{
+				mod->trisPerRow[ row ] = 2 * L1;
+				mod->rowIndices[ row ] = &mod->indices[ row * 2 * L1 ];  
+			}
+
+			mod->vbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, mod->vertices, bufferUsage );
 		}
 	}
 }

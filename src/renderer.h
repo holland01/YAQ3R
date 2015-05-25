@@ -63,7 +63,6 @@ struct drawFace_t
 	bool isSolid: 1;
 
 	int faceIndex;
-	int subdivLevel;
 
 	uint32_t renderFlags;
 
@@ -119,5 +118,6 @@ private:
 
 	std::map< std::string, GLint > bspProgramUniforms;
 
+	void DeformVertexes( mapModel_t* m, drawFace_t* parms );
 	int CalcSubdivision( const RenderPass& pass, const AABB& bounds );
 };
