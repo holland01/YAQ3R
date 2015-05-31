@@ -17,8 +17,12 @@ shaderStage_t::shaderStage_t( void )
 	samplerObj = 0;
 	texOffset = 0;
 
-	blendSrc = GL_ONE;
-	blendDest = GL_ZERO;
+	rgbSrc = GL_ONE;
+	rgbDest = GL_ZERO;
+
+	alphaSrc = GL_ONE;
+	alphaDest = GL_ZERO;
+
 	depthFunc = GL_LEQUAL;
 
 	alphaGen = 0.0f;
@@ -65,16 +69,16 @@ static int gLineCount = 0;
 
 static INLINE GLenum GL_EnumFromStr( const char* str )
 {
-	if ( strcmp( str, "GL_SRC_ALPHA" ) == 0 ) return GL_SRC_ALPHA;
+	if ( strcmp( str, "gl_src_alpha" ) == 0 ) return GL_SRC_ALPHA;
 	
-	if ( strcmp( str, "GL_ONE_MINUS_SRC_ALPHA" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
-	if ( strcmp( str, "GL_ONE_MINUS_SRC_COLOR" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
+	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
+	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
 
-	if ( strcmp( str, "GL_DST_COLOR" ) == 0 ) return GL_DST_COLOR;
-	if ( strcmp( str, "GL_SRC_COLOR" ) == 0 ) return GL_SRC_COLOR;
+	if ( strcmp( str, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
+	if ( strcmp( str, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
 
-	if ( strcmp( str, "GL_ZERO" ) == 0 ) return GL_ZERO;
-	if ( strcmp( str, "GL_ONE" ) == 0 ) return GL_ONE;
+	if ( strcmp( str, "gl_zero" ) == 0 ) return GL_ZERO;
+	if ( strcmp( str, "gl_one" ) == 0 ) return GL_ONE;
 
 	return 0;
 }
@@ -145,7 +149,7 @@ static const char* ReadToken( char* out, const char* buffer )
 	char* pOut = out;
 	while ( Token( buffer ) == TOKTYPE_VALID )
 	{
-		*pOut++ = *buffer++;
+		*pOut++ = tolower( *buffer++ );
 		charCount++;
 	}
 
@@ -211,21 +215,31 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			buffer = ReadToken( value, buffer );
 				
 			if ( strcmp( value, "nodamage" ) == 0 ) 
+			{
 				outInfo->surfaceParms |= SURFPARM_NO_DMG;	
+			}
 			else if ( strcmp( value, "nolightmap" ) == 0 ) 
+			{
 				outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
+			}
 			else if ( strcmp( value, "nonsolid" ) == 0 ) 
+			{
 				outInfo->surfaceParms |= SURFPARM_NON_SOLID;
-			else if ( strcmp( value, "nomarks" ) == 0 ) 
+			}
+			else if ( strcmp( value, "nomarks" ) == 0 )
+			{
 				outInfo->surfaceParms |= SURFPARM_NO_MARKS;
+			}
 			else if ( strcmp( value, "trans" ) == 0 ) 
+			{
 				outInfo->surfaceParms |= SURFPARM_TRANS;
+			}
 		}
-		else if ( strcmp( token, "tessSize" ) == 0 || strcmp( token, "q3map_tesssize" ) == 0 )
+		else if ( strcmp( token, "tesssize" ) == 0 || strcmp( token, "q3map_tesssize" ) == 0 )
 		{
 			outInfo->tessSize = ReadFloat( buffer );
 		}
-		else if ( strcmp( token, "deformVertexes" ) == 0 )
+		else if ( strcmp( token, "deformvertexes" ) == 0 )
 		{
 			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 			buffer = ReadToken( value, buffer );
@@ -302,70 +316,82 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				{
 					outInfo->hasLightmap = TRUE;
 					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_DST_COLOR;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE_MINUS_DST_ALPHA;
 				}
 				else
 				{
 					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
 				}
 			}
-			else if ( strcmp( token, "blendFunc" ) == 0 )
+			else if ( strcmp( token, "blendfunc" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
 
 				if ( strcmp( value, "add" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_ONE;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE;
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_ONE;
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE;
 				}
 				else if ( strcmp( value, "blend" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_SRC_ALPHA;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ONE_MINUS_SRC_ALPHA;
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_SRC_ALPHA;
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE_MINUS_SRC_ALPHA;
 				}
 				else if ( strcmp( value, "filter" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_DST_COLOR;
-					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_ZERO;
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_DST_COLOR;
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ZERO;
 				}
 				else
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].blendSrc = GL_EnumFromStr( value );
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_EnumFromStr( value );
 				
 					memset( value, 0, sizeof( value ) );
 					buffer = ReadToken( value, buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].blendDest = GL_EnumFromStr( value ); 
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_EnumFromStr( value ); 
+				}
+
+				
+				if ( outInfo->surfaceParms & SURFPARM_TRANS )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = GL_SRC_ALPHA;
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaDest = GL_ONE_MINUS_SRC_ALPHA;
+				}
+				else
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = 
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
+					outInfo->stageBuffer[ outInfo->stageCount ].alphaDest =
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest;
 				}
 			}
-			else if ( strcmp( token, "alphaFunc" ) == 0 )
+			else if ( strcmp( token, "alphafunc" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
 				
-				if ( strcmp( value, "GE128" ) == 0 )
+				if ( strcmp( value, "ge128" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
-				else if ( strcmp( value, "GT0" ) == 0 )
+				else if ( strcmp( value, "gT0" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
-				else if ( strcmp( value, "LT128" ) == 0 )
+				else if ( strcmp( value, "lt128" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
 
 			}
-			else if ( strcmp( token, "rgbGen" ) == 0 )
+			else if ( strcmp( token, "rgbgen" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
 					
-				if ( strcmp( value, "Vertex" ) == 0 )
+				if ( strcmp( value, "vertex" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
 				else if ( strcmp( value, "identity" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
-				else if ( strcmp( value, "identityLighting" ) == 0 )
+				else if ( strcmp( value, "identitylighting" ) == 0 )
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
 			}
-			else if ( strcmp( token, "tcMod" ) == 0 )
+			else if ( strcmp( token, "tcmod" ) == 0 )
 			{
 				char type[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( type, buffer );
@@ -377,7 +403,9 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					float s = ReadFloat( buffer );
 					float t = ReadFloat( buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( s, t, s, t ) );
+					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( 1.0f, 1.0f, 1.0f, 1.0f ) );
+
+					//outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
 				}
 				else if ( strcmp( type, "turb" ) == 0 )
 				{
@@ -389,13 +417,13 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.enabled = true;
 				}
 			}
-			else if ( strcmp( token, "depthFunc" ) == 0 )
+			else if ( strcmp( token, "depthfunc" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
 				outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = GL_DepthFuncFromStr( value );
 			}
-			else if ( strcmp( token, "depthWrite" ) == 0 )
+			else if ( strcmp( token, "depthwrite" ) == 0 )
 			{
 				outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
 			}
@@ -479,7 +507,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 		if ( doGammaCorrect )
 		{
-			fragmentSrc.push_back( "\tfragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );" );
+			fragmentSrc.push_back( "\tfragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );" );
 		}
 		else
 		{
@@ -578,7 +606,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			{
 				if ( shader.surfaceParms & SURFPARM_TRANS )
 				{
-					fragmentSrc.push_back( "const float alphaGen = 0.2;" );
+					fragmentSrc.push_back( "const float alphaGen = 0.0;" );
 				}
 				else
 				{

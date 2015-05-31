@@ -112,7 +112,7 @@
     <ClCompile Include="..\..\src\math_util.cpp" />
     <ClCompile Include="..\..\src\mtrand.cpp" />
     <ClCompile Include="..\..\src\q3bsp.cpp" />
-    <ClCompile Include="..\..\src\q3m_model.cpp" />
+    <ClCompile Include="..\..\src\bsp_data.cpp" />
     <ClCompile Include="..\..\src\renderer.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
@@ -136,7 +136,7 @@
     <ClInclude Include="..\..\src\mtrand.h" />
     <ClInclude Include="..\..\src\plane.h" />
     <ClInclude Include="..\..\src\q3bsp.h" />
-    <ClInclude Include="..\..\src\q3m_model.h" />
+    <ClInclude Include="..\..\src\bsp_data.h" />
     <ClInclude Include="..\..\src\renderer.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\tests\test.h" />

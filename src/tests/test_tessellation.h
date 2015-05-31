@@ -1,7 +1,7 @@
 #pragma once
 
 #include "test.h"
-#include "../q3m_model.h"
+#include "../bsp_data.h"
 #include <memory>
 #include <array>
 

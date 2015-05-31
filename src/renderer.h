@@ -99,7 +99,7 @@ public:
     void    DrawNode( int nodeIndex, RenderPass& pass, bool isSolid, uint32_t renderFlags );
 	void	DrawFaceNoEffect( drawFace_t* parms );
     void    DrawFace( drawFace_t* parms );
-	void	DrawFaceVerts( drawFace_t* parms );
+	void	DrawFaceVerts( drawFace_t* parms, bool isEffectPass );
 
 	float   CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 

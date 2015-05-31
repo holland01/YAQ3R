@@ -30,9 +30,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -69,9 +69,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -109,9 +109,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -149,9 +149,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -189,9 +189,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -229,9 +229,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -269,9 +269,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -309,9 +309,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -349,9 +349,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -389,9 +389,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -429,9 +429,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -469,9 +469,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -511,7 +511,7 @@ void main(void) {
 	vec2 st = texTransform * frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -549,7 +549,7 @@ void main(void) {
 	vec2 st = texTransform * frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -586,7 +586,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -623,7 +623,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -662,7 +662,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -699,9 +699,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -736,9 +736,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -783,7 +783,7 @@ layout( depth_unchanged ) float gl_FragDepth;
 	{
 		discard;
 	}
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -820,7 +820,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -858,9 +858,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -896,9 +896,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -934,9 +934,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -971,9 +971,9 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1012,7 +1012,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1049,7 +1049,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1086,7 +1086,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1125,7 +1125,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1162,7 +1162,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1199,7 +1199,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 const float alphaGen = 1.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]
@@ -1239,9 +1239,9 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = texTransform * frag_Tex;
 	st += tcModTurb;
-const float alphaGen = 0.2;
+const float alphaGen = 0.0;
 	vec4 t = texture( sampler0, st );
-	fragment = pow( t * vec4( frag_Color.rgb, alphaGen ), gamma );
+	fragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );
 } 
 
  ]

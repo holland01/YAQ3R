@@ -347,7 +347,6 @@ textures/water/waterfall
 {
 	q3map_globaltexture
 	surfaceparm trans
-//	surfaceparm nonsolid
 	surfaceparm noimpact
 	surfaceparm water
 	surfaceparm nolightmap

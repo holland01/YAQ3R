@@ -1,7 +1,7 @@
 #include "q3bsp.h"
 #include "aabb.h"
 #include "log.h"
-#include "glutil.h"
+
 
 #include "effect_shader.h"
 
@@ -44,132 +44,14 @@ static void ScaleCoords( glm::ivec3& v, int scale )
     v.z *= scale;
 }
 
-static const float INVERSE_255 = 1.0f / 255.0f;
-
-static glm::u8vec4 BlendColor( const glm::u8vec4& a, const glm::u8vec4& b )
-{
-	float aaNorm = a[ 3 ] * INVERSE_255;
- 	float alpha = aaNorm + b[ 3 ] * INVERSE_255 * ( 1.0f - aaNorm ); 
-	float inverseAlpha = 1.0f / alpha;
-
-	glm::vec3 anorm( glm::vec3( a ) * INVERSE_255 );
-	glm::vec3 bnorm( glm::vec3( b ) * INVERSE_255 );
-
-	glm::vec3 rgb( ( anorm * aaNorm + bnorm * ( 1.0f - aaNorm ) ) * inverseAlpha );
-
-	glm::u8vec4 ret;
-
-	ret.r = ( uint8_t )( rgb.r * 255.0f );
-	ret.g = ( uint8_t )( rgb.g * 255.0f );
-	ret.b = ( uint8_t )( rgb.b * 255.0f );
-	ret.a = ( uint8_t )( alpha * 255.0f );
-
-	return ret;
-}
-
-
-//-------------------------------------------------------------------------------
-
-bspVertex_t::bspVertex_t( void )
-	: bspVertex_t( glm::zero< glm::vec3 >(), glm::zero< glm::vec3 >(), glm::zero< glm::vec2 >(), glm::zero< glm::vec2 >(), glm::zero< glm::u8vec4 >() )
-{
-}
-
-bspVertex_t::bspVertex_t( const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& surfTexCoords, const glm::vec2& lightmapTexCoords, const glm::u8vec4& color_ )
-	: position( pos ),
-	  normal( norm ),
-	  color( color_ )
-{
-	texCoords[ 0 ] = surfTexCoords;
-	texCoords[ 1 ] = lightmapTexCoords;
-}
-
-bspVertex_t::bspVertex_t( const bspVertex_t& v )
-	: position( v.position ),
-	  normal( v.normal ),
-	  color( v.color )
-{
-	memcpy( texCoords, v.texCoords, sizeof( texCoords ) );
-}
-
-bspVertex_t& bspVertex_t::operator=( bspVertex_t v )
-{
-	position = v.position;
-	normal = v.normal;
-	color = v.color;
-
-	memcpy( texCoords, v.texCoords, sizeof( texCoords ) );
-
-	return *this;
-}
-
-bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
-{
-	bspVertex_t vert;
-	
-	vert.position = a.position + b.position;
-	vert.color = BlendColor( a.color, b.color );
-	vert.normal = a.normal + b.normal;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
-    vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
-
-	// TODO: lightmapCoords?
-
-	return vert;
-}
-
-bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b )
-{
-	bspVertex_t vert;
-	
-	vert.position = a.position - b.position;
-	vert.color = BlendColor( b.color, a.color );
-	vert.normal = a.normal - b.normal;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] - b.texCoords[ 0 ];
-    vert.texCoords[ 1 ] = a.texCoords[ 1 ] - b.texCoords[ 1 ];
-
-	return vert;
-}
-
-bspVertex_t operator *( const bspVertex_t& a, float b )
-{
-	bspVertex_t vert;
-	
-	vert.position = a.position * b;
-	vert.normal = a.normal * b;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
-    vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
-
-	vert.color = a.color;
-
-	return vert;
-}
-
-bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b )
-{
-	a.position += b.position;
-	a.normal += b.normal;
-	a.texCoords[ 0 ] += b.texCoords[ 0 ];
-	a.texCoords[ 1 ] += b.texCoords[ 1 ];
-
-	return a;
-}
-
-bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
-{
-	return a.position == b.position 
-		&& a.texCoords[ 0 ] == b.texCoords[ 0 ]
-		&& a.texCoords[ 1 ] == b.texCoords[ 1 ]
-		&& a.normal == b.normal;
-}
-
 //-------------------------------------------------------------------------------
 
 Q3BspMap::Q3BspMap( void )
      :	mapAllocated( false ),
+		glDummyTexture( 0 ),
+		glLightmapSampler( 0 ),
 		data( {} )
 {
-	glLightmapSampler = 0;
 }
 
 Q3BspMap::~Q3BspMap( void )
@@ -465,12 +347,23 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
 void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 {
+	// This is just a temporary hack to brute force load assets without taking into account the effect shader files.
+	// Now, we find and generate the textures. We first start with the image files.
+	{
+		const int wmDims = 32;
+		std::vector< byte > whitemap;
+
+		GL_CHECK( glGenTextures( 1, &glDummyTexture ) ); 
+		whitemap.resize( wmDims * wmDims * 3, 255 ); 
+
+		GenTextureRGB8( glDummyTexture, wmDims, wmDims, &whitemap[ 0 ] );
+	}
+
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	// This is just a hack to brute force load assets without taking into account the effect shader files.
-	// Now, find and generate the textures. We first start with the image files.
+	// Leave a 
 	glTextures.resize( data.numTextures, 0 );
 	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
 
@@ -510,7 +403,9 @@ void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 		
 		// Stub out the texture for this iteration by continue; warn user
 		if ( !success )
+		{
 			goto FAIL_WARN;
+		}
 
 		continue;
 
@@ -535,18 +430,9 @@ FAIL_WARN:
 
 	for ( int l = 0; l < data.numLightmaps; ++l )
 	{	
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glLightmaps[ l ] ) );
-
-		GL_CHECK( glTexImage2D( 
-			GL_TEXTURE_2D, 
-			0, 
-			GL_RGB8, 
-			BSP_LIGHTMAP_WIDTH, 
-			BSP_LIGHTMAP_HEIGHT, 
-			0, 
-			GL_RGB, 
-			GL_UNSIGNED_BYTE, 
-			data.lightmaps[ l ].map ) );	
+		GenTextureRGB8( glLightmaps[ l ], 
+			BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 
+			&data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ] );
 	}
 
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
@@ -570,10 +456,14 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
         float distance = glm::dot( planeNormal, camPos ) - plane->distance;
 
         if ( distance >= 0 )
+		{
             nodeIndex = node->children[ 0 ];
-        else
+		}
+		else
+		{
             nodeIndex = node->children[ 1 ];
-    }
+		}
+	}
 
     nodeIndex = -( nodeIndex + 1 );
 
@@ -583,7 +473,9 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {
     if ( !data.visdata->bitsets || ( sourceCluster < 0 ) )
+	{
         return true;
+	}
 
     int i = ( sourceCluster * data.visdata->sizeVector ) + ( testCluster >> 3 );
 

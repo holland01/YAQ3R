@@ -41,7 +41,7 @@ void TRenderer::Load( void )
         return;
 	//GL_CHECK( glPolygonOffset( 1.0f, 1.0f ) );
 
-    renderer = new BSPRenderer;
+    renderer = new BSPRenderer();
     renderer->Prep();
 	renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;

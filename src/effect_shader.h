@@ -128,8 +128,12 @@ struct shaderStage_t
 	GLuint samplerObj;
 	GLuint texOffset;
 
-	GLenum blendSrc;
-	GLenum blendDest;
+	GLenum rgbSrc;
+	GLenum rgbDest;
+
+	GLenum alphaSrc;
+	GLenum alphaDest;
+
 	GLenum depthFunc; // Default is LEQUAL
 
 	rgbGen_t rgbGen;

@@ -28,6 +28,8 @@ class Frustum
 
 	mutable uint32_t rejectCount;
 
+	glm::mat4 mvp;
+
 public:
 
     Frustum( void );

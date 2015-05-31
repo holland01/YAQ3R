@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "vec.h"
-#include "q3m_model.h"
+#include "bsp_data.h"
 #include <array>
 
 #define BEZ_BUF_COUNT 2

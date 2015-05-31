@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "q3bsp.h"
+#include "bsp_data.h"
 #include "gldebug.h"
 #include "log.h"
 #include <array>

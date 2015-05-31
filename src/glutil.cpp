@@ -121,15 +121,18 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 		int w = width;
 		int h = height;
 
-		for ( int mip = 0; h != 1 && w != 1; ++mip )
+		for ( int mip = 0; h != 1 || w != 1; ++mip )
 		{
 			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, mip, internalFmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
 
 			if ( h > 1 )
+			{
 				h /= 2;
-
+			}
 			if ( w > 1 )
+			{
 				w /= 2;
+			}
 		}
 
 		GL_CHECK( glGenerateMipmap( GL_TEXTURE_2D ) );
