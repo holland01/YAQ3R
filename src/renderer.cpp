@@ -24,7 +24,6 @@ drawPass_t::~drawPass_t( void )
 {
 }
 
-
 BSPRenderer::BSPRenderer( void )
     : camera( nullptr ),
       frustum( new Frustum() ),
@@ -46,14 +45,6 @@ BSPRenderer::BSPRenderer( void )
 	camera = new InputCamera( view, EuAng() );
 }
 
-/*
-=====================================================
-
-BSPRenderer::~BSPRenderer
-
-=====================================================
-*/
-
 BSPRenderer::~BSPRenderer( void )
 {
     GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
@@ -64,16 +55,6 @@ BSPRenderer::~BSPRenderer( void )
     delete frustum;
     delete camera;
 }
-
-/*
-=====================================================
-
-BSPRenderer::Prep
-
-Load static, independent data which need not be re-initialized if multiple maps are created.
-
-=====================================================
-*/
 
 void BSPRenderer::Prep( void )
 {
@@ -106,16 +87,13 @@ void BSPRenderer::Prep( void )
 	{
 		"fragTexSampler",
 		"fragLightmapSampler",
-		"fragAmbient"
+		"fragAmbient",
+		"fragDirectional",
+		"fragDirToLight"
 	};
 
 	for ( size_t i = 0; i < uniforms.size(); ++i )
 		GL_CHECK( bspProgramUniforms[ uniforms[ i ] ] = glGetUniformLocation( bspProgram, uniforms[ i ].c_str() ) );
-	
-	GL_CHECK( glBindAttribLocation( bspProgram, 0, "position" ) );
-    GL_CHECK( glBindAttribLocation( bspProgram, 1, "color" ) );
-    GL_CHECK( glBindAttribLocation( bspProgram, 2, "tex0" ) );
-	GL_CHECK( glBindAttribLocation( bspProgram, 3, "lightmap" ) );
 
 	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
@@ -130,6 +108,7 @@ void BSPRenderer::Prep( void )
 void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 {
     map->Read( filepath, 1, mapLoadFlags );
+	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
 	// Allocate vertex data from map and store it all in a single vbo
 	GL_CHECK( glBindVertexArray( vao ) );
@@ -162,7 +141,15 @@ void BSPRenderer::Render( uint32_t renderFlags )
     DrawNode( 0, pass );
 
 	pass.isSolid = true;
-	DrawNode( 0, pass );
+	DrawNode( 0, pass )
+	
+	{
+		const glm::vec3& max = map->data.models[ 0 ].boxMax;
+		const glm::vec3& min = map->data.models[ 0 ].boxMin;
+
+		glm::mat3 boundsTrans( glm::vec3( max.x - min.x, 0.0f, 0.0f ), 
+			glm::vec3( 0.0f, max.y - min.y, 0.0f ), glm::vec3( 0.0f, 0.0f, max.z - min.z ) );
+	}
 
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
@@ -196,17 +183,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	
 	frameTime = glfwGetTime() - startTime;
 }
-
-/*
-=====================================================
-
-BSPRenderer::Update
-
-Determine all of the faces which are visible, based on
-our current location in the map
-
-=====================================================
-*/
 
 void BSPRenderer::Update( float dt )
 {
@@ -495,6 +471,13 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& parms, bool isEffectPass )
 {
 	mapModel_t* m = &map->glFaces[ parms.faceIndex ];
 
+	if ( !isEffectPass )
+	{
+		
+
+
+	}
+
 	if ( parms.face->type == BSP_FACE_TYPE_POLYGON || parms.face->type == BSP_FACE_TYPE_MESH )
 	{
 		GL_CHECK( glDrawElements( GL_TRIANGLES, m->indices.size(), GL_UNSIGNED_INT, &m->indices[ 0 ] ) );
@@ -526,7 +509,6 @@ void BSPRenderer::DeformVertexes( mapModel_t* m, drawPass_t& parms )
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
 		glm::vec3 n( verts[ i ].normal * GenDeformScale( verts[ i ].position, parms.shader ) );
-
 		verts[ i ].position += n;
 	}
 

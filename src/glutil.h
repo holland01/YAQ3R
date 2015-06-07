@@ -46,12 +46,18 @@ static INLINE void MapAttribTexCoord( int location, size_t offset )
 	GL_CHECK( glVertexAttribPointer( location, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
 }
 
+static INLINE void MapVec3( int location, size_t offset )
+{
+	GL_CHECK( glEnableVertexAttribArray( location ) );
+	GL_CHECK( glVertexAttribPointer( location, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
+}
+
 static INLINE void LoadVertexLayout( bool mapTexCoords )
 {
-	GL_CHECK( glEnableVertexAttribArray( 0 ) );
-    GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
+	MapVec3( 0, offsetof( bspVertex_t, position ) );
+	MapVec3( 4, offsetof( bspVertex_t, normal ) );
 
-    GL_CHECK( glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, position ) ) );
+    GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
     GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
    
 	if ( mapTexCoords )

@@ -101,12 +101,16 @@ public:
 
 	std::map< std::string, shaderInfo_t > effectShaders;
 
+	glm::vec3						lightvolGrid;
+
     Q3BspMap( void );
     ~Q3BspMap( void );
 
 	mapData_t					data;
 
     void						Read( const std::string& filepath, const int scale, uint32_t loadFlags );
+
+	void						WriteLumpToFile( uint32_t lump );
 
     void						SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
 

@@ -783,7 +783,7 @@ void main(void) {
 
 ------------------------------------------
 textures/marsbase/grate
-[ 0 ] [ yes ] [
+[ 0 ] [ no ] [
 
  Vertex 
 

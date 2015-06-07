@@ -448,8 +448,9 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 
 static uint8_t IsStubbedStage( const shaderStage_t* stage )
 {
+	return false;
 	// Last condition is for the rgbGen vars which are currently supported.
-	return stage->isDepthPass;  
+	//return stage->isDepthPass;  
 }
 
 static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::string& filepath )
@@ -730,14 +731,13 @@ void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectS
 	WIN32_FIND_DATAA findFileData;
 	HANDLE file;
 
-	file = FindFirstFileA( ( shaderRootDir + "*" ).c_str(), &findFileData ); 
+	file = FindFirstFileA( ( shaderRootDir + "*.shader" ).c_str(), &findFileData ); 
 	int success = file != INVALID_HANDLE_VALUE;
 
-	while ( ( success = FindNextFileA( file, &findFileData ) ) )
+	while ( success )
 	{
-		std::string ext;
-		if ( FileGetExt( ext, std::string( findFileData.cFileName ) ) && ext == "shader" )
-			ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
+		ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
+		success = FindNextFileA( file, &findFileData );
 	}
 	
 	GenShaderPrograms( effectShaders );

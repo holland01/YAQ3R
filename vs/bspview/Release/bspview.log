@@ -1,57 +1,10 @@
-﻿Build started 6/6/2015 6:56:27 PM.
-Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Rebuild target(s)).
-_PrepareForClean:
-  Deleting file "Release\bspview.tlog\bspview.lastbuildstate".
-InitializeBuildStatus:
-  Creating "Release\bspview.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+﻿Build started 6/6/2015 11:43:20 PM.
+Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (ClCompile target(s)).
 ClCompile:
-  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\dev\lib\glutil/glew-msvc/include" /IC:\dev\lib\glutil/glm/ /IC:\dev\lib\glutil/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\aabb.cpp ..\..\src\deform.cpp ..\..\src\effect_shader.cpp ..\..\src\eu_ang.cpp ..\..\src\frustum.cpp ..\..\src\gldebug.cpp ..\..\src\glutil.cpp ..\..\src\input.cpp ..\..\src\log.cpp ..\..\src\main.cpp ..\..\src\math_util.cpp ..\..\src\mtrand.cpp ..\..\src\q3bsp.cpp ..\..\src\bsp_data.cpp ..\..\src\renderer.cpp ..\..\src\shader.cpp ..\..\src\tests\test.cpp ..\..\src\tests\test_tessellation.cpp ..\..\src\tests\trenderer.cpp
-  aabb.cpp
-  deform.cpp
-  effect_shader.cpp
-  eu_ang.cpp
-  frustum.cpp
-  gldebug.cpp
-  glutil.cpp
-  input.cpp
-  log.cpp
-  main.cpp
-  math_util.cpp
-  mtrand.cpp
-  q3bsp.cpp
-  bsp_data.cpp
+  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\dev\lib\glutil/glew-msvc/include" /IC:\dev\lib\glutil/glm/ /IC:\dev\lib\glutil/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\renderer.cpp
   renderer.cpp
-  shader.cpp
-  test.cpp
-  test_tessellation.cpp
-  trenderer.cpp
-  Generating Code...
-Link:
-  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"C:\dev\lib\glutil/glew-msvc/lib/Release/Win32/" /LIBPATH:"C:\dev\lib\glutil/glfw3/lib-vc2012/x86/" opengl32.lib glu32.lib glew32.lib glfw3dll.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.lib" /MACHINE:X86 /SAFESEH Release\aabb.obj
-  Release\deform.obj
-  Release\effect_shader.obj
-  Release\eu_ang.obj
-  Release\frustum.obj
-  Release\gldebug.obj
-  Release\glutil.obj
-  Release\input.obj
-  Release\log.obj
-  Release\main.obj
-  Release\math_util.obj
-  Release\mtrand.obj
-  Release\q3bsp.obj
-  Release\bsp_data.obj
-  Release\renderer.obj
-  Release\shader.obj
-  Release\test.obj
-  Release\test_tessellation.obj
-  Release\trenderer.obj
-  bspview.vcxproj -> C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.exe
-FinalizeBuildStatus:
-  Deleting file "Release\bspview.tlog\unsuccessfulbuild".
-  Touching "Release\bspview.tlog\bspview.lastbuildstate".
-Done Building Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Rebuild target(s)).
+Done Building Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" (ClCompile target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:13.21
+Time Elapsed 00:00:01.02

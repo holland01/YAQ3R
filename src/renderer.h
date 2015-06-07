@@ -7,22 +7,6 @@
 #include "aabb.h"
 #include <set>
 
-
-/*
-=====================================================
-
-Author: Holland Schutte
-License: WTFPL
-
-                   renderer.h
-
-    Contains the driver functionality for the Quake3Map class,
-    along with a camera class to perform basic view transformations.
-    Provides the necessary functionality to get the map on the screen.
-
-=====================================================
-*/
-
 // Draw flags
 enum 
 {
@@ -80,6 +64,8 @@ public:
 	void	DrawFaceNoEffect( drawPass_t& parms );
     void    DrawFace( drawPass_t& parms );
 	void	DrawFaceVerts( drawPass_t& parms, bool isEffectPass );
+
+	bool	CalcLightVol( const glm::vec3& position );
 
 	float   CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 

@@ -10,7 +10,6 @@ using namespace std;
 static void SwizzleCoords( glm::vec3& v )
 {
     float tmp = v.y;
-
     v.y = v.z;
     v.z = -tmp;
 }
@@ -177,6 +176,29 @@ void Q3BspMap::GenRenderData( void )
 	}
 }
 
+void Q3BspMap::WriteLumpToFile( uint32_t lump )
+{
+	FILE* f = nullptr;
+	byte* mem = nullptr;
+	size_t numBytes = 0;
+	std::string filepath;
+
+	switch ( lump )
+	{
+		case BSP_LUMP_ENTITIES:
+			filepath = "log/entities.log";
+			mem = ( byte* ) data.entities.infoString;
+			numBytes = data.header->directories[ BSP_LUMP_ENTITIES ].length;
+			break;
+
+		default:
+			return;
+	}
+
+	f = fopen( filepath.c_str(), "wb" );
+	fprintf( f, "%s\n", mem );
+}
+  
 void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 {
 	// Open file, verify it if we succeed
@@ -357,13 +379,13 @@ void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 		// try to find one for it which is valid
 		if ( fname.find_last_of( '.' ) == std::string::npos )
 		{
+			glTextures[ t ].wrap = GL_REPEAT;
+
 			for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
 			{
 				const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-				glTextures[ i ].wrap = GL_REPEAT;
-
-				if ( LoadTextureFromFile( str.c_str(), loadFlags, glTextures[ i ] ) )
+				if ( LoadTextureFromFile( str.c_str(), loadFlags, glTextures[ t ] ) )
 				{
 					success = true;
 					break;
@@ -407,6 +429,10 @@ FAIL_WARN:
 	Tex_SetBufferSize( glDummyTexture, 32, 32, 3, 255 );
 	Tex_MakeTexture2D( glDummyTexture );
 	glDummyTexture.sampler = glLightmapSampler;
+
+	lightvolGrid.x = floor( data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - ceil( data.models[ 0 ].boxMin[ 0 ] / 64.0f );
+	lightvolGrid.y = floor( data.models[ 0 ].boxMax[ 1 ] / 64.0f ) - ceil( data.models[ 0 ].boxMin[ 1 ] / 64.0f );
+	lightvolGrid.z = floor( data.models[ 0 ].boxMax[ 2 ] / 128.0f ) - ceil( data.models[ 0 ].boxMin[ 2 ] / 128.0f );
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

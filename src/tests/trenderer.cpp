@@ -39,7 +39,6 @@ void TRenderer::Load( void )
 {
     if ( !Test::Load( "I am a floating camera" ) )
         return;
-	//GL_CHECK( glPolygonOffset( 1.0f, 1.0f ) );
 
     renderer = new BSPRenderer();
     renderer->Prep();
