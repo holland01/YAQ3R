@@ -96,7 +96,9 @@ TessTri::TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts 
 	{
 		GL_CHECK( glGenTextures( 1, &texture ) );
 		GL_CHECK( glGenSamplers( 1, &sampler ) );
-		bool test = LoadTextureFromFile( "asset/random/image/business_cat.jpg", texture, sampler, Q3LOAD_TEXTURE_SRGB, GL_CLAMP_TO_EDGE );
+
+		// TODO: reimpliment with new API
+		///		bool test = LoadTextureFromFile( "asset/random/image/business_cat.jpg", texture, sampler, Q3LOAD_TEXTURE_SRGB, GL_CLAMP_TO_EDGE );
 		assert( test );
 	}
 

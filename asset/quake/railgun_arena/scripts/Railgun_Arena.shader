@@ -352,7 +352,7 @@ textures/water/waterfall
 	surfaceparm nolightmap
 	tessSize 64
 	cull none
-        nopicmip
+    nopicmip
 	deformVertexes wave 64 triangle 1 3 .1 .8
 
 	{

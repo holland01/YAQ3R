@@ -59,6 +59,22 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
+			"settings":
+			{
+				"buffer_size": 8248,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "log/shader_gen.txt",
+			"settings":
+			{
+				"buffer_size": 26791,
+				"line_ending": "Windows"
+			}
+		}
 	],
 	"build_system": "",
 	"command_palette":
@@ -90,7 +106,10 @@
 	[
 		"/C/Dev/bspview/bspviewer",
 		"/C/Dev/bspview/bspviewer/asset",
-		"/C/Dev/bspview/bspviewer/asset/quake"
+		"/C/Dev/bspview/bspviewer/asset/quake",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts",
+		"/C/Dev/bspview/bspviewer/log"
 	],
 	"file_history":
 	[
@@ -337,8 +356,67 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8248,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								7046,
+								7046
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 6479.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "log/shader_gen.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 26791,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								23418,
+								23418
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 23280.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
 			]
 		}
 	],

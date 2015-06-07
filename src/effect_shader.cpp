@@ -13,9 +13,7 @@ shaderStage_t::shaderStage_t( void )
 	hasTexMod = FALSE;
 
 	programID = 0;
-	textureObj = 0;
-	samplerObj = 0;
-	texOffset = 0;
+	textureSlot = 0;
 
 	rgbSrc = GL_ONE;
 	rgbDest = GL_ZERO;
@@ -28,6 +26,7 @@ shaderStage_t::shaderStage_t( void )
 	alphaGen = 0.0f;
 
 	memset( &tcModTurb, 0, sizeof( funcParms_t ) );
+	memset( &tcModScroll, 0, sizeof( funcParms_t ) );
 
 	rgbGen = RGBGEN_IDENTITY;
 	alphaFunc = ALPHA_FUNC_UNDEFINED;
@@ -48,10 +47,8 @@ shaderInfo_t::shaderInfo_t( void )
 	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
 	memset( &deformParms, 0, sizeof( funcParms_t ) );
 	
-	samplerObj = 0;
-	textureObj = 0;
-	
 	surfaceParms = 0;
+	loadFlags = 0;
 	stageCount = 0;
 	
 	surfaceLight = 0.0f;
@@ -297,6 +294,10 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 		{
 			outInfo->hasPolygonOffset = TRUE;	
 		}
+		else if ( strcmp( token, "nopicmip" ) == 0 )
+		{
+			outInfo->loadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+		}
 		// No globals detected, so we must be a stage.
 		else if ( outInfo->stageCount < SHADER_MAX_NUM_STAGES )
 		{
@@ -403,9 +404,9 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					float s = ReadFloat( buffer );
 					float t = ReadFloat( buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( 1.0f, 1.0f, 1.0f, 1.0f ) );
+					//outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( 1.0f, 1.0f, 1.0f, 1.0f ) );
 
-					//outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
+					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
 				}
 				else if ( strcmp( type, "turb" ) == 0 )
 				{
@@ -415,6 +416,13 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.frequency = ReadFloat( buffer );
 
 					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.enabled = true;
+				}
+				else if ( strcmp( type, "scroll" ) == 0 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModScroll.speed[ 0 ] = ReadFloat( buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModScroll.speed[ 1 ] = ReadFloat( buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].tcModScroll.enabled = true;
 				}
 			}
 			else if ( strcmp( token, "depthfunc" ) == 0 )
@@ -444,7 +452,7 @@ static uint8_t IsStubbedStage( const shaderStage_t* stage )
 	return stage->isDepthPass;  
 }
 
-static void ParseShader( shaderMap_t& entries, const std::string& filepath )
+static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::string& filepath )
 {
 	FILE* file = fopen( filepath.c_str(), "rb" );
 	MLOG_ASSERT( file, "Could not open file \'%s\'", filepath.c_str() );
@@ -464,6 +472,7 @@ static void ParseShader( shaderMap_t& entries, const std::string& filepath )
 	{	
 		shaderInfo_t entry;
 
+		entry.loadFlags = loadFlags;
 		pChar = ParseEntry( &entry, pChar, 0 );
 
 		// Perform post processing.
@@ -493,10 +502,20 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	// Print the generated shaders to a text file
 	FILE* f = fopen( "log/shader_gen.txt", "w" );
 
-	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, bool doGammaCorrect, const char* discardPredicate ) 
+	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, 
+		const shaderStage_t& stage, bool doGammaCorrect, const char* discardPredicate ) 
 	{
-		fragmentSrc.push_back( "\tvec4 t = texture( sampler0, st );" );
-		
+		if ( stage.alphaGen != 0.0f )
+		{
+			fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+			fragmentSrc.push_back( 
+				"\tvec4 color = vec4( texture( sampler0, st ).rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
+		}
+		else
+		{
+			fragmentSrc.push_back( "\tvec4 color = texture( sampler0, st ) * frag_Color;" );
+		}
+
 		if ( discardPredicate )
 		{
 			fragmentSrc.push_back( "\tif ( " + std::string( discardPredicate ) + " )" );
@@ -507,12 +526,15 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 		if ( doGammaCorrect )
 		{
-			fragmentSrc.push_back( "\tfragment = pow( vec4( t.rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen ), gamma );" );
+			fragmentSrc.insert( fragmentSrc.end(), 
+			{
+				"\tcolor.r = pow( color.r, gamma );",
+				"\tcolor.g = pow( color.g, gamma );",
+				"\tcolor.b = pow( color.b, gamma );"
+			} );
 		}
-		else
-		{
-			fragmentSrc.push_back( "\tfragment = t * vec4( frag_Color.rgb, alphaGen );" );
-		}
+		
+		fragmentSrc.push_back( "\tfragment = color;" );
 	};
 
 	auto LJoinLines = []( const std::vector< std::string >& lines ) -> std::string
@@ -560,9 +582,9 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			vertexSrc.push_back( "\tfrag_Tex = tex0;" );
 			
-			if ( shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY || shader.stageBuffer[ j ].rgbGen == RGBGEN_IDENTITY_LIGHTING )
-			{
-				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
+			if ( Shade_IsIdentColor( shader.stageBuffer[ j ] ) )
+			{ 
+				vertexSrc.push_back( "\tfrag_Color = vec4(1.0f);" );
 			}
 			else
 			{
@@ -576,16 +598,18 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 420",
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
-				"const vec4 gamma = vec4( 1.0 / 2.2 );",
+				"const float gamma = 1.0 / 2.2;",
 				"uniform sampler2D sampler0;",
 				"out vec4 fragment;",
 				"void main(void) {"
 			};
 
+			const size_t fragUnifOffset = 3;
+
 			// If we have a matrix transform for the texcoord, go with that first.
 			if ( shader.stageBuffer[ j ].hasTexMod )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + 3, "uniform mat2 texTransform;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texTransform;" );
 				fragmentSrc.push_back( "\tvec2 st = texTransform * frag_Tex;" );
 				uniformStrings.push_back( "texTransform" );
 			}
@@ -597,25 +621,16 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			// Modify the texture coordinate as necessary before we write to the texture
 			if ( shader.stageBuffer[ j ].tcModTurb.enabled )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + 3, "uniform float tcModTurb;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
 				fragmentSrc.push_back( "\tst += tcModTurb;" );
 				uniformStrings.push_back( "tcModTurb" );
 			}
 
-			if ( shader.stageBuffer[ j ].alphaGen == 0.0f )
+			if ( shader.stageBuffer[ j ].tcModScroll.enabled )
 			{
-				if ( shader.surfaceParms & SURFPARM_TRANS )
-				{
-					fragmentSrc.push_back( "const float alphaGen = 0.0;" );
-				}
-				else
-				{
-					fragmentSrc.push_back( "const float alphaGen = 1.0;" );
-				}
-			}
-			else
-			{
-				fragmentSrc.push_back( "const float alphaGen = " + std::to_string( shader.stageBuffer[ j ].alphaGen ) + std::to_string( ';' ) );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
+				fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
+				uniformStrings.push_back( "tcModScroll" );
 			}
 
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
@@ -630,16 +645,16 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			switch ( shader.stageBuffer[ j ].alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-				LWriteTexture( fragmentSrc, true, NULL );
+				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-				LWriteTexture( fragmentSrc, true, "t.a < 0.5" );
+				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, "color.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-				LWriteTexture( fragmentSrc, true, "t.a == 0" );
+				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, "color.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-				LWriteTexture( fragmentSrc, true, "t.a >= 0.5" );
+				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, "color.a >= 0.5" );
 				break;
 			}
 
@@ -669,7 +684,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	fclose( f );
 }
 
-static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectShaders )
+static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders )
 {
 	for ( auto& entry: effectShaders )
 	{
@@ -677,26 +692,28 @@ static void GenShaderTextures( const mapData_t* map, uint32_t loadFlags, shaderM
 
 		for ( int i = 0; i < shader.stageCount; ++i )
 		{
-			if ( shader.stageBuffer[ i ].isStub )
-				continue;
+			shaderStage_t& stage = shader.stageBuffer[ i ];
 
-			shader.stageBuffer[ i ].texOffset = i;
-
-			if ( shader.stageBuffer[ i ].mapType == MAP_TYPE_IMAGE )
+			if ( stage.isStub )
 			{
-				GL_CHECK( glGenTextures( 1, &shader.stageBuffer[ i ].textureObj ) );
-				GL_CHECK( glGenSamplers( 1, &shader.stageBuffer[ i ].samplerObj ) );
+				continue;
+			}
 
+			stage.textureSlot = i;
+			stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+
+			if ( stage.mapType == MAP_TYPE_IMAGE )
+			{
 				std::string texFileRoot( map->basePath );
+				texFileRoot.append( stage.texturePath );
 
-				texFileRoot.append( shader.stageBuffer[ i ].texturePath );
+				bool success = LoadTextureFromFile( texFileRoot.c_str(), shader.loadFlags, stage.texture );
 
-				bool success = LoadTextureFromFile( 
-					texFileRoot.c_str(), 
-					shader.stageBuffer[ i ].textureObj, 
-					shader.stageBuffer[ i ].samplerObj, 
-					loadFlags, 
-					shader.stageBuffer[ i ].mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT );
+				if ( success && stage.tcModScroll.enabled )
+				{
+					stage.tcModScroll.speed[ 2 ] = ( float ) stage.texture.width;
+					stage.tcModScroll.speed[ 3 ] = ( float ) stage.texture.height;
+				}
 
 				assert( success );
 			}
@@ -720,9 +737,9 @@ void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectS
 	{
 		std::string ext;
 		if ( FileGetExt( ext, std::string( findFileData.cFileName ) ) && ext == "shader" )
-			ParseShader( effectShaders, shaderRootDir + std::string( findFileData.cFileName ) );
+			ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
 	}
 	
 	GenShaderPrograms( effectShaders );
-	GenShaderTextures( map, loadFlags, effectShaders );
+	GenShaderTextures( map, effectShaders );
 }

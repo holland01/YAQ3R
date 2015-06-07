@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "def.h"
+#include "glutil.h"
 
 struct mapData_t;
 
@@ -114,67 +115,67 @@ struct funcParms_t
 			float bulgeHeight;
 			float bulgeSpeed;
 		};
+
+		float speed[ 4 ]; // maps to s and t
 	};
 };
 
 struct shaderStage_t
 {
-	uint8_t	isStub; // if true, stage functionality is unsupported; fallback to default rendering process
-	uint8_t isDepthPass;
-	uint8_t hasTexMod;
+	uint8_t					isStub; // if true, stage functionality is unsupported; fallback to default rendering process
+	uint8_t					isDepthPass;
+	uint8_t					hasTexMod;
 
-	GLuint programID;
-	GLuint textureObj;
-	GLuint samplerObj;
-	GLuint texOffset;
+	GLuint					programID;
+	GLuint					textureSlot;
+	texture_t				texture;
 
-	GLenum rgbSrc;
-	GLenum rgbDest;
+	GLenum					rgbSrc;
+	GLenum					rgbDest;
 
-	GLenum alphaSrc;
-	GLenum alphaDest;
+	GLenum					alphaSrc;
+	GLenum					alphaDest;
 
-	GLenum depthFunc; // Default is LEQUAL
+	GLenum					depthFunc; // Default is LEQUAL
 
-	rgbGen_t rgbGen;
-	alphaFunc_t alphaFunc;
-	mapCmd_t mapCmd;
-	mapType_t mapType;
+	rgbGen_t				rgbGen;
+	alphaFunc_t				alphaFunc;
+	mapCmd_t				mapCmd;
+	mapType_t				mapType;
 
-	funcParms_t tcModTurb;
+	funcParms_t				tcModTurb, tcModScroll;
 
-	float alphaGen; // if 0, use 1.0
+	float					alphaGen; // if 0, use 1.0
 
-	char texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	char					texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	
-	glHandleMap_t uniforms;
+	glHandleMap_t			uniforms;
 
 	std::stack< glm::mat2 > texTransformStack;
-	glm::mat2 texTransform;
+	glm::mat2				texTransform;
 
 	shaderStage_t( void );
 };
 
 struct shaderInfo_t
 {
-	uint8_t hasLightmap;
-	uint8_t hasPolygonOffset;
+	uint8_t				hasLightmap;
+	uint8_t				hasPolygonOffset;
 	
 	vertexDeformCmd_t	deformCmd;
 	vertexDeformFunc_t	deformFn;
-	funcParms_t			deformParms;
-	
-	GLuint samplerObj;
-	GLuint textureObj;
+	funcParms_t			deformParms;	
 
-	uint32_t surfaceParms;
-	float tessSize; // 0 if none
-	int stageCount;
+	uint32_t			surfaceParms;
+	uint32_t			loadFlags; // we pass a list of global flags we'd like to see applied everywhere, however some shaders may contradict this
 
-	float surfaceLight; // 0 if no light
+	float				tessSize; // 0 if none
+	int					stageCount;
 
-	char name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-	shaderStage_t stageBuffer[ SHADER_MAX_NUM_STAGES ];
+	float				surfaceLight; // 0 if no light
+
+	char				name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	shaderStage_t		stageBuffer[ SHADER_MAX_NUM_STAGES ];
 
 	shaderInfo_t( void );
 };
@@ -183,3 +184,8 @@ using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
 void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectShaders );
+
+static INLINE bool Shade_IsIdentColor( const shaderStage_t& s )
+{
+	return s.rgbGen == RGBGEN_IDENTITY || s.rgbGen == RGBGEN_IDENTITY_LIGHTING;
+}

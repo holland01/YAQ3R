@@ -50,14 +50,82 @@ static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims,
 	}
 }
 
-bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap )
+texture_t::texture_t( void )
+	: srgb( true ),
+	  handle( 0 ), sampler( 0 ),
+	  wrap( 0 ), format( 0 ), internalFormat( 0 ),
+	  width( 0 ),
+	  height( 0 ),
+	  bpp( 0 )
+{
+}
+
+texture_t::~texture_t( void )
+{
+	if ( handle )
+	{
+		GL_CHECK( glDeleteTextures( 1, &handle ) );
+	}
+
+	if ( sampler )
+	{
+		GL_CHECK( glDeleteSamplers( 1, &sampler ) );
+	}
+}
+
+void Tex_SetBufferSize( texture_t& tex, int width, int height, int bpp, byte fill )
+{
+	tex.width = width;
+	tex.height = height;
+	tex.bpp = bpp;
+	tex.pixels.resize( tex.width * tex.height * tex.bpp, fill );
+
+	switch( tex.bpp )
+	{
+	case 1:
+		tex.format = GL_R;
+		tex.internalFormat = GL_R8;
+		break;
+
+	case 3:
+		tex.format = GL_RGB;
+		tex.internalFormat = tex.srgb? GL_SRGB8 : GL_RGB8;
+		break;
+
+	case 4:
+		tex.format = GL_RGBA;
+		tex.format = tex.srgb? GL_SRGB8_ALPHA8 : GL_RGBA8;
+		break;
+	}
+}
+
+void Tex_MakeTexture2D( texture_t& tex )
+{
+	if ( !tex.handle )
+	{
+		GL_CHECK( glGenTextures( 1, &tex.handle ) );
+	}
+
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, tex.handle ) );
+	GL_CHECK( glTexImage2D( 
+		GL_TEXTURE_2D, 
+		0, 
+		tex.internalFormat, 
+		tex.width, 
+		tex.height, 
+		0, 
+		tex.format, 
+		GL_UNSIGNED_BYTE, 
+		&tex.pixels[ 0 ] ) );	
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+}
+  
+bool LoadTextureFromFile( const char* texPath, uint32_t loadFlags, texture_t& texture )
 {
 	// Load image
 	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
-	std::vector< byte > pixels;
-	int width, height, bpp;
 	{
-		byte* imagePixels = stbi_load( texPath, &width, &height, &bpp, STBI_default );
+		byte* imagePixels = stbi_load( texPath, &texture.width, &texture.height, &texture.bpp, STBI_default );
 
 		if ( !imagePixels )
 		{
@@ -65,22 +133,20 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 			return false;
 		}
 		
-		pixels.resize( width * height * bpp, 0 );
-		FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
+		texture.pixels.resize( texture.width * texture.height * texture.bpp, 0 );
+		FlipBytes( &texture.pixels[ 0 ], imagePixels, texture.width, texture.height, texture.bpp );	
 		
 		if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
 		{
-			RotateSquareImage90CCW( pixels, width, bpp );
+			RotateSquareImage90CCW( texture.pixels, texture.width, texture.bpp );
 		}
 
 		stbi_image_free( imagePixels );
 	}
 
-	GLenum fmt;
-	GLenum internalFmt;
-
+	// NOTE: OpenGL expects image to have linear colorspace on input, hence why SRGB is only taken into 
+	// account in terms of the internal format
 	GLenum rgb, rgba;
-	
 	if ( loadFlags & Q3LOAD_TEXTURE_SRGB )
 	{
 		rgb = GL_SRGB8;
@@ -92,43 +158,68 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 		rgba = GL_RGBA8;
 	}
 
-	switch ( bpp )
+	switch ( texture.bpp )
 	{
 	case 1:
-		fmt = GL_R;
-		internalFmt = GL_R8; 
+		texture.format = GL_R;
+		texture.internalFormat = GL_R8; 
 		break;
 	case 3:
-		internalFmt = rgb;
-		fmt = GL_RGB;
+		texture.format  = GL_RGB;
+		texture.internalFormat = rgb;
 		break;
 	case 4:
-		internalFmt = rgba;
-		fmt = GL_RGBA;
+		texture.format  = GL_RGBA;
+		texture.internalFormat = rgba;
 		break;
 	default:
-		MLOG_ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath );
+		MLOG_ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", 
+			texture.bpp, texPath );
 		break;
 	}
 
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texObj ) );
+	if ( !texture.handle )
+	{
+		GL_CHECK( glGenTextures( 1, &texture.handle ) );
+	}
 
-	// Generate mipmaps ( if requested ) 
-	int maxLevels = glm::min( ( int ) glm::log2( ( float ) width ), ( int ) glm::log2( ( float ) height ) ); 
+	if ( !texture.sampler )
+	{
+		GL_CHECK( glGenSamplers( 1, &texture.sampler ) );
+	}
+
+	if ( !texture.wrap )
+	{
+		texture.wrap = GL_CLAMP_TO_EDGE;
+	}
+
+	if ( loadFlags & Q3LOAD_TEXTURE_ANISOTROPY )
+	{
+		GLfloat maxSamples;
+		GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
+		GL_CHECK( glSamplerParameterf( texture.sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
+	}
+
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texture.handle ) );
+
 	GLenum minFilter;
 	if ( loadFlags & Q3LOAD_TEXTURE_MIPMAP )
 	{
-		int w = width;
-		int h = height;
+		int maxLevels = glm::min( ( int ) glm::log2( ( float ) texture.width ), ( int ) glm::log2( ( float ) texture.height ) ); 
+
+		int w = texture.width;
+		int h = texture.height;
 
 		for ( int mip = 0; h != 1 || w != 1; ++mip )
 		{
-			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, mip, internalFmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
+			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 
+				mip, texture.internalFormat, w, h, 0, texture.format, GL_UNSIGNED_BYTE, &texture.pixels[ 0 ] ) );
 
 			if ( h > 1 )
 			{
 				h /= 2;
 			}
+
 			if ( w > 1 )
 			{
 				w /= 2;
@@ -140,22 +231,15 @@ bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj,
 	}
 	else
 	{
-		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, internalFmt, width, height, 0, fmt, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
+		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 
+			0, texture.internalFormat, texture.width, texture.height, 0, texture.format, GL_UNSIGNED_BYTE, &texture.pixels[ 0 ] ) );
 		minFilter = GL_LINEAR;
 	}
 
-	// Configure sampler params
-	if ( loadFlags & Q3LOAD_TEXTURE_ANISOTROPY )
-	{
-		GLfloat maxSamples;
-		GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
-		GL_CHECK( glSamplerParameterf( samplerObj, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
-	}
-
-	GL_CHECK( glSamplerParameteri( samplerObj, GL_TEXTURE_MIN_FILTER, minFilter ) );
-	GL_CHECK( glSamplerParameteri( samplerObj, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-	GL_CHECK( glSamplerParameteri( samplerObj, GL_TEXTURE_WRAP_S, texWrap ) );
-	GL_CHECK( glSamplerParameteri( samplerObj, GL_TEXTURE_WRAP_T, texWrap ) );
+	GL_CHECK( glSamplerParameteri( texture.sampler, GL_TEXTURE_MIN_FILTER, minFilter ) );
+	GL_CHECK( glSamplerParameteri( texture.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+	GL_CHECK( glSamplerParameteri( texture.sampler, GL_TEXTURE_WRAP_S, texture.wrap ) );
+	GL_CHECK( glSamplerParameteri( texture.sampler, GL_TEXTURE_WRAP_T, texture.wrap ) );
 
 	return true;
 }

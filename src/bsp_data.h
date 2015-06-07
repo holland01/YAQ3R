@@ -218,6 +218,8 @@ struct bspVisdata_t
     byte*   bitsets;
 };
 
+// --------------------------------------------------------
+
 struct triangle_t
 {
 	GLuint indices[ 3 ];

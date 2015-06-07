@@ -82,7 +82,7 @@ private:
 
     bool							mapAllocated;
 
-	GLuint							glDummyTexture;
+	texture_t						glDummyTexture;
 
 	void							ReadFile( const std::string& filepath, const int scale );
 	
@@ -90,13 +90,12 @@ private:
 	
 	void							GenRenderData( void );
 
-	void							GenTextureRGB8( GLuint texture, int width, int height, byte* pixels );
+	void							GenTextureRGB8( texture_t t );
 
 public:
 
-	std::vector< GLuint >			glTextures;		// has one->one map with texture indices
-	std::vector< GLuint >			glSamplers;		// has one->one map with glTextures
-	std::vector< GLuint >			glLightmaps;	// textures - has one->one map with lightmap indices
+	std::vector< texture_t >		glTextures;
+	std::vector< texture_t >		glLightmaps;	// textures - has one->one map with lightmap indices
 	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
 					GLuint			glLightmapSampler;
 
@@ -113,29 +112,15 @@ public:
 
     bspLeaf_t*					FindClosestLeaf( const glm::vec3& camPos );
 
+	bool						IsTransFace( int faceIndex ) const;
+
     bool						IsClusterVisible( int sourceCluster, int testCluster );
 
     bool						IsAllocated( void ) const { return mapAllocated; }
 
 	const shaderInfo_t*			GetShaderInfo( int faceIndex ) const;
 
-	GLuint						GetDummyTexture( void ) const { return glDummyTexture; }
+	const texture_t&			GetDummyTexture( void ) const { return glDummyTexture; }
 
     void						DestroyMap( void );
 };
-
-INLINE void Q3BspMap::GenTextureRGB8( GLuint texture, int width, int height, byte* pixels )
-{
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texture ) );
-
-	GL_CHECK( glTexImage2D( 
-		GL_TEXTURE_2D, 
-		0, 
-		GL_RGB8, 
-		width, 
-		height, 
-		0, 
-		GL_RGB, 
-		GL_UNSIGNED_BYTE, 
-		pixels ) );	
-}

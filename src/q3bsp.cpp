@@ -48,7 +48,6 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 
 Q3BspMap::Q3BspMap( void )
      :	mapAllocated( false ),
-		glDummyTexture( 0 ),
 		glLightmapSampler( 0 ),
 		data( {} )
 {
@@ -94,19 +93,6 @@ void Q3BspMap::DestroyMap( void )
         delete[] data.buffer;	
 		memset( &data, 0, sizeof( mapData_t ) );
 
-		GL_CHECK( glDeleteTextures( glTextures.size(), &glTextures[ 0 ] ) );
-		GL_CHECK( glDeleteTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
-		GL_CHECK( glDeleteSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
-
-		if ( glLightmapSampler > 0 )
-		{	
-			GL_CHECK( glDeleteSamplers( 1, &glLightmapSampler ) );
-		}
-
-		glTextures.clear();
-		glLightmaps.clear();
-		glFaces.clear();
-
         mapAllocated = false;
     }
 }
@@ -141,7 +127,6 @@ void Q3BspMap::GenRenderData( void )
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
 			mod->indices.resize( face->numMeshVertexes, 0 );
-
 			for ( int j = 0; j < face->numMeshVertexes; ++j )
 			{
 				mod->indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
@@ -149,7 +134,6 @@ void Q3BspMap::GenRenderData( void )
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
-			// amount of patches = width * height;
 			int width = ( face->size[ 0 ] - 1 ) / 2;
 			int height = ( face->size[ 1 ] - 1 ) / 2;
 			const shaderInfo_t* shader = GetShaderInfo( i );
@@ -200,7 +184,7 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
     if ( !file )
     {
-        MLOG_ERROR("Failed to open %s\n", filepath.c_str() );
+        MLOG_ERROR( "Failed to open %s\n", filepath.c_str() );
     }
 
 	fseek( file, 0, SEEK_END );
@@ -349,33 +333,17 @@ void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 {
 	// This is just a temporary hack to brute force load assets without taking into account the effect shader files.
 	// Now, we find and generate the textures. We first start with the image files.
-	{
-		const int wmDims = 32;
-		std::vector< byte > whitemap;
-
-		GL_CHECK( glGenTextures( 1, &glDummyTexture ) ); 
-		whitemap.resize( wmDims * wmDims * 3, 255 ); 
-
-		GenTextureRGB8( glDummyTexture, wmDims, wmDims, &whitemap[ 0 ] );
-	}
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	// Leave a 
-	glTextures.resize( data.numTextures, 0 );
-	GL_CHECK( glGenTextures( glTextures.size(), &glTextures[ 0 ] ) );
-
-	glSamplers.resize( data.numTextures, 0 );
-	GL_CHECK( glGenSamplers( glSamplers.size(), &glSamplers[ 0 ] ) );
+	glTextures.resize( data.numTextures );
 
 	static const char* validImgExt[] = 
 	{
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
-
-//	const std::string& root = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 
 	for ( int t = 0; t < data.numTextures; t++ )
 	{
@@ -393,7 +361,9 @@ void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 			{
 				const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-				if ( LoadTextureFromFile( str.c_str(), glTextures[ t ], glSamplers[ t ], loadFlags, GL_REPEAT ) )
+				glTextures[ i ].wrap = GL_REPEAT;
+
+				if ( LoadTextureFromFile( str.c_str(), loadFlags, glTextures[ i ] ) )
 				{
 					success = true;
 					break;
@@ -411,16 +381,12 @@ void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 
 FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-		GL_CHECK( glDeleteTextures( 1, &glTextures[ t ] ) );
-		glTextures[ t ] = 0;
-		glSamplers[ t ] = 0;
 	}
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
 	// And then generate all of the lightmaps
-	glLightmaps.resize( data.numLightmaps, 0 );
-	GL_CHECK( glGenTextures( glLightmaps.size(), &glLightmaps[ 0 ] ) );
+	glLightmaps.resize( data.numLightmaps );
 	GL_CHECK( glGenSamplers( 1, &glLightmapSampler ) );
 
 	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
@@ -430,12 +396,17 @@ FAIL_WARN:
 
 	for ( int l = 0; l < data.numLightmaps; ++l )
 	{	
-		GenTextureRGB8( glLightmaps[ l ], 
-			BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 
-			&data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ] );
+		glLightmaps[ l ].sampler = glLightmapSampler;
+		Tex_SetBufferSize( glLightmaps[ l ], BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
+		memcpy( &glLightmaps[ l ].pixels[ 0 ], 
+			&data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], sizeof( byte ) * glLightmaps[ l ].pixels.size() );
+
+		Tex_MakeTexture2D( glLightmaps[ l ] );
 	}
 
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	Tex_SetBufferSize( glDummyTexture, 32, 32, 3, 255 );
+	Tex_MakeTexture2D( glDummyTexture );
+	glDummyTexture.sampler = glLightmapSampler;
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
@@ -468,6 +439,26 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
     nodeIndex = -( nodeIndex + 1 );
 
     return &data.leaves[ nodeIndex ];
+}
+
+bool Q3BspMap::IsTransFace( int faceIndex ) const
+{
+	const bspFace_t* face = &data.faces[ faceIndex ];
+
+	if ( face->texture != -1 )
+	{
+		const shaderInfo_t* shader = GetShaderInfo( faceIndex );
+		if ( shader )
+		{
+			return !!( shader->surfaceParms & SURFPARM_TRANS );
+		}
+		else
+		{
+			return  glTextures[ face->texture ].bpp == 4;
+		}
+	}
+
+	return false;
 }
 
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )

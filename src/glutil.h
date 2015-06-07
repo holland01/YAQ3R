@@ -173,4 +173,25 @@ static INLINE void ImDrawAxes( const float size )
 	glEnd();
 }
 
-bool LoadTextureFromFile( const char* texPath, GLuint texObj, GLuint samplerObj, uint32_t loadFlags, GLenum texWrap );
+struct texture_t
+{
+	bool srgb: 1;
+
+	GLuint handle;
+	GLuint sampler;
+	GLenum wrap;
+	GLenum format;
+	GLenum internalFormat;
+
+	int width, height, bpp; // bpp is in bytes
+
+	std::vector< byte > pixels;
+
+	texture_t( void );
+	~texture_t( void );
+};
+
+void Tex_SetBufferSize( texture_t& tex, int width, int height, int bpp, byte fill );
+void Tex_MakeTexture2D( texture_t& tex );
+
+bool LoadTextureFromFile( const char* texPath, uint32_t loadFlags, texture_t& texture );
