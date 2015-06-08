@@ -1,6 +1,6 @@
 #include "common.h"
 #include "renderer.h"
-#include "log.h"
+#include "io.h"
 #include "tests/trenderer.h"
 #include "tests/test_tessellation.h"
 

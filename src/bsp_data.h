@@ -111,8 +111,8 @@ struct bspLeafBrush_t
 
 struct bspModel_t
 {
+	glm::vec3 boxMin;
     glm::vec3 boxMax;
-    glm::vec3 boxMin;
 
     int faceOffset;
     int numFaces;
@@ -205,9 +205,9 @@ struct bspLightmap_t
 
 struct bspLightvol_t
 {
-	byte ambient[ 3 ];		// RGB color
-	byte directional[ 3 ];	// RGB color
-	byte direction[ 2 ];	// - to light; 0 => phi, 1 => theta
+	glm::u8vec3 ambient;		// RGB color
+	glm::u8vec3 directional;	// RGB color
+	glm::u8vec2 direction;	// - to light; 0 => phi, 1 => theta
 };
 
 struct bspVisdata_t
@@ -245,4 +245,3 @@ struct mapModel_t
 	mapModel_t( void );
 	~mapModel_t( void );
 };
-

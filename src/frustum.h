@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "plane.h"
-#include "log.h"
+#include "io.h"
 
 #define FRUST_NUM_PLANES 6
 

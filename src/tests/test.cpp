@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../log.h"
+#include "../io.h"
 #include "../glutil.h"
 
 Test* gAppTest = NULL;

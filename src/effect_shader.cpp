@@ -1,6 +1,6 @@
 #include "effect_shader.h"
 #include "q3bsp.h"
-#include "log.h"
+#include "io.h"
 #include "shader.h"
 #include "glutil.h"
 #include <sstream>
@@ -664,8 +664,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			GLuint shaders[] = 
 			{
-				CompileShaderSource( vertexString.c_str(), GL_VERTEX_SHADER ),
-				CompileShaderSource( fragmentString.c_str(), GL_FRAGMENT_SHADER )
+				CompileShaderSource( vertexString.c_str(), vertexString.length(), GL_VERTEX_SHADER ),
+				CompileShaderSource( fragmentString.c_str(), fragmentString.length(), GL_FRAGMENT_SHADER )
 			};
 
 			shader.stageBuffer[ j ].programID = LinkProgram( shaders, 2 );

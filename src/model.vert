@@ -4,6 +4,7 @@ layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
 layout( location = 3 ) in vec2 lightmap;
+layout( location = 4 ) in vec3 normal;
 
 layout( std140 ) uniform Transforms
 {
@@ -23,4 +24,5 @@ void main()
     frag_Color = color;
     frag_Tex = tex0;
     frag_Lightmap = lightmap;
+	frag_Normal = normal;
 }

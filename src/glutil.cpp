@@ -1,5 +1,6 @@
 #include "glutil.h"
 #include "q3bsp.h"
+#include "shader.h"
 #include "extern/stb_image.c"
 
 static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
@@ -242,4 +243,105 @@ bool LoadTextureFromFile( const char* texPath, uint32_t loadFlags, texture_t& te
 	GL_CHECK( glSamplerParameteri( texture.sampler, GL_TEXTURE_WRAP_T, texture.wrap ) );
 
 	return true;
+}
+
+void LoadVertexLayout( bool mapTexCoords )
+{
+	MapVec3( 0, offsetof( bspVertex_t, position ) );
+	MapVec3( 4, offsetof( bspVertex_t, normal ) );
+
+    GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
+    GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
+   
+	if ( mapTexCoords )
+	{
+		MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) ); // texture
+		MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); // lightmap
+	}
+}
+
+void ImDrawAxes( const float size ) 
+{
+	std::array< glm::vec3, 6 > axes = 
+	{
+		glm::vec3( size, 0.0f, 0.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ),
+		glm::vec3( 0.0f, size, 0.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ),
+		glm::vec3( 0.0f, 0.0f, -size ), glm::vec3( 0.0f, 0.0f, 1.0f )
+	};
+	
+	glBegin( GL_LINES );
+	for ( int i = 0; i < 6; i += 2 )
+	{
+		glColor3fv( glm::value_ptr( axes[ i + 1 ] ) );
+		glVertex3f( 0.0f, 0.0f, 0.0f );
+		glVertex3fv( glm::value_ptr( axes[ i ] ) ); 
+	}
+	glEnd();
+}
+
+void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
+{
+	GL_CHECK( glUseProgram( 0 ) );
+	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
+	GL_CHECK( glLoadIdentity() );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
+	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glLoadIdentity() );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
+}
+
+void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
+{
+	if ( enable )
+	{
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_FILL ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_LINE ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_POINT ) );
+	}
+	else
+	{
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_FILL ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_LINE ) );
+		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_POINT ) );
+	}
+}
+
+// -------------------------------------------------------------------------------------------------
+Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader )
+	: program( 0 )
+{
+	GLuint shaders[] = 
+	{
+		CompileShaderSource( &vertexShader[ 0 ], vertexShader.size(), GL_VERTEX_SHADER ),
+		CompileShaderSource( &fragmentShader[ 0 ], fragmentShader.size(), GL_FRAGMENT_SHADER )
+	};
+
+	program = LinkProgram( shaders, 2 );
+}
+
+Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
+		: Program( vertexShader, fragmentShader )
+{
+	uint32_t max = glm::max( attribs.size(), uniforms.size() );
+	for ( uint32_t i = 0; i < max; ++i )
+	{
+		if ( i < attribs.size() )
+		{
+			AddAttrib( attribs[ i ] );
+		}
+
+		if ( i < uniforms.size() )
+		{
+			AddUnif( uniforms[ i ] );
+		}
+	}
+
+	MapProgramToUBO( program, "Transforms" );
+}
+
+Program::~Program( void )
+{
+	Release();
+	GL_CHECK( glDeleteProgram( program ) );
 }

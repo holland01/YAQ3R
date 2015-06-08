@@ -1,6 +1,6 @@
 #include "q3bsp.h"
 #include "aabb.h"
-#include "log.h"
+#include "io.h"
 
 
 #include "effect_shader.h"
@@ -430,9 +430,9 @@ FAIL_WARN:
 	Tex_MakeTexture2D( glDummyTexture );
 	glDummyTexture.sampler = glLightmapSampler;
 
-	lightvolGrid.x = floor( data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - ceil( data.models[ 0 ].boxMin[ 0 ] / 64.0f );
-	lightvolGrid.y = floor( data.models[ 0 ].boxMax[ 1 ] / 64.0f ) - ceil( data.models[ 0 ].boxMin[ 1 ] / 64.0f );
-	lightvolGrid.z = floor( data.models[ 0 ].boxMax[ 2 ] / 128.0f ) - ceil( data.models[ 0 ].boxMin[ 2 ] / 128.0f );
+	lightvolGrid.x = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 0 ] / 64.0f ) );
+	lightvolGrid.y = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 1 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 1 ] / 64.0f ) );
+	lightvolGrid.z = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 2 ] / 128.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 2 ] / 128.0f ) );
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

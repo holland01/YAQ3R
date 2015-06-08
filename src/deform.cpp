@@ -1,5 +1,5 @@
 #include "deform.h"
-#include "log.h"
+#include "io.h"
 #include "q3bsp.h"
 #include "glutil.h"
 #include "effect_shader.h"

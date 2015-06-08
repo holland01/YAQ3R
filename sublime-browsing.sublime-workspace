@@ -60,18 +60,18 @@
 	"buffers":
 	[
 		{
-			"file": "asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
+			"file": "log/entities.log",
 			"settings":
 			{
-				"buffer_size": 8248,
-				"line_ending": "Windows"
+				"buffer_size": 0,
+				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "log/shader_gen.txt",
+			"file": "asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
 			"settings":
 			{
-				"buffer_size": 26791,
+				"buffer_size": 8244,
 				"line_ending": "Windows"
 			}
 		}
@@ -107,12 +107,26 @@
 		"/C/Dev/bspview/bspviewer",
 		"/C/Dev/bspview/bspviewer/asset",
 		"/C/Dev/bspview/bspviewer/asset/quake",
+		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2",
+		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/maps",
+		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/scripts",
 		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena",
 		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts",
-		"/C/Dev/bspview/bspviewer/log"
+		"/C/Dev/bspview/bspviewer/log",
+		"/C/Dev/bspview/bspviewer/src"
 	],
 	"file_history":
 	[
+		"/C/Dev/source/dieselsource/DIESEL/DIESEL/Q3BSPLOADER.CPP",
+		"/C/Dev/source/dieselsource/DIESEL/DIESEL/Q3BSPMESH.CPP",
+		"/C/Dev/source/dieselsource/DIESEL/DIESEL/Q3SCENE.CPP",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts/Railgun_Arena.arena",
+		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/scripts/egypt.shader",
+		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/scripts/multiplant.shader",
+		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/scripts/egyptsoc.shader",
+		"/C/Dev/bspview/bspviewer/log/shader_gen.txt",
+		"/C/Dev/bspview/bspviewer/src/main.vert",
 		"/C/Dev/work/cadalog/obs_render/todo.md",
 		"/C/Dev/work/cadalog/su-animate/source/Plugin/Cadalog_SU_Animate/scripts/Player.rb",
 		"/C/Dev/work/cadalog/su-animate/source/Plugin/Cadalog_SU_Animate/scripts/commands.rb",
@@ -124,7 +138,6 @@
 		"/C/Env/Ruby/2_2_2/lib/ruby/gems/2.2.0/gems/ffi-1.9.8-x64-mingw32/lib/ffi.rb",
 		"/C/Dev/work/cadalog/obs_render/scripts/post_build_obs_render.py",
 		"/C/Users/holland/AppData/Roaming/SketchUp/SketchUp 2015/SketchUp/Plugins/loader.rb",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
 		"/C/Dev/work/cadalog/obs_render/scripts/Cadalog_OBS_Render.rb",
 		"/C/Dev/work/cadalog/su-animate/source/Plugin/Cadalog_OBS_Render/loader.rb",
 		"/C/Dev/work/cadalog/obs_render/scripts/do_things_client.rb",
@@ -231,16 +244,7 @@
 		"/C/Users/holland/Documents/DaeModels/Modern Dining Set with Red Chairs.kmz",
 		"/C/Users/holland/Documents/DaeModels/readme.txt",
 		"/C/Dev/work/cadalog/bwalker_dae_support_mod/Tests/DaeToSkp/DaeToSkp/material_log.txt",
-		"/C/Dev/work/cadalog/bwalker_dae_support_mod/Tests/DaeToSkp/DaeToSkp/res/pool-before/pool-before.dae",
-		"/C/Users/holland/Documents/pool-before.dae",
-		"/C/Users/holland/AppData/Roaming/Sublime Text 3/Packages/User/Preferences.sublime-settings",
-		"/C/Users/holland/Desktop/todo-today.txt",
-		"/C/Dev/work/cadalog/bwalker_dae_support_mod/Tests/DaeToSkp/DaeToSkp/res/fountain/fountain.dae",
-		"/C/Users/holland/Documents/DXF/pool-before.dae",
-		"/C/Users/holland/Documents/DaeModels/interior/readme.txt",
-		"/C/Users/holland/Documents/DaeModels/interior/models/interior.dae",
-		"/C/Users/holland/AppData/Roaming/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
-		"/C/Users/holland/Documents/Tmp/exporter_experimental.cpp"
+		"/C/Dev/work/cadalog/bwalker_dae_support_mod/Tests/DaeToSkp/DaeToSkp/res/pool-before/pool-before.dae"
 	],
 	"find":
 	{
@@ -260,9 +264,16 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": true,
+		"case_sensitive": false,
 		"find_history":
 		[
+			"s",
+			"sky",
+			"lightvols",
+			"ammo_rockets",
+			"light",
+			"lightimage",
+			"pool",
 			"moveEntities",
 			"x264_encoder_encode",
 			"int main",
@@ -356,53 +367,52 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
+					"file": "log/entities.log",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8248,
+						"buffer_size": 0,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								7046,
-								7046
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Text/Plain text.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 6479.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "log/shader_gen.txt",
+					"file": "asset/quake/railgun_arena/scripts/Railgun_Arena.shader",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 26791,
+						"buffer_size": 8244,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								23418,
-								23418
+								380,
+								380
 							]
 						],
 						"settings":
@@ -411,10 +421,10 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 23280.0,
+						"translation.y": 960.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 0,
 					"type": "text"
 				}
 			]

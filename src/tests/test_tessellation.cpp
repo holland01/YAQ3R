@@ -20,64 +20,6 @@ static int vcount = 0;
 
 //----------------------------------------------------------------
 
-Program::Program( const char* vertexShader, const char* fragmentShader )
-	: program( 0 )
-{
-	GLuint shaders[] = 
-	{
-		CompileShaderSource( vertexShader, GL_VERTEX_SHADER ),
-		CompileShaderSource( fragmentShader, GL_FRAGMENT_SHADER )
-	};
-
-	program = LinkProgram( shaders, 2 );
-
-	AddUnif( "modelToView" );
-	AddUnif( "viewToClip" );
-
-	AddAttrib( "position" );
-}
-
-Program::~Program( void )
-{
-	Release();
-	GL_CHECK( glDeleteProgram( program ) );
-}
-
-void Program::AddUnif( const std::string& name )
-{
-	GL_CHECK( uniforms[ name ] = glGetUniformLocation( program, name.c_str() ) ); 
-}
-
-void Program::AddAttrib( const std::string& name )
-{
-	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
-}
-
-void Program::LoadMatrix( const std::string& name, const glm::mat4& t )
-{
-	GL_CHECK( glProgramUniformMatrix4fv( program, uniforms[ name ], 1, GL_FALSE, glm::value_ptr( t ) ) );
-}
-
-void Program::LoadVec4( const std::string& name, const glm::vec4& v )
-{
-	GL_CHECK( glProgramUniform4fv( program, uniforms[ name ], 1, glm::value_ptr( v ) ) );
-}
-
-void Program::LoadInt( const std::string& name, int v )
-{
-	GL_CHECK( glProgramUniform1i( program, uniforms[ name ], v ) );
-}
-
-void Program::Bind( void )
-{
-	GL_CHECK( glUseProgram( program ) );
-}
-
-void Program::Release( void )
-{
-	GL_CHECK( glUseProgram( 0 ) );
-}
-
 enum 
 {
 	LAYOUT_WRITE_DATA = 0x1,

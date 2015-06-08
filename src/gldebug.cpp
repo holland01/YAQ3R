@@ -1,5 +1,5 @@
 #include "gldebug.h"
-#include "log.h"
+#include "io.h"
 
 enum GLDebugValue
 {

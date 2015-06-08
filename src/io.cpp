@@ -1,19 +1,9 @@
-#include "log.h"
+#include "io.h"
 #include "q3bsp.h"
 #include "gldebug.h"
 
-
-
 FILE* gDrawLog = NULL;
 FILE* gBspDataLog = NULL;
-
-/*
-===============================
-
-MyPrintf
-
-===============================
-*/
 
 void MyPrintf( const char* header, const char* fmt, ... )
 {
@@ -26,14 +16,6 @@ void MyPrintf( const char* header, const char* fmt, ... )
     va_end( arg );
 }
 
-/*
-===============================
-
-MyFprintf
-
-===============================
-*/
-
 void MyFprintf( FILE* f, const char* header, const char* fmt, ... )
 {
     va_list arg;
@@ -44,14 +26,6 @@ void MyFprintf( FILE* f, const char* header, const char* fmt, ... )
     fprintf( f, "\n\n}\n\n" );
     va_end( arg );
 }
-
-/*
-===============================
-
-MyDateTime
-
-===============================
-*/
 
 void MyDateTime( const char* format, char* outBuffer, int length )
 {
@@ -65,18 +39,6 @@ void MyDateTime( const char* format, char* outBuffer, int length )
     strftime( outBuffer, length, format, info );
 }
 
-/*
-===============================
-
-ExitOnGLError
-
-    Perform a manual check for an OpenGL error
-    and exit if that is the case. Useful in tracking down
-    specific kinds of GL-related issues.
-
-===============================
-*/
-
 void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 {
     GLenum error = glGetError();
@@ -89,14 +51,6 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
         FlagExit();
     }
 }
-
-/*
-===============================
-
-LogBSPData
-
-===============================
-*/
 
 void LogBSPData( int type, void* data, int length )
 {

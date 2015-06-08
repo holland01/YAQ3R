@@ -1,5 +1,5 @@
 #include "input.h"
-#include "log.h"
+#include "io.h"
 #include "math_util.h"
 
 static const float MOUSE_SENSE = 0.1f;

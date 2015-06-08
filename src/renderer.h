@@ -16,21 +16,34 @@ enum
 	RENDER_BSP_USE_TCMOD = 1 << 3
 };
 
+enum passType_t
+{
+	PASS_EFFECT = 0,
+	PASS_MAP,
+	PASS_MODEL
+};
+
 struct drawPass_t
 {
 	bool isSolid: 1;
 
 	int faceIndex;
 
+	passType_t type;
 	uint32_t renderFlags;
 
 	AABB* bounds;
+
+	const Program* program;
+
 	const bspBrush_t* brush;
 	const bspFace_t* face;
-	const shaderInfo_t* shader;
 	const bspLeaf_t* leaf;
+	const bspLightvol_t* lightvol;
+	const shaderInfo_t* shader;
 
-	const viewParams_t&     view;
+	const viewParams_t& view;
+
     std::vector< byte > facesVisited;
 	std::vector< int > transparent, opaque;
 
@@ -40,6 +53,34 @@ struct drawPass_t
 
 class BSPRenderer
 {
+private:
+
+    Q3BspMap*           map;
+	const bspLeaf_t*    currLeaf;
+
+    GLuint              vao, vbo;
+
+    float               deltaTime;
+	double				frameTime;
+
+	std::map< std::string, std::unique_ptr< Program > > programs;
+
+	void DeformVertexes( mapModel_t* m, drawPass_t& parms );
+	
+	void DrawFaceList( drawPass_t& p, const std::vector< int >& list );
+
+	void DrawDebugInfo( drawPass_t& pass );
+
+	void BSPRenderer::DrawEffectPass( drawPass_t& pass );
+
+	void BindTextureOrDummy( bool predicate, int index, int offset, 
+	 	drawPass_t& pass, const std::string& samplerUnif, const std::vector< texture_t >& source );
+
+	int CalcSubdivision( const drawPass_t& pass, const AABB& bounds );
+
+	void MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+
 public:
 
     InputCamera*	camera;
@@ -61,7 +102,7 @@ public:
     void    Render( uint32_t renderFlags );
 
     void    DrawNode( int nodeIndex, drawPass_t& pass );
-	void	DrawFaceNoEffect( drawPass_t& parms );
+	void	DrawMapPass( drawPass_t& parms );
     void    DrawFace( drawPass_t& parms );
 	void	DrawFaceVerts( drawPass_t& parms, bool isEffectPass );
 
@@ -71,22 +112,7 @@ public:
 
     void    Update( float dt );
 
-private:
 
-    Q3BspMap*           map;
-	const bspLeaf_t*    currLeaf;
-
-    GLuint              bspProgram;
-    GLuint              vao, vbo;
-
-    float               deltaTime;
-	double				frameTime;
-
-	std::map< std::string, GLint > bspProgramUniforms;
-
-	void DeformVertexes( mapModel_t* m, drawPass_t& parms );
-	void DrawFaceList( drawPass_t& p, const std::vector< int >& list );
-	int CalcSubdivision( const drawPass_t& pass, const AABB& bounds );
 };
 
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& list )

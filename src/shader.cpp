@@ -1,5 +1,5 @@
 #include "shader.h"
-#include "log.h"
+#include "io.h"
 #include "glutil.h"
 
 GLuint LinkProgram( GLuint shaders[], int len )
@@ -56,7 +56,7 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
             {
                 glsl_source[file_size] = '\0';
 
-                shaderId = CompileShaderSource( glsl_source, shader_type );
+                shaderId = CompileShaderSource( glsl_source, file_size, shader_type );
             }
             else
             {
@@ -80,18 +80,18 @@ GLuint CompileShader( const char* filename, GLenum shader_type )
     return shaderId;
 }
 
-GLuint CompileShaderSource( const char* src, GLenum type )
+GLuint CompileShaderSource( const char* src, const int length, GLenum type )
 {
 	GLuint shaderId;
 	GL_CHECK(shaderId = glCreateShader(type));
 	if (0 != shaderId)
     {
         // necessary to avoid -Werror raise on incompatible pointer type, when passed to glShaderSource
-        const char* sourceconst = src;
-        //int length[ 1 ];
-        //length[ 0 ] = strlen( src );
+        //const char* sourceconst = src;
+        int blength[ 1 ];
+        blength[ 0 ] = length;
 
-        glShaderSource( shaderId, 1, &sourceconst, NULL );
+        glShaderSource( shaderId, 1, &src, blength );
         glCompileShader( shaderId );
 
         GLint compileSuccess;

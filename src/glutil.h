@@ -3,7 +3,7 @@
 #include "common.h"
 #include "bsp_data.h"
 #include "gldebug.h"
-#include "log.h"
+#include "io.h"
 #include <array>
 
 #define UBO_TRANSFORMS_BLOCK_BINDING 0
@@ -40,6 +40,12 @@ enum
 	GLUTIL_POLYGON_OFFSET_POINT = 1 << 2
 };
 
+void SetPolygonOffsetState( bool enable, uint32_t polyFlags );
+void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform );
+void ImDrawAxes( const float size );
+
+void LoadVertexLayout( bool mapTexCoords );
+
 static INLINE void MapAttribTexCoord( int location, size_t offset )
 {
 	GL_CHECK( glEnableVertexAttribArray( location ) );
@@ -50,21 +56,6 @@ static INLINE void MapVec3( int location, size_t offset )
 {
 	GL_CHECK( glEnableVertexAttribArray( location ) );
 	GL_CHECK( glVertexAttribPointer( location, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
-}
-
-static INLINE void LoadVertexLayout( bool mapTexCoords )
-{
-	MapVec3( 0, offsetof( bspVertex_t, position ) );
-	MapVec3( 4, offsetof( bspVertex_t, normal ) );
-
-    GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
-    GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
-   
-	if ( mapTexCoords )
-	{
-		MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) ); // texture
-		MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); // lightmap
-	}
 }
 
 static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID, const std::vector< std::string >& uniforms )
@@ -133,52 +124,6 @@ static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 }
 
-static INLINE void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
-{
-	if ( enable )
-	{
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_FILL ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_LINE ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_POINT ) );
-	}
-	else
-	{
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_FILL ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_LINE ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_POINT ) );
-	}
-}
-
-static INLINE void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
-{
-	GL_CHECK( glUseProgram( 0 ) );
-	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
-	GL_CHECK( glLoadIdentity() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glLoadIdentity() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
-}
-
-static INLINE void ImDrawAxes( const float size ) 
-{
-	std::array< glm::vec3, 6 > axes = 
-	{
-		glm::vec3( size, 0.0f, 0.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ),
-		glm::vec3( 0.0f, size, 0.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ),
-		glm::vec3( 0.0f, 0.0f, -size ), glm::vec3( 0.0f, 0.0f, 1.0f )
-	};
-	
-	glBegin( GL_LINES );
-	for ( int i = 0; i < 6; i += 2 )
-	{
-		glColor3fv( glm::value_ptr( axes[ i + 1 ] ) );
-		glVertex3f( 0.0f, 0.0f, 0.0f );
-		glVertex3fv( glm::value_ptr( axes[ i ] ) ); 
-	}
-	glEnd();
-}
-
 struct texture_t
 {
 	bool srgb: 1;
@@ -201,3 +146,74 @@ void Tex_SetBufferSize( texture_t& tex, int width, int height, int bpp, byte fil
 void Tex_MakeTexture2D( texture_t& tex );
 
 bool LoadTextureFromFile( const char* texPath, uint32_t loadFlags, texture_t& texture );
+
+// -------------------------------------------------------------------------------------------------
+class Program
+{
+private:
+	GLuint program;
+
+public:
+	std::map< std::string, GLint > uniforms; 
+	std::map< std::string, GLint > attribs;
+
+	Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader );
+
+	Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+
+	~Program( void );
+
+	void AddUnif( const std::string& name );
+	void AddAttrib( const std::string& name );
+
+	void LoadMatrix( const std::string& name, const glm::mat4& t ) const;
+	void LoadVec3( const std::string& name, const glm::vec3& v ) const;
+	void LoadVec4( const std::string& name, const glm::vec4& v ) const;
+
+	void LoadInt( const std::string& name, int v ) const;
+
+	void Bind( void ) const;
+	void Release( void ) const;
+};
+
+// -------------------------------------------------------------------------------------------------
+INLINE void Program::AddUnif( const std::string& name ) 
+{
+	GL_CHECK( uniforms[ name ] = glGetUniformLocation( program, name.c_str() ) ); 
+}
+
+INLINE void Program::AddAttrib( const std::string& name )
+{
+	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
+}
+
+INLINE void Program::LoadMatrix( const std::string& name, const glm::mat4& t ) const
+{
+	GL_CHECK( glProgramUniformMatrix4fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
+}
+
+INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const
+{
+	GL_CHECK( glProgramUniform3fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
+}
+
+INLINE void Program::LoadVec4( const std::string& name, const glm::vec4& v ) const
+{
+	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
+}
+
+INLINE void Program::LoadInt( const std::string& name, int v ) const
+{
+	GL_CHECK( glProgramUniform1i( program, uniforms.at( name ), v ) );
+}
+
+INLINE void Program::Bind( void ) const
+{
+	GL_CHECK( glUseProgram( program ) );
+}
+
+INLINE void Program::Release( void ) const
+{
+	GL_CHECK( glUseProgram( 0 ) );
+}

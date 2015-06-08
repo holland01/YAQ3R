@@ -107,7 +107,7 @@
     <ClCompile Include="..\..\src\gldebug.cpp" />
     <ClCompile Include="..\..\src\glutil.cpp" />
     <ClCompile Include="..\..\src\input.cpp" />
-    <ClCompile Include="..\..\src\log.cpp" />
+    <ClCompile Include="..\..\src\io.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\math_util.cpp" />
     <ClCompile Include="..\..\src\mtrand.cpp" />
@@ -116,8 +116,9 @@
     <ClCompile Include="..\..\src\renderer.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
-    <ClCompile Include="..\..\src\tests\test_tessellation.cpp" />
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
+    <None Include="..\..\src\model.frag" />
+    <None Include="..\..\src\model.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\aabb.h" />
@@ -130,8 +131,7 @@
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\glutil.h" />
     <ClInclude Include="..\..\src\input.h" />
-    <ClInclude Include="..\..\src\lightmodel.h" />
-    <ClInclude Include="..\..\src\log.h" />
+    <ClInclude Include="..\..\src\io.h" />
     <ClInclude Include="..\..\src\math_util.h" />
     <ClInclude Include="..\..\src\mtrand.h" />
     <ClInclude Include="..\..\src\plane.h" />
@@ -140,7 +140,6 @@
     <ClInclude Include="..\..\src\renderer.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\tests\test.h" />
-    <ClInclude Include="..\..\src\tests\test_tessellation.h" />
     <ClInclude Include="..\..\src\tests\trenderer.h" />
   </ItemGroup>
   <ItemGroup>

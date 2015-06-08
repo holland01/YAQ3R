@@ -91,3 +91,23 @@ void KillSysLog( void );
 		}                                       \
 		while( 0 )
 #endif // __GNUC__
+
+template < typename T >
+INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
+{
+	FILE* f = fopen( fpath.c_str(), "rb" );
+	if ( !f )
+	{
+		return false;
+	}
+
+	fseek( f, 0, SEEK_END );
+	size_t count = ftell( f ) / sizeof( T );
+	fseek( f, 0, SEEK_SET );
+
+	outBuffer.resize( count );
+	fread( &outBuffer[ 0 ], sizeof( T ), count, f );
+	fclose( f );
+
+	return true;
+}
