@@ -92,7 +92,14 @@ void Q3BspMap::DestroyMap( void )
         delete[] data.buffer;	
 		memset( &data, 0, sizeof( mapData_t ) );
 
-        mapAllocated = false;
+		GL_CHECK( glDeleteSamplers( 1, &glLightmapSampler ) );
+
+		glTextures.clear();
+		glFaces.clear();
+		effectShaders.clear();
+		glLightmaps.clear();
+
+		mapAllocated = false;
     }
 }
 

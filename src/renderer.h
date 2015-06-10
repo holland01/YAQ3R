@@ -51,9 +51,21 @@ struct drawPass_t
 	~drawPass_t( void );
 };
 
+enum viewMode_t
+{
+	VIEW_MAIN = 0,
+	VIEW_LIGHT_SAMPLE,
+};
+
 class BSPRenderer
 {
 private:
+
+	struct {
+		glm::mat4 view, projection;
+		GLuint fbo;
+		texture_t attachment;
+	} lightSampler;
 
     Q3BspMap*           map;
 	const bspLeaf_t*    currLeaf;
@@ -74,14 +86,14 @@ private:
 	void BSPRenderer::DrawEffectPass( drawPass_t& pass );
 
 	void BindTextureOrDummy( bool predicate, int index, int offset, 
-	 	drawPass_t& pass, const std::string& samplerUnif, const std::vector< texture_t >& source );
+		const Program& program, const std::string& samplerUnif, const std::vector< texture_t >& source );
 
 	int CalcSubdivision( const drawPass_t& pass, const AABB& bounds );
 
 	int CalcLightvolIndex( const drawPass_t& pass ) const; 
 
 	void MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
 public:
 
@@ -94,6 +106,8 @@ public:
 	GLuint			transformBlockIndex;
 	GLuint			transformBlockObj;
 	size_t			transformBlockSize;
+
+	viewMode_t		curView;
 
     BSPRenderer( void );
     ~BSPRenderer( void );

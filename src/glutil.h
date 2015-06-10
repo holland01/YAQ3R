@@ -153,7 +153,7 @@ class Program
 private:
 	GLuint program;
 
-	void GenData( const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+	void GenData( const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
 public:
 	std::map< std::string, GLint > uniforms; 
@@ -162,27 +162,32 @@ public:
 	Program( const std::string& vertexShader, const std::string& fragmentShader );
 	
 	Program( const std::string& vertexShader, const std::string& fragmentShader, 
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo = true );
 	
 	Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo = true );
+
+	Program( const Program& copy );
 
 	~Program( void );
 
 	void AddUnif( const std::string& name );
 	void AddAttrib( const std::string& name );
 
-	void LoadMatrix( const std::string& name, const glm::mat4& t ) const;
+	void LoadMat4( const std::string& name, const glm::mat4& t ) const;
+	void LoadMat2( const std::string& name, const glm::mat2& t ) const;
+
 	void LoadVec3( const std::string& name, const glm::vec3& v ) const;
 	void LoadVec4( const std::string& name, const glm::vec4& v ) const;
+	void LoadVec4( const std::string& name, const float* v ) const;
 
 	void LoadInt( const std::string& name, int v ) const;
+	void LoadFloat( const std::string& name, float v ) const;
 
 	void Bind( void ) const;
 	void Release( void ) const;
 };
 
-// -------------------------------------------------------------------------------------------------
 INLINE void Program::AddUnif( const std::string& name ) 
 {
 	GL_CHECK( uniforms[ name ] = glGetUniformLocation( program, name.c_str() ) ); 
@@ -193,9 +198,14 @@ INLINE void Program::AddAttrib( const std::string& name )
 	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
 }
 
-INLINE void Program::LoadMatrix( const std::string& name, const glm::mat4& t ) const
+INLINE void Program::LoadMat4( const std::string& name, const glm::mat4& t ) const
 {
 	GL_CHECK( glProgramUniformMatrix4fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
+}
+
+INLINE void Program::LoadMat2( const std::string& name, const glm::mat2& t ) const
+{
+	GL_CHECK( glProgramUniformMatrix2fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
 }
 
 INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const
@@ -208,9 +218,19 @@ INLINE void Program::LoadVec4( const std::string& name, const glm::vec4& v ) con
 	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
 }
 
+INLINE void Program::LoadVec4( const std::string& name, const float* v ) const
+{
+	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), 1, v ) );
+}
+
 INLINE void Program::LoadInt( const std::string& name, int v ) const
 {
 	GL_CHECK( glProgramUniform1i( program, uniforms.at( name ), v ) );
+}
+
+INLINE void Program::LoadFloat( const std::string& name, float f ) const 
+{
+	GL_CHECK( glProgramUniform1f( program, uniforms.at( name ), f ) );
 }
 
 INLINE void Program::Bind( void ) const

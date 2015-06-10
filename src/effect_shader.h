@@ -3,6 +3,7 @@
 #include "common.h"
 #include "def.h"
 #include "glutil.h"
+#include <memory>
 
 struct mapData_t;
 
@@ -122,37 +123,36 @@ struct funcParms_t
 
 struct shaderStage_t
 {
-	uint8_t					isStub; // if true, stage functionality is unsupported; fallback to default rendering process
-	uint8_t					isDepthPass;
-	uint8_t					hasTexMod;
+	uint8_t						isStub; // if true, stage functionality is unsupported; fallback to default rendering process
+	uint8_t						isDepthPass;
+	uint8_t						hasTexMod;
 
-	GLuint					programID;
-	GLuint					textureSlot;
-	texture_t				texture;
+	GLuint						textureSlot;
+	texture_t					texture;
 
-	GLenum					rgbSrc;
-	GLenum					rgbDest;
+	GLenum						rgbSrc;
+	GLenum						rgbDest;
 
-	GLenum					alphaSrc;
-	GLenum					alphaDest;
+	GLenum						alphaSrc;
+	GLenum						alphaDest;
 
-	GLenum					depthFunc; // Default is LEQUAL
+	GLenum						depthFunc; // Default is LEQUAL
 
-	rgbGen_t				rgbGen;
-	alphaFunc_t				alphaFunc;
-	mapCmd_t				mapCmd;
-	mapType_t				mapType;
+	rgbGen_t					rgbGen;
+	alphaFunc_t					alphaFunc;
+	mapCmd_t					mapCmd;
+	mapType_t					mapType;
 
-	funcParms_t				tcModTurb, tcModScroll;
+	funcParms_t					tcModTurb, tcModScroll;
 
-	float					alphaGen; // if 0, use 1.0
+	float						alphaGen; // if 0, use 1.0
 
-	char					texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-	
-	glHandleMap_t			uniforms;
+	char						texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 
-	std::stack< glm::mat2 > texTransformStack;
-	glm::mat2				texTransform;
+	std::stack< glm::mat2 >		texTransformStack;
+	glm::mat2					texTransform;
+
+	std::shared_ptr< Program >	program;
 
 	shaderStage_t( void );
 };
@@ -175,7 +175,7 @@ struct shaderInfo_t
 	float				surfaceLight; // 0 if no light
 
 	char				name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-	shaderStage_t		stageBuffer[ SHADER_MAX_NUM_STAGES ];
+	std::array< shaderStage_t, SHADER_MAX_NUM_STAGES > stageBuffer;
 
 	shaderInfo_t( void );
 };

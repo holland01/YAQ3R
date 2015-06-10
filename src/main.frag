@@ -13,7 +13,6 @@ out vec4 fragment;
 
 void main()
 {
-		
     vec4 image = texture( fragTexSampler, frag_Tex );
     vec4 lightmap = texture( fragLightmapSampler, frag_Lightmap );
 

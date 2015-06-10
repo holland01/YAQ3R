@@ -320,18 +320,25 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 }
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, 
-	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
-	: program( vertexShader, fragmentShader )
+	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
+	: Program( vertexShader, fragmentShader )
 {
-	GenData( uniforms, attribs );
+	GenData( uniforms, attribs, bindTransformsUbo );
 }
 
 Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
 		: Program( std::string( &vertexShader[ 0 ], vertexShader.size() ), 
 				std::string( &fragmentShader[ 0 ], fragmentShader.size() ) )
 {
-	GenData( uniforms, attribs );
+	GenData( uniforms, attribs, bindTransformsUbo );
+}
+
+Program::Program( const Program& copy )
+	: program( copy.program ),
+	  uniforms( copy.uniforms ),
+	  attribs( copy.attribs )
+{
 }
 
 Program::~Program( void )
@@ -341,7 +348,7 @@ Program::~Program( void )
 }
 
 void Program::GenData( const std::vector< std::string >& uniforms, 
-	const std::vector< std::string >& attribs )
+	const std::vector< std::string >& attribs, bool bindTransformsUbo )
 {
 	uint32_t max = glm::max( attribs.size(), uniforms.size() );
 	for ( uint32_t i = 0; i < max; ++i )
@@ -357,5 +364,8 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 		}
 	}
 
-	MapProgramToUBO( program, "Transforms" );
+	if ( bindTransformsUbo )
+	{
+		MapProgramToUBO( program, "Transforms" );
+	}
 }

@@ -37,7 +37,8 @@ BSPRenderer::BSPRenderer( void )
       vao( 0 ),
       vbo( 0 ),
       deltaTime( 0.0 ),
-      frameTime( 0.0f )
+      frameTime( 0.0f ),
+	  curView( VIEW_MAIN )
 {
 	viewParams_t view;
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
@@ -56,7 +57,7 @@ BSPRenderer::~BSPRenderer( void )
 }
 
 void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
 {
 	std::vector< char > vertex, fragment;
 	if ( !File_GetBuf( vertex, vertPath ) )
@@ -71,7 +72,7 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath
 		return;
 	}
 
-	programs[ name ] = std::unique_ptr< Program >( new Program( vertex, fragment, uniforms, attribs ) );
+	programs[ name ] = std::unique_ptr< Program >( new Program( vertex, fragment, uniforms, attribs, bindTransformsUbo ) );
 }
 
 void BSPRenderer::Prep( void )
@@ -118,7 +119,11 @@ void BSPRenderer::Prep( void )
 			"lightmap"
 		};
 
-		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs );
+		std::vector< std::string > sampleunifs( uniforms );
+		sampleunifs.push_back( "modelViewProjection" );
+
+		MakeProg( "lightsample", "src/lightsample.vert", "src/main.frag", sampleunifs, attribs, false );
+		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs, true );
 
 		uniforms.insert( uniforms.end(), {
 			"fragAmbient",
@@ -128,7 +133,7 @@ void BSPRenderer::Prep( void )
 
 		attribs.push_back( "normal" );
 
-		MakeProg( "model", "src/model.vert", "src/model.frag", uniforms, attribs );
+		MakeProg( "model", "src/model.vert", "src/model.frag", uniforms, attribs, true );
 	}
 }
 
@@ -155,8 +160,27 @@ void BSPRenderer::Render( uint32_t renderFlags )
 { 
 	double startTime = glfwGetTime();
 
+	const glm::mat4* view = nullptr;
+	const glm::mat4* proj = nullptr;
+
+	switch ( curView )
+	{
+		case VIEW_MAIN:
+			view = &camera->ViewData().transform;
+			proj = &camera->ViewData().clipTransform;
+			break;
+		case VIEW_LIGHT_SAMPLE:
+			view = &lightSampler.view;
+			proj = &lightSampler.projection;
+			break;
+	}
+
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
-	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().transform ) ) );
+	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 
+				0, sizeof( glm::mat4 ), glm::value_ptr( *proj ) ) );
+	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 
+		sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( *view ) ) );
+
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
 
     drawPass_t pass( map, camera->ViewData() );
@@ -281,10 +305,10 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
 }
 
 void BSPRenderer::BindTextureOrDummy( bool predicate, int index, int offset, 
-	drawPass_t& pass, const std::string& samplerUnif, const std::vector< texture_t >& source )
+	const Program& program, const std::string& samplerUnif, const std::vector< texture_t >& source )
 {
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	pass.program->LoadInt( samplerUnif, offset );
+	program.LoadInt( samplerUnif, offset );
 
 	if ( predicate )
 	{
@@ -302,10 +326,10 @@ void BSPRenderer::BindTextureOrDummy( bool predicate, int index, int offset,
 void BSPRenderer::DrawMapPass( drawPass_t& pass )
 {
 	BindTextureOrDummy( map->glTextures[ pass.face->texture ].handle != 0, 
-		pass.face->texture, 0, pass, "fragTexSampler", map->glTextures );
+		pass.face->texture, 0, *( pass.program ), "fragTexSampler", map->glTextures );
 
 	BindTextureOrDummy( pass.face->lightmapIndex >= 0, 
-		pass.face->lightmapIndex, 1, pass, "fragLightmapSampler", map->glLightmaps );
+		pass.face->lightmapIndex, 1, *( pass.program ), "fragLightmapSampler", map->glLightmaps );
 	
 	pass.program->Bind();
 	
@@ -347,6 +371,9 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 			GL_CHECK( glDisableVertexAttribArray( 1 ) );
 		}
 
+		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
+		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
+
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 			
 		if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
@@ -357,7 +384,7 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 			GL_CHECK( glBindTexture( GL_TEXTURE_2D, lightmap.handle ) );
 			GL_CHECK( glBindSampler( 0, lightmap.sampler ) );
 		}
-		else 
+		else
 		{
 			MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
 
@@ -375,39 +402,32 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 
 		if ( stage.hasTexMod )
 		{
-			GL_CHECK( glProgramUniformMatrix2fv( 
-					stage.programID, 
-					stage.uniforms.at( "texTransform" ), 1, GL_FALSE, 
-					glm::value_ptr( stage.texTransform ) ) ); 
+			stage.program->LoadMat2( "texTransform", stage.texTransform );
 		}
 				
 		if ( stage.tcModTurb.enabled )
 		{
-			GL_CHECK( glProgramUniform1f( 
-				stage.programID, 
-				stage.uniforms.at( "tcModTurb" ), 
-				DEFORM_CALC_TABLE( 
+			float turb = DEFORM_CALC_TABLE( 
 					deformCache.sinTable, 
 					0,
 					stage.tcModTurb.phase,
 					glfwGetTime(),
 					stage.tcModTurb.frequency,
-					stage.tcModTurb.amplitude )
-			) );
+					stage.tcModTurb.amplitude );
+
+			stage.program->LoadFloat( "tcModTurb", turb );
 		}
 
 		if ( stage.tcModScroll.enabled )
 		{
-			GL_CHECK( glProgramUniform4fv( 
-				stage.programID, stage.uniforms.at( "tcModScroll" ), 1, stage.tcModScroll.speed ) );
+			stage.program->LoadVec4( "tcModScroll", stage.tcModScroll.speed );
 		}
 
-		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
-		GL_CHECK( glDepthFunc( stage.depthFunc ) );
-		GL_CHECK( glProgramUniform1i( stage.programID, stage.uniforms.at( "sampler0" ), 0 ) );
-		GL_CHECK( glUseProgram( stage.programID ) );
-
+		stage.program->LoadInt( "sampler0", 0 );
+		
+		stage.program->Bind();
 		DrawFaceVerts( pass, true );
+		stage.program->Release();
 
 		if ( Shade_IsIdentColor( stage ) )
 		{
@@ -423,7 +443,6 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	GL_CHECK( glBindSampler( 0, 0 ) );
-	GL_CHECK( glUseProgram( 0 ) );	
 }
 
 void BSPRenderer::DrawDebugInfo( drawPass_t& pass )
@@ -566,7 +585,8 @@ int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
 	dindex.x = static_cast< int >( interp.x * map->lightvolGrid.x );
 	dindex.y = static_cast< int >( interp.y * map->lightvolGrid.y );
 	dindex.z = static_cast< int >( interp.z * map->lightvolGrid.z );
-		
+	
+	// Performs an implicit cast from a vec3 to ivec3
 	glm::ivec3 dims( map->lightvolGrid );
 
 	return ( dindex.z * dims.x * dims.y + dims.x * dindex.y + dindex.x ) % map->data.numLightvols;

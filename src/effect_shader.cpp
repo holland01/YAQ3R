@@ -6,13 +6,13 @@
 #include <sstream>
 
 shaderStage_t::shaderStage_t( void )
-	: texTransform( 1.0f )
+	: texTransform( 1.0f ),
+	  program( nullptr )
 {
 	isStub = FALSE;
 	isDepthPass = FALSE;
 	hasTexMod = FALSE;
 
-	programID = 0;
 	textureSlot = 0;
 
 	rgbSrc = GL_ONE;
@@ -482,7 +482,7 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 		// in the effect shader is the order it needs to be transformed in ( and because we're using OpenGL ).
 		for ( int i = 0; i < entry.stageCount; ++i )
 		{
-			entry.stageBuffer[ i ].isStub = IsStubbedStage( entry.stageBuffer + i );
+			entry.stageBuffer[ i ].isStub = IsStubbedStage( &entry.stageBuffer[ i ] );
 			if ( entry.stageBuffer[ i ].isStub )
 				continue;
 
@@ -562,7 +562,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		for ( int j = 0; j < shader.stageCount; ++j )
 		{	
 			// Uniform variable names
-			std::vector< std::string > uniformStrings = { "modelToView", "viewToClip", "sampler0" };
+			std::vector< std::string > uniforms = { "sampler0" };
+			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
 
 			// Load vertex header;
 			std::vector< std::string > vertexSrc = 
@@ -612,7 +613,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			{
 				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texTransform;" );
 				fragmentSrc.push_back( "\tvec2 st = texTransform * frag_Tex;" );
-				uniformStrings.push_back( "texTransform" );
+				uniforms.push_back( "texTransform" );
 			}
 			else
 			{
@@ -624,14 +625,14 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			{
 				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
 				fragmentSrc.push_back( "\tst += tcModTurb;" );
-				uniformStrings.push_back( "tcModTurb" );
+				uniforms.push_back( "tcModTurb" );
 			}
 
 			if ( shader.stageBuffer[ j ].tcModScroll.enabled )
 			{
 				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
 				fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
-				uniformStrings.push_back( "tcModScroll" );
+				uniforms.push_back( "tcModScroll" );
 			}
 
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
@@ -662,6 +663,11 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			const std::string& vertexString = LJoinLines( vertexSrc );
 			const std::string& fragmentString = LJoinLines( fragmentSrc );
 
+			//Program* wtf =  new Program(  );
+
+			shader.stageBuffer[ j ].program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
+
+			/*
 			GLuint shaders[] = 
 			{
 				CompileShaderSource( vertexString.c_str(), vertexString.length(), GL_VERTEX_SHADER ),
@@ -674,7 +680,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			// Load UBO for view/clip transformations
 			MapProgramToUBO( shader.stageBuffer[ j ].programID, "Transforms" );
-
+			*/
 			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 
 				vertexString.c_str(), 
