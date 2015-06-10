@@ -154,6 +154,22 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 	// Base texture setup
 	mapDimsLength = ( int ) glm::length( glm::vec3( root->boxMax.x, root->boxMax.y, root->boxMax.z ) );
 	lodThreshold = mapDimsLength / 2;
+
+	// Setup light sampler transforms
+
+	GLint viewport[4];
+	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
+	
+	float w = ( float ) viewport[ 2 ];
+	float h = ( float ) viewport[ 3 ];
+
+	lightSampler.projection = /*camera->ViewData().clipTransform;*/ glm::ortho< float >( -w, w, -h, h, -10000.0f, 1000000.0f );
+	
+	const bspModel_t* m = &map->data.models[ 0 ]; 
+
+	const glm::vec3& pos = ( glm::vec3( m->boxMax ) + glm::vec3( m->boxMin ) ) * 0.5f;
+	
+	lightSampler.view = glm::lookAt( glm::vec3( pos.x, m->boxMin.y, pos.z ), glm::vec3( pos.x, m->boxMax.y, pos.z ), glm::vec3( 0.0f, 1.0f, 1.0f ) );
 }
 
 void BSPRenderer::Render( uint32_t renderFlags )
@@ -171,7 +187,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			break;
 		case VIEW_LIGHT_SAMPLE:
 			view = &lightSampler.view;
-			proj = &lightSampler.projection;
+			proj = &/*lightSampler.projection*/camera->ViewData().clipTransform;
 			break;
 	}
 

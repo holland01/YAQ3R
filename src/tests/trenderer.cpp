@@ -54,6 +54,16 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 	{
 		switch ( key )
 		{
+		case GLFW_KEY_V:
+			if ( renderer->curView == VIEW_MAIN )
+			{
+				renderer->curView = VIEW_LIGHT_SAMPLE;
+			} 
+			else
+			{
+				renderer->curView = VIEW_MAIN;
+			}
+			break;
 		case GLFW_KEY_0:
 			useSRGBFramebuffer = !useSRGBFramebuffer;
 			
