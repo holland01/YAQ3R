@@ -153,12 +153,17 @@ class Program
 private:
 	GLuint program;
 
+	void GenData( const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+
 public:
 	std::map< std::string, GLint > uniforms; 
 	std::map< std::string, GLint > attribs;
 
-	Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader );
-
+	Program( const std::string& vertexShader, const std::string& fragmentShader );
+	
+	Program( const std::string& vertexShader, const std::string& fragmentShader, 
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+	
 	Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
 

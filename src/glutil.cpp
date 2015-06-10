@@ -307,21 +307,41 @@ void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
 }
 
 // -------------------------------------------------------------------------------------------------
-Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader )
+Program::Program( const std::string& vertexShader, const std::string& fragmentShader )
 	: program( 0 )
 {
 	GLuint shaders[] = 
 	{
-		CompileShaderSource( &vertexShader[ 0 ], vertexShader.size(), GL_VERTEX_SHADER ),
-		CompileShaderSource( &fragmentShader[ 0 ], fragmentShader.size(), GL_FRAGMENT_SHADER )
+		CompileShaderSource( vertexShader.c_str(), vertexShader.size(), GL_VERTEX_SHADER ),
+		CompileShaderSource( fragmentShader.c_str(), fragmentShader.size(), GL_FRAGMENT_SHADER )
 	};
 
 	program = LinkProgram( shaders, 2 );
 }
 
+Program::Program( const std::string& vertexShader, const std::string& fragmentShader, 
+	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
+	: program( vertexShader, fragmentShader )
+{
+	GenData( uniforms, attribs );
+}
+
 Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
-		: Program( vertexShader, fragmentShader )
+		: Program( std::string( &vertexShader[ 0 ], vertexShader.size() ), 
+				std::string( &fragmentShader[ 0 ], fragmentShader.size() ) )
+{
+	GenData( uniforms, attribs );
+}
+
+Program::~Program( void )
+{
+	Release();
+	GL_CHECK( glDeleteProgram( program ) );
+}
+
+void Program::GenData( const std::vector< std::string >& uniforms, 
+	const std::vector< std::string >& attribs )
 {
 	uint32_t max = glm::max( attribs.size(), uniforms.size() );
 	for ( uint32_t i = 0; i < max; ++i )
@@ -338,10 +358,4 @@ Program::Program( const std::vector< char >& vertexShader, const std::vector< ch
 	}
 
 	MapProgramToUBO( program, "Transforms" );
-}
-
-Program::~Program( void )
-{
-	Release();
-	GL_CHECK( glDeleteProgram( program ) );
 }

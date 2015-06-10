@@ -86,12 +86,16 @@ GLuint CompileShaderSource( const char* src, const int length, GLenum type )
 	GL_CHECK(shaderId = glCreateShader(type));
 	if (0 != shaderId)
     {
-        // necessary to avoid -Werror raise on incompatible pointer type, when passed to glShaderSource
-        //const char* sourceconst = src;
-        int blength[ 1 ];
-        blength[ 0 ] = length;
+        if ( length > 0 )
+		{
+			int blength[ 1 ] = { length };
+			glShaderSource( shaderId, 1, &src, blength );
+		}
+		else
+		{
+			glShaderSource( shaderId, 1, &src, NULL );
+		}
 
-        glShaderSource( shaderId, 1, &src, blength );
         glCompileShader( shaderId );
 
         GLint compileSuccess;

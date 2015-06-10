@@ -175,33 +175,8 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
 
-	int lvIndex;
 	{
-		const glm::vec3& max = map->data.models[ 0 ].boxMax;
-		const glm::vec3& min = map->data.models[ 0 ].boxMin;
-		 
-		glm::vec3 input;
-		input.x = glm::abs( glm::floor( pass.view.origin.x / 64.0f ) - glm::ceil( min.x / 64.0f ) ); 
-		input.y = glm::abs( glm::floor( pass.view.origin.y / 64.0f ) - glm::ceil( min.y / 64.0f ) ); 
-		input.z = glm::abs( glm::floor( pass.view.origin.z / 128.0f ) - glm::ceil( min.z / 128.0f ) ); 
-		
-		// Subtract by 1.0f so that interp effectively maps a value in range [-map->lightvolGrid, map->lightvolGrid] to [0, 2 * map->lightvolGrid]
-		glm::vec3 interp = input / map->lightvolGrid;
-
-		glm::ivec3 dindex;
-		dindex.x = static_cast< int >( interp.x * map->lightvolGrid.x );
-		dindex.y = static_cast< int >( interp.y * map->lightvolGrid.y );
-		dindex.z = static_cast< int >( interp.z * map->lightvolGrid.z );
-		
-		glm::ivec3 dims( map->lightvolGrid );
-
-		lvIndex = ( dindex.z * dims.x * dims.y + dims.x * dindex.y + dindex.x ) % map->data.numLightvols;
-		printf( "index: %i / %i, interp: %s, dindex: %s \r\n", lvIndex, map->data.numLightvols, glm::to_string( interp ).c_str(), glm::to_string( dindex ).c_str() ); 
-	}
-
-	{
-
-		pass.lightvol = &map->data.lightvols[ lvIndex ];
+		pass.lightvol = &map->data.lightvols[ CalcLightvolIndex( pass ) ];
 		pass.program = programs[ "model" ].get();
 		pass.type = PASS_MODEL;
 
@@ -516,8 +491,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
     pass.facesVisited[ pass.faceIndex ] = 1;
 }
 
-static const float INV_255 = 1.0f / 255.0f;
-
 void BSPRenderer::DrawFaceVerts( drawPass_t& pass, bool isEffectPass )
 {
 	mapModel_t* m = &map->glFaces[ pass.faceIndex ];
@@ -530,10 +503,10 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& pass, bool isEffectPass )
 		glm::vec3 dirToLight( glm::cos( theta ) * glm::cos( phi ), glm::sin( phi ), glm::cos( phi ) * glm::sin( theta ) );
 		
 		glm::vec3 ambient( pass.lightvol->ambient );
-		ambient *= INV_255;
+		ambient *= Inv255< float >();
 
 		glm::vec3 directional( pass.lightvol->directional );
-		directional *= INV_255;
+		directional *= Inv255< float >();
 
 		pass.program->LoadVec3( "fragDirToLight", dirToLight );
 		pass.program->LoadVec3( "fragAmbient", ambient );
@@ -575,6 +548,29 @@ void BSPRenderer::DeformVertexes( mapModel_t* m, drawPass_t& pass )
 	}
 
 	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, m->vbo, verts );
+}
+
+int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
+{
+	const glm::vec3& max = map->data.models[ 0 ].boxMax;
+	const glm::vec3& min = map->data.models[ 0 ].boxMin;
+		 
+	glm::vec3 input;
+	input.x = glm::abs( glm::floor( pass.view.origin.x * Inv64< float >() ) - glm::ceil( min.x * Inv64< float >() ) ); 
+	input.y = glm::abs( glm::floor( pass.view.origin.y * Inv64< float >() ) - glm::ceil( min.y * Inv64< float >() ) ); 
+	input.z = glm::abs( glm::floor( pass.view.origin.z * Inv128< float >() ) - glm::ceil( min.z * Inv128< float >() ) ); 
+		
+	glm::vec3 interp = input / map->lightvolGrid;
+
+	glm::ivec3 dindex;
+	dindex.x = static_cast< int >( interp.x * map->lightvolGrid.x );
+	dindex.y = static_cast< int >( interp.y * map->lightvolGrid.y );
+	dindex.z = static_cast< int >( interp.z * map->lightvolGrid.z );
+		
+	glm::ivec3 dims( map->lightvolGrid );
+
+	return ( dindex.z * dims.x * dims.y + dims.x * dindex.y + dindex.x ) % map->data.numLightvols;
+	//printf( "index: %i / %i, interp: %s, dindex: %s \r\n", lvIndex, map->data.numLightvols, glm::to_string( interp ).c_str(), glm::to_string( dindex ).c_str() ); 
 }
 
 int BSPRenderer::CalcSubdivision( const drawPass_t& pass, const AABB& bounds )

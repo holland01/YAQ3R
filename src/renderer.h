@@ -78,6 +78,8 @@ private:
 
 	int CalcSubdivision( const drawPass_t& pass, const AABB& bounds );
 
+	int CalcLightvolIndex( const drawPass_t& pass ) const; 
+
 	void MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
 

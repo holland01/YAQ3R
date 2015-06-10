@@ -63,7 +63,7 @@
 			"file": "log/entities.log",
 			"settings":
 			{
-				"buffer_size": 0,
+				"buffer_size": 33140,
 				"line_ending": "Unix"
 			}
 		},
@@ -107,9 +107,6 @@
 		"/C/Dev/bspview/bspviewer",
 		"/C/Dev/bspview/bspviewer/asset",
 		"/C/Dev/bspview/bspviewer/asset/quake",
-		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2",
-		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/maps",
-		"/C/Dev/bspview/bspviewer/asset/quake/aty3dm1v2/aty3dm1v2/scripts",
 		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena",
 		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts",
 		"/C/Dev/bspview/bspviewer/log",
@@ -376,7 +373,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 0,
+						"buffer_size": 33140,
 						"regions":
 						{
 						},
