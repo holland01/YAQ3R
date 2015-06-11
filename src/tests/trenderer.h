@@ -17,6 +17,8 @@ private:
 	uint32_t mapLoadFlags;
 	uint32_t mapRenderFlags;
 
+	glm::vec3 lightSamplerPos;
+
     void Run( void );
 
 public:

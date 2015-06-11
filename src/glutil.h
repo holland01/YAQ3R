@@ -37,14 +37,24 @@ enum
 {
 	GLUTIL_POLYGON_OFFSET_FILL = 1 << 0,
 	GLUTIL_POLYGON_OFFSET_LINE = 1 << 1,
-	GLUTIL_POLYGON_OFFSET_POINT = 1 << 2
+	GLUTIL_POLYGON_OFFSET_POINT = 1 << 2,
+	GLUTIL_POLYGON_OFFSET_ALL = 0x7,
+
+	GLUTIL_LAYOUT_POSITION = 1 << 0,
+	GLUTIL_LAYOUT_COLOR = 1 << 1,
+	GLUTIL_LAYOUT_TEX0 = 1 << 2,
+	GLUTIL_LAYOUT_LIGHTMAP = 1 << 3,
+	GLUTIL_LAYOUT_NORMAL = 1 << 4,
+	GLUTIL_LAYOUT_ALL = 0x1F
 };
+
+class Program;
 
 void SetPolygonOffsetState( bool enable, uint32_t polyFlags );
 void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform );
 void ImDrawAxes( const float size );
 
-void LoadVertexLayout( bool mapTexCoords );
+void LoadVertexLayout( uint32_t attribFlags, const Program& program );
 
 static INLINE void MapAttribTexCoord( int location, size_t offset )
 {
@@ -111,10 +121,10 @@ static INLINE void DeleteBufferObject( GLenum target, GLuint obj )
 	GL_CHECK( glDeleteBuffers( 1, &obj ) );
 }
 
-static INLINE void LoadBufferLayout( GLuint vbo, bool mapTexCoords )
+static INLINE void LoadBufferLayout( GLuint vbo, uint32_t attribFlags, const Program& program )
 {
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-	LoadVertexLayout( mapTexCoords );
+	LoadVertexLayout( attribFlags, program );
 }
 
 static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )

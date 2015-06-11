@@ -30,8 +30,6 @@ InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
       lastMouse( 0.0f ),
       moveStep( DEF_MOVE_STEP_SPEED )
 {
-	SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 200000.0f );
-
     for ( int i = 0; i < KEY_COUNT; ++i )
     {
         keysPressed[ i ] = KEY_NOT_PRESSED;

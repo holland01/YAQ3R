@@ -10,7 +10,7 @@ static const char* neDuel = "asset/quake/ne_duel/maps/ne_duel.bsp";
 TRenderer::TRenderer( void )
     : Test( 1366, 768 ),
 	  currentTime( 0.0f ),
-      renderer( NULL ),
+      renderer( nullptr ),
 	  mapFilepath( railgunArena ),
 	  mapLoadFlags( Q3LOAD_ALL ),
 	  mapRenderFlags( RENDER_BSP_EFFECT | RENDER_BSP_USE_TCMOD )
@@ -19,12 +19,13 @@ TRenderer::TRenderer( void )
 
 TRenderer::~TRenderer( void )
 {
-    camPtr = NULL;
+    camPtr = nullptr;
     delete renderer;
 }
 
 void TRenderer::Run( void )
 {
+	//camPtr = renderer->CameraFromView();
     renderer->Update( deltaTime );
     renderer->Render( mapRenderFlags );
 
@@ -44,16 +45,44 @@ void TRenderer::Load( void )
     renderer->Prep();
 	renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;
+
+	lightSamplerPos = 
+		( renderer->map->data.models[ 0 ].boxMin + renderer->map->data.models[ 0 ].boxMax ) * 0.5f;
 }
 
 void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 {
 	Test::OnKeyPress( key, scancode, action, mods );
 
+	static const float ofsStep = 20.0f;
+
 	if ( action == GLFW_PRESS )
 	{
 		switch ( key )
 		{
+			/*
+		case GLFW_KEY_RIGHT:
+			lightSamplerPos.x += ofsStep;
+			renderer->lightSampler.SetOrigin( lightSamplerPos );
+			break;
+
+		case GLFW_KEY_UP:
+			lightSamplerPos.z -= ofsStep;
+			renderer->lightSampler.SetOrigin( lightSamplerPos );
+			break;
+
+		case GLFW_KEY_LEFT:
+			lightSamplerPos.x -= ofsStep;
+			renderer->lightSampler.SetOrigin( lightSamplerPos );
+			break;
+
+		case GLFW_KEY_DOWN:
+			lightSamplerPos.z += ofsStep;
+			renderer->lightSampler.SetOrigin( lightSamplerPos );		
+			break;
+		*/
+
+
 		case GLFW_KEY_V:
 			if ( renderer->curView == VIEW_MAIN )
 			{

@@ -20,7 +20,14 @@ enum passType_t
 {
 	PASS_EFFECT = 0,
 	PASS_MAP,
-	PASS_MODEL
+	PASS_MODEL,
+	PASS_LIGHT_SAMPLE
+};
+
+enum viewMode_t
+{
+	VIEW_MAIN = 0,
+	VIEW_LIGHT_SAMPLE,
 };
 
 struct drawPass_t
@@ -51,23 +58,22 @@ struct drawPass_t
 	~drawPass_t( void );
 };
 
-enum viewMode_t
-{
-	VIEW_MAIN = 0,
-	VIEW_LIGHT_SAMPLE,
+struct lightSampler_t {
+	InputCamera camera;
+	GLuint fbo;
+	texture_t attachment;
+
+	lightSampler_t( void );
+	~lightSampler_t( void );
+
+	void Elevate( const glm::vec3& min, const glm::vec3& max );
+	void SetOrigin( const glm::vec3& eye );
 };
 
 class BSPRenderer
 {
 private:
 
-	struct {
-		glm::mat4 view, projection;
-		GLuint fbo;
-		texture_t attachment;
-	} lightSampler;
-
-    Q3BspMap*           map;
 	const bspLeaf_t*    currLeaf;
 
     GLuint              vao, vbo;
@@ -95,8 +101,12 @@ private:
 	void MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
-public:
+	void LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
 
+	uint32_t GetPassLayoutFlags( passType_t type );
+
+public:
+	Q3BspMap*       map;
     InputCamera*	camera;
     Frustum*		frustum;
 
@@ -109,6 +119,8 @@ public:
 
 	viewMode_t		curView;
 
+	lightSampler_t	lightSampler;	
+
     BSPRenderer( void );
     ~BSPRenderer( void );
 
@@ -116,11 +128,12 @@ public:
     void    Load( const std::string& filepath, uint32_t loadFlags );
 
     void    Render( uint32_t renderFlags );
+	void	RenderMain( uint32_t renderFlags );
 
     void    DrawNode( int nodeIndex, drawPass_t& pass );
 	void	DrawMapPass( drawPass_t& parms );
     void    DrawFace( drawPass_t& parms );
-	void	DrawFaceVerts( drawPass_t& parms, bool isEffectPass );
+	void	DrawFaceVerts( drawPass_t& parms );
 
 	bool	CalcLightVol( const glm::vec3& position );
 
@@ -128,16 +141,72 @@ public:
 
     void    Update( float dt );
 
-
+	InputCamera* CameraFromView( void );
 };
 
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& list )
 {
+	passType_t defaultPass = p.type;
+
 	for ( int face: list )
 	{
 		p.face = &map->data.faces[ face ]; 
 		p.faceIndex = face;
 		p.shader = map->GetShaderInfo( face );
+
+		if ( p.shader )
+		{
+			p.type = PASS_EFFECT;
+		}
+		else
+		{
+			p.type = defaultPass;
+		}
+
 		DrawFace( p );
 	}
+}
+
+INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection )
+{
+	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
+	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( projection ) ) );
+	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
+	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
+}
+
+INLINE uint32_t BSPRenderer::GetPassLayoutFlags( passType_t type )
+{
+	switch ( type )
+	{
+		case PASS_MAP:
+			return GLUTIL_LAYOUT_ALL & ~GLUTIL_LAYOUT_NORMAL;
+			break;
+		case PASS_EFFECT:
+			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_COLOR | GLUTIL_LAYOUT_TEX0;
+			break;
+		case PASS_MODEL:
+			return GLUTIL_LAYOUT_ALL;
+			break;
+	}
+
+	// Shouldn't happen...
+	return 0;
+}
+
+INLINE InputCamera* BSPRenderer::CameraFromView( void )
+{
+	InputCamera* pCamera = nullptr;
+
+	switch ( curView )
+	{
+		case VIEW_MAIN:
+			pCamera = camera;
+			break;
+		case VIEW_LIGHT_SAMPLE:
+			pCamera = &lightSampler.camera;
+			break;
+	}
+
+	return pCamera;
 }

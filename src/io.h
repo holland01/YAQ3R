@@ -105,7 +105,7 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 	size_t count = ftell( f ) / sizeof( T );
 	fseek( f, 0, SEEK_SET );
 
-	outBuffer.resize( count );
+	outBuffer.resize( count, 0 );
 	fread( &outBuffer[ 0 ], sizeof( T ), count, f );
 	fclose( f );
 

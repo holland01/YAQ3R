@@ -20,8 +20,8 @@ Test::Test( int w, int h )
     : width( w ), height( h ),
       deltaTime( 0.0f ),
       cursorVisible( true ), running( false ), useSRGBFramebuffer( true ),
-      camPtr( NULL ),
-      winPtr( NULL ),
+      camPtr( nullptr ),
+      winPtr( nullptr ),
 	  mouseX( 0.0f ),
 	  mouseY( 0.0f ),
 	  lastMouseX( 0.0f ),
@@ -52,7 +52,7 @@ bool Test::Load( const char* winName )
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
 	glfwWindowHint( GLFW_SRGB_CAPABLE, GL_TRUE );
 
-    winPtr = glfwCreateWindow( width, height, winName, NULL, NULL );
+    winPtr = glfwCreateWindow( width, height, winName, nullptr, nullptr );
 
     if ( !winPtr )
         return false;

@@ -25,25 +25,83 @@ drawPass_t::~drawPass_t( void )
 {
 }
 
+//--------------------------------------------------------------
+
+lightSampler_t::lightSampler_t( void )
+	:	fbo( 0 )
+{}
+
+lightSampler_t::~lightSampler_t( void )
+{
+	if ( fbo )
+	{
+		GL_CHECK( glDeleteFramebuffers( 1, &fbo ) );
+	}
+}
+
+void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
+{
+	GLint viewport[4];
+	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
+	
+	float w = ( float ) viewport[ 2 ];
+	float h = ( float ) viewport[ 3 ];
+
+	w *= 3.0f;
+	h *= 3.0f;
+	
+	camera.SetClipTransform( glm::ortho< float >( -w, w, -h, h, 0.0f, 10000000.0f ) );
+
+	glm::vec3 eye( ( min + max ) * 0.5f );
+
+	eye.y += ( max.y - min.y ) * 0.3f;
+
+	// Transform the upper left most point in view, the upper right most point in view,
+	// and the lower right most point in view to view space.
+
+	// Project these points on z = 0. If the distance from the upper right to the upper left is greater
+	// than the distance from the upper right to the lower right, then no rotation is necessary.
+	// Otherwise, rotate 90 deg
+
+	glm::vec3 target( eye + glm::vec3( 0.0f, 1.0f, 0.0f ) );
+	glm::vec3 up( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), target - eye ) );
+
+	camera.SetViewTransform( glm::lookAt( eye, target, up ) );
+	camera.SetViewOrigin( eye ); 
+}
+
+void lightSampler_t::SetOrigin( const glm::vec3& eye )
+{
+	glm::vec3 target( eye.x, eye.y * 2.0f, eye.z );
+	glm::vec3 up( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), target - eye ) );
+
+	camera.SetViewTransform( glm::lookAt( eye, target, up ) );
+	camera.SetViewOrigin( eye ); 
+}
+
+//--------------------------------------------------------------
+
 BSPRenderer::BSPRenderer( void )
-    : camera( nullptr ),
-      frustum( new Frustum() ),
-	  mapDimsLength( 0 ),
-	  transformBlockIndex( 0 ),
-	  transformBlockObj( 0 ),
-      transformBlockSize( sizeof( glm::mat4 ) * 2 ),
-      map ( new Q3BspMap() ),
-	  currLeaf( nullptr ),
-      vao( 0 ),
-      vbo( 0 ),
-      deltaTime( 0.0 ),
-      frameTime( 0.0f ),
-	  curView( VIEW_MAIN )
+    :	map ( new Q3BspMap() ),
+		camera( nullptr ),
+		frustum( new Frustum() ),
+		mapDimsLength( 0 ),
+		transformBlockIndex( 0 ),
+		transformBlockObj( 0 ),
+		transformBlockSize( sizeof( glm::mat4 ) * 2 ),
+      
+		currLeaf( nullptr ),
+		vao( 0 ),
+		vbo( 0 ),
+		deltaTime( 0.0 ),
+		frameTime( 0.0f ),
+		curView( VIEW_MAIN )
 {
 	viewParams_t view;
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
+	camera->SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 200000.0f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -88,6 +146,7 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glPolygonOffset( 5.0f, 1.0f ) );
 
 	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
+	GL_CHECK( glClearDepth( 1.0f ) );
 
     GL_CHECK( glGenVertexArrays( 1, &vao ) );
     GL_CHECK( glGenBuffers( 1, &vbo ) );
@@ -104,25 +163,20 @@ void BSPRenderer::Prep( void )
 
 	// Load main shader programs
 	{
-		
+		std::vector< std::string > attribs = 
+		{
+			"position",
+			"color",
+			"lightmap",
+			"tex0" 
+		};
+
 		std::vector< std::string > uniforms = 
 		{
 			"fragTexSampler",
 			"fragLightmapSampler"
 		};
 
-		std::vector< std::string > attribs = 
-		{
-			"position",
-			"color",
-			"tex0",
-			"lightmap"
-		};
-
-		std::vector< std::string > sampleunifs( uniforms );
-		sampleunifs.push_back( "modelViewProjection" );
-
-		MakeProg( "lightsample", "src/lightsample.vert", "src/main.frag", sampleunifs, attribs, false );
 		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs, true );
 
 		uniforms.insert( uniforms.end(), {
@@ -147,7 +201,9 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
     GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->data.numVertexes, map->data.vertexes, GL_STATIC_DRAW ) );
 
-	LoadVertexLayout( true );
+	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
+	// and "model" should both have the same attribute location values though
+	LoadVertexLayout( GLUTIL_LAYOUT_ALL & ~GLUTIL_LAYOUT_NORMAL, *( programs[ "main" ].get() ) );
 
 	const bspNode_t* root = &map->data.nodes[ 0 ];
 
@@ -155,51 +211,14 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 	mapDimsLength = ( int ) glm::length( glm::vec3( root->boxMax.x, root->boxMax.y, root->boxMax.z ) );
 	lodThreshold = mapDimsLength / 2;
 
-	// Setup light sampler transforms
-
-	GLint viewport[4];
-	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
-	
-	float w = ( float ) viewport[ 2 ];
-	float h = ( float ) viewport[ 3 ];
-
-	lightSampler.projection = /*camera->ViewData().clipTransform;*/ glm::ortho< float >( -w, w, -h, h, -10000.0f, 1000000.0f );
-	
-	const bspModel_t* m = &map->data.models[ 0 ]; 
-
-	const glm::vec3& pos = ( glm::vec3( m->boxMax ) + glm::vec3( m->boxMin ) ) * 0.5f;
-	
-	lightSampler.view = glm::lookAt( glm::vec3( pos.x, m->boxMin.y, pos.z ), glm::vec3( pos.x, m->boxMax.y, pos.z ), glm::vec3( 0.0f, 1.0f, 1.0f ) );
+	lightSampler.Elevate( map->data.models[ 0 ].boxMin, map->data.models[ 0 ].boxMax );
 }
 
 void BSPRenderer::Render( uint32_t renderFlags )
 { 
 	double startTime = glfwGetTime();
 
-	const glm::mat4* view = nullptr;
-	const glm::mat4* proj = nullptr;
-
-	switch ( curView )
-	{
-		case VIEW_MAIN:
-			view = &camera->ViewData().transform;
-			proj = &camera->ViewData().clipTransform;
-			break;
-		case VIEW_LIGHT_SAMPLE:
-			view = &lightSampler.view;
-			proj = &/*lightSampler.projection*/camera->ViewData().clipTransform;
-			break;
-	}
-
-	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
-	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 
-				0, sizeof( glm::mat4 ), glm::value_ptr( *proj ) ) );
-	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 
-		sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( *view ) ) );
-
-	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
-
-    drawPass_t pass( map, camera->ViewData() );
+	drawPass_t pass( map, CameraFromView()->ViewData() );
 
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 	pass.renderFlags = renderFlags;
@@ -211,6 +230,8 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
 	pass.isSolid = true;
 	DrawNode( 0, pass );
+
+	LoadTransforms( pass.view.transform, pass.view.clipTransform );
 
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
@@ -244,15 +265,16 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			}
 		}
 	}
-	
+
 	frameTime = glfwGetTime() - startTime;
 }
 
 void BSPRenderer::Update( float dt )
 {
     deltaTime = dt;
-    camera->Update();
-    frustum->Update( camera->ViewData() );
+    //CameraFromView()->Update();
+	camera->Update();
+    frustum->Update( CameraFromView()->ViewData() );
 }
 
 void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
@@ -341,15 +363,16 @@ void BSPRenderer::BindTextureOrDummy( bool predicate, int index, int offset,
 
 void BSPRenderer::DrawMapPass( drawPass_t& pass )
 {
+	
 	BindTextureOrDummy( map->glTextures[ pass.face->texture ].handle != 0, 
 		pass.face->texture, 0, *( pass.program ), "fragTexSampler", map->glTextures );
 
 	BindTextureOrDummy( pass.face->lightmapIndex >= 0, 
 		pass.face->lightmapIndex, 1, *( pass.program ), "fragLightmapSampler", map->glLightmaps );
-	
+
 	pass.program->Bind();
 	
-	DrawFaceVerts( pass, false );
+	DrawFaceVerts( pass );
 
 	GL_CHECK( glUseProgram( 0 ) );
 
@@ -363,6 +386,8 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 	
 	GL_CHECK( glBindSampler( 0, 0 ) );
 	GL_CHECK( glBindSampler( 1, 0 ) );
+
+	DrawDebugInfo( pass );
 }
 
 void BSPRenderer::DrawEffectPass( drawPass_t& pass )
@@ -442,7 +467,7 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 		stage.program->LoadInt( "sampler0", 0 );
 		
 		stage.program->Bind();
-		DrawFaceVerts( pass, true );
+		DrawFaceVerts( pass );
 		stage.program->Release();
 
 		if ( Shade_IsIdentColor( stage ) )
@@ -465,38 +490,20 @@ void BSPRenderer::DrawDebugInfo( drawPass_t& pass )
 {
 	ImPrep( pass.view.transform, pass.view.clipTransform );
 
-	uint8_t hasLightmap = FALSE;
+	glm::vec3 center( ( map->data.nodes[ 0 ].boxMax + map->data.nodes[ 0 ].boxMin ) / 2 );
 
-	if ( pass.shader )
-	{
-		const shaderInfo_t& shader = map->effectShaders.at( map->data.textures[ pass.face->texture ].name );
-		hasLightmap = shader.hasLightmap;
-	}
-
-	GL_CHECK( glPointSize( 10.0f ) );
-
-	// Draw lightmap origin
 	glBegin( GL_POINTS );
-	if ( hasLightmap )
-		glColor3f( 0.0f, 0.0f, 1.0f );
-	else
-		glColor3f( 0.0f, 1.0f, 0.0f );
-	glVertex3f( pass.face->lightmapOrigin.x, pass.face->lightmapOrigin.y, pass.face->lightmapOrigin.z );
+	
+	glColor3f( 0.0f, 0.0f, 1.0f );
+	glVertex3iv( glm::value_ptr( map->data.nodes[ 0 ].boxMin ) );
+	glColor3f( 0.0f, 1.0f, 0.0f );
+	glVertex3iv( glm::value_ptr( map->data.nodes[ 0 ].boxMax ) );
+	glColor3f( 1.0f, 0.0f, 0.0f );
+	glVertex3fv( glm::value_ptr( center ) );
+	glColor3f( 1.0f, 1.0f, 0.0f );
+	glVertex3fv( glm::value_ptr( glm::vec3( center.x, 0.0f, center.z ) ) );
 	glEnd();
-
-	if ( pass.shader )
-	{
-		GL_CHECK( glPointSize( 5.0f ) );
-		glBegin( GL_POINTS );
-		glColor3f( 1.0f, 1.0f, 1.0f );
-		for ( uint32_t i = 0; i < map->glFaces[ pass.faceIndex ].indices.size(); ++i )
-		{
-			const glm::vec3& pos = map->data.vertexes[ map->glFaces[ pass.faceIndex ].indices[ i ] ].position;
-			glVertex3f( pos.x, pos.y, pos.z );
-		}
-		glEnd();
-	}
-
+	
 	GL_CHECK( glLoadIdentity() );
 }
 
@@ -508,13 +515,16 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
 	MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); 
 
-	if ( pass.shader )
+	switch ( pass.type )
 	{
-		DrawEffectPass( pass );
-	}
-	else
-	{
-		DrawMapPass( pass );
+		case PASS_EFFECT:
+			DrawEffectPass( pass );
+			break;
+		
+		case PASS_MODEL:
+		case PASS_MAP:
+			DrawMapPass( pass );
+			break;
 	}
 
 	// Debug information
@@ -526,7 +536,7 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
     pass.facesVisited[ pass.faceIndex ] = 1;
 }
 
-void BSPRenderer::DrawFaceVerts( drawPass_t& pass, bool isEffectPass )
+void BSPRenderer::DrawFaceVerts( drawPass_t& pass )
 {
 	mapModel_t* m = &map->glFaces[ pass.faceIndex ];
 
@@ -559,12 +569,14 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& pass, bool isEffectPass )
 			DeformVertexes( m, pass );
 		}
 
-		LoadBufferLayout( m->vbo, !isEffectPass );		
+		uint32_t flags = GetPassLayoutFlags( pass.type );
+			  
+		LoadBufferLayout( m->vbo, flags, *( pass.program ) );		
 		
 		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
 			&m->trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &m->rowIndices[ 0 ], m->trisPerRow.size() ) );
 
-		LoadBufferLayout( vbo, true );
+		LoadBufferLayout( vbo, flags,  *( pass.program ) );
 	}
 }
 

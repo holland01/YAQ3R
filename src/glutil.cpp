@@ -245,18 +245,32 @@ bool LoadTextureFromFile( const char* texPath, uint32_t loadFlags, texture_t& te
 	return true;
 }
 
-void LoadVertexLayout( bool mapTexCoords )
+void LoadVertexLayout( uint32_t attribFlags, const Program& prog )
 {
-	MapVec3( 0, offsetof( bspVertex_t, position ) );
-	MapVec3( 4, offsetof( bspVertex_t, normal ) );
-
-    GL_CHECK( glEnableVertexAttribArray( 1 ) ); 
-    GL_CHECK( glVertexAttribPointer( 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
-   
-	if ( mapTexCoords )
+	if ( attribFlags & GLUTIL_LAYOUT_POSITION ) 
 	{
-		MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) ); // texture
-		MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); // lightmap
+		MapVec3( prog.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
+	}
+
+	if ( attribFlags & GLUTIL_LAYOUT_NORMAL )
+	{
+		MapVec3( prog.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
+	}
+
+	if ( attribFlags & GLUTIL_LAYOUT_COLOR )
+	{
+		GL_CHECK( glEnableVertexAttribArray( prog.attribs.at( "color" ) ) ); 
+		GL_CHECK( glVertexAttribPointer( prog.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
+	}
+
+	if ( attribFlags & GLUTIL_LAYOUT_TEX0 )
+	{
+		MapAttribTexCoord( prog.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
+	}
+
+	if ( attribFlags & GLUTIL_LAYOUT_LIGHTMAP )
+	{
+		MapAttribTexCoord( prog.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
 	}
 }
 

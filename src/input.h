@@ -63,7 +63,10 @@ public:
     void    Raise( float amount );
 
     void    SetPerspective( float fovy, float aspect, float znear, float zfar );
-    void    SetForward( const glm::vec3& target );
+    void	SetClipTransform( const glm::mat4& proj );
+	void	SetViewTransform( const glm::mat4& view );
+
+	void	SetViewOrigin( const glm::vec3& origin );
 
     glm::vec3   Forward( void ) const;
     glm::vec3   Up( void ) const;
@@ -124,37 +127,19 @@ INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, 
     viewData.zFar = zFar;
 }
 
-INLINE void InputCamera::SetForward( const glm::vec3& forward )
+INLINE void InputCamera::SetClipTransform( const glm::mat4& proj )
 {
-    glm::vec3 lookDir = forward - viewData.origin;
-    glm::vec3 projected = lookDir;
-    viewData.forward = lookDir;
+	viewData.clipTransform = proj;
+}
 
-    // Evaluate whether or not we've crossed into the YZ plane
-    if ( glm::abs( lookDir.x ) < 0.0001f && glm::abs( lookDir.z ) < 0.0001f )
-    {
-        projected.x = 0.0f;
-        projected = glm::normalize( projected );
+INLINE void InputCamera::SetViewTransform( const glm::mat4& view )
+{
+    viewData.transform = view;
+}
 
-        glm::vec3 up = glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), projected );
-        glm::vec3 right = -glm::cross( up, lookDir );
-
-        viewData.up = glm::normalize( up );
-        viewData.right = glm::normalize( right );
-    }
-    else // No, so we're in the XZ plane instead
-    {
-        projected.y = 0.0f;
-        projected = glm::normalize( projected );
-
-        glm::vec3 right = -glm::cross( glm::vec3( 0.0f, 1.0f, 0.0f ), projected );
-        glm::vec3 up = glm::cross( right, lookDir );
-
-        viewData.up = glm::normalize( up );
-        viewData.right = glm::normalize( right );
-    }
-
-    viewData.forward = glm::normalize( viewData.forward );
+INLINE void InputCamera::SetViewOrigin( const glm::vec3& origin )
+{
+    viewData.origin = origin;
 }
 
 INLINE const viewParams_t& InputCamera::ViewData( void ) const

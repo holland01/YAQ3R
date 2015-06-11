@@ -117,7 +117,6 @@
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
-    <None Include="..\..\src\lightsample.vert" />
     <None Include="..\..\src\model.frag" />
     <None Include="..\..\src\model.vert" />
   </ItemGroup>
