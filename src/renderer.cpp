@@ -41,37 +41,110 @@ lightSampler_t::~lightSampler_t( void )
 
 void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 {
-	GLint viewport[4];
-	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
-	
-	float w = ( float ) viewport[ 2 ];
-	float h = ( float ) viewport[ 3 ];
+	// note: it's important to be aware of the fact that mapping the corner
+	// points to screen coordinates results in 4 screen points which
+	// are literally the actual corners of the screen when, according
+	// to the resulting orthographic projection, these points are
+	// farther away from the screen corners and thus should be
+	// considerably less than the upper bounds, for each dimension in every point.
 
-	w *= 3.0f;
-	h *= 3.0f;
+	// So, it seems like the correct approach *might* not be to predict the resulting
+	// order of the projected AABB corners in view space, but rather construct
+	// a simple clockwise or counter-clockwise ordering of the four points 
+	// as they are represented in the world, with each point projected on
+	// y = 0 plane. 
+
+	// Once the direction from each AABB point to its respective
+	// screen corner which it is closest to ( e.g., upper right point -> upper right screen corner ) is attained,
+	// add each direction to its respective point, and then transform those points back to world space.
+	// In theory, you should be able to construct a new ortho graphic projection matrix
+	// with the modified world min/max x and z values. Recomputing the distances along each axis
+	// and the comparing them to determine which maps well to width and which maps well to height
+	// might be the right approach to feeding these input parameters...
+
+	std::array< GLint, 4 > viewport;
+	viewport.fill( 0 );
+
+	GL_CHECK( glGetIntegerv( GL_VIEWPORT, &viewport[ 0 ] ) );
+
+	float w, h;
 	
-	camera.SetClipTransform( glm::ortho< float >( -w, w, -h, h, 0.0f, 10000000.0f ) );
+	std::array< glm::vec4, 4 > corners;
+	std::array< glm::ivec2, 4 > screen = 
+	{
+		glm::ivec2( viewport[ 2 ], viewport[ 3 ] ),
+		glm::ivec2( viewport[ 2 ], 0 ),
+		glm::ivec2( 0, 0 ),
+		glm::ivec2( 0, viewport[ 3 ] )
+	};
+ 
+	float xDist = max.x - min.x;
+	float zDist = min.z - max.z;
+	float yDist = max.y - min.y;
+
+	glm::vec3 up;
+
+	if ( xDist > zDist )
+	{
+		w = xDist;
+		h = zDist;
+		up = glm::vec3( min.x, 0.0f, max.z ) - glm::vec3( min.x, 0.0f, min.z );
+
+		// first is upper right, the rest follows in cw ordering
+		corners[ 0 ] = glm::vec4( max.x, 0.0f, max.z, 1.0f );
+		corners[ 1 ] = glm::vec4( max.x, 0.0f, min.z, 1.0f );
+		corners[ 2 ] = glm::vec4( min.x, 0.0f, min.z, 1.0f );
+		corners[ 3 ] = glm::vec4( min.x, 0.0f, max.z, 1.0f );  
+	}
+	else
+	{
+		w = zDist;
+		h = xDist;
+		up = glm::vec3( max.x, 0.0f, max.z ) - glm::vec3( min.x, 0.0f, max.z );
+
+		// first is upper right, the rest follows in cw ordering
+		corners[ 0 ] = glm::vec4( max.x, max.y, max.z, 1.0f );
+		corners[ 1 ] = glm::vec4( min.x, max.y, max.z, 1.0f );
+		corners[ 2 ] = glm::vec4( min.x, max.y, min.z, 1.0f );
+		corners[ 3 ] = glm::vec4( max.x, max.y, min.z, 1.0f );  
+	}
+		
+	camera.SetClipTransform( glm::ortho< float >( -w * 0.5f, w * 0.5f, -h * 0.5f, h * 0.5f, 0.0f, yDist ) );
 
 	glm::vec3 eye( ( min + max ) * 0.5f );
-
 	eye.y += ( max.y - min.y ) * 0.3f;
 
-	// Transform the upper left most point in view, the upper right most point in view,
-	// and the lower right most point in view to view space.
-
-	// Project these points on z = 0. If the distance from the upper right to the upper left is greater
-	// than the distance from the upper right to the lower right, then no rotation is necessary.
-	// Otherwise, rotate 90 deg
-
 	glm::vec3 target( eye + glm::vec3( 0.0f, 1.0f, 0.0f ) );
-	glm::vec3 up( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), target - eye ) );
 
 	camera.SetViewTransform( glm::lookAt( eye, target, up ) );
 	camera.SetViewOrigin( eye ); 
+
+	glm::mat4 viewProj( camera.ViewData().clipTransform * camera.ViewData().transform );
+
+	float halfW = ( float ) viewport[ 2 ] * 0.5f;
+	float halfH = ( float ) viewport[ 3 ] * 0.5f;
+
+	glm::mat3 clipToWindow( glm::vec3( halfW, 0.0f, 0.0f ),
+			   glm::vec3( 0.0f, halfH, 0.0f ),
+			   glm::vec3( halfW, halfH, 1.0f ) );
+
+	std::array< glm::vec3, 4 > c;
+
+	for ( uint32_t i = 0; i < 4; ++i )
+	{
+		glm::vec4 corner( viewProj * corners[ i ] );
+		glm::vec3 sCorner( corner );
+		sCorner.z = 1.0f;
+		sCorner /= corner.w;
+		c[ i ] = glm::floor( clipToWindow * sCorner ); 
+	}
+
+	__nop();
 }
 
 void lightSampler_t::SetOrigin( const glm::vec3& eye )
 {
+
 	glm::vec3 target( eye.x, eye.y * 2.0f, eye.z );
 	glm::vec3 up( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), target - eye ) );
 
