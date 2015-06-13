@@ -119,6 +119,8 @@
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
     <None Include="..\..\src\model.frag" />
     <None Include="..\..\src\model.vert" />
+    <None Include="..\..\src\irradiate.frag" />
+    <None Include="..\..\src\irradiate.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\aabb.h" />

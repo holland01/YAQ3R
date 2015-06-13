@@ -141,6 +141,8 @@ struct texture_t
 	GLuint handle;
 	GLuint sampler;
 	GLenum wrap;
+	GLenum minFilter;
+	GLenum magFilter;
 	GLenum format;
 	GLenum internalFormat;
 
@@ -150,12 +152,12 @@ struct texture_t
 
 	texture_t( void );
 	~texture_t( void );
+
+	void Load2D( void );
+	bool LoadFromFile( const char* texPath, uint32_t loadFlags );
+	void LoadSampler( void );
+	void SetBufferSize( int width, int height, int bpp, byte fill );
 };
-
-void Tex_SetBufferSize( texture_t& tex, int width, int height, int bpp, byte fill );
-void Tex_MakeTexture2D( texture_t& tex );
-
-bool LoadTextureFromFile( const char* texPath, uint32_t loadFlags, texture_t& texture );
 
 // -------------------------------------------------------------------------------------------------
 class Program

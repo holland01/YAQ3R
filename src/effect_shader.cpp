@@ -714,7 +714,7 @@ static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders 
 				std::string texFileRoot( map->basePath );
 				texFileRoot.append( stage.texturePath );
 
-				bool success = LoadTextureFromFile( texFileRoot.c_str(), shader.loadFlags, stage.texture );
+				bool success = stage.texture.LoadFromFile( texFileRoot.c_str(), shader.loadFlags );
 
 				if ( success && stage.tcModScroll.enabled )
 				{

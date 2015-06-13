@@ -26,10 +26,22 @@ drawPass_t::~drawPass_t( void )
 }
 
 //--------------------------------------------------------------
-
 lightSampler_t::lightSampler_t( void )
-	:	fbo( 0 )
-{}
+	:	fbo( 0 ),
+		targetPlane( 0.0f, 0.0f, 0.0f, 1.0f )
+{
+	GLint viewport[ 4 ];
+	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
+
+	attachment.SetBufferSize( viewport[ 2 ], viewport[ 3 ], 4, 0 );
+	attachment.Load2D();
+
+	GL_CHECK( glGenFramebuffers( 1, &fbo ) );
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+	GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+		GL_TEXTURE_2D, attachment.handle, 0 ) );
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
+}
 
 lightSampler_t::~lightSampler_t( void )
 {
@@ -37,6 +49,16 @@ lightSampler_t::~lightSampler_t( void )
 	{
 		GL_CHECK( glDeleteFramebuffers( 1, &fbo ) );
 	}
+}
+
+void lightSampler_t::Bind( void ) const
+{
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+}
+
+void lightSampler_t::Release( void ) const
+{
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
 }
 
 void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
@@ -62,22 +84,16 @@ void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 	// and the comparing them to determine which maps well to width and which maps well to height
 	// might be the right approach to feeding these input parameters...
 
-	std::array< GLint, 4 > viewport;
-	viewport.fill( 0 );
+	// NOTE: you probably want to actually SUBTRACT the points inward by their directions to their corners,
+	// since smaller lengths for the ortho projection will bring the object closer to the screen.
 
-	GL_CHECK( glGetIntegerv( GL_VIEWPORT, &viewport[ 0 ] ) );
+	glm::vec3 a( glm::vec3( min.x, max.y, max.z ) - max );
+	glm::vec3 b( glm::vec3( max.x, max.y, min.z ) - max );
+	glm::vec3 n( -glm::cross( a, b ) );
+
+	targetPlane = glm::vec4( n, glm::dot( n, max ) );
 
 	float w, h;
-	
-	std::array< glm::vec4, 4 > corners;
-	std::array< glm::ivec2, 4 > screen = 
-	{
-		glm::ivec2( viewport[ 2 ], viewport[ 3 ] ),
-		glm::ivec2( viewport[ 2 ], 0 ),
-		glm::ivec2( 0, 0 ),
-		glm::ivec2( 0, viewport[ 3 ] )
-	};
- 
 	float xDist = max.x - min.x;
 	float zDist = min.z - max.z;
 	float yDist = max.y - min.y;
@@ -89,64 +105,22 @@ void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 		w = xDist;
 		h = zDist;
 		up = glm::vec3( min.x, 0.0f, max.z ) - glm::vec3( min.x, 0.0f, min.z );
-
-		// first is upper right, the rest follows in cw ordering
-		corners[ 0 ] = glm::vec4( max.x, 0.0f, max.z, 1.0f );
-		corners[ 1 ] = glm::vec4( max.x, 0.0f, min.z, 1.0f );
-		corners[ 2 ] = glm::vec4( min.x, 0.0f, min.z, 1.0f );
-		corners[ 3 ] = glm::vec4( min.x, 0.0f, max.z, 1.0f );  
 	}
 	else
 	{
 		w = zDist;
 		h = xDist;
 		up = glm::vec3( max.x, 0.0f, max.z ) - glm::vec3( min.x, 0.0f, max.z );
-
-		// first is upper right, the rest follows in cw ordering
-		corners[ 0 ] = glm::vec4( max.x, max.y, max.z, 1.0f );
-		corners[ 1 ] = glm::vec4( min.x, max.y, max.z, 1.0f );
-		corners[ 2 ] = glm::vec4( min.x, max.y, min.z, 1.0f );
-		corners[ 3 ] = glm::vec4( max.x, max.y, min.z, 1.0f );  
 	}
-		
-	camera.SetClipTransform( glm::ortho< float >( -w * 0.5f, w * 0.5f, -h * 0.5f, h * 0.5f, 0.0f, yDist ) );
+	
+	up = glm::normalize( up );
+
+	camera.SetClipTransform( glm::ortho< float >( -w * 0.5f, w * 0.5f, -h * 0.5f, h * 0.5f, 0.0f, 1000.0f ) );
 
 	glm::vec3 eye( ( min + max ) * 0.5f );
 	eye.y += ( max.y - min.y ) * 0.3f;
 
-	glm::vec3 target( eye + glm::vec3( 0.0f, 1.0f, 0.0f ) );
-
-	camera.SetViewTransform( glm::lookAt( eye, target, up ) );
-	camera.SetViewOrigin( eye ); 
-
-	glm::mat4 viewProj( camera.ViewData().clipTransform * camera.ViewData().transform );
-
-	float halfW = ( float ) viewport[ 2 ] * 0.5f;
-	float halfH = ( float ) viewport[ 3 ] * 0.5f;
-
-	glm::mat3 clipToWindow( glm::vec3( halfW, 0.0f, 0.0f ),
-			   glm::vec3( 0.0f, halfH, 0.0f ),
-			   glm::vec3( halfW, halfH, 1.0f ) );
-
-	std::array< glm::vec3, 4 > c;
-
-	for ( uint32_t i = 0; i < 4; ++i )
-	{
-		glm::vec4 corner( viewProj * corners[ i ] );
-		glm::vec3 sCorner( corner );
-		sCorner.z = 1.0f;
-		sCorner /= corner.w;
-		c[ i ] = glm::floor( clipToWindow * sCorner ); 
-	}
-
-	__nop();
-}
-
-void lightSampler_t::SetOrigin( const glm::vec3& eye )
-{
-
-	glm::vec3 target( eye.x, eye.y * 2.0f, eye.z );
-	glm::vec3 up( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), target - eye ) );
+	glm::vec3 target( eye + glm::vec3( 0.0f, yDist, 0.0f ) );
 
 	camera.SetViewTransform( glm::lookAt( eye, target, up ) );
 	camera.SetViewOrigin( eye ); 
@@ -162,11 +136,10 @@ BSPRenderer::BSPRenderer( void )
 		transformBlockIndex( 0 ),
 		transformBlockObj( 0 ),
 		transformBlockSize( sizeof( glm::mat4 ) * 2 ),
-      
 		currLeaf( nullptr ),
 		vao( 0 ),
 		vbo( 0 ),
-		deltaTime( 0.0 ),
+		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
 		curView( VIEW_MAIN )
 {
@@ -284,7 +257,17 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 	mapDimsLength = ( int ) glm::length( glm::vec3( root->boxMax.x, root->boxMax.y, root->boxMax.z ) );
 	lodThreshold = mapDimsLength / 2;
 
-	lightSampler.Elevate( map->data.models[ 0 ].boxMin, map->data.models[ 0 ].boxMax );
+	glm::vec3 min( map->data.nodes[ 0 ].boxMin );
+	glm::vec3 max( map->data.nodes[ 0 ].boxMax );
+
+	lightSampler.Elevate( min, max );
+}
+
+void BSPRenderer::Sample( uint32_t renderFlags )
+{
+	lightSampler.Bind();
+	Render( renderFlags );
+	lightSampler.Release();
 }
 
 void BSPRenderer::Render( uint32_t renderFlags )
@@ -568,9 +551,9 @@ void BSPRenderer::DrawDebugInfo( drawPass_t& pass )
 	glBegin( GL_POINTS );
 	
 	glColor3f( 0.0f, 0.0f, 1.0f );
-	glVertex3iv( glm::value_ptr( map->data.nodes[ 0 ].boxMin ) );
+	glVertex3fv( glm::value_ptr( map->data.models[ 0 ].boxMin ) );
 	glColor3f( 0.0f, 1.0f, 0.0f );
-	glVertex3iv( glm::value_ptr( map->data.nodes[ 0 ].boxMax ) );
+	glVertex3fv( glm::value_ptr( map->data.models[ 0 ].boxMax ) );
 	glColor3f( 1.0f, 0.0f, 0.0f );
 	glVertex3fv( glm::value_ptr( center ) );
 	glColor3f( 1.0f, 1.0f, 0.0f );

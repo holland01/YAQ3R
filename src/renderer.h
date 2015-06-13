@@ -62,12 +62,14 @@ struct lightSampler_t {
 	InputCamera camera;
 	GLuint fbo;
 	texture_t attachment;
+	glm::vec4 targetPlane;
 
 	lightSampler_t( void );
 	~lightSampler_t( void );
 
+	void Bind( void ) const;
+	void Release( void ) const;
 	void Elevate( const glm::vec3& min, const glm::vec3& max );
-	void SetOrigin( const glm::vec3& eye );
 };
 
 class BSPRenderer
@@ -127,6 +129,7 @@ public:
     void    Prep( void );
     void    Load( const std::string& filepath, uint32_t loadFlags );
 
+	void	Sample( uint32_t renderFlags );
     void    Render( uint32_t renderFlags );
 	void	RenderMain( uint32_t renderFlags );
 

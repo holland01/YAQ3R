@@ -392,7 +392,7 @@ void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
 			{
 				const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-				if ( LoadTextureFromFile( str.c_str(), loadFlags, glTextures[ t ] ) )
+				if ( glTextures[ t ].LoadFromFile( str.c_str(), loadFlags ) )
 				{
 					success = true;
 					break;
@@ -426,15 +426,15 @@ FAIL_WARN:
 	for ( int l = 0; l < data.numLightmaps; ++l )
 	{	
 		glLightmaps[ l ].sampler = glLightmapSampler;
-		Tex_SetBufferSize( glLightmaps[ l ], BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
+		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
 		memcpy( &glLightmaps[ l ].pixels[ 0 ], 
 			&data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], sizeof( byte ) * glLightmaps[ l ].pixels.size() );
 
-		Tex_MakeTexture2D( glLightmaps[ l ] );
+		glLightmaps[ l ].Load2D();
 	}
 
-	Tex_SetBufferSize( glDummyTexture, 32, 32, 3, 255 );
-	Tex_MakeTexture2D( glDummyTexture );
+	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
+	glDummyTexture.Load2D();
 	glDummyTexture.sampler = glLightmapSampler;
 
 	lightvolGrid.x = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 0 ] / 64.0f ) );
