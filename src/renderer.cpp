@@ -115,7 +115,7 @@ void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 	
 	up = glm::normalize( up );
 
-	camera.SetClipTransform( glm::ortho< float >( -w * 0.5f, w * 0.5f, -h * 0.5f, h * 0.5f, 0.0f, 1000.0f ) );
+	camera.SetClipTransform( glm::ortho< float >( -w * 0.5f, w * 0.5f, -h * 0.5f, h * 0.5f, 0.0f, 1000000.0f ) );
 
 	glm::vec3 eye( ( min + max ) * 0.5f );
 	eye.y += ( max.y - min.y ) * 0.3f;
@@ -265,9 +265,22 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 
 void BSPRenderer::Sample( uint32_t renderFlags )
 {
+	// Clear the color buffer to black so that any sample hits outside of the sky 
+	// won't contribute anything in the irradiance generation shader. Depth range
+	// is changed so that only the sky is seen
+
+	// ( Note: maybe there is a way to test against occluders using brushes? Any of the brushes with a vertical surface normal that's
+	// parallel to the up axis and is lying in a plane that's at least half the distance high between the node's bounding points
+	// should fall into this category.
+
 	lightSampler.Bind();
+	GL_CHECK( glDepthRange( 1.0f, 0.0f ) );
+	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
+	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 	Render( renderFlags );
 	lightSampler.Release();
+
+	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 }
 
 void BSPRenderer::Render( uint32_t renderFlags )

@@ -13,28 +13,42 @@ layout( location = 0 ) out vec4 fragment;
 
 const float gamma = 1.0 / 2.2;
 
-struct Ray
-{
-	vec3 dir;
-	vec3 origin;
-};
-
 void main( void )
 {
-	Ray r;
-	r.origin = frag_Position;
+	// u: horizontal axis
+	// v: vertical axis
+	// w: origin
+	vec2 u, v, w;
+	if ( fragMax.y < fragMin.y )
+	{
+		w = vec2( fragMin.x, fragMax.y );
+		u = fragMax - w;
+		v = fragMin - w;
+	}
+	else
+	{
+		w = fragMin;
+		u = vec2( fragMax.x, fragMin.y ) - w;
+		v = vec2( fragMin.x, fragMax.y ) - w;
+	}
+
+	vec3 prevRayDir = vec3( 0.0 );
+	
 	vec3 planeNormal = fragTargetPlane.xyz;
 
 	float distanceNumerator = fragTargetPlane.w - dot( r.origin, planeNormal );
+	float invULen = 1.0 / length( u );
+	float invVLen = 1.0 / length( v );
+
+	vec3 normal = normalize( frag_Normal );
 
 	vec4 color = vec4( 0.0 );
 	for ( float phi = 0.0; phi <= 1.5707; phi += 0.1 )
 	{
 		for ( float theta = 0.0; theta <= 3.14159; theta += 0.1 )
 		{
-			ray.dir = vec3( cos( theta ) * cos( phi ), sin( phi ), cos( phi ) * sin( theta ) );
-
-			float cosAngRay = dot( ray.dir, planeNormal );
+			vec3 rayDir = vec3( cos( theta ) * cos( phi ), sin( phi ), cos( phi ) * sin( theta ) );
+			float cosAngRay = dot( rayDir, planeNormal );
 
 			if ( cosAngRay == 0.0 )
 			{
@@ -43,14 +57,35 @@ void main( void )
 			
 			// Compute distance from origin to sample point
 			float t = distanceNumerator / cosAngRay; 
-			
-			// Measure sample's x and z coordinates against fragMin and fragMax's 
-			// values. If the x and z coordinates fall outside the range of fragMin's or fragMax's,
-			// where fragMin and fragMax's y value represents z in the xz plane,
-			// then this is not a valid sample.
 
 			// Otherwise, continue the use of the integration function: http://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf
-			vec3 sample = ray.origin + ray.dir * t;
+			vec2 worldSample = (frag_Position + rayDir * t).xz;
+
+			if ( worldSample.x < fragMin.x || worldSample.x > fragMax.x )
+			{ 
+				continue;
+			}
+
+			if ( fragMax.y > fragMin.y && ( worldSample.y < fragMin.y || worldSample.y > fragMax.y ) )
+			{
+				continue;
+			}
+			else if ( fragMax.y < fragMin.y && ( worldSample.y > fragMin.y || worldSample.y < fragMax.y ) )
+			{
+				continue;
+			}
+
+			vec2 uvSample = worldSample - w;
+			uvSample.x *= invULen;
+			uvSample.y *= invVLen;
+
+			vec3 dirNorm = normalize( rayDir );
+
+			color += texture( fragRadianceSampler, uvSample ) * dot( normal, dirNorm ) * ( dirNorm - prevRayDir );
+		
+			prevRayDir = dirNorm;
 		}
 	}
+
+	fragment = color;
 }
