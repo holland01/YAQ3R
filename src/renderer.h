@@ -6,6 +6,7 @@
 #include "frustum.h"
 #include "aabb.h"
 #include <set>
+#include <array>
 
 // Draw flags
 enum 
@@ -34,7 +35,7 @@ struct drawPass_t
 {
 	bool isSolid: 1;
 
-	int faceIndex;
+	int faceIndex, viewLeafIndex;
 
 	passType_t type;
 	uint32_t renderFlags;
@@ -59,15 +60,19 @@ struct drawPass_t
 };
 
 struct lightSampler_t {
+	static const int NUM_BUFFERS = 2;
+	
 	InputCamera camera;
-	GLuint fbo;
-	texture_t attachment;
 	glm::vec4 targetPlane;
+	glm::vec2 xzBoundsMin, xzBoundsMax;
+
+	std::array< GLuint, NUM_BUFFERS > fbos;
+	std::array< texture_t, NUM_BUFFERS > attachments;
 
 	lightSampler_t( void );
 	~lightSampler_t( void );
 
-	void Bind( void ) const;
+	void Bind( int which ) const;
 	void Release( void ) const;
 	void Elevate( const glm::vec3& min, const glm::vec3& max );
 };
@@ -183,7 +188,7 @@ INLINE uint32_t BSPRenderer::GetPassLayoutFlags( passType_t type )
 	switch ( type )
 	{
 		case PASS_MAP:
-			return GLUTIL_LAYOUT_ALL & ~GLUTIL_LAYOUT_NORMAL;
+			return GLUTIL_LAYOUT_ALL ^ ( GLUTIL_LAYOUT_NORMAL | GLUTIL_LAYOUT_LIGHTMAP );
 			break;
 		case PASS_EFFECT:
 			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_COLOR | GLUTIL_LAYOUT_TEX0;

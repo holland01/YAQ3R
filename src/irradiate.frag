@@ -5,7 +5,7 @@ smooth in vec3 frag_Normal;
 
 uniform sampler2D fragRadianceSampler;
 uniform vec4 fragTargetPlane;
-uniform vec3 fragSurfaceNormal;
+//uniform vec3 fragSurfaceNormal;
 uniform vec2 fragMin; // xz
 uniform vec2 fragMax; // xz
 
@@ -19,35 +19,31 @@ void main( void )
 	// v: vertical axis
 	// w: origin
 	vec2 u, v, w;
-	if ( fragMax.y < fragMin.y )
+	
+	//
+	// ( fragMax.y < fragMin.y ) is assumed
 	{
 		w = vec2( fragMin.x, fragMax.y );
 		u = fragMax - w;
 		v = fragMin - w;
-	}
-	else
-	{
-		w = fragMin;
-		u = vec2( fragMax.x, fragMin.y ) - w;
-		v = vec2( fragMin.x, fragMax.y ) - w;
 	}
 
 	vec3 prevRayDir = vec3( 0.0 );
 	
 	vec3 planeNormal = fragTargetPlane.xyz;
 
-	float distanceNumerator = fragTargetPlane.w - dot( r.origin, planeNormal );
+	float distanceNumerator = fragTargetPlane.w - dot( frag_Position, planeNormal );
 	float invULen = 1.0 / length( u );
 	float invVLen = 1.0 / length( v );
 
-	vec3 normal = normalize( frag_Normal );
+	//vec3 normal = normalize( frag_Normal );
 
 	vec4 color = vec4( 0.0 );
-	for ( float phi = 0.0; phi <= 1.5707; phi += 0.1 )
+	for ( float phi = 0.0; phi <= 3.14159; phi += 0.1 )
 	{
 		for ( float theta = 0.0; theta <= 3.14159; theta += 0.1 )
 		{
-			vec3 rayDir = vec3( cos( theta ) * cos( phi ), sin( phi ), cos( phi ) * sin( theta ) );
+			vec3 rayDir = vec3( cos( theta ) * cos( phi ), sin( phi ), cos( phi ) * sin( theta ) ) * 100000.0;
 			float cosAngRay = dot( rayDir, planeNormal );
 
 			if ( cosAngRay == 0.0 )
@@ -66,11 +62,7 @@ void main( void )
 				continue;
 			}
 
-			if ( fragMax.y > fragMin.y && ( worldSample.y < fragMin.y || worldSample.y > fragMax.y ) )
-			{
-				continue;
-			}
-			else if ( fragMax.y < fragMin.y && ( worldSample.y > fragMin.y || worldSample.y < fragMax.y ) )
+			if ( worldSample.y > fragMin.y || worldSample.y < fragMax.y )
 			{
 				continue;
 			}
@@ -81,8 +73,8 @@ void main( void )
 
 			vec3 dirNorm = normalize( rayDir );
 
-			color += texture( fragRadianceSampler, uvSample ) * dot( normal, dirNorm ) * ( dirNorm - prevRayDir );
-		
+			color += texture( fragRadianceSampler, uvSample ); //* dot( normal, dirNorm );// * vec4( dirNorm - prevRayDir, 1.0 );
+			break;
 			prevRayDir = dirNorm;
 		}
 	}

@@ -92,8 +92,6 @@ void Q3BspMap::DestroyMap( void )
         delete[] data.buffer;	
 		memset( &data, 0, sizeof( mapData_t ) );
 
-		GL_CHECK( glDeleteSamplers( 1, &glLightmapSampler ) );
-
 		glTextures.clear();
 		glFaces.clear();
 		effectShaders.clear();
@@ -111,7 +109,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 	ReadFile( filepath, scale );
 
-	LoadShaders( &data, loadFlags, effectShaders );
+	//LoadShaders( &data, loadFlags, effectShaders );
 	GenNonShaderTextures( loadFlags );
 	GenRenderData();
 
@@ -416,26 +414,29 @@ FAIL_WARN:
 
 	// And then generate all of the lightmaps
 	glLightmaps.resize( data.numLightmaps );
-	GL_CHECK( glGenSamplers( 1, &glLightmapSampler ) );
-
-	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
-	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
-	GL_CHECK( glSamplerParameteri( glLightmapSampler, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
 
 	for ( int l = 0; l < data.numLightmaps; ++l )
 	{	
-		glLightmaps[ l ].sampler = glLightmapSampler;
 		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
+		
 		memcpy( &glLightmaps[ l ].pixels[ 0 ], 
 			&data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], sizeof( byte ) * glLightmaps[ l ].pixels.size() );
 
+		glLightmaps[ l ].wrap = GL_REPEAT;
 		glLightmaps[ l ].Load2D();
 	}
 
 	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
 	glDummyTexture.Load2D();
-	glDummyTexture.sampler = glLightmapSampler;
+
+	/*
+	glCubes.resize( data.numLeaves );
+	for ( size_t i = 0; i < glCubes.size(); ++i )
+	{
+		glCubes[ i ].SetBufferSize( 256, 256, 4, 0 );
+		glCubes[ i ].LoadCubeMap();
+	}
+	*/
 
 	lightvolGrid.x = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 0 ] / 64.0f ) );
 	lightvolGrid.y = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 1 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 1 ] / 64.0f ) );
@@ -448,8 +449,8 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 
     while ( nodeIndex >= 0 )
     {
-        const bspNode_t* const node = data.nodes + nodeIndex;
-        const bspPlane_t* const plane = data.planes + node->plane;
+        const bspNode_t* const node = &data.nodes[ nodeIndex ];
+        const bspPlane_t* const plane = &data.planes[ node->plane ];
 
         // If the distance from the camera to the plane is >= 0,
         // then our needed camera data is in a leaf somewhere in front of this node,

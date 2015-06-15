@@ -96,6 +96,7 @@ public:
 
 	std::vector< texture_t >		glTextures;
 	std::vector< texture_t >		glLightmaps;	// textures - has one->one map with lightmap indices
+//	std::vector< texture_t >		glCubes;		// has one->one map with leaf nodes
 	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
 					GLuint			glLightmapSampler;
 

@@ -3,7 +3,7 @@
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec4 color;
 layout( location = 2 ) in vec2 tex0;
-layout( location = 3 ) in vec2 lightmap;
+//layout( location = 3 ) in vec2 lightmap;
 
 layout( std140 ) uniform Transforms
 {
@@ -13,7 +13,7 @@ layout( std140 ) uniform Transforms
 
 smooth out vec4 frag_Color;
 smooth out vec2 frag_Tex;
-smooth out vec2 frag_Lightmap;
+//smooth out vec2 frag_Lightmap;
 
 void main()
 {
@@ -21,5 +21,5 @@ void main()
 	
     frag_Color = color;
     frag_Tex = tex0;
-    frag_Lightmap = lightmap;
+  //  frag_Lightmap = lightmap;
 }

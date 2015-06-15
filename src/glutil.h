@@ -137,6 +137,7 @@ static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
 struct texture_t
 {
 	bool srgb: 1;
+	bool mipmap: 1;
 
 	GLuint handle;
 	GLuint sampler;
@@ -145,6 +146,8 @@ struct texture_t
 	GLenum magFilter;
 	GLenum format;
 	GLenum internalFormat;
+	GLenum target;
+	GLuint maxMip;
 
 	int width, height, bpp; // bpp is in bytes
 
@@ -152,12 +155,34 @@ struct texture_t
 
 	texture_t( void );
 	~texture_t( void );
-
+	
+	void Bind( void );
+	void Release( void );
+	void GenHandle( void );
+	void LoadCubeMap( void );
+	void LoadSettings( void );
 	void Load2D( void );
 	bool LoadFromFile( const char* texPath, uint32_t loadFlags );
-	void LoadSampler( void );
-	void SetBufferSize( int width, int height, int bpp, byte fill );
+	bool SetBufferSize( int width, int height, int bpp, byte fill );
 };
+
+INLINE void texture_t::GenHandle( void )
+{
+	if ( !handle )
+	{
+		GL_CHECK( glGenTextures( 1, &handle ) );
+	}
+}
+
+INLINE void texture_t::Bind( void )
+{
+	GL_CHECK( glBindTexture( target, handle ) );
+}
+
+INLINE void texture_t::Release( void )
+{
+	GL_CHECK( glBindTexture( target, 0 ) );
+}
 
 // -------------------------------------------------------------------------------------------------
 class Program
@@ -189,6 +214,7 @@ public:
 	void LoadMat4( const std::string& name, const glm::mat4& t ) const;
 	void LoadMat2( const std::string& name, const glm::mat2& t ) const;
 
+	void LoadVec2( const std::string& name, const glm::vec2& v ) const;
 	void LoadVec3( const std::string& name, const glm::vec3& v ) const;
 	void LoadVec4( const std::string& name, const glm::vec4& v ) const;
 	void LoadVec4( const std::string& name, const float* v ) const;
@@ -218,6 +244,11 @@ INLINE void Program::LoadMat4( const std::string& name, const glm::mat4& t ) con
 INLINE void Program::LoadMat2( const std::string& name, const glm::mat2& t ) const
 {
 	GL_CHECK( glProgramUniformMatrix2fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
+}
+
+INLINE void Program::LoadVec2( const std::string& name, const glm::vec2& v ) const
+{
+	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
 }
 
 INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const

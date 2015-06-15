@@ -708,6 +708,7 @@ static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders 
 
 			stage.textureSlot = i;
 			stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+			stage.texture.mipmap = !!( shader.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{

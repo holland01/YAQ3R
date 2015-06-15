@@ -52,10 +52,10 @@ static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims,
 }
 
 texture_t::texture_t( void )
-	: srgb( true ),
+	: srgb( true ), mipmap( true ),
 	  handle( 0 ), sampler( 0 ),
 	  wrap( GL_CLAMP_TO_EDGE ), minFilter( GL_LINEAR ), magFilter( GL_LINEAR ), 
-	  format( 0 ), internalFormat( 0 ),
+	  format( 0 ), internalFormat( 0 ), target( GL_TEXTURE_2D ), maxMip( 0 ),
 	  width( 0 ),
 	  height( 0 ),
 	  bpp( 0 )
@@ -75,125 +75,38 @@ texture_t::~texture_t( void )
 	}
 }
 
+void texture_t::LoadCubeMap( void )
+{
+	target = GL_TEXTURE_CUBE_MAP;
+	GenHandle();
+	Bind();
+	for ( int i = 0; i < 6; ++i )
+	{
+		GL_CHECK( glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
+			internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
+	}
+	Release();
+
+	LoadSettings();
+}
+
 void texture_t::Load2D( void )
 {
-	if ( !handle )
-	{
-		GL_CHECK( glGenTextures( 1, &handle ) );
-	}
+	target = GL_TEXTURE_2D;
+	GenHandle();
+	Bind();
 
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, handle ) );
-	GL_CHECK( glTexImage2D( 
-		GL_TEXTURE_2D, 
-		0, 
-		internalFormat, 
-		width, 
-		height, 
-		0, 
-		format, 
-		GL_UNSIGNED_BYTE, 
-		&pixels[ 0 ] ) );	
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
-}
-  
-void texture_t::LoadSampler( void )
-{
-	if ( !sampler )
-	{
-		GL_CHECK( glGenSamplers( 1, &sampler ) );
-	}
-
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MIN_FILTER, minFilter ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MAG_FILTER, magFilter ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_S, wrap ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_T, wrap ) );
-
-	GLfloat maxSamples;
-	GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
-	GL_CHECK( glSamplerParameterf( sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
-}
-
-bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
-{
-	// Load image
-	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
-	{
-		byte* imagePixels = stbi_load( texPath, &width, &height, &bpp, STBI_default );
-
-		if ( !imagePixels )
-		{
-			MLOG_WARNING( "No file found for \'%s\'", texPath );
-			return false;
-		}
-		
-		pixels.resize( width * height * bpp, 0 );
-		FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
-		
-		if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
-		{
-			RotateSquareImage90CCW( pixels, width, bpp );
-		}
-
-		stbi_image_free( imagePixels );
-	}
-
-	// NOTE: OpenGL expects image to have linear colorspace on input, hence why SRGB is only taken into 
-	// account in terms of the internal format
-	GLenum rgb, rgba;
-	if ( loadFlags & Q3LOAD_TEXTURE_SRGB )
-	{
-		rgb = GL_SRGB8;
-		rgba = GL_SRGB8_ALPHA8;
-	}
-	else
-	{
-		rgb = GL_RGB8;
-		rgba = GL_RGBA8;
-	}
-
-	switch ( bpp )
-	{
-	case 1:
-		format = GL_R;
-		internalFormat = GL_R8; 
-		break;
-	case 3:
-		format  = GL_RGB;
-		internalFormat = rgb;
-		break;
-	case 4:
-		format  = GL_RGBA;
-		internalFormat = rgba;
-		break;
-	default:
-		MLOG_ERROR( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", 
-			bpp, texPath );
-		break;
-	}
-
-	if ( !handle )
-	{
-		GL_CHECK( glGenTextures( 1, &handle ) );
-	}
-
-	if ( !wrap )
-	{
-		wrap = GL_CLAMP_TO_EDGE;
-	}
-		
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, handle ) );
-
-	GLenum minFilter;
-	if ( loadFlags & Q3LOAD_TEXTURE_MIPMAP )
+	if ( mipmap )
 	{
 		int maxLevels = glm::min( ( int ) glm::log2( ( float ) width ), ( int ) glm::log2( ( float ) height ) ); 
 
 		int w = width;
 		int h = height;
+		int mip;
 
-		for ( int mip = 0; h != 1 || w != 1; ++mip )
+		for ( mip = 0; h != 1 || w != 1; ++mip )
 		{
-			GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 
+			GL_CHECK( glTexImage2D( target, 
 				mip, internalFormat, w, h, 0, format, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
 
 			if ( h > 1 )
@@ -207,21 +120,76 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 			}
 		}
 
-		GL_CHECK( glGenerateMipmap( GL_TEXTURE_2D ) );
+		GL_CHECK( glGenerateMipmap( target ) );
 		minFilter = GL_LINEAR_MIPMAP_LINEAR;
+		maxMip = mip;
 	}
 	else
 	{
-		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 
+		GL_CHECK( glTexImage2D( target, 
 			0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
 	}
+	Release();
 
-	LoadSampler();
+	LoadSettings();
+}
 
+void texture_t::LoadSettings( void )
+{
+	if ( !sampler )
+	{
+		GL_CHECK( glGenSamplers( 1, &sampler ) );
+	}
+
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MIN_FILTER, minFilter ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MAG_FILTER, magFilter ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_S, wrap ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_T, wrap ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_R, wrap ) );
+
+	GLfloat maxSamples;
+	GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
+	GL_CHECK( glSamplerParameterf( sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
+
+	GL_CHECK( glBindTexture( target, handle ) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_BASE_LEVEL, 0 ) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MAX_LEVEL, maxMip ) );
+	GL_CHECK( glBindTexture( target, 0 ) );
+}
+
+bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
+{
+	// Load image
+	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
+	byte* imagePixels = stbi_load( texPath, &width, &height, &bpp, STBI_default );
+
+	if ( !imagePixels )
+	{
+		MLOG_WARNING( "No file found for \'%s\'", texPath );
+		return false;
+	}
+		
+	if ( !SetBufferSize( width, height, bpp, 255 ) )
+	{
+		MLOG_WARNING( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath );
+		return false;
+	}
+		
+	FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
+		
+	if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
+	{
+		RotateSquareImage90CCW( pixels, width, bpp );
+	}
+
+	stbi_image_free( imagePixels );
+
+	Load2D();
+	
 	return true;
 }
 
-void texture_t::SetBufferSize( int width0, int height0, int bpp0, byte fill )
+bool texture_t::SetBufferSize( int width0, int height0, int bpp0, byte fill )
 {
 	width = width0;
 	height = height0;
@@ -244,7 +212,12 @@ void texture_t::SetBufferSize( int width0, int height0, int bpp0, byte fill )
 		format = GL_RGBA;
 		internalFormat = srgb? GL_SRGB8_ALPHA8 : GL_RGBA8;
 		break;
+	default:
+		return false;
+		break;
 	}
+
+	return true;
 }
 
 void LoadVertexLayout( uint32_t attribFlags, const Program& prog )

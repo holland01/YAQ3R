@@ -8,6 +8,8 @@
 
 using namespace std;
 
+static bool drawIrradiance = false;
+
 drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData )
     : isSolid( true ),
 	  faceIndex( 0 ), renderFlags( 0 ),
@@ -27,33 +29,38 @@ drawPass_t::~drawPass_t( void )
 
 //--------------------------------------------------------------
 lightSampler_t::lightSampler_t( void )
-	:	fbo( 0 ),
-		targetPlane( 0.0f, 0.0f, 0.0f, 1.0f )
+	:	targetPlane( 0.0f, 0.0f, 0.0f, 1.0f ),
+		xzBoundsMin( 0.0f ), xzBoundsMax( 0.0f ),
+		fbos( { 0, 0 } )
 {
 	GLint viewport[ 4 ];
 	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
 
-	attachment.SetBufferSize( viewport[ 2 ], viewport[ 3 ], 4, 0 );
-	attachment.Load2D();
+	attachments[ 0 ].mipmap = false;
+	attachments[ 0 ].SetBufferSize( viewport[ 2 ], viewport[ 3 ], 4, 0 );
+	attachments[ 0 ].Load2D();
 
-	GL_CHECK( glGenFramebuffers( 1, &fbo ) );
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+	GLint cubeDims = glm::max( viewport[ 2 ], viewport[ 3 ] );
+
+	attachments[ 1 ].SetBufferSize( cubeDims, cubeDims, 4, 255 );
+	attachments[ 1 ].LoadCubeMap();
+
+	GL_CHECK( glGenFramebuffers( lightSampler_t::NUM_BUFFERS, &fbos[ 0 ] ) );
+	
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbos[ 0 ] ) );
 	GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-		GL_TEXTURE_2D, attachment.handle, 0 ) );
+		GL_TEXTURE_2D, attachments[ 0 ].handle, 0 ) );
 	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
 }
 
 lightSampler_t::~lightSampler_t( void )
 {
-	if ( fbo )
-	{
-		GL_CHECK( glDeleteFramebuffers( 1, &fbo ) );
-	}
+	GL_CHECK( glDeleteFramebuffers( lightSampler_t::NUM_BUFFERS, &fbos[ 0 ] ) );
 }
 
-void lightSampler_t::Bind( void ) const
+void lightSampler_t::Bind( int fbo ) const
 {
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbos[ fbo ] ) );
 }
 
 void lightSampler_t::Release( void ) const
@@ -61,37 +68,18 @@ void lightSampler_t::Release( void ) const
 	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
 }
 
+// Create a view projection transform which looks up at the sky
+// and fills the screen with as much space as possible so the FBO
+// can be sampled from
 void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 {
-	// note: it's important to be aware of the fact that mapping the corner
-	// points to screen coordinates results in 4 screen points which
-	// are literally the actual corners of the screen when, according
-	// to the resulting orthographic projection, these points are
-	// farther away from the screen corners and thus should be
-	// considerably less than the upper bounds, for each dimension in every point.
-
-	// So, it seems like the correct approach *might* not be to predict the resulting
-	// order of the projected AABB corners in view space, but rather construct
-	// a simple clockwise or counter-clockwise ordering of the four points 
-	// as they are represented in the world, with each point projected on
-	// y = 0 plane. 
-
-	// Once the direction from each AABB point to its respective
-	// screen corner which it is closest to ( e.g., upper right point -> upper right screen corner ) is attained,
-	// add each direction to its respective point, and then transform those points back to world space.
-	// In theory, you should be able to construct a new ortho graphic projection matrix
-	// with the modified world min/max x and z values. Recomputing the distances along each axis
-	// and the comparing them to determine which maps well to width and which maps well to height
-	// might be the right approach to feeding these input parameters...
-
-	// NOTE: you probably want to actually SUBTRACT the points inward by their directions to their corners,
-	// since smaller lengths for the ortho projection will bring the object closer to the screen.
-
 	glm::vec3 a( glm::vec3( min.x, max.y, max.z ) - max );
 	glm::vec3 b( glm::vec3( max.x, max.y, min.z ) - max );
 	glm::vec3 n( -glm::cross( a, b ) );
 
 	targetPlane = glm::vec4( n, glm::dot( n, max ) );
+	xzBoundsMin = glm::vec2( min.x, min.z );
+	xzBoundsMax = glm::vec2( max.x, max.z );
 
 	float w, h;
 	float xDist = max.x - min.x;
@@ -220,7 +208,9 @@ void BSPRenderer::Prep( void )
 		std::vector< std::string > uniforms = 
 		{
 			"fragTexSampler",
-			"fragLightmapSampler"
+			"fragLightmapSampler",
+			"fragIrradianceSampler",
+			"fragCubeFace"
 		};
 
 		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs, true );
@@ -234,6 +224,23 @@ void BSPRenderer::Prep( void )
 		attribs.push_back( "normal" );
 
 		MakeProg( "model", "src/model.vert", "src/model.frag", uniforms, attribs, true );
+
+		uniforms = 
+		{
+			"fragRadianceSampler",
+			"fragTargetPlane",
+			"fragSurfaceNormal",
+			"fragMin", // xz
+			"fragMax" // xz"
+		};
+
+		attribs = 
+		{
+			"position",
+			"normal"
+		};
+
+		MakeProg( "irradiate", "src/irradiate.vert", "src/irradiate.frag", uniforms, attribs, true );
 	}
 }
 
@@ -249,7 +256,7 @@ void BSPRenderer::Load( const string& filepath, uint32_t mapLoadFlags )
 
 	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
 	// and "model" should both have the same attribute location values though
-	LoadVertexLayout( GLUTIL_LAYOUT_ALL & ~GLUTIL_LAYOUT_NORMAL, *( programs[ "main" ].get() ) );
+	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( programs[ "main" ].get() ) );
 
 	const bspNode_t* root = &map->data.nodes[ 0 ];
 
@@ -269,18 +276,19 @@ void BSPRenderer::Sample( uint32_t renderFlags )
 	// won't contribute anything in the irradiance generation shader. Depth range
 	// is changed so that only the sky is seen
 
-	// ( Note: maybe there is a way to test against occluders using brushes? Any of the brushes with a vertical surface normal that's
-	// parallel to the up axis and is lying in a plane that's at least half the distance high between the node's bounding points
-	// should fall into this category.
-
-	lightSampler.Bind();
-	GL_CHECK( glDepthRange( 1.0f, 0.0f ) );
-	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
-	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
+	curView = VIEW_LIGHT_SAMPLE;
+	lightSampler.Bind( 0 );
+	
+	//GL_CHECK( glDepthRange( 1.0f, 0.0f ) );
+	//GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
+	//GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 	Render( renderFlags );
 	lightSampler.Release();
 
-	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
+	curView = VIEW_MAIN;
+	drawIrradiance = true;
+
+	//GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 }
 
 void BSPRenderer::Render( uint32_t renderFlags )
@@ -305,6 +313,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
 
+	/*
 	{
 		pass.lightvol = &map->data.lightvols[ CalcLightvolIndex( pass ) ];
 		pass.program = programs[ "model" ].get();
@@ -334,6 +343,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			}
 		}
 	}
+	*/
 
 	frameTime = glfwGetTime() - startTime;
 }
@@ -341,7 +351,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 void BSPRenderer::Update( float dt )
 {
     deltaTime = dt;
-    //CameraFromView()->Update();
 	camera->Update();
     frustum->Update( CameraFromView()->ViewData() );
 }
@@ -350,7 +359,8 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
 {
     if ( nodeIndex < 0 )
     {
-        const bspLeaf_t* viewLeaf = &map->data.leaves[ -( nodeIndex + 1 ) ];
+		pass.viewLeafIndex = -( nodeIndex + 1 );
+        const bspLeaf_t* viewLeaf = &map->data.leaves[ pass.viewLeafIndex ];
 
         if ( !map->IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
             return;
@@ -430,20 +440,71 @@ void BSPRenderer::BindTextureOrDummy( bool predicate, int index, int offset,
 	}
 }
 
+static std::array< glm::vec3, 6 > faceNormals = 
+{
+	glm::vec3( 1.0f, 0.0f, 0.0f ),
+	glm::vec3( -1.0f, 0.0f, 0.0f ),
+	glm::vec3( 0.0f, 1.0f, 0.0f ),
+	glm::vec3( 0.0f, -1.0f, 0.0f ),
+	glm::vec3( 0.0f, 0.0f, 1.0f ),
+	glm::vec3( 0.0f, 0.0f, -1.0f ),
+};
+
 void BSPRenderer::DrawMapPass( drawPass_t& pass )
 {
+	int best = 0;
+	if ( drawIrradiance )
+	{
+		LoadVertexLayout( GLUTIL_LAYOUT_POSITION, *( programs[ "irradiate" ].get() ) );
+		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+
+		lightSampler.Bind( 0 );
+
+		float cosAng = 0.0f;
+		for ( int i = 0; i < 6; ++i )
+		{
+			float c = glm::dot( faceNormals[ i ], pass.face->normal );
+			if ( c < cosAng )
+			{
+				best = i;
+				cosAng = c;
+			}
+		}
+
+		GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + best, lightSampler.attachments[ 1 ].handle, 0 ) );
+
+		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+		lightSampler.attachments[ 0 ].Bind();
+
+		programs[ "irradiate" ]->LoadInt( "fragRadianceSampler", 0 );
+		programs[ "irradiate" ]->LoadVec2( "fragMin", lightSampler.xzBoundsMin );
+		programs[ "irradiate" ]->LoadVec2( "fragMax", lightSampler.xzBoundsMax );
+		programs[ "irradiate" ]->LoadVec4( "fragTargetPlane", lightSampler.targetPlane );
+		programs[ "irradiate" ]->Bind();
+
+		DrawFaceVerts( pass );
+
+		lightSampler.Release();
+	}
 	
 	BindTextureOrDummy( map->glTextures[ pass.face->texture ].handle != 0, 
 		pass.face->texture, 0, *( pass.program ), "fragTexSampler", map->glTextures );
 
-	BindTextureOrDummy( pass.face->lightmapIndex >= 0, 
-		pass.face->lightmapIndex, 1, *( pass.program ), "fragLightmapSampler", map->glLightmaps );
+//	BindTextureOrDummy( pass.face->lightmapIndex >= 0, 
+	//s	pass.face->lightmapIndex, 1, *( pass.program ), "fragLightmapSampler", map->glLightmaps );
+
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 2 ) );
+	lightSampler.attachments[ 1 ].Bind();
+	
+	pass.program->LoadInt( "fragIrradianceSampler", 2 );
+	pass.program->LoadVec3( "fragCubeFace", faceNormals[ best ] );
+
+	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( pass.program ) );
 
 	pass.program->Bind();
 	
 	DrawFaceVerts( pass );
-
-	GL_CHECK( glUseProgram( 0 ) );
 
 	pass.program->Release();
 	
@@ -455,8 +516,6 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 	
 	GL_CHECK( glBindSampler( 0, 0 ) );
 	GL_CHECK( glBindSampler( 1, 0 ) );
-
-	DrawDebugInfo( pass );
 }
 
 void BSPRenderer::DrawEffectPass( drawPass_t& pass )
@@ -581,13 +640,14 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
-	MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-	MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); 
+	//MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
+	//MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); 
 
 	switch ( pass.type )
 	{
 		case PASS_EFFECT:
-			DrawEffectPass( pass );
+			DrawMapPass( pass );
+			//DrawEffectPass( pass );
 			break;
 		
 		case PASS_MODEL:
