@@ -188,7 +188,7 @@ INLINE uint32_t BSPRenderer::GetPassLayoutFlags( passType_t type )
 	switch ( type )
 	{
 		case PASS_MAP:
-			return GLUTIL_LAYOUT_ALL ^ ( GLUTIL_LAYOUT_NORMAL | GLUTIL_LAYOUT_LIGHTMAP );
+			return GLUTIL_LAYOUT_ALL ^ GLUTIL_LAYOUT_LIGHTMAP;
 			break;
 		case PASS_EFFECT:
 			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_COLOR | GLUTIL_LAYOUT_TEX0;

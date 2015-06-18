@@ -9,9 +9,10 @@ uniform vec4 fragTargetPlane;
 uniform vec2 fragMin; // xz
 uniform vec2 fragMax; // xz
 
-layout( location = 0 ) out vec4 fragment;
-
 const float gamma = 1.0 / 2.2;
+const vec4 zero4 = vec4( 0.0 );
+
+out vec4 fragment;
 
 void main( void )
 {
@@ -33,20 +34,19 @@ void main( void )
 	vec3 planeNormal = fragTargetPlane.xyz;
 
 	float distanceNumerator = fragTargetPlane.w - dot( frag_Position, planeNormal );
-	float invULen = 1.0 / length( u );
-	float invVLen = 1.0 / length( v );
+	vec2 invUV = vec2(1.0 / u.x, 1.0 / v.y);
 
-	//vec3 normal = normalize( frag_Normal );
-
-	vec4 color = vec4( 0.0 );
-	for ( float phi = 0.0; phi <= 3.14159; phi += 0.1 )
+	vec3 normal = normalize( frag_Normal );
+	vec4 prevColor = zero4;
+	vec4 color = zero4;
+	for ( float phi = 0.0; phi <= 3.14159; phi += 0.25 )
 	{
-		for ( float theta = 0.0; theta <= 3.14159; theta += 0.1 )
+		for ( float theta = 0.0; theta <= 3.14159; theta += 0.25 )
 		{
-			vec3 rayDir = vec3( cos( theta ) * cos( phi ), sin( phi ), cos( phi ) * sin( theta ) ) * 100000.0;
+			vec3 rayDir = normalize( vec3( cos( theta ) * cos( phi ), sin( phi ), cos( phi ) * sin( theta ) ) );
 			float cosAngRay = dot( rayDir, planeNormal );
 
-			if ( cosAngRay == 0.0 )
+			if ( cosAngRay >= 0.0 )
 			{
 				continue;
 			}
@@ -67,15 +67,9 @@ void main( void )
 				continue;
 			}
 
-			vec2 uvSample = worldSample - w;
-			uvSample.x *= invULen;
-			uvSample.y *= invVLen;
+			vec2 uvSample = clamp((worldSample - w) * invUV, 0.0, 1.0);
 
-			vec3 dirNorm = normalize( rayDir );
-
-			color += texture( fragRadianceSampler, uvSample ); //* dot( normal, dirNorm );// * vec4( dirNorm - prevRayDir, 1.0 );
-			break;
-			prevRayDir = dirNorm;
+			color += vec4( texture( fragRadianceSampler, uvSample ).rgb, 1.0 ); //* dot( normal, rayDir );
 		}
 	}
 

@@ -36,12 +36,13 @@ lightSampler_t::lightSampler_t( void )
 	GLint viewport[ 4 ];
 	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
 
-	attachments[ 0 ].mipmap = false;
-	attachments[ 0 ].SetBufferSize( viewport[ 2 ], viewport[ 3 ], 4, 0 );
-	attachments[ 0 ].Load2D();
-
 	GLint cubeDims = glm::max( viewport[ 2 ], viewport[ 3 ] );
 
+	attachments[ 0 ].mipmap = false;
+	attachments[ 0 ].SetBufferSize( cubeDims, cubeDims, 4, 0 );
+	attachments[ 0 ].Load2D();
+
+	attachments[ 1 ].mipmap = false;
 	attachments[ 1 ].SetBufferSize( cubeDims, cubeDims, 4, 255 );
 	attachments[ 1 ].LoadCubeMap();
 
@@ -75,7 +76,7 @@ void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 {
 	glm::vec3 a( glm::vec3( min.x, max.y, max.z ) - max );
 	glm::vec3 b( glm::vec3( max.x, max.y, min.z ) - max );
-	glm::vec3 n( -glm::cross( a, b ) );
+	glm::vec3 n( -glm::cross( glm::normalize( a ), glm::normalize( b ) ) );
 
 	targetPlane = glm::vec4( n, glm::dot( n, max ) );
 	xzBoundsMin = glm::vec2( min.x, min.z );
@@ -202,7 +203,8 @@ void BSPRenderer::Prep( void )
 			"position",
 			"color",
 			"lightmap",
-			"tex0" 
+			"tex0",
+			"normal"
 		};
 
 		std::vector< std::string > uniforms = 
@@ -229,7 +231,7 @@ void BSPRenderer::Prep( void )
 		{
 			"fragRadianceSampler",
 			"fragTargetPlane",
-			"fragSurfaceNormal",
+			//"fragSurfaceNormal",
 			"fragMin", // xz
 			"fragMax" // xz"
 		};
@@ -476,6 +478,7 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 		lightSampler.attachments[ 0 ].Bind();
+		GL_CHECK( glBindSampler( 0, lightSampler.attachments[ 0 ].sampler ) );
 
 		programs[ "irradiate" ]->LoadInt( "fragRadianceSampler", 0 );
 		programs[ "irradiate" ]->LoadVec2( "fragMin", lightSampler.xzBoundsMin );
@@ -486,6 +489,9 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 		DrawFaceVerts( pass );
 
 		lightSampler.Release();
+
+		lightSampler.attachments[ 0 ].Release();
+		GL_CHECK( glBindSampler( 0, 0 ) );
 	}
 	
 	BindTextureOrDummy( map->glTextures[ pass.face->texture ].handle != 0, 
@@ -496,9 +502,10 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 2 ) );
 	lightSampler.attachments[ 1 ].Bind();
-	
+	GL_CHECK( glBindSampler( 2, lightSampler.attachments[ 1 ].sampler ) );
+
 	pass.program->LoadInt( "fragIrradianceSampler", 2 );
-	pass.program->LoadVec3( "fragCubeFace", faceNormals[ best ] );
+	//pass.program->LoadVec3( "fragCubeFace", faceNormals[ best ] );
 
 	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( pass.program ) );
 
@@ -513,9 +520,13 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 2 ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_CUBE_MAP, 0 ) );
 	
 	GL_CHECK( glBindSampler( 0, 0 ) );
 	GL_CHECK( glBindSampler( 1, 0 ) );
+	GL_CHECK( glBindSampler( 2, 0 ) );
 }
 
 void BSPRenderer::DrawEffectPass( drawPass_t& pass )

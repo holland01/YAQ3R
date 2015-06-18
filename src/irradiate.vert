@@ -5,12 +5,12 @@ layout( location = 1 ) in vec3 normal;
 
 layout( std140 ) uniform Transforms 
 {
-	mat4 modelToView;
 	mat4 viewToClip;
+	mat4 modelToView;
 };
 
-smooth out vec3 frag_Normal;
 smooth out vec3 frag_Position;
+smooth out vec3 frag_Normal;
 
 void main(void)
 {
