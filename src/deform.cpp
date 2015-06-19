@@ -1,4 +1,5 @@
 #include "deform.h"
+#include "renderer.h"
 #include "io.h"
 #include "q3bsp.h"
 #include "glutil.h"

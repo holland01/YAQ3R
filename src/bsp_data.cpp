@@ -121,18 +121,5 @@ bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
 		&& a.color == b.color;
 }
 
-mapModel_t::mapModel_t( void )
-	: deform( false ),
-	  vbo( 0 ),
-	  subdivLevel( 0 )
-{
-}
 
-mapModel_t::~mapModel_t( void )
-{
-	if ( vbo )
-	{
-		DeleteBufferObject( GL_ARRAY_BUFFER, vbo );
-	}
-}
 

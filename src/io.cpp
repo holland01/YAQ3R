@@ -45,9 +45,9 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 
     if ( GL_NO_ERROR != error )
     {
-        const char* errorString = ( const char* ) gluErrorString( error );
+       // const char* errorString = ( const char* ) gluErrorString( error );
 
-        MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'%s\'", callerFunc, glFunc, line, errorString );
+        MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\'", callerFunc, glFunc, line, error );
         FlagExit();
     }
 }

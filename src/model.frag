@@ -1,4 +1,4 @@
-#version 420
+#version 450
 
 smooth in vec4 frag_Color;
 smooth in vec2 frag_Tex;

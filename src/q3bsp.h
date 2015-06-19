@@ -82,27 +82,11 @@ private:
 
     bool							mapAllocated;
 
-	texture_t						glDummyTexture;
-
 	void							ReadFile( const std::string& filepath, const int scale );
-	
-	void							GenNonShaderTextures( uint32_t loadFlags );
-	
-	void							GenRenderData( void );
-
-	void							GenTextureRGB8( texture_t t );
 
 public:
 
-	std::vector< texture_t >		glTextures;
-	std::vector< texture_t >		glLightmaps;	// textures - has one->one map with lightmap indices
-//	std::vector< texture_t >		glCubes;		// has one->one map with leaf nodes
-	std::vector< mapModel_t >		glFaces;		// has one->one map with face indices
-					GLuint			glLightmapSampler;
-
 	std::map< std::string, shaderInfo_t > effectShaders;
-
-	glm::vec3						lightvolGrid;
 
     Q3BspMap( void );
     ~Q3BspMap( void );
@@ -113,19 +97,13 @@ public:
 
 	void						WriteLumpToFile( uint32_t lump );
 
-    void						SetVertexColorIf( bool ( predicate )( unsigned char* ), const glm::u8vec3& rgbColor );
-
     bspLeaf_t*					FindClosestLeaf( const glm::vec3& camPos );
-
-	bool						IsTransFace( int faceIndex ) const;
 
     bool						IsClusterVisible( int sourceCluster, int testCluster );
 
     bool						IsAllocated( void ) const { return mapAllocated; }
 
 	const shaderInfo_t*			GetShaderInfo( int faceIndex ) const;
-
-	const texture_t&			GetDummyTexture( void ) const { return glDummyTexture; }
 
     void						DestroyMap( void );
 };

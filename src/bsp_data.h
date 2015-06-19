@@ -229,19 +229,3 @@ struct leafModel_t
 {
 	std::vector< int > modelIndices;
 };
-
-struct mapModel_t
-{
-	bool						deform;
-	GLuint						vbo;
-	int32_t						subdivLevel;
-
-	std::vector< int32_t >				indices;
-	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
-	std::vector< bspVertex_t >			vertices;
-	std::vector< int32_t* >				rowIndices;
-	std::vector< int32_t  >				trisPerRow;
-
-	mapModel_t( void );
-	~mapModel_t( void );
-};

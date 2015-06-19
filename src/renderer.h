@@ -31,6 +31,31 @@ enum viewMode_t
 	VIEW_LIGHT_SAMPLE,
 };
 
+struct drawIndirect_t
+{
+	uint32_t count;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    uint32_t baseVertex;
+    uint32_t baseInstance;
+};
+
+struct mapModel_t
+{
+	bool						deform;
+	GLuint						vbo;
+	int32_t						subdivLevel;
+
+	std::vector< int32_t >				indices;
+	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
+	std::vector< bspVertex_t >			vertices;
+	std::vector< int32_t* >				rowIndices;
+	std::vector< int32_t  >				trisPerRow;
+
+	mapModel_t( void );
+	~mapModel_t( void );
+};
+
 struct drawPass_t
 {
 	bool isSolid: 1;
@@ -54,6 +79,7 @@ struct drawPass_t
 
     std::vector< byte > facesVisited;
 	std::vector< int > transparent, opaque;
+	std::vector< drawIndirect_t > indirect;
 
 	drawPass_t( const Q3BspMap* const & map, const viewParams_t& viewData );
 	~drawPass_t( void );
@@ -64,7 +90,7 @@ struct lightSampler_t {
 	
 	InputCamera camera;
 	glm::vec4 targetPlane;
-	glm::vec2 xzBoundsMin, xzBoundsMax;
+	glm::vec2 boundsMin, boundsMax;
 
 	std::array< GLuint, NUM_BUFFERS > fbos;
 	std::array< texture_t, NUM_BUFFERS > attachments;
@@ -81,14 +107,21 @@ class BSPRenderer
 {
 private:
 
+	texture_t						glDummyTexture;
+	std::vector< texture_t >		glTextures;			// has one->one mapping with texture indices
+	std::vector< texture_t >		glLightmaps;		// has one->one mapping with lightmap indices
+	std::vector< mapModel_t >		glFaces;			// has one->one mapping with face indices
+
+	std::map< std::string, std::unique_ptr< Program > > glPrograms;
+
 	const bspLeaf_t*    currLeaf;
 
-    GLuint              vao, vbo;
+    GLuint              vao, vbo, indexBufferObj, indirectBufferObj;
 
     float               deltaTime;
 	double				frameTime;
 
-	std::map< std::string, std::unique_ptr< Program > > programs;
+	glm::vec3											lightvolGrid;
 
 	void DeformVertexes( mapModel_t* m, drawPass_t& parms );
 	
@@ -111,6 +144,8 @@ private:
 	void LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
 
 	uint32_t GetPassLayoutFlags( passType_t type );
+
+	bool IsTransFace( int faceIndex ) const;
 
 public:
 	Q3BspMap*       map;
@@ -139,10 +174,14 @@ public:
 	void	RenderMain( uint32_t renderFlags );
 
     void    DrawNode( int nodeIndex, drawPass_t& pass );
+
 	void	DrawMapPass( drawPass_t& parms );
+	void	BeginMapPass( drawPass_t& pass );
+	void	EndMapPass( drawPass_t& pass );
+
     void    DrawFace( drawPass_t& parms );
 	void	DrawFaceVerts( drawPass_t& parms );
-
+	
 	bool	CalcLightVol( const glm::vec3& position );
 
 	float   CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
@@ -159,6 +198,21 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& 
 	for ( int face: list )
 	{
 		p.face = &map->data.faces[ face ]; 
+		
+		if ( p.face->type == BSP_FACE_TYPE_POLYGON || BSP_FACE_TYPE_MESH )
+		{
+			drawIndirect_t command;
+			memset( &command, 0, sizeof( command ) );
+
+			command.firstIndex = glFaces[ face ].indices[ 0 ];
+			command.count = glFaces[ face ].indices.size();
+			command.instanceCount = 1;
+			command.baseInstance = 1;
+
+			p.indirect.push_back( command );
+		}
+		continue;
+		
 		p.faceIndex = face;
 		p.shader = map->GetShaderInfo( face );
 
@@ -195,6 +249,9 @@ INLINE uint32_t BSPRenderer::GetPassLayoutFlags( passType_t type )
 			break;
 		case PASS_MODEL:
 			return GLUTIL_LAYOUT_ALL;
+			break;
+		case PASS_LIGHT_SAMPLE:
+			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_NORMAL;
 			break;
 	}
 

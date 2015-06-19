@@ -568,7 +568,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			// Load vertex header;
 			std::vector< std::string > vertexSrc = 
 			{	
-				"#version 420", 
+				"#version 450", 
 				"layout( location = 0 ) in vec3 position;", 
 				"layout( location = 1 ) in vec4 color;", 
 				"layout( location = 2 ) in vec2 tex0;",
@@ -597,7 +597,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			// Unspecified alphaGen implies a default 1.0 alpha channel
 			std::vector< std::string > fragmentSrc =
 			{
-				"#version 420",
+				"#version 450",
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
 				"const float gamma = 1.0 / 2.2;",
@@ -663,24 +663,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			const std::string& vertexString = LJoinLines( vertexSrc );
 			const std::string& fragmentString = LJoinLines( fragmentSrc );
 
-			//Program* wtf =  new Program(  );
-
 			shader.stageBuffer[ j ].program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
-
-			/*
-			GLuint shaders[] = 
-			{
-				CompileShaderSource( vertexString.c_str(), vertexString.length(), GL_VERTEX_SHADER ),
-				CompileShaderSource( fragmentString.c_str(), fragmentString.length(), GL_FRAGMENT_SHADER )
-			};
-
-			shader.stageBuffer[ j ].programID = LinkProgram( shaders, 2 );
-
-			MapUniforms( shader.stageBuffer[ j ].uniforms, shader.stageBuffer[ j ].programID, uniformStrings );
-
-			// Load UBO for view/clip transformations
-			MapProgramToUBO( shader.stageBuffer[ j ].programID, "Transforms" );
-			*/
+			
 			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 
 				vertexString.c_str(), 

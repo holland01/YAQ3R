@@ -116,9 +116,12 @@ static INLINE void UpdateBufferObject( GLenum target, GLuint obj, const std::vec
 
 static INLINE void DeleteBufferObject( GLenum target, GLuint obj )
 {
-	// Unbind to prevent driver from lazy deletion
-	GL_CHECK( glBindBuffer( target, 0 ) );
-	GL_CHECK( glDeleteBuffers( 1, &obj ) );
+	if ( obj )
+	{
+		// Unbind to prevent driver from lazy deletion
+		GL_CHECK( glBindBuffer( target, 0 ) );
+		GL_CHECK( glDeleteBuffers( 1, &obj ) );
+	}
 }
 
 static INLINE void LoadBufferLayout( GLuint vbo, uint32_t attribFlags, const Program& program )

@@ -47,7 +47,6 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 
 Q3BspMap::Q3BspMap( void )
      :	mapAllocated( false ),
-		glLightmapSampler( 0 ),
 		data( {} )
 {
 }
@@ -92,11 +91,6 @@ void Q3BspMap::DestroyMap( void )
         delete[] data.buffer;	
 		memset( &data, 0, sizeof( mapData_t ) );
 
-		glTextures.clear();
-		glFaces.clear();
-		effectShaders.clear();
-		glLightmaps.clear();
-
 		mapAllocated = false;
     }
 }
@@ -108,77 +102,7 @@ void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t load
 
 	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 	ReadFile( filepath, scale );
-
-	//LoadShaders( &data, loadFlags, effectShaders );
-	GenNonShaderTextures( loadFlags );
-	GenRenderData();
-
 	mapAllocated = true;
-}
-
-void Q3BspMap::GenRenderData( void )
-{
-	glFaces.resize( data.numFaces );
-
-	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
-	// which aren't of these two categories, we leave them be.
-	for ( int i = 0; i < data.numFaces; ++i )
-	{
-		mapModel_t* mod = &glFaces[ i ]; 
-
-		const bspFace_t* face = data.faces + i;
-
-		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
-		{
-			mod->indices.resize( face->numMeshVertexes, 0 );
-			for ( int j = 0; j < face->numMeshVertexes; ++j )
-			{
-				mod->indices[ j ] = face->vertexOffset + data.meshVertexes[ face->meshVertexOffset + j ].offset;
-			}
-		}
-		else if ( face->type == BSP_FACE_TYPE_PATCH )
-		{
-			int width = ( face->size[ 0 ] - 1 ) / 2;
-			int height = ( face->size[ 1 ] - 1 ) / 2;
-			const shaderInfo_t* shader = GetShaderInfo( i );
-
-			GLenum bufferUsage = shader && shader->tessSize != 0.0f ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
-
-			// ( k, j ) maps to a ( row, col ) index scheme referring to the beginning of a patch 
-			int n, m;
-			mod->controlPoints.resize( width * height * 9 );
-
-			for ( n = 0; n < width; ++n )
-			{
-				for ( m = 0; m < height; ++m )
-				{
-					int baseSource = face->vertexOffset + 2 * m * width + 2 * n;
-					int baseDest = ( m * width + n ) * 9;
-
-					for ( int c = 0; c < 3; ++c )
-					{
-						mod->controlPoints[ baseDest + c * 3 + 0 ] = &data.vertexes[ baseSource + c * face->size[ 0 ] + 0 ];
-						mod->controlPoints[ baseDest + c * 3 + 1 ] = &data.vertexes[ baseSource + c * face->size[ 0 ] + 1 ];
-						mod->controlPoints[ baseDest + c * 3 + 2 ] = &data.vertexes[ baseSource + c * face->size[ 0 ] + 2 ];
-					}
-					
-					GenPatch( mod, shader, baseDest );
-				}
-			}
-
-			const uint32_t L1 = mod->subdivLevel + 1;
-			mod->rowIndices.resize( width * height * mod->subdivLevel, 0 );
-			mod->trisPerRow.resize( width * height * mod->subdivLevel, 0 );
-
-			for ( size_t row = 0; row < glFaces[ i ].rowIndices.size(); ++row )
-			{
-				mod->trisPerRow[ row ] = 2 * L1;
-				mod->rowIndices[ row ] = &mod->indices[ row * 2 * L1 ];  
-			}
-
-			mod->vbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, mod->vertices, bufferUsage );
-		}
-	}
 }
 
 void Q3BspMap::WriteLumpToFile( uint32_t lump )
@@ -356,93 +280,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	fclose( file );
 }
 
-void Q3BspMap::GenNonShaderTextures( uint32_t loadFlags )
-{
-	// This is just a temporary hack to brute force load assets without taking into account the effect shader files.
-	// Now, we find and generate the textures. We first start with the image files.
-
-	GLint oldAlign;
-	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
-	glTextures.resize( data.numTextures );
-
-	static const char* validImgExt[] = 
-	{
-		".jpg", ".png", ".tga", ".tiff", ".bmp"
-	};
-
-	for ( int t = 0; t < data.numTextures; t++ )
-	{
-		bool success = false;
-
-		std::string fname( data.textures[ t ].name );
-
-		const std::string& texPath = data.basePath + fname;
-		
-		// If we don't have a file extension appended in the name,
-		// try to find one for it which is valid
-		if ( fname.find_last_of( '.' ) == std::string::npos )
-		{
-			glTextures[ t ].wrap = GL_REPEAT;
-
-			for ( int i = 0; i < SIGNED_LEN( validImgExt ); ++i )
-			{
-				const std::string& str = texPath + std::string( validImgExt[ i ] );
-
-				if ( glTextures[ t ].LoadFromFile( str.c_str(), loadFlags ) )
-				{
-					success = true;
-					break;
-				}
-			}
-		}
-		
-		// Stub out the texture for this iteration by continue; warn user
-		if ( !success )
-		{
-			goto FAIL_WARN;
-		}
-
-		continue;
-
-FAIL_WARN:
-		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-	}
-
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
-
-	// And then generate all of the lightmaps
-	glLightmaps.resize( data.numLightmaps );
-
-	for ( int l = 0; l < data.numLightmaps; ++l )
-	{	
-		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
-		
-		memcpy( &glLightmaps[ l ].pixels[ 0 ], 
-			&data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], sizeof( byte ) * glLightmaps[ l ].pixels.size() );
-
-		glLightmaps[ l ].wrap = GL_REPEAT;
-		glLightmaps[ l ].Load2D();
-	}
-
-	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
-	glDummyTexture.Load2D();
-
-	/*
-	glCubes.resize( data.numLeaves );
-	for ( size_t i = 0; i < glCubes.size(); ++i )
-	{
-		glCubes[ i ].SetBufferSize( 256, 256, 4, 0 );
-		glCubes[ i ].LoadCubeMap();
-	}
-	*/
-
-	lightvolGrid.x = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 0 ] / 64.0f ) );
-	lightvolGrid.y = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 1 ] / 64.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 1 ] / 64.0f ) );
-	lightvolGrid.z = glm::abs( glm::floor( data.models[ 0 ].boxMax[ 2 ] / 128.0f ) - glm::ceil( data.models[ 0 ].boxMin[ 2 ] / 128.0f ) );
-}
-
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 {
     int nodeIndex = 0;
@@ -473,26 +310,6 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
     nodeIndex = -( nodeIndex + 1 );
 
     return &data.leaves[ nodeIndex ];
-}
-
-bool Q3BspMap::IsTransFace( int faceIndex ) const
-{
-	const bspFace_t* face = &data.faces[ faceIndex ];
-
-	if ( face->texture != -1 )
-	{
-		const shaderInfo_t* shader = GetShaderInfo( faceIndex );
-		if ( shader )
-		{
-			return !!( shader->surfaceParms & SURFPARM_TRANS );
-		}
-		else
-		{
-			return  glTextures[ face->texture ].bpp == 4;
-		}
-	}
-
-	return false;
 }
 
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
