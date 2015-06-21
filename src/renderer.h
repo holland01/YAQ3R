@@ -7,6 +7,7 @@
 #include "aabb.h"
 #include <set>
 #include <array>
+#include <functional>
 
 // Draw flags
 enum 
@@ -56,6 +57,13 @@ struct mapModel_t
 	~mapModel_t( void );
 };
 
+/*
+struct pass_t
+{
+	const shaderStage_t* stage;
+};
+*/
+
 struct drawPass_t
 {
 	bool isSolid: 1;
@@ -103,9 +111,13 @@ struct lightSampler_t {
 	void Elevate( const glm::vec3& min, const glm::vec3& max );
 };
 
+struct effect_t;
+
 class BSPRenderer
 {
 private:
+
+	using effectFn_t = void( const Program& p, const effect_t& e );
 
 	texture_t						glDummyTexture;
 	std::vector< texture_t >		glTextures;			// has one->one mapping with texture indices
@@ -113,8 +125,12 @@ private:
 	std::vector< mapModel_t >		glFaces;			// has one->one mapping with face indices
 
 	std::map< std::string, std::unique_ptr< Program > > glPrograms;
+	std::map< std::string, std::function< effectFn_t > >					glEffects; 
 
 	const bspLeaf_t*    currLeaf;
+
+	texture_t*			ptex0;
+	texture_t*			ptex1;
 
     GLuint              vao, vbo, indexBufferObj, indirectBufferObj;
 
@@ -176,8 +192,8 @@ public:
     void    DrawNode( int nodeIndex, drawPass_t& pass );
 
 	void	DrawMapPass( drawPass_t& parms );
-	void	BeginMapPass( drawPass_t& pass );
-	void	EndMapPass( drawPass_t& pass );
+	void	BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 );
+	void	EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
     void    DrawFace( drawPass_t& parms );
 	void	DrawFaceVerts( drawPass_t& parms );
@@ -197,22 +213,7 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& 
 
 	for ( int face: list )
 	{
-		p.face = &map->data.faces[ face ]; 
-		
-		if ( p.face->type == BSP_FACE_TYPE_POLYGON || BSP_FACE_TYPE_MESH )
-		{
-			drawIndirect_t command;
-			memset( &command, 0, sizeof( command ) );
-
-			command.firstIndex = glFaces[ face ].indices[ 0 ];
-			command.count = glFaces[ face ].indices.size();
-			command.instanceCount = 1;
-			command.baseInstance = 1;
-
-			p.indirect.push_back( command );
-		}
-		continue;
-		
+		p.face = &map->data.faces[ face ];
 		p.faceIndex = face;
 		p.shader = map->GetShaderInfo( face );
 
@@ -242,7 +243,7 @@ INLINE uint32_t BSPRenderer::GetPassLayoutFlags( passType_t type )
 	switch ( type )
 	{
 		case PASS_MAP:
-			return GLUTIL_LAYOUT_ALL ^ GLUTIL_LAYOUT_LIGHTMAP;
+			return GLUTIL_LAYOUT_ALL ^ GLUTIL_LAYOUT_NORMAL;
 			break;
 		case PASS_EFFECT:
 			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_COLOR | GLUTIL_LAYOUT_TEX0;

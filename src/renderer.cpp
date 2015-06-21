@@ -127,7 +127,30 @@ void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 }
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( void )
-    :	map ( new Q3BspMap() ),
+	:	glEffects( {
+			{ 
+				"tcModTurb", 
+				[]( const Program& p, const effect_t& e ) -> void
+				{
+					float turb = DEFORM_CALC_TABLE( 
+					deformCache.sinTable, 
+					0,
+					e.data.wave.phase,
+					glfwGetTime(),
+					e.data.wave.frequency,
+					e.data.wave.amplitude );
+					p.LoadFloat( "tcModTurb", turb );					
+				} 
+			},
+			{
+				"tcModScroll",
+				[]( const Program& p, const effect_t& e ) -> void
+				{
+					p.LoadVec4( "tcModScroll", e.data.xyzw );
+				}
+			}
+		} ),
+		map ( new Q3BspMap() ),
 		camera( nullptr ),
 		frustum( new Frustum() ),
 		mapDimsLength( 0 ),
@@ -283,7 +306,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
     map->Read( filepath, 1, mapLoadFlags );
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
-	//LoadShaders( &data, loadFlags, effectShaders );
+	LoadShaders( &map->data, mapLoadFlags, map->effectShaders );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
@@ -438,15 +461,6 @@ FAIL_WARN:
 	//std::vector< drawIndirect_t > commands;
 	for ( int i = 0; i < map->data.numVertexes; ++i )
 	{
-		/*
-		drawIndirect_t command;
-		
-		command.firstIndex = indices.size();
-		command.count = face.indices.size();
-		command.instanceCount = 1;
-
-		commands.push_back( command );
-		*/
 		indices[ i ] = ( uint32_t )i;
 	}
 
@@ -514,17 +528,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
-
-	if ( !pass.indirect.empty() )
-	{
-		GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
-		GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-		pass.program = glPrograms[ "main" ].get();
-		BeginMapPass( pass );
-		GL_CHECK( glMultiDrawElementsIndirect( GL_TRIANGLES, GL_UNSIGNED_INT, 
-			&pass.indirect[ 0 ], pass.indirect.size(), 0 ) );
-		EndMapPass( pass );
-	}
 
 	/*
 	{
@@ -705,42 +708,52 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 		GL_CHECK( glBindSampler( 0, 0 ) );
 	}
 	
-	BeginMapPass( pass );
+	const texture_t* tex0 = nullptr;
+	const texture_t* tex1 = nullptr;
+
+	BeginMapPass( pass, &tex0, &tex1 );
 	DrawFaceVerts( pass );
-	EndMapPass( pass );
+	EndMapPass( pass, tex0, tex1 );
 }
 
-void BSPRenderer::BeginMapPass( drawPass_t& pass )
+void BSPRenderer::BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 )
 {
-	BindTextureOrDummy( glTextures[ pass.face->texture ].handle != 0, 
-		pass.face->texture, 0, *( pass.program ), "fragTexSampler", glTextures );
+	if ( glTextures[ pass.face->texture ].handle )
+	{
+	 	*tex0 = &glTextures[ pass.face->texture ]; 
+	}
+	else
+	{
+		*tex0 = &glDummyTexture;
+	}
 
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 2 ) );
-	lightSampler.attachments[ 1 ].Bind();
-	GL_CHECK( glBindSampler( 2, lightSampler.attachments[ 1 ].sampler ) );
-	pass.program->LoadInt( "fragIrradianceSampler", 2 );
+	if ( pass.face->lightmapIndex >= 0 )
+	{
+		*tex1 = &glLightmaps[ pass.face->lightmapIndex ];
+	}
+	else
+	{
+		*tex1 = &glDummyTexture;
+	}
+
+	( *tex0 )->Bind( 0, "fragTexSampler", *( pass.program ) );
+	( *tex1 )->Bind( 1, "fragLightmapSampler", *( pass.program ) ); 
+
+	//lightSampler.attachments[ 1 ].Bind( 1, "fragIrradianceSampler", *( pass.program ) );
 
 	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( pass.program ) );
 
 	pass.program->Bind();
 }
 
-void BSPRenderer::EndMapPass( drawPass_t& pass )
+void BSPRenderer::EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 )
 {
 	pass.program->Release();
 	
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
-
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
-
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 2 ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_CUBE_MAP, 0 ) );
+	tex0->Release( 0 );
+	tex1->Release( 1 );
 	
-	GL_CHECK( glBindSampler( 0, 0 ) );
-	GL_CHECK( glBindSampler( 1, 0 ) );
-	GL_CHECK( glBindSampler( 2, 0 ) );
+	//lightSampler.attachments[ 1 ].Release( 1 );
 }
 
 void BSPRenderer::DrawEffectPass( drawPass_t& pass )
@@ -756,9 +769,6 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 	for ( int i = 0; i < pass.shader->stageCount; ++i )
 	{			
 		const shaderStage_t& stage = pass.shader->stageBuffer[ i ];
-
-		if ( stage.isStub )
-			continue;
 
 		if ( Shade_IsIdentColor( stage ) )
 		{
@@ -798,23 +808,10 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 		{
 			stage.program->LoadMat2( "texTransform", stage.texTransform );
 		}
-				
-		if ( stage.tcModTurb.enabled )
+			
+		for ( const effect_t& e: stage.effects )
 		{
-			float turb = DEFORM_CALC_TABLE( 
-					deformCache.sinTable, 
-					0,
-					stage.tcModTurb.phase,
-					glfwGetTime(),
-					stage.tcModTurb.frequency,
-					stage.tcModTurb.amplitude );
-
-			stage.program->LoadFloat( "tcModTurb", turb );
-		}
-
-		if ( stage.tcModScroll.enabled )
-		{
-			stage.program->LoadVec4( "tcModScroll", stage.tcModScroll.speed );
+			glEffects[ e.name ]( *( stage.program.get() ), e ); 	
 		}
 
 		stage.program->LoadInt( "sampler0", 0 );
@@ -865,14 +862,10 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
-	//MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-	//MapAttribTexCoord( 3, offsetof( bspVertex_t, texCoords[ 1 ] ) ); 
-
 	switch ( pass.type )
 	{
 		case PASS_EFFECT:
-			DrawMapPass( pass );
-			//DrawEffectPass( pass );
+			DrawEffectPass( pass );
 			break;
 		
 		case PASS_MODEL:
@@ -912,14 +905,14 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& pass )
 		pass.program->LoadVec3( "fragDirectional", directional );
 	}
 
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
+
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
 	{
 		GL_CHECK( glDrawElements( GL_TRIANGLES, m->indices.size(), GL_UNSIGNED_INT, &m->indices[ 0 ] ) );
 	}
 	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
 	{
-		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
-
 		if ( pass.shader && pass.shader->tessSize != 0.0f )
 		{
 			DeformVertexes( m, pass );
@@ -933,9 +926,9 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& pass )
 			&m->trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &m->rowIndices[ 0 ], m->trisPerRow.size() ) );
 
 		LoadBufferLayout( vbo, flags,  *( pass.program ) );
-
-		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBufferObj ) );
 	}
+
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBufferObj ) );
 }
 
 void BSPRenderer::DeformVertexes( mapModel_t* m, drawPass_t& pass )

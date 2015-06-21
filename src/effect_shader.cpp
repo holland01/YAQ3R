@@ -9,7 +9,6 @@ shaderStage_t::shaderStage_t( void )
 	: texTransform( 1.0f ),
 	  program( nullptr )
 {
-	isStub = FALSE;
 	isDepthPass = FALSE;
 	hasTexMod = FALSE;
 
@@ -24,9 +23,6 @@ shaderStage_t::shaderStage_t( void )
 	depthFunc = GL_LEQUAL;
 
 	alphaGen = 0.0f;
-
-	memset( &tcModTurb, 0, sizeof( funcParms_t ) );
-	memset( &tcModScroll, 0, sizeof( funcParms_t ) );
 
 	rgbGen = RGBGEN_IDENTITY;
 	alphaFunc = ALPHA_FUNC_UNDEFINED;
@@ -45,7 +41,6 @@ shaderInfo_t::shaderInfo_t( void )
 	
 	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;
 	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
-	memset( &deformParms, 0, sizeof( funcParms_t ) );
 	
 	surfaceParms = 0;
 	loadFlags = 0;
@@ -410,19 +405,29 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				}
 				else if ( strcmp( type, "turb" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.base = ReadFloat( buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.amplitude = ReadFloat( buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.phase = ReadFloat( buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.frequency = ReadFloat( buffer );
+					effect_t op;
 
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModTurb.enabled = true;
+					op.name = "tcModTurb";
+					op.type	= EFFECT_WAVE;
+	
+					op.data.wave.base = ReadFloat( buffer );
+					op.data.wave.amplitude = ReadFloat( buffer );
+					op.data.wave.phase = ReadFloat( buffer );
+					op.data.wave.frequency = ReadFloat( buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
 				}
 				else if ( strcmp( type, "scroll" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModScroll.speed[ 0 ] = ReadFloat( buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModScroll.speed[ 1 ] = ReadFloat( buffer );
+					effect_t op;
 
-					outInfo->stageBuffer[ outInfo->stageCount ].tcModScroll.enabled = true;
+					op.name = "tcModScroll";
+					op.type = EFFECT_VEC4;
+
+					op.data.xyzw[ 0 ] = ReadFloat( buffer );
+					op.data.xyzw[ 1 ] = ReadFloat( buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
 				}
 			}
 			else if ( strcmp( token, "depthfunc" ) == 0 )
@@ -444,13 +449,6 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 	}
 
 	return buffer;
-}
-
-static uint8_t IsStubbedStage( const shaderStage_t* stage )
-{
-	return false;
-	// Last condition is for the rgbGen vars which are currently supported.
-	//return stage->isDepthPass;  
 }
 
 static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::string& filepath )
@@ -482,10 +480,6 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 		// in the effect shader is the order it needs to be transformed in ( and because we're using OpenGL ).
 		for ( int i = 0; i < entry.stageCount; ++i )
 		{
-			entry.stageBuffer[ i ].isStub = IsStubbedStage( &entry.stageBuffer[ i ] );
-			if ( entry.stageBuffer[ i ].isStub )
-				continue;
-
 			while ( entry.stageBuffer[ i ].texTransformStack.size() > 0 )
 			{
 				entry.stageBuffer[ i ].texTransform *= entry.stageBuffer[ i ].texTransformStack.top();
@@ -620,19 +614,21 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
 			}
 
-			// Modify the texture coordinate as necessary before we write to the texture
-			if ( shader.stageBuffer[ j ].tcModTurb.enabled )
+			for ( const effect_t& op: shader.stageBuffer[ j ].effects )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
-				fragmentSrc.push_back( "\tst += tcModTurb;" );
-				uniforms.push_back( "tcModTurb" );
-			}
-
-			if ( shader.stageBuffer[ j ].tcModScroll.enabled )
-			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
-				fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
-				uniforms.push_back( "tcModScroll" );
+				// Modify the texture coordinate as necessary before we write to the texture
+				if ( op.name == "tcModTurb" )
+				{
+					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
+					fragmentSrc.push_back( "\tst += tcModTurb;" );
+					uniforms.push_back( "tcModTurb" );
+				}
+				else if ( op.name == "tcModScroll" )
+				{
+					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
+					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
+					uniforms.push_back( "tcModScroll" );
+				}
 			}
 
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
@@ -665,8 +661,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			shader.stageBuffer[ j ].program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 			
-			fprintf( f, "[ %i ] [ %s ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
-				j, shader.stageBuffer[ j ].isStub ? "yes" : "no", 
+			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
+				j, 
 				vertexString.c_str(), 
 				fragmentString.c_str() );
 		}
@@ -685,11 +681,6 @@ static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders 
 		{
 			shaderStage_t& stage = shader.stageBuffer[ i ];
 
-			if ( stage.isStub )
-			{
-				continue;
-			}
-
 			stage.textureSlot = i;
 			stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 			stage.texture.mipmap = !!( shader.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
@@ -701,13 +692,17 @@ static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders 
 
 				bool success = stage.texture.LoadFromFile( texFileRoot.c_str(), shader.loadFlags );
 
-				if ( success && stage.tcModScroll.enabled )
+				if ( success )
 				{
-					stage.tcModScroll.speed[ 2 ] = ( float ) stage.texture.width;
-					stage.tcModScroll.speed[ 3 ] = ( float ) stage.texture.height;
+					for ( effect_t& op: stage.effects )
+					{
+						if ( op.name == "tcModScroll" )
+						{
+							op.data.xyzw[ 2 ] = ( float ) stage.texture.width;
+							op.data.xyzw[ 3 ] = ( float ) stage.texture.height;
+						}
+					}
 				}
-
-				assert( success );
 			}
 		}
 	}

@@ -159,8 +159,10 @@ struct texture_t
 	texture_t( void );
 	~texture_t( void );
 	
-	void Bind( void );
-	void Release( void );
+	void Bind( void ) const;
+	void Bind( int offset, const std::string& unif, const Program& prog ) const;
+	void Release( void ) const;
+	void Release( int offset ) const;
 	void GenHandle( void );
 	void LoadCubeMap( void );
 	void LoadSettings( void );
@@ -168,7 +170,7 @@ struct texture_t
 	bool LoadFromFile( const char* texPath, uint32_t loadFlags );
 	bool SetBufferSize( int width, int height, int bpp, byte fill );
 };
-
+//---------------------------------------------------------------------
 INLINE void texture_t::GenHandle( void )
 {
 	if ( !handle )
@@ -177,17 +179,23 @@ INLINE void texture_t::GenHandle( void )
 	}
 }
 
-INLINE void texture_t::Bind( void )
+INLINE void texture_t::Bind( void ) const
 {
 	GL_CHECK( glBindTexture( target, handle ) );
 }
 
-INLINE void texture_t::Release( void )
+INLINE void texture_t::Release( void ) const
 {
 	GL_CHECK( glBindTexture( target, 0 ) );
 }
 
-// -------------------------------------------------------------------------------------------------
+INLINE void texture_t::Release( int offset ) const
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+	GL_CHECK( glBindTexture( target, 0 ) );
+	GL_CHECK( glBindSampler( offset, 0 ) );
+}
+//-------------------------------------------------------------------------------------------------
 class Program
 {
 private:
@@ -228,7 +236,7 @@ public:
 	void Bind( void ) const;
 	void Release( void ) const;
 };
-
+//-------------------------------------------------------------------------------------------------
 INLINE void Program::AddUnif( const std::string& name ) 
 {
 	GL_CHECK( uniforms[ name ] = glGetUniformLocation( program, name.c_str() ) ); 

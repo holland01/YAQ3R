@@ -94,36 +94,53 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
-// For vertex deforms, texcoord modifications, etc.
-struct funcParms_t
+struct wave_t 
 {
-	bool enabled: 1;
+	float spread;
+	float base;
+	float amplitude;
+	float phase;
+	float frequency;
+};
 
-	union 
+struct bulge_t
+{
+	float width;
+	float height;
+	float speed;
+};
+
+enum effectType_t
+{
+	EFFECT_UNDEFINED = 255,
+	EFFECT_WAVE = 0,
+	EFFECT_BULGE,
+	EFFECT_VEC4
+};
+
+struct effect_t
+{
+	std::string name;
+	effectType_t type;
+
+	union data_t
 	{
-		struct 
-		{
-			float spread;
-			float base;
-			float amplitude;
-			float phase;
-			float frequency;
-		};
+		wave_t	wave;
+		bulge_t bulge;
+		float	xyzw[ 4 ];
+	} data;
 
-		struct 
-		{
-			float bulgeWidth;
-			float bulgeHeight;
-			float bulgeSpeed;
-		};
+	effect_t( void )
+		: type(),
+		  data()
+	{}
 
-		float speed[ 4 ]; // maps to s and t
-	};
+	~effect_t( void )
+	{}
 };
 
 struct shaderStage_t
 {
-	uint8_t						isStub; // if true, stage functionality is unsupported; fallback to default rendering process
 	uint8_t						isDepthPass;
 	uint8_t						hasTexMod;
 
@@ -143,7 +160,9 @@ struct shaderStage_t
 	mapCmd_t					mapCmd;
 	mapType_t					mapType;
 
-	funcParms_t					tcModTurb, tcModScroll;
+	std::vector< effect_t >		effects;
+
+	//dynaFunc_t					tcModTurb, tcModScroll;
 
 	float						alphaGen; // if 0, use 1.0
 
@@ -164,7 +183,7 @@ struct shaderInfo_t
 	
 	vertexDeformCmd_t	deformCmd;
 	vertexDeformFunc_t	deformFn;
-	funcParms_t			deformParms;	
+	wave_t				deformParms;	
 
 	uint32_t			surfaceParms;
 	uint32_t			loadFlags; // we pass a list of global flags we'd like to see applied everywhere, however some shaders may contradict this

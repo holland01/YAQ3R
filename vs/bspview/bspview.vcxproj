@@ -140,6 +140,7 @@
     <ClInclude Include="..\..\src\q3bsp.h" />
     <ClInclude Include="..\..\src\bsp_data.h" />
     <ClInclude Include="..\..\src\renderer.h" />
+    <ClInclude Include="..\..\src\render_data.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\tests\test.h" />
     <ClInclude Include="..\..\src\tests\trenderer.h" />

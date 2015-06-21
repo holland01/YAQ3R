@@ -75,6 +75,14 @@ texture_t::~texture_t( void )
 	}
 }
 
+void texture_t::Bind( int offset, const std::string& unif, const Program& prog ) const
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+	GL_CHECK( glBindTexture( target, handle ) );
+	GL_CHECK( glBindSampler( offset, sampler ) );
+	prog.LoadInt( unif, offset );
+}
+
 void texture_t::LoadCubeMap( void )
 {
 	target = GL_TEXTURE_CUBE_MAP;
