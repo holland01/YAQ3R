@@ -22,3 +22,10 @@ INLINE T Inv64( void )
 	return T( 0.015625 );
 }
 
+INLINE void SetNearFar( glm::mat4& clipTrans, float znear, float zfar )
+{
+	float invDiff = 1.0f / ( zfar - znear );
+	clipTrans[ 2 ][ 2 ] = -1.0f * ( zfar + znear ) * invDiff;
+	clipTrans[ 3 ][ 2 ] = -1.0f * ( 2.0f * zfar * znear ) * invDiff;
+}
+

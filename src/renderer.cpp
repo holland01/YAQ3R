@@ -170,7 +170,7 @@ BSPRenderer::BSPRenderer( void )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, 16.0f / 9.0f, 0.1f, 200000.0f );
+	camera->SetPerspective( 45.0f, 16.0f / 9.0f, 1.0f, 5000.0f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -511,26 +511,32 @@ void BSPRenderer::Render( uint32_t renderFlags )
 { 
 	double startTime = glfwGetTime();
 
-	drawPass_t pass( map, CameraFromView()->ViewData() );
+	viewParams_t& viewRef = CameraFromView()->ViewDataMut();
+
+	SetNearFar( viewRef.clipTransform, 1.0f, 10000.0f );
+
+	drawPass_t pass( map, viewRef );
+
+	LoadTransforms( pass.view.transform, pass.view.clipTransform );
 
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
 	pass.renderFlags = renderFlags;
 	pass.type = PASS_MAP;
 	pass.program = glPrograms[ "main" ].get();
+	pass.isSolid = true;
+
+	DrawNode( 0, pass );
 
 	pass.isSolid = false;
     DrawNode( 0, pass );
 
-	pass.isSolid = true;
-	DrawNode( 0, pass );
-
-	LoadTransforms( pass.view.transform, pass.view.clipTransform );
-
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
 
-	/*
 	{
+		frustum->Update( viewRef, false );
+		SetNearFar( viewRef.clipTransform, 0.1f, 10000000.0f );
+
 		pass.lightvol = &map->data.lightvols[ CalcLightvolIndex( pass ) ];
 		pass.program = glPrograms[ "model" ].get();
 		pass.type = PASS_MODEL;
@@ -559,7 +565,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			}
 		}
 	}
-	*/
 
 	frameTime = glfwGetTime() - startTime;
 }
@@ -568,7 +573,7 @@ void BSPRenderer::Update( float dt )
 {
     deltaTime = dt;
 	camera->Update();
-    frustum->Update( CameraFromView()->ViewData() );
+    frustum->Update( CameraFromView()->ViewData(), true );
 }
 
 void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
@@ -602,14 +607,21 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
 			{
 				if ( IsTransFace( faceIndex ) )
 				{
-					pass.transparent.push_back( faceIndex );
+					LoadPassParams( pass, faceIndex, PASS_MAP );
+					DrawFace( pass );
+					//pass.transparent.push_back( faceIndex );
 					pass.facesVisited[ faceIndex ] = true;
 				}
 			}
 			else
 			{
-				pass.opaque.push_back( faceIndex );
-				pass.facesVisited[ faceIndex ] = true;
+				if ( !IsTransFace( faceIndex ) )
+				{
+					LoadPassParams( pass, faceIndex, PASS_MAP );
+					DrawFace( pass );
+					//pass.opaque.push_back( faceIndex );
+					pass.facesVisited[ faceIndex ] = true;
+				}
 			}
 		}
     }

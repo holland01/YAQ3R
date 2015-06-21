@@ -30,13 +30,15 @@ class Frustum
 
 	glm::mat4 mvp;
 
+	glm::vec4 CalcPlaneFromOrigin( const glm::vec4& position, const glm::vec4& origin, bool normalizeDistance );
+
 public:
 
     Frustum( void );
 
     ~Frustum( void );
 
-    void    Update( const viewParams_t& params );
+    void    Update( const viewParams_t& params, bool normalizeDistance );
 
 	void	PrintMetrics( void ) const;
 

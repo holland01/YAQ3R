@@ -163,6 +163,8 @@ private:
 
 	bool IsTransFace( int faceIndex ) const;
 
+	void LoadPassParams( drawPass_t& pass, int face, passType_t defaultPass ) const;
+
 public:
 	Q3BspMap*       map;
     InputCamera*	camera;
@@ -207,25 +209,29 @@ public:
 	InputCamera* CameraFromView( void );
 };
 
+INLINE void BSPRenderer::LoadPassParams( drawPass_t& p, int face, passType_t defaultPass ) const
+{
+	p.face = &map->data.faces[ face ];
+	p.faceIndex = face;
+	p.shader = map->GetShaderInfo( face );
+
+	if ( p.shader )
+	{
+		p.type = PASS_EFFECT;
+	}
+	else
+	{
+		p.type = defaultPass;
+	}
+}
+
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& list )
 {
 	passType_t defaultPass = p.type;
 
 	for ( int face: list )
 	{
-		p.face = &map->data.faces[ face ];
-		p.faceIndex = face;
-		p.shader = map->GetShaderInfo( face );
-
-		if ( p.shader )
-		{
-			p.type = PASS_EFFECT;
-		}
-		else
-		{
-			p.type = defaultPass;
-		}
-
+		LoadPassParams( p, face, defaultPass );
 		DrawFace( p );
 	}
 }

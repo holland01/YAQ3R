@@ -73,6 +73,7 @@ public:
     glm::vec3   Right( void ) const;
 
     const   viewParams_t& ViewData( void ) const;
+	viewParams_t& ViewDataMut( void );
 
 	friend class Test;
 };
@@ -143,6 +144,11 @@ INLINE void InputCamera::SetViewOrigin( const glm::vec3& origin )
 }
 
 INLINE const viewParams_t& InputCamera::ViewData( void ) const
+{
+    return viewData;
+}
+
+INLINE viewParams_t& InputCamera::ViewDataMut( void )
 {
     return viewData;
 }

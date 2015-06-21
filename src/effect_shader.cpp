@@ -399,8 +399,6 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					float s = ReadFloat( buffer );
 					float t = ReadFloat( buffer );
 
-					//outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( 1.0f, 1.0f, 1.0f, 1.0f ) );
-
 					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
 				}
 				else if ( strcmp( type, "turb" ) == 0 )
