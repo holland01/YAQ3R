@@ -513,8 +513,6 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
 	viewParams_t& viewRef = CameraFromView()->ViewDataMut();
 
-	SetNearFar( viewRef.clipTransform, 1.0f, 10000.0f );
-
 	drawPass_t pass( map, viewRef );
 
 	LoadTransforms( pass.view.transform, pass.view.clipTransform );
@@ -534,9 +532,9 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	DrawFaceList( pass, pass.transparent );
 
 	{
-		frustum->Update( viewRef, false );
-		SetNearFar( viewRef.clipTransform, 0.1f, 10000000.0f );
-
+		SetNearFar( viewRef.clipTransform, 0.1f, 100.0f );
+		frustum->Update( viewRef, true );
+		
 		pass.lightvol = &map->data.lightvols[ CalcLightvolIndex( pass ) ];
 		pass.program = glPrograms[ "model" ].get();
 		pass.type = PASS_MODEL;
@@ -571,9 +569,15 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
 void BSPRenderer::Update( float dt )
 {
+	viewParams_t& view = CameraFromView()->ViewDataMut();
+
+	//float farz = glm::distance( view.origin, map->data.models[ 0 ].boxMax * glm::vec3( 0.0f, 0.0f, 1.0f ) );
+
+	SetNearFar( view.clipTransform, 1.0f, 10000000.0f );
+
     deltaTime = dt;
 	camera->Update();
-    frustum->Update( CameraFromView()->ViewData(), true );
+    frustum->Update( CameraFromView()->ViewData(), false );
 }
 
 void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )

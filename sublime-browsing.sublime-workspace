@@ -63,7 +63,7 @@
 			"file": "log/entities.log",
 			"settings":
 			{
-				"buffer_size": 33140,
+				"buffer_size": 0,
 				"line_ending": "Unix"
 			}
 		},
@@ -373,7 +373,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 33140,
+						"buffer_size": 0,
 						"regions":
 						{
 						},
@@ -408,8 +408,8 @@
 						"selection":
 						[
 							[
-								380,
-								380
+								1494,
+								1494
 							]
 						],
 						"settings":
@@ -418,7 +418,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 960.0,
+						"translation.y": 4680.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,

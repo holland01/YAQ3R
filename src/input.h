@@ -119,6 +119,8 @@ INLINE void InputCamera::Raise( float amount )
 
 INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
 {
+	fovy = glm::radians( fovy );
+
     viewData.clipTransform = glm::perspective( fovy, aspect, zNear, zFar );
 
     // Cache params for frustum culling

@@ -26,8 +26,8 @@ d also is the "distance" from the origin to the plane, providing n is normalized
 struct plane_t
 {
     float       d;
-    glm::vec4   points[ 3 ];
-    glm::vec4   normal;
+    glm::vec3   points[ 3 ];
+    glm::vec3   normal;
 };
 
 static INLINE void PlaneFrom3( plane_t* const outp, const glm::vec3& p, const glm::vec3& p1, const glm::vec3& p2 )
@@ -35,7 +35,7 @@ static INLINE void PlaneFrom3( plane_t* const outp, const glm::vec3& p, const gl
     const glm::vec3& e1 = p1 - p;
     const glm::vec3& e3 = p2 - p;
 
-    outp->normal = glm::vec4( glm::cross( e1, e3 ), 0.0f );
+    outp->normal = glm::cross( e1, e3 );
 
     float mag = glm::length( outp->normal );
 
@@ -46,13 +46,13 @@ static INLINE void PlaneFrom3( plane_t* const outp, const glm::vec3& p, const gl
     }
 
     if ( mag > 0.000000000f )
-        outp->d = glm::dot( glm::vec3( e1 ), glm::vec3( outp->normal ) );
+        outp->d = glm::dot( e1, outp->normal );
     else
         outp->d = 0;
 
-    outp->points[ 0 ] = glm::vec4( p, 1.0f );
-    outp->points[ 1 ] = glm::vec4( p1, 1.0f );
-    outp->points[ 2 ] = glm::vec4( p2, 1.0f );
+    outp->points[ 0 ] = p;
+    outp->points[ 1 ] = p1;
+    outp->points[ 2 ] = p2;
 }
 
 static INLINE float PointToPlaneDistance( const plane_t* const plane, const glm::vec3& v )
