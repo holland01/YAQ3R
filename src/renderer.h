@@ -57,13 +57,6 @@ struct mapModel_t
 	~mapModel_t( void );
 };
 
-/*
-struct pass_t
-{
-	const shaderStage_t* stage;
-};
-*/
-
 struct drawPass_t
 {
 	bool isSolid: 1;
@@ -111,67 +104,62 @@ struct lightSampler_t {
 	void Elevate( const glm::vec3& min, const glm::vec3& max );
 };
 
+struct drawSurface_t
+{
+	const shaderInfo_t  *	  shader;
+
+	std::vector< int32_t*	> indexBuffers;
+	std::vector< int32_t	> indexBufferSizes;
+};
+
 struct effect_t;
 
 class BSPRenderer
 {
 private:
+	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
-	using effectFn_t = void( const Program& p, const effect_t& e );
+	texture_t					glDummyTexture;
+	std::vector< texture_t >	glTextures;			// has one->one mapping with texture indices
+	std::vector< texture_t >	glLightmaps;		// has one->one mapping with lightmap indices
+	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
 
-	texture_t						glDummyTexture;
-	std::vector< texture_t >		glTextures;			// has one->one mapping with texture indices
-	std::vector< texture_t >		glLightmaps;		// has one->one mapping with lightmap indices
-	std::vector< mapModel_t >		glFaces;			// has one->one mapping with face indices
-
-	std::map< std::string, std::unique_ptr< Program > > glPrograms;
-	std::map< std::string, std::function< effectFn_t > >					glEffects; 
+	std::map< std::string, std::unique_ptr< Program > >		glPrograms;
+	std::map< std::string, std::function< effectFnSig_t > >	glEffects; 
+	std::map< std::string, 
 
 	const bspLeaf_t*    currLeaf;
 
-	texture_t*			ptex0;
-	texture_t*			ptex1;
-
-    GLuint              vao, vbo, indexBufferObj, indirectBufferObj;
+    GLuint              vao, vbo;
 
     float               deltaTime;
 	double				frameTime;
 
-	glm::vec3											lightvolGrid;
-
-	void DeformVertexes( mapModel_t* m, drawPass_t& parms );
+	void		DeformVertexes( mapModel_t* m, drawPass_t& parms );
 	
-	void DrawFaceList( drawPass_t& p, const std::vector< int >& list );
+	void		DrawFaceList( drawPass_t& p, const std::vector< int >& list );
 
-	void DrawDebugInfo( drawPass_t& pass );
+	void		DrawEffectPass( drawPass_t& pass );
 
-	void BSPRenderer::DrawEffectPass( drawPass_t& pass );
+	void		MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
+					const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
-	void BindTextureOrDummy( bool predicate, int index, int offset, 
-		const Program& program, const std::string& samplerUnif, const std::vector< texture_t >& source );
+	void		LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
 
-	int CalcSubdivision( const drawPass_t& pass, const AABB& bounds );
+	uint32_t	GetPassLayoutFlags( passType_t type );
 
-	int CalcLightvolIndex( const drawPass_t& pass ) const; 
+	bool		IsTransFace( int faceIndex ) const;
 
-	void MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
+	void		LoadPassParams( drawPass_t& pass, int face, passType_t defaultPass ) const;
 
-	void LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
-
-	uint32_t GetPassLayoutFlags( passType_t type );
-
-	bool IsTransFace( int faceIndex ) const;
-
-	void LoadPassParams( drawPass_t& pass, int face, passType_t defaultPass ) const;
+	void		DrawMapPass( drawPass_t& parms );
+	void		BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 );
+	void		EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
 public:
 	Q3BspMap*       map;
     InputCamera*	camera;
     Frustum*		frustum;
-
-	int				mapDimsLength;
-	int				lodThreshold;
 
 	GLuint			transformBlockIndex;
 	GLuint			transformBlockObj;
@@ -181,30 +169,24 @@ public:
 
 	lightSampler_t	lightSampler;	
 
-    BSPRenderer( void );
-    ~BSPRenderer( void );
+				BSPRenderer( void );
+				
+				~BSPRenderer( void );
 
-    void    Prep( void );
-    void    Load( const std::string& filepath, uint32_t loadFlags );
+    void		Prep( void );
+    void		Load( const std::string& filepath, uint32_t loadFlags );
 
-	void	Sample( uint32_t renderFlags );
-    void    Render( uint32_t renderFlags );
-	void	RenderMain( uint32_t renderFlags );
+	void		Sample( uint32_t renderFlags );
+    void		Render( uint32_t renderFlags );
 
-    void    DrawNode( int nodeIndex, drawPass_t& pass );
+    void		DrawNode( int nodeIndex, drawPass_t& pass );
 
-	void	DrawMapPass( drawPass_t& parms );
-	void	BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 );
-	void	EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
+    void		DrawFace( drawPass_t& parms );
+	void		DrawFaceVerts( drawPass_t& parms );
 
-    void    DrawFace( drawPass_t& parms );
-	void	DrawFaceVerts( drawPass_t& parms );
-	
-	bool	CalcLightVol( const glm::vec3& position );
+	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
-	float   CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
-
-    void    Update( float dt );
+    void		Update( float dt );
 
 	InputCamera* CameraFromView( void );
 };
@@ -240,6 +222,7 @@ INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4&
 {
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( projection ) ) );
+
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
 }

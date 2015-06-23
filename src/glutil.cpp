@@ -1,6 +1,7 @@
 #include "glutil.h"
 #include "q3bsp.h"
 #include "shader.h"
+#include "aabb.h"
 #include "extern/stb_image.c"
 
 static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
@@ -262,6 +263,17 @@ void LoadVertexLayout( uint32_t attribFlags, const Program& prog )
 	}
 }
 
+void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
+{
+	GL_CHECK( glUseProgram( 0 ) );
+	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
+	GL_CHECK( glLoadIdentity() );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
+	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glLoadIdentity() );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
+}
+
 void ImDrawAxes( const float size ) 
 {
 	std::array< glm::vec3, 6 > axes = 
@@ -281,15 +293,37 @@ void ImDrawAxes( const float size )
 	glEnd();
 }
 
-void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
+void ImDrawBounds( const AABB& bounds, const glm::vec4& color )
 {
-	GL_CHECK( glUseProgram( 0 ) );
-	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
-	GL_CHECK( glLoadIdentity() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
+	const glm::vec3 center( bounds.Center() );
+
+	const std::array< const glm::vec3, 8 > points = 
+	{
+		bounds.maxPoint - center, 
+		glm::vec3( bounds.maxPoint.x, bounds.maxPoint.y, bounds.minPoint.z ) - center,
+		glm::vec3( bounds.maxPoint.x, bounds.minPoint.y, bounds.minPoint.z ) - center, 
+		glm::vec3( bounds.maxPoint.x, bounds.minPoint.y, bounds.maxPoint.z ) - center,
+		
+		bounds.minPoint - center,
+		glm::vec3( bounds.minPoint.x, bounds.maxPoint.y, bounds.minPoint.z ) - center,
+		glm::vec3( bounds.minPoint.x, bounds.minPoint.y, bounds.minPoint.z ) - center, 
+		glm::vec3( bounds.minPoint.x, bounds.minPoint.y, bounds.maxPoint.z ) - center,
+	};
+	
 	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glLoadIdentity() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
+	GL_CHECK( glPushMatrix() );
+	GL_CHECK( glTranslatef( center.x, center.y, center.z ) );
+	
+	glBegin( GL_POINTS );
+	glColor4fv( glm::value_ptr( color ) );
+
+	for ( int i = 0; i < 8; ++i )
+	{
+		glVertex3fv( glm::value_ptr( points[ i ] ) );
+	}
+
+	glEnd();
+	GL_CHECK( glPopMatrix() );
 }
 
 void SetPolygonOffsetState( bool enable, uint32_t polyFlags )

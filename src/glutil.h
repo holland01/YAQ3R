@@ -49,10 +49,12 @@ enum
 };
 
 class Program;
+class AABB;
 
 void SetPolygonOffsetState( bool enable, uint32_t polyFlags );
 void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform );
 void ImDrawAxes( const float size );
+void ImDrawBounds( const AABB& bounds, const glm::vec4& color ); 
 
 void LoadVertexLayout( uint32_t attribFlags, const Program& program );
 

@@ -7,6 +7,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 static bool drawIrradiance = false;
+
 //--------------------------------------------------------------
 mapModel_t::mapModel_t( void )
 	: deform( false ),
@@ -153,15 +154,12 @@ BSPRenderer::BSPRenderer( void )
 		map ( new Q3BspMap() ),
 		camera( nullptr ),
 		frustum( new Frustum() ),
-		mapDimsLength( 0 ),
 		transformBlockIndex( 0 ),
 		transformBlockObj( 0 ),
 		transformBlockSize( sizeof( glm::mat4 ) * 2 ),
 		currLeaf( nullptr ),
 		vao( 0 ),
 		vbo( 0 ),
-		indexBufferObj( 0 ),
-		indirectBufferObj( 0 ),
 		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
 		curView( VIEW_MAIN )
@@ -177,8 +175,6 @@ BSPRenderer::~BSPRenderer( void )
 {
     GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
 	DeleteBufferObject( GL_ARRAY_BUFFER, vbo );
-	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, indexBufferObj );
-	DeleteBufferObject( GL_DRAW_INDIRECT_BUFFER, indirectBufferObj );
 
     delete map;
     delete frustum;
@@ -382,10 +378,11 @@ FAIL_WARN:
 	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
 	glDummyTexture.Load2D();
 
+	/*
 	lightvolGrid.x = glm::abs( glm::floor( map->data.models[ 0 ].boxMax[ 0 ] / 64.0f ) - glm::ceil( map->data.models[ 0 ].boxMin[ 0 ] / 64.0f ) );
 	lightvolGrid.y = glm::abs( glm::floor( map->data.models[ 0 ].boxMax[ 1 ] / 64.0f ) - glm::ceil( map->data.models[ 0 ].boxMin[ 1 ] / 64.0f ) );
 	lightvolGrid.z = glm::abs( glm::floor( map->data.models[ 0 ].boxMax[ 2 ] / 128.0f ) - glm::ceil( map->data.models[ 0 ].boxMin[ 2 ] / 128.0f ) );
-
+	*/
 	//---------------------------------------------------------------------
 	// Generate our face/render data
 	//---------------------------------------------------------------------
@@ -456,34 +453,16 @@ FAIL_WARN:
 	// Generate the index and draw indirect buffers
 	//---------------------------------------------------------------------
 
-	std::vector< uint32_t > indices;
-	indices.resize( map->data.numVertexes );
-	//std::vector< drawIndirect_t > commands;
-	for ( int i = 0; i < map->data.numVertexes; ++i )
-	{
-		indices[ i ] = ( uint32_t )i;
-	}
-
-	indexBufferObj = GenBufferObject< uint32_t >( GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW );
-	//indirectBufferObj = GenBufferObject< drawIndirect_t >( GL_DRAW_INDIRECT_BUFFER, commands, GL_STATIC_DRAW );
-
 	// Allocate vertex data from map and store it all in a single vbo
 	GL_CHECK( glBindVertexArray( vao ) );
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
     GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * map->data.numVertexes, map->data.vertexes, GL_STATIC_DRAW ) );
-
-	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBufferObj ) );
-	//GL_CHECK( glBindBuffer( GL_DRAW_INDIRECT_BUFFER, indirectBufferObj ) );
 
 	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
 	// and "model" should both have the same attribute location values though
 	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( glPrograms[ "main" ].get() ) );
 
 	const bspNode_t* root = &map->data.nodes[ 0 ];
-
-	// Base texture setup
-	mapDimsLength = ( int ) glm::length( glm::vec3( root->boxMax.x, root->boxMax.y, root->boxMax.z ) );
-	lodThreshold = mapDimsLength / 2;
 
 	glm::vec3 min( map->data.nodes[ 0 ].boxMin );
 	glm::vec3 max( map->data.nodes[ 0 ].boxMax );
@@ -512,9 +491,8 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	double startTime = glfwGetTime();
 
 	viewParams_t& viewRef = CameraFromView()->ViewDataMut();
-
+	
 	drawPass_t pass( map, viewRef );
-
 	LoadTransforms( pass.view.transform, pass.view.clipTransform );
 
     pass.leaf = map->FindClosestLeaf( pass.view.origin );
@@ -531,6 +509,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	DrawFaceList( pass, pass.opaque );
 	DrawFaceList( pass, pass.transparent );
 
+	/*
 	{
 		SetNearFar( viewRef.clipTransform, 0.1f, 100.0f );
 		frustum->Update( viewRef, true );
@@ -563,6 +542,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 			}
 		}
 	}
+	*/
 
 	frameTime = glfwGetTime() - startTime;
 }
@@ -571,9 +551,7 @@ void BSPRenderer::Update( float dt )
 {
 	viewParams_t& view = CameraFromView()->ViewDataMut();
 
-	//float farz = glm::distance( view.origin, map->data.models[ 0 ].boxMax * glm::vec3( 0.0f, 0.0f, 1.0f ) );
-
-	SetNearFar( view.clipTransform, 1.0f, 10000000.0f );
+	SetNearFar( view.clipTransform, 1.0f, 10000.0f );
 
     deltaTime = dt;
 	camera->Update();
@@ -595,7 +573,9 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
 		leafBounds.minPoint = glm::vec3( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z );
 
         if ( !frustum->IntersectsBox( leafBounds ) )
-            return;
+		{
+			return;
+		}
 
         for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
         {
@@ -651,25 +631,6 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
             DrawNode( node->children[ 0 ], pass );
         }
     }
-}
-
-void BSPRenderer::BindTextureOrDummy( bool predicate, int index, int offset, 
-	const Program& program, const std::string& samplerUnif, const std::vector< texture_t >& source )
-{
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	program.LoadInt( samplerUnif, offset );
-
-	if ( predicate )
-	{
-		const texture_t& tex = source[ index ];
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, tex.handle ) );
-		GL_CHECK( glBindSampler( offset, tex.sampler ) );
-	}
-	else
-	{
-		GL_CHECK( glBindTexture( GL_TEXTURE_2D, glDummyTexture.handle ) );
-		GL_CHECK( glBindSampler( offset, glDummyTexture.sampler ) ); 
-	}
 }
 
 static std::array< glm::vec3, 6 > faceNormals = 
@@ -852,27 +813,6 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 	GL_CHECK( glBindSampler( 0, 0 ) );
 }
 
-void BSPRenderer::DrawDebugInfo( drawPass_t& pass )
-{
-	ImPrep( pass.view.transform, pass.view.clipTransform );
-
-	glm::vec3 center( ( map->data.nodes[ 0 ].boxMax + map->data.nodes[ 0 ].boxMin ) / 2 );
-
-	glBegin( GL_POINTS );
-	
-	glColor3f( 0.0f, 0.0f, 1.0f );
-	glVertex3fv( glm::value_ptr( map->data.models[ 0 ].boxMin ) );
-	glColor3f( 0.0f, 1.0f, 0.0f );
-	glVertex3fv( glm::value_ptr( map->data.models[ 0 ].boxMax ) );
-	glColor3f( 1.0f, 0.0f, 0.0f );
-	glVertex3fv( glm::value_ptr( center ) );
-	glColor3f( 1.0f, 1.0f, 0.0f );
-	glVertex3fv( glm::value_ptr( glm::vec3( center.x, 0.0f, center.z ) ) );
-	glEnd();
-	
-	GL_CHECK( glLoadIdentity() );
-}
-
 void BSPRenderer::DrawFace( drawPass_t& pass )
 {
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
@@ -888,12 +828,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 		case PASS_MAP:
 			DrawMapPass( pass );
 			break;
-	}
-
-	// Debug information
-	if ( pass.renderFlags & RENDER_BSP_LIGHTMAP_INFO )
-	{
-		DrawDebugInfo( pass );
 	}
 
     pass.facesVisited[ pass.faceIndex ] = 1;
@@ -921,8 +855,6 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& pass )
 		pass.program->LoadVec3( "fragDirectional", directional );
 	}
 
-	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
-
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
 	{
 		GL_CHECK( glDrawElements( GL_TRIANGLES, m->indices.size(), GL_UNSIGNED_INT, &m->indices[ 0 ] ) );
@@ -943,8 +875,6 @@ void BSPRenderer::DrawFaceVerts( drawPass_t& pass )
 
 		LoadBufferLayout( vbo, flags,  *( pass.program ) );
 	}
-
-	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBufferObj ) );
 }
 
 void BSPRenderer::DeformVertexes( mapModel_t* m, drawPass_t& pass )
@@ -963,7 +893,7 @@ void BSPRenderer::DeformVertexes( mapModel_t* m, drawPass_t& pass )
 
 	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, m->vbo, verts );
 }
-
+/*
 int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
 {
 	const glm::vec3& max = map->data.models[ 0 ].boxMax;
@@ -985,28 +915,5 @@ int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
 	glm::ivec3 dims( lightvolGrid );
 
 	return ( dindex.z * dims.x * dims.y + dims.x * dindex.y + dindex.x ) % map->data.numLightvols;
-	//printf( "index: %i / %i, interp: %s, dindex: %s \r\n", lvIndex, map->data.numLightvols, glm::to_string( interp ).c_str(), glm::to_string( dindex ).c_str() ); 
 }
-
-int BSPRenderer::CalcSubdivision( const drawPass_t& pass, const AABB& bounds )
-{
-	int min = INT_MAX;
-
-	// Find the closest point to the camera
-	for ( int i = 0; i < 8; ++i )
-	{
-		int d = ( int ) glm::distance( pass.view.origin, bounds.Corner( i ) );
-		if ( min > d )
-			min = d;
-	}
-
-	// Compute our subdivision level based on the length of the map's size vector
-	// and its ratio in relation with the closest distance
-	int subdiv = 0;
-	if ( min > lodThreshold )
-		subdiv = 1;
-	else
-		subdiv = mapDimsLength / min;
-
-	return subdiv;
-}
+*/

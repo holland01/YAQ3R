@@ -124,6 +124,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\aabb.h" />
+    <ClInclude Include="..\..\src\debug_draw.h" />
     <ClInclude Include="..\..\src\deform.h" />
     <ClInclude Include="..\..\src\common.h" />
     <ClInclude Include="..\..\src\effect_shader.h" />
