@@ -47,7 +47,10 @@ struct mapModel_t
 	GLuint						vbo;
 	int32_t						subdivLevel;
 
+	// used if face type == mesh or polygon
 	std::vector< int32_t >				indices;
+
+	// used if face type == patch  
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
 	std::vector< bspVertex_t >			vertices;
 	std::vector< int32_t* >				rowIndices;
@@ -55,6 +58,21 @@ struct mapModel_t
 
 	mapModel_t( void );
 	~mapModel_t( void );
+};
+
+struct drawSurface_t
+{
+	// Every face within a given surface must
+	// have the same following three values
+	const shaderInfo_t*			shader;
+	int							textureIndex;
+	int							lightmapIndex;
+
+	std::vector< int32_t*	>	indexBuffers;
+	std::vector< int32_t	>	indexBufferSizes;
+
+			drawSurface_t( void ): shader( nullptr )
+			{}
 };
 
 struct drawPass_t
@@ -80,7 +98,7 @@ struct drawPass_t
 
     std::vector< byte > facesVisited;
 	std::vector< int > transparent, opaque;
-	std::vector< drawIndirect_t > indirect;
+	std::vector< drawSurface_t > transSurfaces, opaqueSurfaces;
 
 	drawPass_t( const Q3BspMap* const & map, const viewParams_t& viewData );
 	~drawPass_t( void );
@@ -89,27 +107,22 @@ struct drawPass_t
 struct lightSampler_t {
 	static const int NUM_BUFFERS = 2;
 	
-	InputCamera camera;
-	glm::vec4 targetPlane;
-	glm::vec2 boundsMin, boundsMax;
+	InputCamera								camera;
+	glm::vec4								targetPlane;
+	glm::vec2								boundsMin, boundsMax;
 
-	std::array< GLuint, NUM_BUFFERS > fbos;
-	std::array< texture_t, NUM_BUFFERS > attachments;
+	std::array< GLuint, NUM_BUFFERS >		fbos;
+	std::array< texture_t, NUM_BUFFERS >	attachments;
 
 	lightSampler_t( void );
+	
 	~lightSampler_t( void );
 
-	void Bind( int which ) const;
-	void Release( void ) const;
-	void Elevate( const glm::vec3& min, const glm::vec3& max );
-};
-
-struct drawSurface_t
-{
-	const shaderInfo_t  *	  shader;
-
-	std::vector< int32_t*	> indexBuffers;
-	std::vector< int32_t	> indexBufferSizes;
+	void				Bind( int which ) const;
+	
+	void				Release( void ) const;
+	
+	void				Elevate( const glm::vec3& min, const glm::vec3& max );
 };
 
 struct effect_t;
@@ -126,7 +139,6 @@ private:
 
 	std::map< std::string, std::unique_ptr< Program > >		glPrograms;
 	std::map< std::string, std::function< effectFnSig_t > >	glEffects; 
-	std::map< std::string, 
 
 	const bspLeaf_t*    currLeaf;
 
@@ -135,26 +147,44 @@ private:
     float               deltaTime;
 	double				frameTime;
 
-	void		DeformVertexes( mapModel_t* m, drawPass_t& parms );
+	const texture_t&	GetTextureOrDummy( int index, bool predicate, const std::vector< texture_t >& textures ) const;
+
+	void				DeformVertexes( mapModel_t* m, drawPass_t& parms );
+
+	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
+							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
+
+	void				LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
+
+	uint32_t			GetPassLayoutFlags( passType_t type );
+
+	bool				IsTransFace( int faceIndex, const shaderInfo_t* shader ) const;
+
+	void				LoadPassParams( drawPass_t& pass, int face, passType_t defaultPass ) const;
+
+	void				DrawMapPass( drawPass_t& parms );
 	
-	void		DrawFaceList( drawPass_t& p, const std::vector< int >& list );
+	void				BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 );
+	
+	void				EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
-	void		DrawEffectPass( drawPass_t& pass );
+	void				AddSurfaceOnlyIf( drawPass_t& pass, 
+							const shaderInfo_t* shader, bool predicate, int faceIndex, std::vector< drawSurface_t >& surfList );
 
-	void		MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-					const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
+	void				DrawFaceList( drawPass_t& p, const std::vector< int >& list );
 
-	void		LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
+	void				DrawEffectPass( drawPass_t& pass );
 
-	uint32_t	GetPassLayoutFlags( passType_t type );
+	void				DrawSurfaceList( drawPass_t& pass, const std::vector< drawSurface_t >& list );
+	
+	void				DrawFaceOnlyIf( drawPass_t& pass, 
+							bool predicate, int faceIndex, passType_t defaultPass );
+	
+	void				DrawNode( int nodeIndex, drawPass_t& pass );
 
-	bool		IsTransFace( int faceIndex ) const;
+    void				DrawFace( drawPass_t& pass );
 
-	void		LoadPassParams( drawPass_t& pass, int face, passType_t defaultPass ) const;
-
-	void		DrawMapPass( drawPass_t& parms );
-	void		BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 );
-	void		EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
+	void				DrawFaceVerts( drawPass_t& pass );
 
 public:
 	Q3BspMap*       map;
@@ -179,17 +209,25 @@ public:
 	void		Sample( uint32_t renderFlags );
     void		Render( uint32_t renderFlags );
 
-    void		DrawNode( int nodeIndex, drawPass_t& pass );
-
-    void		DrawFace( drawPass_t& parms );
-	void		DrawFaceVerts( drawPass_t& parms );
-
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
     void		Update( float dt );
 
 	InputCamera* CameraFromView( void );
 };
+
+INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int index, 
+	bool predicate, const std::vector< texture_t >& textures ) const
+{
+	if ( predicate )
+	{
+		return textures[ index ];
+	}
+	else
+	{
+		return glDummyTexture;
+	}
+}
 
 INLINE void BSPRenderer::LoadPassParams( drawPass_t& p, int face, passType_t defaultPass ) const
 {
@@ -204,6 +242,50 @@ INLINE void BSPRenderer::LoadPassParams( drawPass_t& p, int face, passType_t def
 	else
 	{
 		p.type = defaultPass;
+	}
+}
+
+INLINE void BSPRenderer::DrawFaceOnlyIf( drawPass_t& pass, bool predicate, int faceIndex, passType_t defaultPass )
+{
+	if ( predicate )
+	{
+		LoadPassParams( pass, faceIndex, PASS_MAP );
+		DrawFace( pass );
+		pass.facesVisited[ faceIndex ] = true;
+	}
+}
+
+INLINE void BSPRenderer::AddSurfaceOnlyIf( drawPass_t& pass, 
+		const shaderInfo_t* shader, bool predicate, int faceIndex, std::vector< drawSurface_t >& surfList )
+{
+	if ( predicate )
+	{
+		const bspFace_t* face = &map->data.faces[ faceIndex ]; 
+		
+		bool add = true;
+		for ( drawSurface_t& surf: surfList )
+		{
+			if ( shader == surf.shader && face->texture == surf.textureIndex && face->lightmapIndex == surf.lightmapIndex )
+			{
+				surf.indexBuffers.push_back( &glFaces[ faceIndex ].indices[ 0 ] );
+				surf.indexBufferSizes.push_back( glFaces[ faceIndex ].indices.size() );
+				add = false;
+				break;
+			}
+		}
+
+		if ( add )
+		{
+			drawSurface_t surf;
+
+			surf.shader = shader;
+			surf.lightmapIndex = face->lightmapIndex;
+			surf.textureIndex = face->texture;
+			
+			surfList.push_back( std::move( surf ) ); 
+		}
+
+		pass.facesVisited[ faceIndex ] = true;
 	}
 }
 

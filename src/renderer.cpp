@@ -277,13 +277,12 @@ void BSPRenderer::Prep( void )
 	}
 }
 
-bool BSPRenderer::IsTransFace( int faceIndex ) const
+bool BSPRenderer::IsTransFace( int faceIndex, const shaderInfo_t* shader ) const
 {
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
 
 	if ( face->texture != -1 )
 	{
-		const shaderInfo_t* shader = map->GetShaderInfo( faceIndex );
 		if ( shader )
 		{
 			return !!( shader->surfaceParms & SURFPARM_TRANS );
@@ -499,15 +498,18 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	pass.renderFlags = renderFlags;
 	pass.type = PASS_MAP;
 	pass.program = glPrograms[ "main" ].get();
+	
 	pass.isSolid = true;
-
 	DrawNode( 0, pass );
 
 	pass.isSolid = false;
     DrawNode( 0, pass );
 
-	DrawFaceList( pass, pass.opaque );
-	DrawFaceList( pass, pass.transparent );
+	DrawSurfaceList( pass, pass.opaqueSurfaces );
+	DrawSurfaceList( pass, pass.transSurfaces );
+
+	//DrawFaceList( pass, pass.opaque );
+	//DrawFaceList( pass, pass.transparent );
 
 	/*
 	{
@@ -558,6 +560,7 @@ void BSPRenderer::Update( float dt )
     frustum->Update( CameraFromView()->ViewData(), false );
 }
 
+
 void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
 {
     if ( nodeIndex < 0 )
@@ -566,7 +569,9 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
         const bspLeaf_t* viewLeaf = &map->data.leaves[ pass.viewLeafIndex ];
 
         if ( !map->IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
+		{
             return;
+		}
 
 		AABB leafBounds;
 		leafBounds.maxPoint = glm::vec3( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z );
@@ -580,32 +585,26 @@ void BSPRenderer::DrawNode( int nodeIndex, drawPass_t& pass )
         for ( int i = 0; i < viewLeaf->numLeafFaces; ++i )
         {
             int faceIndex = map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index;
-
+			
+			// if pass.facesVisited[ faceIndex ] is still false after this criteria's
+			// evaluations, we'll pick it up on the next pass as it will meet
+			// the necessary criteria then.
             if ( pass.facesVisited[ faceIndex ] )
                 continue;
 			
-			// if pass.facesVisited[ faceIndex ] is still false after this
-			// evaluation, we'll pick it up on the next pass as it will meet
-			// the necessary criteria then.
-			if ( !pass.isSolid )
+			const shaderInfo_t* shader = map->GetShaderInfo( faceIndex );
+			bool add = ( !pass.isSolid && IsTransFace( faceIndex, shader ) ) || ( pass.isSolid && !IsTransFace( faceIndex, shader ) );
+
+			// Only draw individual faces if they're patches, since meshes and polygons
+			// can be easily grouped together from the original vbo
+			if ( map->data.faces[ faceIndex ].type == BSP_FACE_TYPE_PATCH )
 			{
-				if ( IsTransFace( faceIndex ) )
-				{
-					LoadPassParams( pass, faceIndex, PASS_MAP );
-					DrawFace( pass );
-					//pass.transparent.push_back( faceIndex );
-					pass.facesVisited[ faceIndex ] = true;
-				}
+				DrawFaceOnlyIf( pass, add, faceIndex, PASS_MAP ); 
 			}
 			else
 			{
-				if ( !IsTransFace( faceIndex ) )
-				{
-					LoadPassParams( pass, faceIndex, PASS_MAP );
-					DrawFace( pass );
-					//pass.opaque.push_back( faceIndex );
-					pass.facesVisited[ faceIndex ] = true;
-				}
+				AddSurfaceOnlyIf( pass, 
+					shader, add, faceIndex, pass.isSolid? pass.opaqueSurfaces : pass.transSurfaces );
 			}
 		}
     }
@@ -831,6 +830,32 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	}
 
     pass.facesVisited[ pass.faceIndex ] = 1;
+}
+
+void BSPRenderer::DrawSurfaceList( drawPass_t& pass, const std::vector< drawSurface_t >& list )
+{	
+	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( pass.program ) );
+
+	const Program& main = *( glPrograms[ "main" ].get() );
+
+	main.Bind();
+
+	for ( const drawSurface_t& surf: list )
+	{
+		const texture_t& tex0 = GetTextureOrDummy( surf.textureIndex, 
+			surf.textureIndex >= 0 && !!glTextures[ surf.textureIndex ].handle, glTextures );
+		
+		const texture_t& lightmap = GetTextureOrDummy( surf.lightmapIndex,
+			surf.lightmapIndex >= 0, glLightmaps );
+
+		tex0.Bind( 0, "fragTexSampler", main );
+		lightmap.Bind( 1, "fragLightmapSampler", main );
+
+		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &surf.indexBufferSizes[ 0 ], 
+			GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+	}
+
+	main.Release();
 }
 
 void BSPRenderer::DrawFaceVerts( drawPass_t& pass )
