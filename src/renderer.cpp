@@ -545,7 +545,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 		}
 	}
 	*/
-
+	
 	frameTime = glfwGetTime() - startTime;
 }
 
@@ -732,9 +732,13 @@ void BSPRenderer::EndMapPass( drawPass_t& pass, const texture_t* tex0, const tex
 	//lightSampler.attachments[ 1 ].Release( 1 );
 }
 
-void BSPRenderer::DrawEffectPass( drawPass_t& pass )
+void BSPRenderer::DrawEffectPass( drawPass_t& pass, const drawTuple_t& data )
 {
-	if ( pass.shader->hasPolygonOffset )
+	objectType_t drawType = std::get< 0 >( data );
+	const shaderInfo_t* shader = std::get< 2 >( data );
+	int lightmapIndex = std::get< 3 >( data );
+
+	if ( shader->hasPolygonOffset )
 	{
 		SetPolygonOffsetState( true, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 	}
@@ -742,9 +746,9 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
-	for ( int i = 0; i < pass.shader->stageCount; ++i )
+	for ( int i = 0; i < shader->stageCount; ++i )
 	{			
-		const shaderStage_t& stage = pass.shader->stageBuffer[ i ];
+		const shaderStage_t& stage = shader->stageBuffer[ i ];
 
 		if ( Shade_IsIdentColor( stage ) )
 		{
@@ -756,29 +760,19 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 
 		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 			
+		size_t texAttribOffset;
 		if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
 		{
-			const texture_t& lightmap = glLightmaps[ pass.face->lightmapIndex ];
-
-			MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 1 ] ) );
-			GL_CHECK( glBindTexture( GL_TEXTURE_2D, lightmap.handle ) );
-			GL_CHECK( glBindSampler( 0, lightmap.sampler ) );
+			texAttribOffset = offsetof( bspVertex_t, texCoords[ 1 ] );
+			glLightmaps[ lightmapIndex ].Bind( 0, "sampler0", *( stage.program.get() ) );
 		}
 		else
 		{
-			MapAttribTexCoord( 2, offsetof( bspVertex_t, texCoords[ 0 ] ) );
-
-			if ( stage.mapType == MAP_TYPE_IMAGE ) 
-			{
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, stage.texture.handle ) );
-				GL_CHECK( glBindSampler( 0, stage.texture.sampler ) );
-			}
-			else
-			{
-				GL_CHECK( glBindTexture( GL_TEXTURE_2D, glDummyTexture.handle ) );
-				GL_CHECK( glBindSampler( 0, glDummyTexture.sampler ) );
-			}
+			texAttribOffset = offsetof( bspVertex_t, texCoords[ 0 ] );
+			const texture_t& tex = stage.mapType == MAP_TYPE_IMAGE? stage.texture : glDummyTexture;
+			tex.Bind( 0, "sampler0", *( stage.program.get() ) ); 
 		}
+		MapAttribTexCoord( 2, texAttribOffset );
 
 		if ( stage.hasTexMod )
 		{
@@ -793,7 +787,17 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 		stage.program->LoadInt( "sampler0", 0 );
 		
 		stage.program->Bind();
-		DrawFaceVerts( pass );
+		switch ( drawType )
+		{
+		case OBJECT_FACE:
+			DrawFaceVerts( pass );
+			break;
+		case OBJECT_SURFACE:
+			const drawSurface_t* surf = ( const drawSurface_t* ) std::get< 1 >( data );
+			GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &surf->indexBufferSizes[ 0 ], 
+				GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf->indexBuffers[ 0 ], surf->indexBuffers.size() ) );
+			break;
+		}
 		stage.program->Release();
 
 		if ( Shade_IsIdentColor( stage ) )
@@ -801,8 +805,8 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass )
 			GL_CHECK( glEnableVertexAttribArray( 1 ) );
 		}
 	}
-	
-	if ( pass.shader->hasPolygonOffset )
+
+	if ( shader->hasPolygonOffset )
 	{
 		SetPolygonOffsetState( false, GLUTIL_POLYGON_OFFSET_FILL | GLUTIL_POLYGON_OFFSET_LINE | GLUTIL_POLYGON_OFFSET_POINT );
 	}
@@ -817,10 +821,13 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
+	drawTuple_t data = std::make_tuple( OBJECT_FACE, 
+		( const void* ) pass.face, pass.shader, pass.face->texture, pass.face->lightmapIndex );
+
 	switch ( pass.type )
 	{
 		case PASS_EFFECT:
-			DrawEffectPass( pass );
+			DrawEffectPass( pass, data );
 			break;
 		
 		case PASS_MODEL:
@@ -838,24 +845,35 @@ void BSPRenderer::DrawSurfaceList( drawPass_t& pass, const std::vector< drawSurf
 
 	const Program& main = *( glPrograms[ "main" ].get() );
 
-	main.Bind();
-
 	for ( const drawSurface_t& surf: list )
 	{
-		const texture_t& tex0 = GetTextureOrDummy( surf.textureIndex, 
-			surf.textureIndex >= 0 && !!glTextures[ surf.textureIndex ].handle, glTextures );
+		if ( surf.shader )
+		{
+			drawTuple_t tuple = std::make_tuple( OBJECT_SURFACE, 
+				( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
+			DrawEffectPass( pass, tuple );
+		}
+		else
+		{
+			main.Bind();
+
+			const texture_t& tex0 = GetTextureOrDummy( surf.textureIndex, 
+				surf.textureIndex >= 0 && !!glTextures[ surf.textureIndex ].handle, glTextures );
 		
-		const texture_t& lightmap = GetTextureOrDummy( surf.lightmapIndex,
-			surf.lightmapIndex >= 0, glLightmaps );
+			const texture_t& lightmap = GetTextureOrDummy( surf.lightmapIndex,
+				surf.lightmapIndex >= 0, glLightmaps );
 
-		tex0.Bind( 0, "fragTexSampler", main );
-		lightmap.Bind( 1, "fragLightmapSampler", main );
+			tex0.Bind( 0, "fragTexSampler", main );
+			lightmap.Bind( 1, "fragLightmapSampler", main );
 
-		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &surf.indexBufferSizes[ 0 ], 
-			GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+			GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, &surf.indexBufferSizes[ 0 ], 
+				GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+
+			main.Release();
+		}
 	}
 
-	main.Release();
+	
 }
 
 void BSPRenderer::DrawFaceVerts( drawPass_t& pass )

@@ -26,6 +26,12 @@ enum passType_t
 	PASS_LIGHT_SAMPLE
 };
 
+enum objectType_t
+{
+	OBJECT_FACE,
+	OBJECT_SURFACE
+};
+
 enum viewMode_t
 {
 	VIEW_MAIN = 0,
@@ -132,6 +138,10 @@ class BSPRenderer
 private:
 	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
+	// last two integers are textureIndex and lightmapIndex, respectively
+	// the const void* is either a const drawSurface_t* or const bspFace_t*, depending on objectType_t
+	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int >; 
+
 	texture_t					glDummyTexture;
 	std::vector< texture_t >	glTextures;			// has one->one mapping with texture indices
 	std::vector< texture_t >	glLightmaps;		// has one->one mapping with lightmap indices
@@ -173,7 +183,7 @@ private:
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int >& list );
 
-	void				DrawEffectPass( drawPass_t& pass );
+	void				DrawEffectPass( drawPass_t& pass, const drawTuple_t& data );
 
 	void				DrawSurfaceList( drawPass_t& pass, const std::vector< drawSurface_t >& list );
 	
@@ -249,7 +259,7 @@ INLINE void BSPRenderer::DrawFaceOnlyIf( drawPass_t& pass, bool predicate, int f
 {
 	if ( predicate )
 	{
-		LoadPassParams( pass, faceIndex, PASS_MAP );
+		LoadPassParams( pass, faceIndex, defaultPass );
 		DrawFace( pass );
 		pass.facesVisited[ faceIndex ] = true;
 	}
@@ -281,6 +291,9 @@ INLINE void BSPRenderer::AddSurfaceOnlyIf( drawPass_t& pass,
 			surf.shader = shader;
 			surf.lightmapIndex = face->lightmapIndex;
 			surf.textureIndex = face->texture;
+
+			surf.indexBuffers.push_back( &glFaces[ faceIndex ].indices[ 0 ] );
+			surf.indexBufferSizes.push_back( glFaces[ faceIndex ].indices.size() );
 			
 			surfList.push_back( std::move( surf ) ); 
 		}
