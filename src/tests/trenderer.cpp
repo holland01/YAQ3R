@@ -25,7 +25,6 @@ TRenderer::~TRenderer( void )
 
 void TRenderer::Run( void )
 {
-	//camPtr = renderer->CameraFromView();
     renderer->Update( deltaTime );
     renderer->Render( mapRenderFlags );
 

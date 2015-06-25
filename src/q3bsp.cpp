@@ -72,6 +72,8 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 	if ( face->texture != -1 )
 	{
+		//std::string texture( data.textures[ face->texture ].name );
+
 		auto it = effectShaders.find( data.textures[ face->texture ].name );
 	
 		if ( it != effectShaders.end() )

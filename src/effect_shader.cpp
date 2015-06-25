@@ -65,6 +65,7 @@ static INLINE GLenum GL_EnumFromStr( const char* str )
 	
 	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
 	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
+	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 ) return GL_ONE_MINUS_DST_ALPHA;
 
 	if ( strcmp( str, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
 	if ( strcmp( str, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
@@ -578,7 +579,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			
 			if ( Shade_IsIdentColor( shader.stageBuffer[ j ] ) )
 			{ 
-				vertexSrc.push_back( "\tfrag_Color = vec4(1.0f);" );
+				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 			}
 			else
 			{
@@ -679,12 +680,12 @@ static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders 
 		{
 			shaderStage_t& stage = shader.stageBuffer[ i ];
 
-			stage.textureSlot = i;
-			stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-			stage.texture.mipmap = !!( shader.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
-
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
+				stage.textureSlot = i;
+				stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+				stage.texture.mipmap = !!( shader.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
+
 				std::string texFileRoot( map->basePath );
 				texFileRoot.append( stage.texturePath );
 

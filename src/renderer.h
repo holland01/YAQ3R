@@ -8,6 +8,7 @@
 #include <set>
 #include <array>
 #include <functional>
+#include <cfloat>
 
 // Draw flags
 enum 
@@ -73,11 +74,12 @@ struct drawSurface_t
 	const shaderInfo_t*			shader;
 	int							textureIndex;
 	int							lightmapIndex;
+	float						maxDepth;
 
 	std::vector< int32_t*	>	indexBuffers;
 	std::vector< int32_t	>	indexBufferSizes;
 
-			drawSurface_t( void ): shader( nullptr )
+			drawSurface_t( void ): shader( nullptr ), maxDepth( FLT_MAX )
 			{}
 };
 
@@ -90,11 +92,6 @@ struct drawPass_t
 	passType_t type;
 	uint32_t renderFlags;
 
-	AABB* bounds;
-
-	const Program* program;
-
-	const bspBrush_t* brush;
 	const bspFace_t* face;
 	const bspLeaf_t* leaf;
 	const bspLightvol_t* lightvol;
@@ -104,7 +101,7 @@ struct drawPass_t
 
     std::vector< byte > facesVisited;
 	std::vector< int > transparent, opaque;
-	std::vector< drawSurface_t > transSurfaces, opaqueSurfaces;
+	std::vector< drawSurface_t > surfaces, effectSurfaces;
 
 	drawPass_t( const Q3BspMap* const & map, const viewParams_t& viewData );
 	~drawPass_t( void );
@@ -157,9 +154,11 @@ private:
     float               deltaTime;
 	double				frameTime;
 
+	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
+
 	const texture_t&	GetTextureOrDummy( int index, bool predicate, const std::vector< texture_t >& textures ) const;
 
-	void				DeformVertexes( mapModel_t* m, drawPass_t& parms );
+	void				DeformVertexes( const mapModel_t* m, const drawPass_t& pass ) const;
 
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
@@ -178,23 +177,19 @@ private:
 	
 	void				EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
-	void				AddSurfaceOnlyIf( drawPass_t& pass, 
-							const shaderInfo_t* shader, bool predicate, int faceIndex, std::vector< drawSurface_t >& surfList );
+	void				AddSurface( drawPass_t& pass, std::vector< drawSurface_t >& surfList );
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int >& list );
 
+	void				DrawSurfaceList( drawPass_t& pass, std::vector< drawSurface_t >& list );
+
 	void				DrawEffectPass( drawPass_t& pass, const drawTuple_t& data );
 
-	void				DrawSurfaceList( drawPass_t& pass, const std::vector< drawSurface_t >& list );
-	
-	void				DrawFaceOnlyIf( drawPass_t& pass, 
-							bool predicate, int faceIndex, passType_t defaultPass );
-	
 	void				DrawNode( int nodeIndex, drawPass_t& pass );
 
     void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts( drawPass_t& pass );
+	void				DrawFaceVerts( const drawPass_t& pass, uint32_t layoutFlags, const Program& program ) const;
 
 public:
 	Q3BspMap*       map;
@@ -236,69 +231,6 @@ INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int index,
 	else
 	{
 		return glDummyTexture;
-	}
-}
-
-INLINE void BSPRenderer::LoadPassParams( drawPass_t& p, int face, passType_t defaultPass ) const
-{
-	p.face = &map->data.faces[ face ];
-	p.faceIndex = face;
-	p.shader = map->GetShaderInfo( face );
-
-	if ( p.shader )
-	{
-		p.type = PASS_EFFECT;
-	}
-	else
-	{
-		p.type = defaultPass;
-	}
-}
-
-INLINE void BSPRenderer::DrawFaceOnlyIf( drawPass_t& pass, bool predicate, int faceIndex, passType_t defaultPass )
-{
-	if ( predicate )
-	{
-		LoadPassParams( pass, faceIndex, defaultPass );
-		DrawFace( pass );
-		pass.facesVisited[ faceIndex ] = true;
-	}
-}
-
-INLINE void BSPRenderer::AddSurfaceOnlyIf( drawPass_t& pass, 
-		const shaderInfo_t* shader, bool predicate, int faceIndex, std::vector< drawSurface_t >& surfList )
-{
-	if ( predicate )
-	{
-		const bspFace_t* face = &map->data.faces[ faceIndex ]; 
-		
-		bool add = true;
-		for ( drawSurface_t& surf: surfList )
-		{
-			if ( shader == surf.shader && face->texture == surf.textureIndex && face->lightmapIndex == surf.lightmapIndex )
-			{
-				surf.indexBuffers.push_back( &glFaces[ faceIndex ].indices[ 0 ] );
-				surf.indexBufferSizes.push_back( glFaces[ faceIndex ].indices.size() );
-				add = false;
-				break;
-			}
-		}
-
-		if ( add )
-		{
-			drawSurface_t surf;
-
-			surf.shader = shader;
-			surf.lightmapIndex = face->lightmapIndex;
-			surf.textureIndex = face->texture;
-
-			surf.indexBuffers.push_back( &glFaces[ faceIndex ].indices[ 0 ] );
-			surf.indexBufferSizes.push_back( glFaces[ faceIndex ].indices.size() );
-			
-			surfList.push_back( std::move( surf ) ); 
-		}
-
-		pass.facesVisited[ faceIndex ] = true;
 	}
 }
 
