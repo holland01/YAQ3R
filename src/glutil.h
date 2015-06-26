@@ -33,6 +33,14 @@
 #	define GL_CHECK( expr ) ( expr )
 #endif // _DEBUG_USE_GL_ASYNC_CALLBACK
 
+#define GL_CHECK_WITH_NAME( expr, funcname )\
+	do\
+	{\
+		( expr );\
+		ExitOnGLError( _LINE_NUM_, #expr, funcname );\
+	}\
+	while ( 0 )
+
 enum 
 {
 	GLUTIL_POLYGON_OFFSET_FILL = 1 << 0,
@@ -45,16 +53,20 @@ enum
 	GLUTIL_LAYOUT_TEX0 = 1 << 2,
 	GLUTIL_LAYOUT_LIGHTMAP = 1 << 3,
 	GLUTIL_LAYOUT_NORMAL = 1 << 4,
-	GLUTIL_LAYOUT_ALL = 0x1F
+	GLUTIL_LAYOUT_ALL = 0x1F,
+
+	GLUTIL_NUM_ATTRIBS_MAX = 5
 };
 
 class Program;
 class AABB;
 
 void SetPolygonOffsetState( bool enable, uint32_t polyFlags );
+
 void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform );
 void ImDrawAxes( const float size );
 void ImDrawBounds( const AABB& bounds, const glm::vec4& color ); 
+void ImDrawPoint( const glm::vec3& point, const glm::vec4& color, float size = 1.0f );
 
 void LoadVertexLayout( uint32_t attribFlags, const Program& program );
 
@@ -209,6 +221,8 @@ public:
 	std::map< std::string, GLint > uniforms; 
 	std::map< std::string, GLint > attribs;
 
+	std::vector< std::string > disableAttribs; // Cleared on each invocation of LoadAttribLayout
+
 	Program( const std::string& vertexShader, const std::string& fragmentShader );
 	
 	Program( const std::string& vertexShader, const std::string& fragmentShader, 
@@ -224,11 +238,18 @@ public:
 	void AddUnif( const std::string& name );
 	void AddAttrib( const std::string& name );
 
+	void LoadAttribLayout( void ) const;
+
 	void LoadMat4( const std::string& name, const glm::mat4& t ) const;
+	
 	void LoadMat2( const std::string& name, const glm::mat2& t ) const;
+	void LoadMat2( const std::string& name, const float* t ) const;
 
 	void LoadVec2( const std::string& name, const glm::vec2& v ) const;
+	void LoadVec2( const std::string& name, const float* v ) const;
+
 	void LoadVec3( const std::string& name, const glm::vec3& v ) const;
+
 	void LoadVec4( const std::string& name, const glm::vec4& v ) const;
 	void LoadVec4( const std::string& name, const float* v ) const;
 
@@ -259,9 +280,19 @@ INLINE void Program::LoadMat2( const std::string& name, const glm::mat2& t ) con
 	GL_CHECK( glProgramUniformMatrix2fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
 }
 
+INLINE void Program::LoadMat2( const std::string& name, const float* t ) const
+{
+	GL_CHECK( glProgramUniformMatrix2fv( program, uniforms.at( name ), 1, GL_FALSE, t ) );
+}
+
 INLINE void Program::LoadVec2( const std::string& name, const glm::vec2& v ) const
 {
 	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
+}
+
+INLINE void Program::LoadVec2( const std::string& name, const float* v ) const
+{
+	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), 1, v ) );
 }
 
 INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const

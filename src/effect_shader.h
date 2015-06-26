@@ -110,30 +110,34 @@ struct bulge_t
 	float speed;
 };
 
-enum effectType_t
-{
-	EFFECT_UNDEFINED = 255,
-	EFFECT_WAVE = 0,
-	EFFECT_BULGE,
-	EFFECT_VEC4
-};
-
 struct effect_t
 {
 	std::string name;
-	effectType_t type;
 
 	union data_t
 	{
+		struct 
+		{
+			float transform[ 2 ][ 2 ];
+			float center[ 2 ];
+		}
+		rotation2D;
+
 		wave_t	wave;
 		bulge_t bulge;
 		float	xyzw[ 4 ];
 	} data;
-
+	 
 	effect_t( void )
-		: type(),
-		  data()
-	{}
+		: data()
+	{
+	}
+
+	effect_t( const effect_t& e )
+		: name( e.name ),
+		  data( e.data )
+	{
+	}
 
 	~effect_t( void )
 	{}
@@ -202,9 +206,11 @@ struct shaderInfo_t
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectShaders );
+void Shader_LoadAll( const mapData_t* map, shaderMap_t& effectShaders, uint32_t loadFlags );
 
-static INLINE bool Shade_IsIdentColor( const shaderStage_t& s )
+void Shader_SetEffectTextureData( effect_t& op, const texture_t& t ); 
+
+static INLINE bool Shader_StageHasIdentityColor( const shaderStage_t& s )
 {
 	return s.rgbGen == RGBGEN_IDENTITY || s.rgbGen == RGBGEN_IDENTITY_LIGHTING;
 }

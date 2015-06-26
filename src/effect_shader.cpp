@@ -61,14 +61,13 @@ static int gLineCount = 0;
 
 static INLINE GLenum GL_EnumFromStr( const char* str )
 {
-	if ( strcmp( str, "gl_src_alpha" ) == 0 ) return GL_SRC_ALPHA;
-	
 	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
 	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
 	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 ) return GL_ONE_MINUS_DST_ALPHA;
 
 	if ( strcmp( str, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
 	if ( strcmp( str, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
+	if ( strcmp( str, "gl_src_alpha" ) == 0 ) return GL_SRC_ALPHA;
 
 	if ( strcmp( str, "gl_zero" ) == 0 ) return GL_ZERO;
 	if ( strcmp( str, "gl_one" ) == 0 ) return GL_ONE;
@@ -407,7 +406,6 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					effect_t op;
 
 					op.name = "tcModTurb";
-					op.type	= EFFECT_WAVE;
 	
 					op.data.wave.base = ReadFloat( buffer );
 					op.data.wave.amplitude = ReadFloat( buffer );
@@ -421,10 +419,24 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 					effect_t op;
 
 					op.name = "tcModScroll";
-					op.type = EFFECT_VEC4;
 
 					op.data.xyzw[ 0 ] = ReadFloat( buffer );
 					op.data.xyzw[ 1 ] = ReadFloat( buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+				}
+				else if ( strcmp( type, "rotate" ) == 0 )
+				{
+					effect_t op;
+
+					op.name = "tcModRotate";					
+					
+					float angRad = glm::radians( ReadFloat( buffer ) );
+
+					op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
+					op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
+					op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
+					op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
 
 					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
 				}
@@ -531,12 +543,26 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		fragmentSrc.push_back( "\tfragment = color;" );
 	};
 
-	auto LJoinLines = []( const std::vector< std::string >& lines ) -> std::string
+	auto LJoinLines = []( shaderStage_t& stage, std::vector< std::string >& lines, std::vector< std::string >& attribs ) -> std::string
 	{
 		std::stringstream shaderSrc;
 
-		for ( const std::string& line: lines )
+		for ( std::string& line: lines )
 		{
+			size_t index = line.find_first_of( "$" );
+			if ( index != std::string::npos )
+			{
+				if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
+				{
+					line.replace( index, 5, "lightmap" );
+					attribs[ 2 ] = "lightmap";
+				}
+				else
+				{
+					line.erase( index, 1 );
+				}
+			}
+
 			shaderSrc << line << '\n';
 		}
 
@@ -564,7 +590,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 450", 
 				"layout( location = 0 ) in vec3 position;", 
 				"layout( location = 1 ) in vec4 color;", 
-				"layout( location = 2 ) in vec2 tex0;",
+				"layout( location = 2 ) in vec2 $tex0;",
 				"layout( std140 ) uniform Transforms {",
 				"\tmat4 viewToClip;",
 				"\tmat4 modelToView;",
@@ -575,9 +601,9 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );"
 			};
 
-			vertexSrc.push_back( "\tfrag_Tex = tex0;" );
+			vertexSrc.push_back( "\tfrag_Tex = $tex0;" );
 			
-			if ( Shade_IsIdentColor( shader.stageBuffer[ j ] ) )
+			if ( Shader_StageHasIdentityColor( shader.stageBuffer[ j ] ) )
 			{ 
 				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 			}
@@ -628,6 +654,15 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
 					uniforms.push_back( "tcModScroll" );
 				}
+				else if ( op.name == "tcModRotate" )
+				{
+					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texRotate;" );
+					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec2 texCenter;" );
+					fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
+
+					uniforms.push_back( "texRotate" );
+					uniforms.push_back( "texCenter" );
+				}
 			}
 
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
@@ -655,8 +690,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				break;
 			}
 
-			const std::string& vertexString = LJoinLines( vertexSrc );
-			const std::string& fragmentString = LJoinLines( fragmentSrc );
+			const std::string& vertexString = LJoinLines( shader.stageBuffer[ j ], vertexSrc, attribs );
+			const std::string& fragmentString = LJoinLines( shader.stageBuffer[ j ], fragmentSrc, attribs );
 
 			shader.stageBuffer[ j ].program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 			
@@ -670,44 +705,43 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	fclose( f );
 }
 
-static void GenShaderTextures( const mapData_t* map, shaderMap_t& effectShaders )
+static void LoadStageTexture( shaderInfo_t& info, int i, const mapData_t* map )
 {
-	for ( auto& entry: effectShaders )
+	shaderStage_t& stage = info.stageBuffer[ i ];
+
+	if ( stage.mapType == MAP_TYPE_IMAGE )
 	{
-		shaderInfo_t& shader = entry.second;
+		stage.textureSlot = i;
+		stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+		stage.texture.mipmap = !!( info.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
-		for ( int i = 0; i < shader.stageCount; ++i )
+		std::string texFileRoot( map->basePath );
+		texFileRoot.append( stage.texturePath );
+
+		if ( !stage.texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
 		{
-			shaderStage_t& stage = shader.stageBuffer[ i ];
-
-			if ( stage.mapType == MAP_TYPE_IMAGE )
-			{
-				stage.textureSlot = i;
-				stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-				stage.texture.mipmap = !!( shader.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
-
-				std::string texFileRoot( map->basePath );
-				texFileRoot.append( stage.texturePath );
-
-				bool success = stage.texture.LoadFromFile( texFileRoot.c_str(), shader.loadFlags );
-
-				if ( success )
-				{
-					for ( effect_t& op: stage.effects )
-					{
-						if ( op.name == "tcModScroll" )
-						{
-							op.data.xyzw[ 2 ] = ( float ) stage.texture.width;
-							op.data.xyzw[ 3 ] = ( float ) stage.texture.height;
-						}
-					}
-				}
-			}
+			MLOG_ERROR( "Could not load texture file \"%s\"", texFileRoot.c_str() );
 		}
 	}
 }
 
-void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectShaders )
+void Shader_SetEffectTextureData( effect_t& op, const texture_t& texture )
+{
+	if ( op.name == "tcModScroll" )
+	{
+		op.data.xyzw[ 2 ] = ( float ) texture.width;
+		op.data.xyzw[ 3 ] = ( float ) texture.height;
+	}
+	else if ( op.name == "tcModRotate" )
+	{
+		op.data.rotation2D.center[ 0 ] = 
+			( ( float ) texture.width * 0.5f ) / ( float ) texture.width;
+		op.data.rotation2D.center[ 1 ] = 
+			( ( float ) texture.height * 0.5f ) / ( float ) texture.height;
+	}
+}
+
+void Shader_LoadAll( const mapData_t* map, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
@@ -726,5 +760,12 @@ void LoadShaders( const mapData_t* map, uint32_t loadFlags, shaderMap_t& effectS
 	}
 	
 	GenShaderPrograms( effectShaders );
-	GenShaderTextures( map, effectShaders );
+	
+	for ( auto& entry: effectShaders )
+	{
+		for ( int i = 0; i < entry.second.stageCount; ++i )
+		{
+			LoadStageTexture( entry.second, i, map );
+		}
+	}
 }

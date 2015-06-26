@@ -4,6 +4,52 @@
 #include "aabb.h"
 #include "extern/stb_image.c"
 
+static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions = 
+{
+	{
+		"position",
+		[]( const Program& program ) -> void
+		{
+			MapVec3( program.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
+			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "position" ), 0 ), "attribLoadFunctions" ); 
+		}
+	},
+	{
+		"normal",
+		[]( const Program& program ) -> void
+		{
+			MapVec3( program.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
+			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "normal" ), 0 ), "attribLoadFunctions" ); 
+		}
+	},
+	{
+		"color",
+		[]( const Program& program ) -> void
+		{
+			GL_CHECK_WITH_NAME( glEnableVertexAttribArray( program.attribs.at( "color" ) ), "attribLoadFunctions" ); 
+			GL_CHECK_WITH_NAME( glVertexAttribPointer( program.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE, 
+				GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ), "attribLoadFunctions" );
+			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "color" ), 0 ), "attribLoadFunctions" ); 
+		}
+	},
+	{
+		"tex0",
+		[]( const Program& program ) -> void
+		{
+			MapAttribTexCoord( program.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
+			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "tex0" ), 0 ), "attribLoadFunctions" ); 
+		}
+	},
+	{
+		"lightmap",
+		[]( const Program& program ) -> void
+		{
+			MapAttribTexCoord( program.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
+			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "lightmap" ), 0 ), "attribLoadFunctions" ); 
+		}
+	}
+};
+
 static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
 {
 	int destOfs = ( width * destY + destX ) * bpp;
@@ -231,35 +277,40 @@ bool texture_t::SetBufferSize( int width0, int height0, int bpp0, byte fill )
 
 void LoadVertexLayout( uint32_t attribFlags, const Program& prog )
 {
+	for ( GLuint i = 0; i < GLUTIL_NUM_ATTRIBS_MAX; ++i )
+	{
+		GL_CHECK( glDisableVertexAttribArray( i ) );
+	}
+
 	if ( attribFlags & GLUTIL_LAYOUT_POSITION ) 
 	{
 		MapVec3( prog.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
-		//GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "position" ), 0 ) ); 
+		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "position" ), 0 ) ); 
 	}
 
 	if ( attribFlags & GLUTIL_LAYOUT_NORMAL )
 	{
 		MapVec3( prog.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
-		//GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "normal" ), 0 ) ); 
+		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "normal" ), 0 ) ); 
 	}
 
 	if ( attribFlags & GLUTIL_LAYOUT_COLOR )
 	{
 		GL_CHECK( glEnableVertexAttribArray( prog.attribs.at( "color" ) ) ); 
 		GL_CHECK( glVertexAttribPointer( prog.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
-		//GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "color" ), 0 ) ); 
+		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "color" ), 0 ) ); 
 	}
 
 	if ( attribFlags & GLUTIL_LAYOUT_TEX0 )
 	{
 		MapAttribTexCoord( prog.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
-		//GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "tex0" ), 0 ) ); 
+		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "tex0" ), 0 ) ); 
 	}
 
 	if ( attribFlags & GLUTIL_LAYOUT_LIGHTMAP )
 	{
 		MapAttribTexCoord( prog.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
-		//GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "lightmap" ), 0 ) ); 
+		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "lightmap" ), 0 ) ); 
 	}
 }
 
@@ -323,6 +374,23 @@ void ImDrawBounds( const AABB& bounds, const glm::vec4& color )
 	}
 
 	glEnd();
+	GL_CHECK( glPopMatrix() );
+}
+
+void ImDrawPoint( const glm::vec3& point, const glm::vec4& color, float size )
+{
+	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glPushMatrix() );
+	GL_CHECK( glTranslatef( point.x, point.y, point.z ) );
+	GL_CHECK( glPushAttrib( GL_POINT_BIT ) );
+	GL_CHECK( glPointSize( size ) );
+
+	glBegin( GL_POINTS );
+	glColor4fv( glm::value_ptr( color ) );
+	glVertex3f( 0.0f, 0.0f, 0.0f );
+	glEnd();
+
+	GL_CHECK( glPopAttrib() );
 	GL_CHECK( glPopMatrix() );
 }
 
@@ -403,5 +471,27 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 	if ( bindTransformsUbo )
 	{
 		MapProgramToUBO( program, "Transforms" );
+	}
+}
+
+void Program::LoadAttribLayout( void ) const
+{
+	for ( const auto& attrib: attribs )
+	{
+		if ( attrib.second != -1 )
+		{
+			if ( !disableAttribs.empty() )
+			{
+				auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
+
+				if ( it != disableAttribs.end() )
+				{
+					GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
+					continue;
+				}
+			}
+			
+			attribLoadFunctions[ attrib.first ]( *this ); 
+		}
 	}
 }

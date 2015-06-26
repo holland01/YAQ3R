@@ -158,6 +158,14 @@ BSPRenderer::BSPRenderer( void )
 				{
 					p.LoadVec4( "tcModScroll", e.data.xyzw );
 				}
+			},
+			{
+				"tcModRotate",
+				[]( const Program& p, const effect_t& e ) -> void
+				{
+					p.LoadMat2( "texRotate", &e.data.rotation2D.transform[ 0 ][ 0 ] );
+					p.LoadVec2( "texCenter", e.data.rotation2D.center );
+				}
 			}
 		} ),
 		map ( new Q3BspMap() ),
@@ -283,6 +291,8 @@ void BSPRenderer::Prep( void )
 		};
 
 		MakeProg( "irradiate", "src/irradiate.vert", "src/irradiate.frag", uniforms, attribs, true );
+
+		MakeProg( "debug", "src/debug.vert", "src/debug.frag", { "fragColor" }, { "position" }, true );
 	}
 }
 
@@ -310,7 +320,6 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int face, passType_t defaultPas
 	p.face = &map->data.faces[ face ];
 	p.faceIndex = face;
 
-	//if ( !p.shader )
 	{
 		p.shader = map->GetShaderInfo( face );
 	}
@@ -330,7 +339,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
     map->Read( filepath, 1, mapLoadFlags );
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
-	LoadShaders( &map->data, mapLoadFlags, map->effectShaders );
+	Shader_LoadAll( &map->data, map->effectShaders, mapLoadFlags );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
@@ -404,6 +413,9 @@ FAIL_WARN:
 
 	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
 	glDummyTexture.Load2D();
+
+	
+
 	//---------------------------------------------------------------------
 	// Generate our face/render data
 	//---------------------------------------------------------------------
@@ -481,7 +493,8 @@ FAIL_WARN:
 
 	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
 	// and "model" should both have the same attribute location values though
-	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), *( glPrograms[ "main" ].get() ) );
+
+	glPrograms[ "main" ]->LoadAttribLayout();
 
 	const bspNode_t* root = &map->data.nodes[ 0 ];
 
@@ -699,7 +712,7 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 			}
 		}
 
-		LoadVertexLayout( GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_NORMAL, *( glPrograms[ "irradiate" ].get() ) );
+		glPrograms[ "irradiate" ]->LoadAttribLayout();
 
 		lightSampler.Bind( 1 );
 
@@ -718,7 +731,7 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 		irradiate.LoadVec4( "fragTargetPlane", lightSampler.targetPlane );
 		irradiate.Bind();
 
-		DrawFaceVerts( pass, GetPassLayoutFlags( PASS_LIGHT_SAMPLE ), irradiate );
+		DrawFaceVerts( pass, irradiate );
 
 		irradiate.Release();
 
@@ -732,7 +745,7 @@ void BSPRenderer::DrawMapPass( drawPass_t& pass )
 	const texture_t* tex1 = nullptr;
 
 	BeginMapPass( pass, &tex0, &tex1 );
-	DrawFaceVerts( pass, GetPassLayoutFlags( PASS_MAP ), *( glPrograms[ "main" ].get() ) );
+	DrawFaceVerts( pass, *( glPrograms[ "main" ].get() ) );
 	EndMapPass( pass, tex0, tex1 );
 }
 
@@ -761,7 +774,7 @@ void BSPRenderer::BeginMapPass( drawPass_t& pass, const texture_t** tex0, const 
 	( *tex0 )->Bind( 0, "fragTexSampler", main );
 	( *tex1 )->Bind( 1, "fragLightmapSampler", main ); 
 
-	LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), main );
+	main.LoadAttribLayout();
 	main.Bind();
 
 	//lightSampler.attachments[ 1 ].Bind( 1, "fragIrradianceSampler", main );
@@ -812,7 +825,6 @@ void BSPRenderer::AddSurface( drawPass_t& pass, std::vector< drawSurface_t >& su
 
 void BSPRenderer::DrawEffectPass( drawPass_t& pass, const drawTuple_t& data )
 {
-	objectType_t drawType = std::get< 0 >( data );
 	const shaderInfo_t* shader = std::get< 2 >( data );
 	int lightmapIndex = std::get< 4 >( data );
 
@@ -830,32 +842,35 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass, const drawTuple_t& data )
 
 		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
-
-		size_t texAttribOffset;
 		
 		const texture_t* tex = nullptr;
 
 		if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
 		{
-			texAttribOffset = offsetof( bspVertex_t, texCoords[ 1 ] );
 			tex = &glLightmaps[ lightmapIndex ];
 		}
 		else
 		{
-			texAttribOffset = offsetof( bspVertex_t, texCoords[ 0 ] );
 			tex = ( stage.texture.handle != 0 )? &stage.texture: &glDummyTexture; 
 		}
-
-		MapAttribTexCoord( 2, texAttribOffset );
 
 		if ( stage.hasTexMod )
 		{
 			stage.program->LoadMat2( "texTransform", stage.texTransform );
 		}
 			
-		for ( const effect_t& e: stage.effects )
+		ImPrep( pass.view.transform, pass.view.clipTransform );
+
+		bool hasTcRotate = false;
+		for ( effect_t e: stage.effects )
 		{
-			glEffects[ e.name ]( *( stage.program.get() ), e ); 	
+			Shader_SetEffectTextureData( e, *tex );
+			glEffects[ e.name ]( *( stage.program.get() ), e ); 
+
+			if ( e.name == "tcModRotate" )
+			{
+				hasTcRotate = true;				
+			}
 		}
 
 		const Program& stageProg = *( stage.program.get() );
@@ -864,31 +879,19 @@ void BSPRenderer::DrawEffectPass( drawPass_t& pass, const drawTuple_t& data )
 		stageProg.LoadInt( "sampler0", 0 );
 		stageProg.Bind();
 
-		uint32_t layoutFlags = GetPassLayoutFlags( PASS_EFFECT );
-
-		if ( Shade_IsIdentColor( stage ) )
-		{
-			layoutFlags &= ~GLUTIL_LAYOUT_COLOR;
-		}
-
-		switch ( drawType )
-		{
-		case OBJECT_FACE:
-			DrawFaceVerts( pass, layoutFlags, stageProg );
-			break;
-
-		case OBJECT_SURFACE:
-			const drawSurface_t* surf = ( const drawSurface_t* ) std::get< 1 >( data );
-
-			LoadVertexLayout( layoutFlags, stageProg );
-
-			GL_CHECK( glMultiDrawElements( GL_TRIANGLES, &surf->indexBufferSizes[ 0 ], 
-				GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf->indexBuffers[ 0 ], surf->indexBuffers.size() ) );
-			break;
-		}
+		DrawFromTuple( data, pass, stageProg );
 
 		stageProg.Release();
 		tex->Release( 0 );
+
+		if ( hasTcRotate )
+		{
+			const Program& debug = *( glPrograms[ "debug" ].get() );
+			debug.LoadVec4( "fragColor", glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f ) );
+			debug.Bind();
+			DrawFromTuple( data, pass, debug );
+			debug.Release();
+		}
 	}
 
 	if ( shader->hasPolygonOffset )
@@ -945,7 +948,7 @@ void BSPRenderer::DrawSurfaceList( drawPass_t& pass, std::vector< drawSurface_t 
 			GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 			GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
-			LoadVertexLayout( GetPassLayoutFlags( PASS_MAP ), main );
+			main.LoadAttribLayout();
 
 			const texture_t& tex0 = GetTextureOrDummy( surf.textureIndex, 
 				surf.textureIndex >= 0 && glTextures[ surf.textureIndex ].handle != 0, glTextures );
@@ -969,7 +972,7 @@ void BSPRenderer::DrawSurfaceList( drawPass_t& pass, std::vector< drawSurface_t 
 	}
 }
 
-void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, uint32_t layoutFlags, const Program& program ) const
+void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const Program& program ) const
 {
 	const mapModel_t* m = &glFaces[ pass.faceIndex ];
 
@@ -983,13 +986,14 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, uint32_t layoutFlags, c
 		{
 			DeformVertexes( m, pass );
 		}
-			  
-		LoadBufferLayout( m->vbo, layoutFlags, program );		
 		
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, m->vbo ) );
+		program.LoadAttribLayout();
+
 		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
 			&m->trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &m->rowIndices[ 0 ], m->trisPerRow.size() ) );
-
-		LoadBufferLayout( vbo, layoutFlags, program );
+		
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
 	}
 }
 

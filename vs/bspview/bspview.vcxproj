@@ -102,6 +102,8 @@
     <ClCompile Include="..\..\src\eu_ang.cpp" />
     <None Include="..\..\README.md" />
     <None Include="..\..\remember.todo" />
+    <None Include="..\..\src\debug.frag" />
+    <None Include="..\..\src\debug.vert" />
     <None Include="..\..\src\extern\stb_image.c" />
     <ClCompile Include="..\..\src\frustum.cpp" />
     <ClCompile Include="..\..\src\gldebug.cpp" />

@@ -179,6 +179,10 @@ private:
 
 	void				AddSurface( drawPass_t& pass, std::vector< drawSurface_t >& surfList );
 
+	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const;
+
+	void				DrawSurface( const drawSurface_t& surface, const Program& program ) const;
+
 	void				DrawFaceList( drawPass_t& p, const std::vector< int >& list );
 
 	void				DrawSurfaceList( drawPass_t& pass, std::vector< drawSurface_t >& list );
@@ -189,7 +193,7 @@ private:
 
     void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts( const drawPass_t& pass, uint32_t layoutFlags, const Program& program ) const;
+	void				DrawFaceVerts( const drawPass_t& pass, const Program& program ) const;
 
 public:
 	Q3BspMap*       map;
@@ -234,6 +238,20 @@ INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int index,
 	}
 }
 
+INLINE void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const
+{
+	switch ( std::get< 0 >( data ) )
+	{
+	case OBJECT_FACE:
+		DrawFaceVerts( pass, program );
+		break;
+
+	case OBJECT_SURFACE:
+		DrawSurface( *( ( const drawSurface_t* ) std::get< 1 >( data ) ), program );
+		break;
+	}
+}
+
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& list )
 {
 	passType_t defaultPass = p.type;
@@ -245,6 +263,14 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& 
 	}
 }
 
+INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& program ) const
+{
+	program.LoadAttribLayout();
+
+	GL_CHECK( glMultiDrawElements( GL_TRIANGLES, &surf.indexBufferSizes[ 0 ], 
+		GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+}
+
 INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection )
 {
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
@@ -252,28 +278,6 @@ INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4&
 
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
-}
-
-INLINE uint32_t BSPRenderer::GetPassLayoutFlags( passType_t type )
-{
-	switch ( type )
-	{
-		case PASS_MAP:
-			return GLUTIL_LAYOUT_ALL ^ GLUTIL_LAYOUT_NORMAL;
-			break;
-		case PASS_EFFECT:
-			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_COLOR | GLUTIL_LAYOUT_TEX0;
-			break;
-		case PASS_MODEL:
-			return GLUTIL_LAYOUT_ALL;
-			break;
-		case PASS_LIGHT_SAMPLE:
-			return GLUTIL_LAYOUT_POSITION | GLUTIL_LAYOUT_NORMAL;
-			break;
-	}
-
-	// Shouldn't happen...
-	return 0;
 }
 
 INLINE InputCamera* BSPRenderer::CameraFromView( void )
