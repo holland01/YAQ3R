@@ -57,6 +57,7 @@ static void __nop( void )
 #endif
 
 #define _DEBUG_USE_GL_GET_ERR
+#define AABB_MAX_Z_LESS_THAN_MIN_Z // quake 3 maps use this standard in their bounds computations/storage
 
 // From: http://stackoverflow.com/a/4415646/763053
 #define UNSIGNED_LEN( x ) ( ( sizeof( x ) / sizeof( 0[x] ) ) / ( ( size_t )( !( sizeof( x ) % sizeof( 0[x] ) ) ) ) )

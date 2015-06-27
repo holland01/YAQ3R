@@ -121,11 +121,19 @@ static INLINE GLuint GenBufferObject( GLenum target, const std::vector< T >& dat
 }
 
 template < typename T >
-static INLINE void UpdateBufferObject( GLenum target, GLuint obj, const std::vector< T >& data ) 
+static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset, const std::vector< T >& data, bool bindUnbind ) 
 {
-	GL_CHECK( glBindBuffer( target, obj ) );
-	GL_CHECK( glBufferSubData( target, 0, data.size() * sizeof( T ), &data[ 0 ] ) );
-	GL_CHECK( glBindBuffer( target, 0 ) );
+	if ( bindUnbind )
+	{
+		GL_CHECK( glBindBuffer( target, obj ) );
+	}
+
+	GL_CHECK( glBufferSubData( target, offset * sizeof( T ), data.size() * sizeof( T ), &data[ 0 ] ) );
+
+	if ( bindUnbind )
+	{
+		GL_CHECK( glBindBuffer( target, 0 ) );
+	}
 }
 
 static INLINE void DeleteBufferObject( GLenum target, GLuint obj )

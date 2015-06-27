@@ -21,10 +21,14 @@ enum
 
 enum passType_t
 {
-	PASS_EFFECT = 0,
-	PASS_MAP,
-	PASS_MODEL,
-	PASS_LIGHT_SAMPLE
+	PASS_DRAW,
+	PASS_BRUSH
+};
+
+enum passDrawType_t
+{
+	PASS_DRAW_EFFECT = 0,
+	PASS_DRAW_MAIN
 };
 
 enum objectType_t
@@ -50,8 +54,8 @@ struct drawIndirect_t
 
 struct mapModel_t
 {
-	bool						deform;
-	GLuint						vbo;
+	bool						deform: 1;
+	GLuint						vboOffset;
 	int32_t						subdivLevel;
 
 	// used if face type == mesh or polygon
@@ -64,7 +68,6 @@ struct mapModel_t
 	std::vector< int32_t  >				trisPerRow;
 
 	mapModel_t( void );
-	~mapModel_t( void );
 };
 
 struct drawSurface_t
@@ -72,15 +75,25 @@ struct drawSurface_t
 	// Every face within a given surface must
 	// have the same following three values
 	const shaderInfo_t*			shader;
-	int							textureIndex;
-	int							lightmapIndex;
-	float						maxDepth;
+	int32_t						textureIndex;
+	int32_t						lightmapIndex;
+	int32_t						faceType;
 
-	std::vector< int32_t*	>	indexBuffers;
-	std::vector< int32_t	>	indexBufferSizes;
+	std::vector< const int32_t*		>	indexBuffers;
+	std::vector< int32_t			>	indexBufferSizes;
+	std::vector< const mapModel_t*	>	deformFaces; 
 
-			drawSurface_t( void ): shader( nullptr ), maxDepth( FLT_MAX )
+			drawSurface_t( void )
+				:	shader( nullptr ), 
+					textureIndex( 0 ),
+					lightmapIndex( 0 ),
+					faceType( 0 )
 			{}
+};
+
+struct drawSurfaceList_t
+{
+	std::vector< drawSurface_t > surfaces, effectSurfaces;
 };
 
 struct drawPass_t
@@ -90,9 +103,11 @@ struct drawPass_t
 	int faceIndex, viewLeafIndex;
 
 	passType_t type;
+	passDrawType_t drawType;
 	uint32_t renderFlags;
 
 	const bspFace_t* face;
+	const bspBrush_t* farBrush;
 	const bspLeaf_t* leaf;
 	const bspLightvol_t* lightvol;
 	const shaderInfo_t* shader;
@@ -101,10 +116,11 @@ struct drawPass_t
 
     std::vector< byte > facesVisited;
 	std::vector< int > transparent, opaque;
-	std::vector< drawSurface_t > surfaces, effectSurfaces;
+
+	drawSurfaceList_t patches;
+	drawSurfaceList_t polymeshes;
 
 	drawPass_t( const Q3BspMap* const & map, const viewParams_t& viewData );
-	~drawPass_t( void );
 };
 
 struct lightSampler_t {
@@ -145,7 +161,7 @@ private:
 	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
 
 	std::map< std::string, std::unique_ptr< Program > >		glPrograms;
-	std::map< std::string, std::function< effectFnSig_t > >	glEffects; 
+	std::map< std::string, std::function< effectFnSig_t > >	glEffects;
 
 	const bspLeaf_t*    currLeaf;
 
@@ -158,7 +174,7 @@ private:
 
 	const texture_t&	GetTextureOrDummy( int index, bool predicate, const std::vector< texture_t >& textures ) const;
 
-	void				DeformVertexes( const mapModel_t* m, const drawPass_t& pass ) const;
+	void				DeformVertexes( const mapModel_t* m, const shaderInfo_t* shader ) const;
 
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
@@ -169,7 +185,7 @@ private:
 
 	bool				IsTransFace( int faceIndex, const shaderInfo_t* shader ) const;
 
-	void				LoadPassParams( drawPass_t& pass, int face, passType_t defaultPass ) const;
+	void				LoadPassParams( drawPass_t& pass, int face, passDrawType_t defaultPass ) const;
 
 	void				DrawMapPass( drawPass_t& parms );
 	
@@ -177,7 +193,7 @@ private:
 	
 	void				EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
-	void				AddSurface( drawPass_t& pass, std::vector< drawSurface_t >& surfList );
+	void				AddSurface( const shaderInfo_t* shader, int faceIndex, std::vector< drawSurface_t >& surfList );
 
 	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const;
 
@@ -185,11 +201,11 @@ private:
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int >& list );
 
-	void				DrawSurfaceList( drawPass_t& pass, std::vector< drawSurface_t >& list );
+	void				DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list ) const;
 
-	void				DrawEffectPass( drawPass_t& pass, const drawTuple_t& data );
+	void				DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data ) const;
 
-	void				DrawNode( int nodeIndex, drawPass_t& pass );
+	void				DrawNode( drawPass_t& pass, int nodeIndex );
 
     void				DrawFace( drawPass_t& pass );
 
@@ -254,7 +270,7 @@ INLINE void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_
 
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& list )
 {
-	passType_t defaultPass = p.type;
+	passDrawType_t defaultPass = p.drawType;
 
 	for ( int face: list )
 	{
@@ -265,10 +281,15 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& 
 
 INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& program ) const
 {
+	for ( const mapModel_t* m: surf.deformFaces )
+	{
+		DeformVertexes( m, surf.shader );
+	}
+
 	program.LoadAttribLayout();
 
-	GL_CHECK( glMultiDrawElements( GL_TRIANGLES, &surf.indexBufferSizes[ 0 ], 
-		GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+	GL_CHECK( glMultiDrawElements( ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES, 
+		&surf.indexBufferSizes[ 0 ], GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
 }
 
 INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection )

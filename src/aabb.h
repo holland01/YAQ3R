@@ -65,5 +65,25 @@ INLINE glm::vec4 AABB::Corner4( int32_t index ) const
 
 INLINE bool	AABB::Encloses( const AABB& box ) const
 {
-	return !glm::any( glm::lessThan( box.minPoint, minPoint ) ) && !glm::any( glm::greaterThan( box.maxPoint, maxPoint ) );
+#ifdef AABB_MAX_Z_LESS_THAN_MIN_Z
+	
+	//if ( minPoint.x > box.maxPoint.x ) return false;
+	if ( minPoint.x > box.minPoint.x ) return false;
+	//if ( maxPoint.x < box.minPoint.x ) return false;
+	if ( maxPoint.x < box.maxPoint.x ) return false;
+
+	//if ( minPoint.y > box.maxPoint.y ) return false;
+	if ( minPoint.y > box.minPoint.y ) return false;
+	//if ( maxPoint.y < box.minPoint.y ) return false;
+	if ( maxPoint.y < box.maxPoint.y ) return false;
+
+	//if ( minPoint.z < box.maxPoint.x ) return false;
+	if ( minPoint.z < box.minPoint.z ) return false;
+	//if ( maxPoint.z < box.minPoint.z ) return false;
+	if ( maxPoint.z > box.maxPoint.z ) return false;
+
+	return true;
+#else
+	return !glm::any( glm::greaterThan( minPoint, box.maxPoint ) ) && !glm::any( glm::lessThan( maxPoint, box.minPoint ) );
+#endif
 }

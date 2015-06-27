@@ -182,6 +182,8 @@ struct shaderStage_t
 
 struct shaderInfo_t
 {
+	bool				deform: 1;
+
 	uint8_t				hasLightmap;
 	uint8_t				hasPolygonOffset;
 	

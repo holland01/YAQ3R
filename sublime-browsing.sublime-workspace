@@ -63,7 +63,7 @@
 			"file": "log/entities.log",
 			"settings":
 			{
-				"buffer_size": 0,
+				"buffer_size": 33140,
 				"line_ending": "Unix"
 			}
 		},
@@ -72,6 +72,14 @@
 			"settings":
 			{
 				"buffer_size": 8244,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "log/shader_gen.txt",
+			"settings":
+			{
+				"buffer_size": 27908,
 				"line_ending": "Windows"
 			}
 		}
@@ -105,10 +113,18 @@
 	"expanded_folders":
 	[
 		"/C/Dev/bspview/bspviewer",
-		"/C/Dev/bspview/bspviewer/asset",
 		"/C/Dev/bspview/bspviewer/asset/quake",
 		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena",
 		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/assaultQ",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/bata3dm1",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/force",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/marsbase",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/moon",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/moteof",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/water",
+		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/xlab_doorQ",
 		"/C/Dev/bspview/bspviewer/log",
 		"/C/Dev/bspview/bspviewer/src"
 	],
@@ -264,6 +280,12 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"tcmod rotate",
+			"blendfunc",
+			"texRotate",
+			"bata3dm",
+			"bata3dm1",
+			"aecell_pads_quad",
 			"s",
 			"sky",
 			"lightvols",
@@ -373,7 +395,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 0,
+						"buffer_size": 33140,
 						"regions":
 						{
 						},
@@ -392,7 +414,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
@@ -408,8 +430,8 @@
 						"selection":
 						[
 							[
-								1494,
-								1494
+								4834,
+								4834
 							]
 						],
 						"settings":
@@ -418,10 +440,39 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 4680.0,
+						"translation.y": 4499.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "log/shader_gen.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 27908,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								8853,
+								8853
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 7959.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
 					"type": "text"
 				}
 			]

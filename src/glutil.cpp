@@ -476,6 +476,11 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 
 void Program::LoadAttribLayout( void ) const
 {
+	for ( int i = 0; i < 5; ++i )
+	{
+		GL_CHECK( glDisableVertexAttribArray( i ) );
+	}
+
 	for ( const auto& attrib: attribs )
 	{
 		if ( attrib.second != -1 )

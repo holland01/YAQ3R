@@ -36,6 +36,7 @@ shaderInfo_t::shaderInfo_t( void )
 {
 	memset( name, 0, sizeof( name ) );
 
+	deform = false;
 	hasLightmap = FALSE;
 	hasPolygonOffset = FALSE;
 	
@@ -233,6 +234,8 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 		}
 		else if ( strcmp( token, "deformvertexes" ) == 0 )
 		{
+			outInfo->deform = true;
+
 			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 			buffer = ReadToken( value, buffer );
 
@@ -276,6 +279,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 				break;
             default:
                 MLOG_WARNING( "Unsupported vertex deform found!" );
+				outInfo->deform = false;
 				break;
 			}
 		}
@@ -300,6 +304,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const 
 			{
 				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
 				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
+				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
 			}
 			else if ( strcmp( token, "map" ) == 0 )
 			{
@@ -720,7 +725,7 @@ static void LoadStageTexture( shaderInfo_t& info, int i, const mapData_t* map )
 
 		if ( !stage.texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
 		{
-			MLOG_ERROR( "Could not load texture file \"%s\"", texFileRoot.c_str() );
+			MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
 		}
 	}
 }
