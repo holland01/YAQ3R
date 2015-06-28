@@ -288,8 +288,44 @@ INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& 
 
 	program.LoadAttribLayout();
 
-	GL_CHECK( glMultiDrawElements( ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES, 
-		&surf.indexBufferSizes[ 0 ], GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
+
+	GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ], 
+		GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+
+#ifdef _DEBUG_FACE_TYPES
+	GLint srcFactor, dstFactor;
+	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &srcFactor ) );
+	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &dstFactor ) );
+
+	GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
+
+	glPrograms.at( "debug" )->Bind();
+
+	glm::vec4 color;
+
+	if ( surf.faceType == BSP_FACE_TYPE_PATCH )
+	{
+		color = glm::vec4( 1.0f, 0.0f, 0.0f, 0.3f );
+	}
+	else if ( surf.faceType == BSP_FACE_TYPE_POLYGON )
+	{
+		color = glm::vec4( 0.0f, 1.0f, 0.0f, 0.3f );
+	}
+	else
+	{
+		color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.3f );
+	}
+
+	glPrograms.at( "debug" )->LoadVec4( "fragColor", color );
+
+	GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ], 
+		GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+
+	glPrograms.at( "debug" )->Release();
+
+	GL_CHECK( glBlendFunc( srcFactor, dstFactor ) );
+#endif
 }
 
 INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection )

@@ -63,7 +63,7 @@
 			"file": "log/entities.log",
 			"settings":
 			{
-				"buffer_size": 33140,
+				"buffer_size": 32768,
 				"line_ending": "Unix"
 			}
 		},
@@ -113,18 +113,6 @@
 	"expanded_folders":
 	[
 		"/C/Dev/bspview/bspviewer",
-		"/C/Dev/bspview/bspviewer/asset/quake",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/scripts",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/assaultQ",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/bata3dm1",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/force",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/marsbase",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/moon",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/moteof",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/water",
-		"/C/Dev/bspview/bspviewer/asset/quake/railgun_arena/textures/xlab_doorQ",
 		"/C/Dev/bspview/bspviewer/log",
 		"/C/Dev/bspview/bspviewer/src"
 	],
@@ -280,6 +268,11 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"tesssize",
+			"surfaceparm trans",
+			"rgbGen",
+			"trans",
+			"bata3dm1",
 			"tcmod rotate",
 			"blendfunc",
 			"texRotate",
@@ -395,7 +388,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 33140,
+						"buffer_size": 32768,
 						"regions":
 						{
 						},
@@ -430,8 +423,8 @@
 						"selection":
 						[
 							[
-								4834,
-								4834
+								6049,
+								6057
 							]
 						],
 						"settings":
@@ -440,7 +433,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 4499.0,
+						"translation.y": 5559.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -459,8 +452,8 @@
 						"selection":
 						[
 							[
-								8853,
-								8853
+								4134,
+								4134
 							]
 						],
 						"settings":
@@ -469,7 +462,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 7959.0,
+						"translation.y": 3659.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,

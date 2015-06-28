@@ -10,10 +10,12 @@ struct config_t
 {
 	bool drawFacesOnly: 1;
 	bool drawIrradiance: 1;
+	bool drawFacePatches: 1;
 };
 
 config_t config = 
 {
+	false,
 	false,
 	false
 };
@@ -22,9 +24,16 @@ static uint64_t frameCount = 0;
 
 static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, const std::vector< mapModel_t >& glFaces )
 {
-	surf.indexBuffers.push_back( &glFaces[ faceIndex ].indices[ 0 ] );
-	surf.indexBufferSizes.push_back( glFaces[ faceIndex ].indices.size() );
-	
+	if ( surf.faceType == BSP_FACE_TYPE_PATCH )
+	{
+		surf.indexBuffers.insert( surf.indexBuffers.end(), glFaces[ faceIndex ].rowIndices.begin(), glFaces[ faceIndex ].rowIndices.end() );
+		surf.indexBufferSizes.insert( surf.indexBufferSizes.end(), glFaces[ faceIndex ].trisPerRow.begin(), glFaces[ faceIndex ].trisPerRow.end() );
+	}
+	else
+	{
+		surf.indexBuffers.push_back( &glFaces[ faceIndex ].indices[ 0 ] );
+		surf.indexBufferSizes.push_back( glFaces[ faceIndex ].indices.size() );
+	}
 	if ( surf.shader && surf.shader->deform )
 	{
 		surf.deformFaces.push_back( &glFaces[ faceIndex ] );
@@ -564,7 +573,7 @@ void BSPRenderer::Render( uint32_t renderFlags )
 	drawPass_t pass( map, viewRef );
 	pass.leaf = map->FindClosestLeaf( pass.view.origin );
 	pass.renderFlags = renderFlags;
-	pass.type = PASS_BRUSH;
+	//pass.type = PASS_BRUSH;
 
 	//DrawNode( pass, 0 );
 
@@ -670,16 +679,15 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int nodeIndex )
 			{
 				// Only draw individual faces if they're patches, since meshes and polygons
 				// can be easily grouped together from the original vbo
-				/*if ( map->data.faces[ pass.faceIndex ].type == BSP_FACE_TYPE_PATCH || config.drawFacesOnly )
+				if ( ( pass.face->type == BSP_FACE_TYPE_PATCH && config.drawFacePatches ) || config.drawFacesOnly )
 				{
 					DrawFace( pass );
 				}
 				else
-				*/
-
-				drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
-				AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
-				
+				{
+					drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
+					AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
+				}
 				pass.facesVisited[ pass.faceIndex ] = true;
 			}
 			else
@@ -930,11 +938,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 
 void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list ) const
 {	
-	if ( list.empty() )
-	{
-		return;
-	}
-
 	const Program& main = *( glPrograms.at( "main" ).get() );
 
 	for ( const drawSurface_t& surf: list )

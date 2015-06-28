@@ -1,4 +1,4 @@
-﻿Build started 6/26/2015 9:18:45 PM.
+﻿Build started 6/27/2015 9:33:04 PM.
 Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Build target(s)).
 InitializeBuildStatus:
   Creating "Release\bspview.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
@@ -32,4 +32,4 @@ Done Building Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Bui
 
 Build succeeded.
 
-Time Elapsed 00:00:01.48
+Time Elapsed 00:00:01.64
