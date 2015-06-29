@@ -220,27 +220,26 @@ evaluate_tok:
 			// Evaluate possible global parameters
 			if ( strcmp( token, "surfaceparm" ) == 0 )
 			{
-				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {}; 
-
-				buffer = ReadToken( value, buffer );
+				ZEROMEM( token );
+				buffer = ReadToken( token, buffer );
 				
-				if ( strcmp( value, "nodamage" ) == 0 ) 
+				if ( strcmp( token, "nodamage" ) == 0 ) 
 				{
 					outInfo->surfaceParms |= SURFPARM_NO_DMG;	
 				}
-				else if ( strcmp( value, "nolightmap" ) == 0 ) 
+				else if ( strcmp( token, "nolightmap" ) == 0 ) 
 				{
 					outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
 				}
-				else if ( strcmp( value, "nonsolid" ) == 0 ) 
+				else if ( strcmp( token, "nonsolid" ) == 0 ) 
 				{
 					outInfo->surfaceParms |= SURFPARM_NON_SOLID;
 				}
-				else if ( strcmp( value, "nomarks" ) == 0 )
+				else if ( strcmp( token, "nomarks" ) == 0 )
 				{
 					outInfo->surfaceParms |= SURFPARM_NO_MARKS;
 				}
-				else if ( strcmp( value, "trans" ) == 0 ) 
+				else if ( strcmp( token, "trans" ) == 0 ) 
 				{
 					outInfo->surfaceParms |= SURFPARM_TRANS;
 				}
@@ -255,18 +254,18 @@ evaluate_tok:
 			}
 			else if ( strcmp( token, "deformvertexes" ) == 0 )
 			{
-				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-				buffer = ReadToken( value, buffer );
+				ZEROMEM( token );
+				buffer = ReadToken( token, buffer );
 
-				if ( strcmp( value, "wave" ) == 0 )
+				if ( strcmp( token, "wave" ) == 0 )
 				{
 					outInfo->deformCmd = VERTEXDEFORM_CMD_WAVE;
 				}
-				else if ( strcmp( value, "normal" ) == 0 )
+				else if ( strcmp( token, "normal" ) == 0 )
 				{
 					outInfo->deformCmd = VERTEXDEFORM_CMD_NORMAL;
 				}
-				else if ( strcmp( value, "bulge" ) == 0 )
+				else if ( strcmp( token, "bulge" ) == 0 )
 				{
 					outInfo->deformCmd = VERTEXDEFORM_CMD_BULGE;
 				}
@@ -281,26 +280,26 @@ evaluate_tok:
 				case VERTEXDEFORM_CMD_WAVE:
 					outInfo->deformParms.spread = ReadFloat( buffer ); 
 			
-					memset( value, 0, sizeof( value ) );
-					buffer = ReadToken( value, buffer );
+					ZEROMEM( token );
+					buffer = ReadToken( token, buffer );
 
-					if ( strcmp( value, "triangle" ) == 0 )
+					if ( strcmp( token, "triangle" ) == 0 )
 					{
 						outInfo->deformFn = VERTEXDEFORM_FUNC_TRIANGLE;
 					}
-					else if ( strcmp( value, "sin" ) == 0 )
+					else if ( strcmp( token, "sin" ) == 0 )
 					{
 						outInfo->deformFn = VERTEXDEFORM_FUNC_SIN;
 					}
-					else if ( strcmp( value, "square" ) == 0 )
+					else if ( strcmp( token, "square" ) == 0 )
 					{
 						outInfo->deformFn = VERTEXDEFORM_FUNC_SQUARE;
 					}
-					else if ( strcmp( value, "sawtooth" ) == 0 )
+					else if ( strcmp( token, "sawtooth" ) == 0 )
 					{
 						outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
 					}
-					else if ( strcmp( value, "inversesawtooth" ) == 0 )
+					else if ( strcmp( token, "inversesawtooth" ) == 0 )
 					{
 						outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
 					}
@@ -323,16 +322,6 @@ evaluate_tok:
 					goto evaluate_tok;
 					break;
 				}
-			}
-			else if ( strcmp( token, "q3map_surfacelight" ) == 0 )
-			{
-				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-				buffer = ReadToken( value, buffer );
-				outInfo->surfaceLight = ( float )strtod( value, NULL );
-			}
-			else if ( strcmp( token, "polygonoffset" ) == 0 )
-			{
-				outInfo->hasPolygonOffset = TRUE;	
 			}
 			else if ( strcmp( token, "nopicmip" ) == 0 )
 			{
@@ -414,67 +403,63 @@ evaluate_tok:
 
 						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = ( GLenum ) blendFactor;
 					}
-
-					if ( outInfo->surfaceParms & SURFPARM_TRANS )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = GL_SRC_ALPHA;
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaDest = GL_ONE_MINUS_SRC_ALPHA;
-					}
-					else
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = 
-							outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
-					
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaDest =
-							outInfo->stageBuffer[ outInfo->stageCount ].rgbDest;
-					}
 				}
 				else if ( strcmp( token, "alphafunc" ) == 0 )
 				{
-					char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-					buffer = ReadToken( value, buffer );
+					ZEROMEM( token );
+					buffer = ReadToken( token, buffer );
 				
-					if ( strcmp( value, "ge128" ) == 0 )
+					if ( strcmp( token, "ge128" ) == 0 )
+					{
 						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
-					else if ( strcmp( value, "gT0" ) == 0 )
+					}
+					else if ( strcmp( token, "gT0" ) == 0 )
+					{
 						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
-					else if ( strcmp( value, "lt128" ) == 0 )
+					}
+					else if ( strcmp( token, "lt128" ) == 0 )
+					{
 						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
+					}
 
 				}
 				else if ( strcmp( token, "rgbgen" ) == 0 )
 				{
-					char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-					buffer = ReadToken( value, buffer );
+					ZEROMEM( token );
+					buffer = ReadToken( token, buffer );
 					
-					if ( strcmp( value, "vertex" ) == 0 )
+					if ( strcmp( token, "vertex" ) == 0 )
 					{
 						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
 					}
-					else if ( strcmp( value, "identity" ) == 0 )
+					else if ( strcmp( token, "identity" ) == 0 )
 					{
 						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
 					}
-					else if ( strcmp( value, "identitylighting" ) == 0 )
+					else if ( strcmp( token, "identitylighting" ) == 0 )
 					{
 						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
+					}
+					else
+					{
+						goto evaluate_tok;
 					}
 				}
 				else if ( strcmp( token, "tcmod" ) == 0 )
 				{
-					char type[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-					buffer = ReadToken( type, buffer );
+					ZEROMEM( token );
+					buffer = ReadToken( token, buffer );
 
 					outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
 
-					if ( strcmp( type, "scale" ) == 0 )
+					if ( strcmp( token, "scale" ) == 0 )
 					{
 						float s = ReadFloat( buffer );
 						float t = ReadFloat( buffer );
 
 						outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
 					}
-					else if ( strcmp( type, "turb" ) == 0 )
+					else if ( strcmp( token, "turb" ) == 0 )
 					{
 						effect_t op;
 
@@ -487,7 +472,7 @@ evaluate_tok:
 
 						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
 					}
-					else if ( strcmp( type, "scroll" ) == 0 )
+					else if ( strcmp( token, "scroll" ) == 0 )
 					{
 						effect_t op;
 
@@ -498,7 +483,7 @@ evaluate_tok:
 
 						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
 					}
-					else if ( strcmp( type, "rotate" ) == 0 )
+					else if ( strcmp( token, "rotate" ) == 0 )
 					{
 						effect_t op;
 
@@ -560,11 +545,6 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 
 	while ( *pChar )
 	{	
-		if ( entries.size() == 710 )
-		{
-			__nop();
-		}
-
 		shaderInfo_t entry;
 
 		entry.loadFlags = loadFlags;
