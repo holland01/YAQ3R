@@ -5,9 +5,385 @@
 #include "glutil.h"
 #include <sstream>
 
-static int successCount = 0;
+static INLINE GLsizei GL_EnumFromStr( const char* str );
+static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
+static float ReadFloat( const char*& buffer );
+static const char* ReadToken( char* out, const char* buffer );
 
-static std::string lastFile;
+using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t* outInfo, char* token ) >;
+
+#define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, char* token ) -> bool
+
+std::map< std::string, stageEvalFunc_t > stageReadFuncs = 
+{
+	{
+		"surfaceparm",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+				
+			if ( strcmp( token, "nodamage" ) == 0 ) 
+			{
+				outInfo->surfaceParms |= SURFPARM_NO_DMG;	
+			}
+			else if ( strcmp( token, "nolightmap" ) == 0 ) 
+			{
+				outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
+			}
+			else if ( strcmp( token, "nonsolid" ) == 0 ) 
+			{
+				outInfo->surfaceParms |= SURFPARM_NON_SOLID;
+			}
+			else if ( strcmp( token, "nomarks" ) == 0 )
+			{
+				outInfo->surfaceParms |= SURFPARM_NO_MARKS;
+			}
+			else if ( strcmp( token, "trans" ) == 0 ) 
+			{
+				outInfo->surfaceParms |= SURFPARM_TRANS;
+			}
+			else
+			{
+				return false;
+			}
+
+			return true;
+		}
+	},
+	{
+		"deformvertexes",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+
+			if ( strcmp( token, "wave" ) == 0 )
+			{
+				outInfo->deformCmd = VERTEXDEFORM_CMD_WAVE;
+			}
+			else if ( strcmp( token, "normal" ) == 0 )
+			{
+				outInfo->deformCmd = VERTEXDEFORM_CMD_NORMAL;
+			}
+			else if ( strcmp( token, "bulge" ) == 0 )
+			{
+				outInfo->deformCmd = VERTEXDEFORM_CMD_BULGE;
+			}
+			else
+			{
+				return false;
+			}
+
+			// Bulge and normal/wave signatures differ significantly, so we separate paths here
+			switch ( outInfo->deformCmd )
+			{
+			case VERTEXDEFORM_CMD_WAVE:
+				outInfo->deformParms.spread = ReadFloat( buffer ); 
+			
+				ZEROMEM( token );
+				buffer = ReadToken( token, buffer );
+
+				if ( strcmp( token, "triangle" ) == 0 )
+				{
+					outInfo->deformFn = VERTEXDEFORM_FUNC_TRIANGLE;
+				}
+				else if ( strcmp( token, "sin" ) == 0 )
+				{
+					outInfo->deformFn = VERTEXDEFORM_FUNC_SIN;
+				}
+				else if ( strcmp( token, "square" ) == 0 )
+				{
+					outInfo->deformFn = VERTEXDEFORM_FUNC_SQUARE;
+				}
+				else if ( strcmp( token, "sawtooth" ) == 0 )
+				{
+					outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
+				}
+				else if ( strcmp( token, "inversesawtooth" ) == 0 )
+				{
+					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
+				}
+
+				outInfo->deformParms.base = ReadFloat( buffer );
+				outInfo->deformParms.amplitude = ReadFloat( buffer );
+				
+				// Normal command has no phase translation
+				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
+				{
+					outInfo->deformParms.phase = ReadFloat( buffer );
+				}
+
+				outInfo->deformParms.frequency = ReadFloat( buffer );
+
+				outInfo->deform = true;
+				break;
+
+			default:
+				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes", "Unsupported vertex deform found!" );
+				outInfo->deform = false;
+				return false;
+				break;
+			}
+
+			return true;
+		}
+	},
+	{
+		"nopicmip",
+		STAGE_READ_FUNC
+		{
+			outInfo->loadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+			return true;
+		}
+	},
+	{
+		"tesssize",
+		STAGE_READ_FUNC
+		{
+			outInfo->tessSize = ReadFloat( buffer );
+			return true;
+		}
+	},
+	{
+		"q3map_tesssize",
+		STAGE_READ_FUNC
+		{
+			outInfo->tessSize = ReadFloat( buffer );
+			return true;
+		}
+	},
+	{
+		"clampmap",
+		STAGE_READ_FUNC
+		{
+			buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
+			outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
+			outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+			return true;
+		}
+	},
+	{
+		"map",
+		STAGE_READ_FUNC
+		{
+			buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
+			outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
+
+			// TODO: add support for this
+			if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) == 0 )
+			{
+				return true;
+			}
+
+			if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
+			{
+				outInfo->hasLightmap = TRUE;
+				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
+			}
+			else
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+			}
+
+			return true;
+		}
+	},
+	{
+		"blendfunc",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+
+			if ( strcmp( token, "add" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_ONE;
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE;
+			}
+			else if ( strcmp( token, "blend" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_SRC_ALPHA;
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE_MINUS_SRC_ALPHA;
+			}
+			else if ( strcmp( token, "filter" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_DST_COLOR;
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ZERO;
+			}
+			else
+			{
+				GLsizei blendFactor = GL_EnumFromStr( token );
+				if ( blendFactor == -1 )
+				{
+					return false;
+				}
+
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = ( GLenum ) blendFactor;
+						
+				ZEROMEM( token );
+				buffer = ReadToken( token, buffer );
+
+				blendFactor = GL_EnumFromStr( token );
+
+				if ( blendFactor == -1 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
+					return false;
+				}
+
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = ( GLenum ) blendFactor;
+			}
+
+			return true;
+		}
+	},
+	{
+		"alphafunc",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+				
+			if ( strcmp( token, "ge128" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
+			}
+			else if ( strcmp( token, "gT0" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
+			}
+			else if ( strcmp( token, "lt128" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
+			}
+			else
+			{
+				return false;
+			}
+
+			return true;
+		}
+	},
+	{
+		"rgbgen",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+					
+			if ( strcmp( token, "vertex" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
+			}
+			else if ( strcmp( token, "identity" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
+			}
+			else if ( strcmp( token, "identitylighting" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
+			}
+			else
+			{
+				return false;
+			}
+
+			return true;
+		}
+	},
+	{
+		"tcmod",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+
+			outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
+
+			if ( strcmp( token, "scale" ) == 0 )
+			{
+				float s = ReadFloat( buffer );
+				float t = ReadFloat( buffer );
+
+				outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
+			}
+			else if ( strcmp( token, "turb" ) == 0 )
+			{
+				effect_t op;
+
+				op.name = "tcModTurb";
+	
+				op.data.wave.base = ReadFloat( buffer );
+				op.data.wave.amplitude = ReadFloat( buffer );
+				op.data.wave.phase = ReadFloat( buffer );
+				op.data.wave.frequency = ReadFloat( buffer );
+
+				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+			}
+			else if ( strcmp( token, "scroll" ) == 0 )
+			{
+				effect_t op;
+
+				op.name = "tcModScroll";
+
+				op.data.xyzw[ 0 ] = ReadFloat( buffer );
+				op.data.xyzw[ 1 ] = ReadFloat( buffer );
+
+				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+			}
+			else if ( strcmp( token, "rotate" ) == 0 )
+			{
+				effect_t op;
+
+				op.name = "tcModRotate";					
+					
+				float angRad = glm::radians( ReadFloat( buffer ) );
+
+				op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
+				op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
+				op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
+				op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
+
+				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+			}
+			else
+			{
+				return false;
+			}
+
+			return true;
+		}
+	},
+	{
+		"depthfunc",
+		STAGE_READ_FUNC
+		{
+			ZEROMEM( token );
+			buffer = ReadToken( token, buffer );
+
+			GLsizei depthf = GL_DepthFuncFromStr( token );
+
+			if ( depthf == -1 )
+			{
+				return false;
+			}
+
+			outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = ( GLenum ) depthf;
+			return true;
+		}
+	},
+	{
+		"depthwrite",
+		STAGE_READ_FUNC
+		{
+			outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
+			return true;
+		}
+	}
+};
+
+ //stageEvalFunc;
 
 shaderStage_t::shaderStage_t( void )
 	: texTransform( 1.0f ),
@@ -66,6 +442,7 @@ static int gLineCount = 0;
 
 static INLINE GLsizei GL_EnumFromStr( const char* str )
 {
+	// blending
 	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
 	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
 	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 ) return GL_ONE_MINUS_DST_ALPHA;
@@ -77,15 +454,26 @@ static INLINE GLsizei GL_EnumFromStr( const char* str )
 	if ( strcmp( str, "gl_zero" ) == 0 ) return GL_ZERO;
 	if ( strcmp( str, "gl_one" ) == 0 ) return GL_ONE;
 
+	// depth funcs
+	if ( strcmp( str, "gl_never" ) == 0 ) return GL_NEVER;
+	if ( strcmp( str, "gl_less" ) == 0 ) return GL_LESS;
+	if ( strcmp( str, "gl_equal" ) == 0 ) return GL_EQUAL;
+	if ( strcmp( str, "gl_lequal" ) == 0 ) return GL_LEQUAL;
+	if ( strcmp( str, "gl_greater" ) == 0 ) return GL_GREATER;
+	if ( strcmp( str, "gl_notequal" ) == 0 ) return GL_NOTEQUAL;
+	if ( strcmp( str, "gl_gequal" ) == 0 ) return GL_GEQUAL;
+	if ( strcmp( str, "gl_always" ) == 0 ) return GL_ALWAYS;
+
 	return -1;
 }
 
-static INLINE GLenum GL_DepthFuncFromStr( const char* str )
+static INLINE GLsizei GL_DepthFuncFromStr( const char* str )
 {
-	if ( strcmp( str, "equal" ) == 0 )
-		return GL_EQUAL;
+	if ( strcmp( str, "equal" ) == 0 ) return GL_EQUAL;
+	if ( strcmp( str, "lequal" ) == 0 ) return GL_LEQUAL;
 
-	return GL_LEQUAL;
+	// The manual seems to insinuate that gl_ prefixes won't be used for depth functions. However, this is used just in case...
+	return GL_EnumFromStr( str );
 }
 
 static INLINE tokType_t Token( const char* c )
@@ -214,306 +602,18 @@ evaluate_tok:
 		if ( level == 0 )
 		{
 			strcpy( outInfo->name, token );
+			continue;
 		}
-		else
+
+		const std::string strToken( token );
+		if ( stageReadFuncs.find( strToken ) == stageReadFuncs.end() )
 		{
-			// Evaluate possible global parameters
-			if ( strcmp( token, "surfaceparm" ) == 0 )
-			{
-				ZEROMEM( token );
-				buffer = ReadToken( token, buffer );
-				
-				if ( strcmp( token, "nodamage" ) == 0 ) 
-				{
-					outInfo->surfaceParms |= SURFPARM_NO_DMG;	
-				}
-				else if ( strcmp( token, "nolightmap" ) == 0 ) 
-				{
-					outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
-				}
-				else if ( strcmp( token, "nonsolid" ) == 0 ) 
-				{
-					outInfo->surfaceParms |= SURFPARM_NON_SOLID;
-				}
-				else if ( strcmp( token, "nomarks" ) == 0 )
-				{
-					outInfo->surfaceParms |= SURFPARM_NO_MARKS;
-				}
-				else if ( strcmp( token, "trans" ) == 0 ) 
-				{
-					outInfo->surfaceParms |= SURFPARM_TRANS;
-				}
-				else
-				{
-					goto evaluate_tok;
-				}
-			}
-			else if ( strcmp( token, "tesssize" ) == 0 || strcmp( token, "q3map_tesssize" ) == 0 )
-			{
-				outInfo->tessSize = ReadFloat( buffer );
-			}
-			else if ( strcmp( token, "deformvertexes" ) == 0 )
-			{
-				ZEROMEM( token );
-				buffer = ReadToken( token, buffer );
+			continue;
+		}
 
-				if ( strcmp( token, "wave" ) == 0 )
-				{
-					outInfo->deformCmd = VERTEXDEFORM_CMD_WAVE;
-				}
-				else if ( strcmp( token, "normal" ) == 0 )
-				{
-					outInfo->deformCmd = VERTEXDEFORM_CMD_NORMAL;
-				}
-				else if ( strcmp( token, "bulge" ) == 0 )
-				{
-					outInfo->deformCmd = VERTEXDEFORM_CMD_BULGE;
-				}
-				else
-				{
-					goto evaluate_tok;
-				}
-
-				// Bulge and normal/wave signatures differ significantly, so we separate paths here
-				switch ( outInfo->deformCmd )
-				{
-				case VERTEXDEFORM_CMD_WAVE:
-					outInfo->deformParms.spread = ReadFloat( buffer ); 
-			
-					ZEROMEM( token );
-					buffer = ReadToken( token, buffer );
-
-					if ( strcmp( token, "triangle" ) == 0 )
-					{
-						outInfo->deformFn = VERTEXDEFORM_FUNC_TRIANGLE;
-					}
-					else if ( strcmp( token, "sin" ) == 0 )
-					{
-						outInfo->deformFn = VERTEXDEFORM_FUNC_SIN;
-					}
-					else if ( strcmp( token, "square" ) == 0 )
-					{
-						outInfo->deformFn = VERTEXDEFORM_FUNC_SQUARE;
-					}
-					else if ( strcmp( token, "sawtooth" ) == 0 )
-					{
-						outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
-					}
-					else if ( strcmp( token, "inversesawtooth" ) == 0 )
-					{
-						outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
-					}
-
-					outInfo->deformParms.base = ReadFloat( buffer );
-					outInfo->deformParms.amplitude = ReadFloat( buffer );
-				
-					// Normal command has no phase translation
-					if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
-						outInfo->deformParms.phase = ReadFloat( buffer );
-				
-					outInfo->deformParms.frequency = ReadFloat( buffer );
-
-					outInfo->deform = true;
-					break;
-
-				default:
-					MLOG_WARNING( "Unsupported vertex deform found!" );
-					outInfo->deform = false;
-					goto evaluate_tok;
-					break;
-				}
-			}
-			else if ( strcmp( token, "nopicmip" ) == 0 )
-			{
-				outInfo->loadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
-			}
-			// No globals detected, so we must be a stage.
-			else if ( outInfo->stageCount < SHADER_MAX_NUM_STAGES )
-			{
-				if ( strcmp( token, "clampmap" ) == 0 )
-				{
-					buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
-					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
-				}
-				else if ( strcmp( token, "map" ) == 0 )
-				{
-					buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
-
-					//assert( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) != 0 && "No support for white image yet" );
-
-					if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) != 0 )
-					{
-						if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
-						{
-							outInfo->hasLightmap = TRUE;
-							outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
-						}
-						else
-						{
-							outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
-						}
-					}
-				}
-				else if ( strcmp( token, "blendfunc" ) == 0 )
-				{
-					ZEROMEM( token );
-					buffer = ReadToken( token, buffer );
-
-					if ( strcmp( token, "add" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_ONE;
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE;
-					}
-					else if ( strcmp( token, "blend" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_SRC_ALPHA;
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE_MINUS_SRC_ALPHA;
-					}
-					else if ( strcmp( token, "filter" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_DST_COLOR;
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ZERO;
-					}
-					else
-					{
-						// TODO: remove all references to value in each token evaluation; replace
-						// these with the actual token variable. This way, evaluate_tok can actually
-						// be used
-
-						GLsizei blendFactor = GL_EnumFromStr( token );
-						if ( blendFactor == -1 )
-						{
-							goto evaluate_tok;
-						}
-
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = ( GLenum ) blendFactor;
-						
-						ZEROMEM( token );
-						buffer = ReadToken( token, buffer );
-
-						blendFactor = GL_EnumFromStr( token );
-
-						if ( blendFactor == -1 )
-						{
-							outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
-							goto evaluate_tok;
-						}
-
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = ( GLenum ) blendFactor;
-					}
-				}
-				else if ( strcmp( token, "alphafunc" ) == 0 )
-				{
-					ZEROMEM( token );
-					buffer = ReadToken( token, buffer );
-				
-					if ( strcmp( token, "ge128" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
-					}
-					else if ( strcmp( token, "gT0" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
-					}
-					else if ( strcmp( token, "lt128" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
-					}
-
-				}
-				else if ( strcmp( token, "rgbgen" ) == 0 )
-				{
-					ZEROMEM( token );
-					buffer = ReadToken( token, buffer );
-					
-					if ( strcmp( token, "vertex" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
-					}
-					else if ( strcmp( token, "identity" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
-					}
-					else if ( strcmp( token, "identitylighting" ) == 0 )
-					{
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
-					}
-					else
-					{
-						goto evaluate_tok;
-					}
-				}
-				else if ( strcmp( token, "tcmod" ) == 0 )
-				{
-					ZEROMEM( token );
-					buffer = ReadToken( token, buffer );
-
-					outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
-
-					if ( strcmp( token, "scale" ) == 0 )
-					{
-						float s = ReadFloat( buffer );
-						float t = ReadFloat( buffer );
-
-						outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
-					}
-					else if ( strcmp( token, "turb" ) == 0 )
-					{
-						effect_t op;
-
-						op.name = "tcModTurb";
-	
-						op.data.wave.base = ReadFloat( buffer );
-						op.data.wave.amplitude = ReadFloat( buffer );
-						op.data.wave.phase = ReadFloat( buffer );
-						op.data.wave.frequency = ReadFloat( buffer );
-
-						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
-					}
-					else if ( strcmp( token, "scroll" ) == 0 )
-					{
-						effect_t op;
-
-						op.name = "tcModScroll";
-
-						op.data.xyzw[ 0 ] = ReadFloat( buffer );
-						op.data.xyzw[ 1 ] = ReadFloat( buffer );
-
-						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
-					}
-					else if ( strcmp( token, "rotate" ) == 0 )
-					{
-						effect_t op;
-
-						op.name = "tcModRotate";					
-					
-						float angRad = glm::radians( ReadFloat( buffer ) );
-
-						op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
-						op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
-						op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
-						op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
-
-						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
-					}
-					else
-					{
-						goto evaluate_tok;
-					}
-				}
-				else if ( strcmp( token, "depthfunc" ) == 0 )
-				{
-					char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-					buffer = ReadToken( value, buffer );
-					outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = GL_DepthFuncFromStr( value );
-				}
-				else if ( strcmp( token, "depthwrite" ) == 0 )
-				{
-					outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
-				}
-			}
+		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, token ) )
+		{
+			goto evaluate_tok;
 		}
 	}
 
@@ -540,8 +640,6 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 
 	const char* pChar = fileBuffer;
 	const char* end = fileBuffer + charlen;
-
-	lastFile = filepath;
 
 	while ( *pChar )
 	{	

@@ -1,3 +1,6 @@
+# Specific files
+asset/stockmaps/*
+
 # C++ objects and libs
 
 *.slo

@@ -16,10 +16,13 @@ static void OnMouseMoveWrapper( GLFWwindow* w, double x, double y )
         gAppTest->OnMouseMove( x, y );
 }
 
-Test::Test( int w, int h )
+Test::Test( int w, int h, bool fullscreen_ )
     : width( w ), height( h ),
       deltaTime( 0.0f ),
-      cursorVisible( true ), running( false ), useSRGBFramebuffer( true ),
+	  fullscreen( fullscreen_ ),
+      cursorVisible( true ), 
+	  running( false ), 
+	  useSRGBFramebuffer( true ),
       camPtr( nullptr ),
       winPtr( nullptr ),
 	  mouseX( 0.0f ),
@@ -52,7 +55,9 @@ bool Test::Load( const char* winName )
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
 	glfwWindowHint( GLFW_SRGB_CAPABLE, GL_TRUE );
 
-    winPtr = glfwCreateWindow( width, height, winName, nullptr, nullptr );
+	GLFWmonitor* monitor = fullscreen? glfwGetPrimaryMonitor(): nullptr;
+
+    winPtr = glfwCreateWindow( width, height, winName, monitor, nullptr );
 
     if ( !winPtr )
         return false;

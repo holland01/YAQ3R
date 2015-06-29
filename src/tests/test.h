@@ -12,7 +12,10 @@ protected:
 
     float			deltaTime;
 
-    bool            cursorVisible, running, useSRGBFramebuffer;
+    bool            fullscreen,
+					cursorVisible, 
+					running, 
+					useSRGBFramebuffer;
 
     InputCamera*    camPtr;
 
@@ -28,7 +31,7 @@ protected:
 
 public:
 
-    Test( int width, int height );
+    Test( int width, int height, bool fullscreen );
 
     virtual ~Test( void );
 

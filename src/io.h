@@ -81,6 +81,15 @@ void KillSysLog( void );
 		}                                                       \
 		while( 0 )
 
+#	define MLOG_WARNING_SANS_FUNCNAME( title, ... )                              \
+		do                                                      \
+		{                                                       \
+			puts("======== WARNING ========");                  \
+			MyPrintf( ( title ), __VA_ARGS__ );                 \
+			puts("=======================");                    \
+		}                                                       \
+		while( 0 )
+
 #	define MLOG_ASSERT( condition, ... )    \
 		do                                      \
 		{                                       \
