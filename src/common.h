@@ -63,6 +63,8 @@ static void __nop( void )
 #define UNSIGNED_LEN( x ) ( ( sizeof( x ) / sizeof( 0[x] ) ) / ( ( size_t )( !( sizeof( x ) % sizeof( 0[x] ) ) ) ) )
 #define SIGNED_LEN( x ) ( ( int ) ( sizeof( x ) / sizeof( 0[x] ) ) / ( ( int )( !( sizeof( x ) % sizeof( 0[x] ) ) ) ) )
 
+#define ZEROMEM( m ) ( memset( ( m ), 0, sizeof( m ) ) )
+
 #define Mem_Alloc( s ) ( malloc( ( s ) ) )
 #define Mem_Free( ptr ) ( free( ( ptr ) ) )
 

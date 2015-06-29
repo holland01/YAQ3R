@@ -94,6 +94,12 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
+struct normal_t
+{
+	float x;
+	float y;
+};
+
 struct wave_t 
 {
 	float spread;
@@ -125,6 +131,7 @@ struct effect_t
 
 		wave_t	wave;
 		bulge_t bulge;
+		normal_t normal;
 		float	xyzw[ 4 ];
 	} data;
 	 

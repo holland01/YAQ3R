@@ -5,6 +5,10 @@
 #include "glutil.h"
 #include <sstream>
 
+static int successCount = 0;
+
+static std::string lastFile;
+
 shaderStage_t::shaderStage_t( void )
 	: texTransform( 1.0f ),
 	  program( nullptr )
@@ -60,7 +64,7 @@ enum tokType_t
 
 static int gLineCount = 0;
 
-static INLINE GLenum GL_EnumFromStr( const char* str )
+static INLINE GLsizei GL_EnumFromStr( const char* str )
 {
 	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
 	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
@@ -73,7 +77,7 @@ static INLINE GLenum GL_EnumFromStr( const char* str )
 	if ( strcmp( str, "gl_zero" ) == 0 ) return GL_ZERO;
 	if ( strcmp( str, "gl_one" ) == 0 ) return GL_ONE;
 
-	return 0;
+	return -1;
 }
 
 static INLINE GLenum GL_DepthFuncFromStr( const char* str )
@@ -142,6 +146,11 @@ static const char* ReadToken( char* out, const char* buffer )
 	char* pOut = out;
 	while ( Token( buffer ) == TOKTYPE_VALID )
 	{
+		if ( !*buffer )
+		{
+			break;
+		}
+
 		*pOut++ = tolower( *buffer++ );
 		charCount++;
 	}
@@ -159,309 +168,373 @@ static float ReadFloat( const char*& buffer )
 }
 
 // Returns the char count to increment the filebuffer by
-static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, const int level )
+static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, int level )
 {
-	if ( !( *( buffer = SkipInvalid( buffer ) ) ) )
-	{
-		return buffer;
-	}
+	char token[ 64 ];
+	
+	char first = 0; 
 
-	// Begin stage?
-	if ( *buffer == '{' )
-		return ParseEntry( outInfo, buffer + 1, level + 1 );
-
-	// End stage; we done
-	if ( *buffer == '}' )
+	while ( true )
 	{
-		// We're back out into the main level, so we're finished with this entry.
-		if ( level == 1 )
-		{
-			return buffer + 1;
-		}
-		// We're not in the main level, but we're leaving this stage, so decrease our level by 1 and add on to our stageCount
-		else
-		{
-			outInfo->stageCount += 1;
-			return ParseEntry( outInfo, buffer + 1, level - 1 );
-		}
-	}
-
-	// No invalid tokens ( e.g., spaces, indents, comments, etc. ); so, this must be a header
-	if ( level == 0 )
-	{
-		// Find our entity string
-		buffer = ReadToken( outInfo->name, buffer );		
-		buffer = ParseEntry( outInfo, buffer, level );
-	}
-	else
-	{
-		char token[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 		memset( token, 0, sizeof( token ) );
 
-		buffer = ReadToken( token, buffer );
-
-		// Evaluate possible global parameters
-		if ( strcmp( token, "surfaceparm" ) == 0 )
+		if ( !*( buffer = ReadToken( token, buffer ) ) )
 		{
-			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {}; 
+			break;
+		}
 
-			buffer = ReadToken( value, buffer );
-				
-			if ( strcmp( value, "nodamage" ) == 0 ) 
+		first = *buffer;
+
+evaluate_tok:
+		// Begin stage?
+		if ( *token == '{' )
+		{
+			level += 1;
+			continue;
+		}
+
+		// End stage; we done
+		if ( *token == '}' )
+		{
+			// We're back out into the main level, so we're finished with this entry.
+			if ( level == 1 )
 			{
-				outInfo->surfaceParms |= SURFPARM_NO_DMG;	
+				break;
 			}
-			else if ( strcmp( value, "nolightmap" ) == 0 ) 
+			// We're not in the main level, but we're leaving this stage, so decrease our level by 1 and add on to our stageCount
+			else
 			{
-				outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
-			}
-			else if ( strcmp( value, "nonsolid" ) == 0 ) 
-			{
-				outInfo->surfaceParms |= SURFPARM_NON_SOLID;
-			}
-			else if ( strcmp( value, "nomarks" ) == 0 )
-			{
-				outInfo->surfaceParms |= SURFPARM_NO_MARKS;
-			}
-			else if ( strcmp( value, "trans" ) == 0 ) 
-			{
-				outInfo->surfaceParms |= SURFPARM_TRANS;
+				outInfo->stageCount += 1;
+				level -= 1;
+				continue;	
 			}
 		}
-		else if ( strcmp( token, "tesssize" ) == 0 || strcmp( token, "q3map_tesssize" ) == 0 )
+
+		// No invalid tokens ( e.g., spaces, indents, comments, etc. ); so, this must be a header
+		if ( level == 0 )
 		{
-			outInfo->tessSize = ReadFloat( buffer );
+			strcpy( outInfo->name, token );
 		}
-		else if ( strcmp( token, "deformvertexes" ) == 0 )
+		else
 		{
-			outInfo->deform = true;
-
-			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-			buffer = ReadToken( value, buffer );
-
-			if ( strcmp( value, "wave" ) == 0 )
-				outInfo->deformCmd = VERTEXDEFORM_CMD_WAVE;
-			else if ( strcmp( value, "normal" ) == 0 )
-				outInfo->deformCmd = VERTEXDEFORM_CMD_NORMAL;
-			else if ( strcmp( value, "bulge" ) == 0 )
-				outInfo->deformCmd = VERTEXDEFORM_CMD_BULGE;
-
-			// Bulge and normal/wave signatures differ significantly, so we separate paths here
-			switch ( outInfo->deformCmd )
+			// Evaluate possible global parameters
+			if ( strcmp( token, "surfaceparm" ) == 0 )
 			{
-			case VERTEXDEFORM_CMD_NORMAL:
-			case VERTEXDEFORM_CMD_WAVE:
-				outInfo->deformParms.spread = ReadFloat( buffer ); 
-			
-				memset( value, 0, sizeof( value ) );
+				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {}; 
+
 				buffer = ReadToken( value, buffer );
-
-				if ( strcmp( value, "triangle" ) == 0 )
-					outInfo->deformFn = VERTEXDEFORM_FUNC_TRIANGLE;
-				else if ( strcmp( value, "sin" ) == 0 )
-					outInfo->deformFn = VERTEXDEFORM_FUNC_SIN;
-				else if ( strcmp( value, "square" ) == 0 )
-					outInfo->deformFn = VERTEXDEFORM_FUNC_SQUARE;
-				else if ( strcmp( value, "sawtooth" ) == 0 )
-					outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
-				else if ( strcmp( value, "inversesawtooth" ) == 0 )
-					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
-
-				outInfo->deformParms.base = ReadFloat( buffer );
-				outInfo->deformParms.amplitude = ReadFloat( buffer );
 				
-				// Normal command has no phase translation
-				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
-					outInfo->deformParms.phase = ReadFloat( buffer );
-				
-				outInfo->deformParms.frequency = ReadFloat( buffer );
-
-				break;
-            default:
-                MLOG_WARNING( "Unsupported vertex deform found!" );
-				outInfo->deform = false;
-				break;
-			}
-		}
-		else if ( strcmp( token, "q3map_surfacelight" ) == 0 )
-		{
-			char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-			buffer = ReadToken( value, buffer );
-			outInfo->surfaceLight = ( float )strtod( value, NULL );
-		}
-		else if ( strcmp( token, "polygonoffset" ) == 0 )
-		{
-			outInfo->hasPolygonOffset = TRUE;	
-		}
-		else if ( strcmp( token, "nopicmip" ) == 0 )
-		{
-			outInfo->loadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
-		}
-		// No globals detected, so we must be a stage.
-		else if ( outInfo->stageCount < SHADER_MAX_NUM_STAGES )
-		{
-			if ( strcmp( token, "clampmap" ) == 0 )
-			{
-				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
-				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
-				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
-			}
-			else if ( strcmp( token, "map" ) == 0 )
-			{
-				buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
-				outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
-
-				assert( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) != 0 && "No support for white image yet" );
-
-				if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
+				if ( strcmp( value, "nodamage" ) == 0 ) 
 				{
-					outInfo->hasLightmap = TRUE;
-					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
+					outInfo->surfaceParms |= SURFPARM_NO_DMG;	
+				}
+				else if ( strcmp( value, "nolightmap" ) == 0 ) 
+				{
+					outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
+				}
+				else if ( strcmp( value, "nonsolid" ) == 0 ) 
+				{
+					outInfo->surfaceParms |= SURFPARM_NON_SOLID;
+				}
+				else if ( strcmp( value, "nomarks" ) == 0 )
+				{
+					outInfo->surfaceParms |= SURFPARM_NO_MARKS;
+				}
+				else if ( strcmp( value, "trans" ) == 0 ) 
+				{
+					outInfo->surfaceParms |= SURFPARM_TRANS;
 				}
 				else
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+					goto evaluate_tok;
 				}
 			}
-			else if ( strcmp( token, "blendfunc" ) == 0 )
+			else if ( strcmp( token, "tesssize" ) == 0 || strcmp( token, "q3map_tesssize" ) == 0 )
+			{
+				outInfo->tessSize = ReadFloat( buffer );
+			}
+			else if ( strcmp( token, "deformvertexes" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
 
-				if ( strcmp( value, "add" ) == 0 )
+				if ( strcmp( value, "wave" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_ONE;
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE;
+					outInfo->deformCmd = VERTEXDEFORM_CMD_WAVE;
 				}
-				else if ( strcmp( value, "blend" ) == 0 )
+				else if ( strcmp( value, "normal" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_SRC_ALPHA;
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE_MINUS_SRC_ALPHA;
+					outInfo->deformCmd = VERTEXDEFORM_CMD_NORMAL;
 				}
-				else if ( strcmp( value, "filter" ) == 0 )
+				else if ( strcmp( value, "bulge" ) == 0 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_DST_COLOR;
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ZERO;
+					outInfo->deformCmd = VERTEXDEFORM_CMD_BULGE;
 				}
 				else
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_EnumFromStr( value );
-				
+					goto evaluate_tok;
+				}
+
+				// Bulge and normal/wave signatures differ significantly, so we separate paths here
+				switch ( outInfo->deformCmd )
+				{
+				case VERTEXDEFORM_CMD_WAVE:
+					outInfo->deformParms.spread = ReadFloat( buffer ); 
+			
 					memset( value, 0, sizeof( value ) );
 					buffer = ReadToken( value, buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_EnumFromStr( value ); 
-				}
+					if ( strcmp( value, "triangle" ) == 0 )
+					{
+						outInfo->deformFn = VERTEXDEFORM_FUNC_TRIANGLE;
+					}
+					else if ( strcmp( value, "sin" ) == 0 )
+					{
+						outInfo->deformFn = VERTEXDEFORM_FUNC_SIN;
+					}
+					else if ( strcmp( value, "square" ) == 0 )
+					{
+						outInfo->deformFn = VERTEXDEFORM_FUNC_SQUARE;
+					}
+					else if ( strcmp( value, "sawtooth" ) == 0 )
+					{
+						outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
+					}
+					else if ( strcmp( value, "inversesawtooth" ) == 0 )
+					{
+						outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
+					}
 
+					outInfo->deformParms.base = ReadFloat( buffer );
+					outInfo->deformParms.amplitude = ReadFloat( buffer );
 				
-				if ( outInfo->surfaceParms & SURFPARM_TRANS )
-				{
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = GL_SRC_ALPHA;
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaDest = GL_ONE_MINUS_SRC_ALPHA;
-				}
-				else
-				{
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = 
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaDest =
-						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest;
+					// Normal command has no phase translation
+					if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
+						outInfo->deformParms.phase = ReadFloat( buffer );
+				
+					outInfo->deformParms.frequency = ReadFloat( buffer );
+
+					outInfo->deform = true;
+					break;
+
+				default:
+					MLOG_WARNING( "Unsupported vertex deform found!" );
+					outInfo->deform = false;
+					goto evaluate_tok;
+					break;
 				}
 			}
-			else if ( strcmp( token, "alphafunc" ) == 0 )
+			else if ( strcmp( token, "q3map_surfacelight" ) == 0 )
 			{
 				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
 				buffer = ReadToken( value, buffer );
-				
-				if ( strcmp( value, "ge128" ) == 0 )
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
-				else if ( strcmp( value, "gT0" ) == 0 )
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
-				else if ( strcmp( value, "lt128" ) == 0 )
-					outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
-
+				outInfo->surfaceLight = ( float )strtod( value, NULL );
 			}
-			else if ( strcmp( token, "rgbgen" ) == 0 )
+			else if ( strcmp( token, "polygonoffset" ) == 0 )
 			{
-				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-				buffer = ReadToken( value, buffer );
+				outInfo->hasPolygonOffset = TRUE;	
+			}
+			else if ( strcmp( token, "nopicmip" ) == 0 )
+			{
+				outInfo->loadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+			}
+			// No globals detected, so we must be a stage.
+			else if ( outInfo->stageCount < SHADER_MAX_NUM_STAGES )
+			{
+				if ( strcmp( token, "clampmap" ) == 0 )
+				{
+					buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
+					outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+				}
+				else if ( strcmp( token, "map" ) == 0 )
+				{
+					buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
+
+					//assert( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) != 0 && "No support for white image yet" );
+
+					if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) != 0 )
+					{
+						if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
+						{
+							outInfo->hasLightmap = TRUE;
+							outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
+						}
+						else
+						{
+							outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+						}
+					}
+				}
+				else if ( strcmp( token, "blendfunc" ) == 0 )
+				{
+					ZEROMEM( token );
+					buffer = ReadToken( token, buffer );
+
+					if ( strcmp( token, "add" ) == 0 )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_ONE;
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE;
+					}
+					else if ( strcmp( token, "blend" ) == 0 )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_SRC_ALPHA;
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE_MINUS_SRC_ALPHA;
+					}
+					else if ( strcmp( token, "filter" ) == 0 )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_DST_COLOR;
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ZERO;
+					}
+					else
+					{
+						// TODO: remove all references to value in each token evaluation; replace
+						// these with the actual token variable. This way, evaluate_tok can actually
+						// be used
+
+						GLsizei blendFactor = GL_EnumFromStr( token );
+						if ( blendFactor == -1 )
+						{
+							goto evaluate_tok;
+						}
+
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = ( GLenum ) blendFactor;
+						
+						ZEROMEM( token );
+						buffer = ReadToken( token, buffer );
+
+						blendFactor = GL_EnumFromStr( token );
+
+						if ( blendFactor == -1 )
+						{
+							outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
+							goto evaluate_tok;
+						}
+
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = ( GLenum ) blendFactor;
+					}
+
+					if ( outInfo->surfaceParms & SURFPARM_TRANS )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = GL_SRC_ALPHA;
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaDest = GL_ONE_MINUS_SRC_ALPHA;
+					}
+					else
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaSrc = 
+							outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
 					
-				if ( strcmp( value, "vertex" ) == 0 )
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
-				else if ( strcmp( value, "identity" ) == 0 )
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
-				else if ( strcmp( value, "identitylighting" ) == 0 )
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
-			}
-			else if ( strcmp( token, "tcmod" ) == 0 )
-			{
-				char type[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-				buffer = ReadToken( type, buffer );
-
-				outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
-
-				if ( strcmp( type, "scale" ) == 0 )
-				{
-					float s = ReadFloat( buffer );
-					float t = ReadFloat( buffer );
-
-					outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaDest =
+							outInfo->stageBuffer[ outInfo->stageCount ].rgbDest;
+					}
 				}
-				else if ( strcmp( type, "turb" ) == 0 )
+				else if ( strcmp( token, "alphafunc" ) == 0 )
 				{
-					effect_t op;
+					char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+					buffer = ReadToken( value, buffer );
+				
+					if ( strcmp( value, "ge128" ) == 0 )
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
+					else if ( strcmp( value, "gT0" ) == 0 )
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
+					else if ( strcmp( value, "lt128" ) == 0 )
+						outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
 
-					op.name = "tcModTurb";
+				}
+				else if ( strcmp( token, "rgbgen" ) == 0 )
+				{
+					char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+					buffer = ReadToken( value, buffer );
+					
+					if ( strcmp( value, "vertex" ) == 0 )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
+					}
+					else if ( strcmp( value, "identity" ) == 0 )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
+					}
+					else if ( strcmp( value, "identitylighting" ) == 0 )
+					{
+						outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
+					}
+				}
+				else if ( strcmp( token, "tcmod" ) == 0 )
+				{
+					char type[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+					buffer = ReadToken( type, buffer );
+
+					outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
+
+					if ( strcmp( type, "scale" ) == 0 )
+					{
+						float s = ReadFloat( buffer );
+						float t = ReadFloat( buffer );
+
+						outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
+					}
+					else if ( strcmp( type, "turb" ) == 0 )
+					{
+						effect_t op;
+
+						op.name = "tcModTurb";
 	
-					op.data.wave.base = ReadFloat( buffer );
-					op.data.wave.amplitude = ReadFloat( buffer );
-					op.data.wave.phase = ReadFloat( buffer );
-					op.data.wave.frequency = ReadFloat( buffer );
+						op.data.wave.base = ReadFloat( buffer );
+						op.data.wave.amplitude = ReadFloat( buffer );
+						op.data.wave.phase = ReadFloat( buffer );
+						op.data.wave.frequency = ReadFloat( buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
-				}
-				else if ( strcmp( type, "scroll" ) == 0 )
-				{
-					effect_t op;
+						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+					}
+					else if ( strcmp( type, "scroll" ) == 0 )
+					{
+						effect_t op;
 
-					op.name = "tcModScroll";
+						op.name = "tcModScroll";
 
-					op.data.xyzw[ 0 ] = ReadFloat( buffer );
-					op.data.xyzw[ 1 ] = ReadFloat( buffer );
+						op.data.xyzw[ 0 ] = ReadFloat( buffer );
+						op.data.xyzw[ 1 ] = ReadFloat( buffer );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
-				}
-				else if ( strcmp( type, "rotate" ) == 0 )
-				{
-					effect_t op;
+						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+					}
+					else if ( strcmp( type, "rotate" ) == 0 )
+					{
+						effect_t op;
 
-					op.name = "tcModRotate";					
+						op.name = "tcModRotate";					
 					
-					float angRad = glm::radians( ReadFloat( buffer ) );
+						float angRad = glm::radians( ReadFloat( buffer ) );
 
-					op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
-					op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
-					op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
-					op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
+						op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
+						op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
+						op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
+						op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
 
-					outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+						outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+					}
+					else
+					{
+						goto evaluate_tok;
+					}
+				}
+				else if ( strcmp( token, "depthfunc" ) == 0 )
+				{
+					char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
+					buffer = ReadToken( value, buffer );
+					outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = GL_DepthFuncFromStr( value );
+				}
+				else if ( strcmp( token, "depthwrite" ) == 0 )
+				{
+					outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
 				}
 			}
-			else if ( strcmp( token, "depthfunc" ) == 0 )
-			{
-				char value[ SHADER_MAX_TOKEN_CHAR_LENGTH ] = {};
-				buffer = ReadToken( value, buffer );
-				outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = GL_DepthFuncFromStr( value );
-			}
-			else if ( strcmp( token, "depthwrite" ) == 0 )
-			{
-				outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
-			}
-		}	
+		}
+	}
 
-		if ( outInfo->stageCount >= SHADER_MAX_NUM_STAGES )
-			__nop();
-
-		buffer = ParseEntry( outInfo, buffer + 1, level );
+	if ( *buffer == first )
+	{
+		buffer++;
 	}
 
 	return buffer;
@@ -483,8 +556,15 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 	const char* pChar = fileBuffer;
 	const char* end = fileBuffer + charlen;
 
+	lastFile = filepath;
+
 	while ( *pChar )
 	{	
+		if ( entries.size() == 710 )
+		{
+			__nop();
+		}
+
 		shaderInfo_t entry;
 
 		entry.loadFlags = loadFlags;
@@ -624,7 +704,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 450",
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
-				"const float gamma = 1.0 / 2.2;",
+				"const float gamma = 1.0 / 2.6;",
 				"uniform sampler2D sampler0;",
 				"out vec4 fragment;",
 				"void main(void) {"

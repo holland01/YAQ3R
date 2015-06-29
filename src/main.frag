@@ -8,7 +8,7 @@ smooth in vec2 frag_Lightmap;
 uniform sampler2D fragTexSampler;
 uniform sampler2D fragLightmapSampler;
 //uniform samplerCube fragIrradianceSampler;
-const float gamma = 1.0 / 2.4;
+const float gamma = 1.0 / 2.6;
 
 out vec4 fragment;
 
