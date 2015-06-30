@@ -94,6 +94,14 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
+enum texCoordGenType_t
+{
+	TCGEN_BASE = 0,
+	TCGEN_LIGHTMAP,
+	TCGEN_ENVIRONMENT,
+	TCGEN_VECTOR
+};
+
 struct normal_t
 {
 	float x;
@@ -129,6 +137,8 @@ struct effect_t
 		}
 		rotation2D;
 
+		float scale2D[ 2 ][ 2 ];
+
 		wave_t	wave;
 		bulge_t bulge;
 		normal_t normal;
@@ -152,8 +162,7 @@ struct effect_t
 
 struct shaderStage_t
 {
-	uint8_t						isDepthPass;
-	uint8_t						hasTexMod;
+	bool						depthPass;
 
 	GLuint						textureSlot;
 	texture_t					texture;
@@ -173,14 +182,9 @@ struct shaderStage_t
 
 	std::vector< effect_t >		effects;
 
-	//dynaFunc_t					tcModTurb, tcModScroll;
-
 	float						alphaGen; // if 0, use 1.0
 
 	char						texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
-
-	std::stack< glm::mat2 >		texTransformStack;
-	glm::mat2					texTransform;
 
 	std::shared_ptr< Program >	program;
 
@@ -190,9 +194,6 @@ struct shaderStage_t
 struct shaderInfo_t
 {
 	bool				deform: 1;
-
-	uint8_t				hasLightmap;
-	uint8_t				hasPolygonOffset;
 	
 	vertexDeformCmd_t	deformCmd;
 	vertexDeformFunc_t	deformFn;
@@ -207,6 +208,7 @@ struct shaderInfo_t
 	float				surfaceLight; // 0 if no light
 
 	char				name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+	
 	std::array< shaderStage_t, SHADER_MAX_NUM_STAGES > stageBuffer;
 
 	shaderInfo_t( void );

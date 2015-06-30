@@ -170,6 +170,13 @@ BSPRenderer::BSPRenderer( void )
 				} 
 			},
 			{
+				"tcModScale",
+				[]( const Program& p, const effect_t& e ) -> void
+				{
+					p.LoadMat2( "tcModScale", &e.data.scale2D[ 0 ][ 0 ] );
+				}
+			},
+			{
 				"tcModScroll",
 				[]( const Program& p, const effect_t& e ) -> void
 				{
@@ -884,11 +891,6 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 			tex = ( stage.texture.handle != 0 )? &stage.texture: &glDummyTexture; 
 		}
 
-		if ( stage.hasTexMod )
-		{
-			stage.program->LoadMat2( "texTransform", stage.texTransform );
-		}
-			
 		ImPrep( pass.view.transform, pass.view.clipTransform );
 
 		for ( effect_t e: stage.effects )

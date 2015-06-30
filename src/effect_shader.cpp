@@ -14,13 +14,16 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t*
 
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, char* token ) -> bool
 
+#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) )
+
+
 std::map< std::string, stageEvalFunc_t > stageReadFuncs = 
 {
 	{
 		"surfaceparm",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 				
 			if ( strcmp( token, "nodamage" ) == 0 ) 
@@ -55,7 +58,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"deformvertexes",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
 			if ( strcmp( token, "wave" ) == 0 )
@@ -81,7 +84,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			case VERTEXDEFORM_CMD_WAVE:
 				outInfo->deformParms.spread = ReadFloat( buffer ); 
 			
-				ZEROMEM( token );
+				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
 
 				if ( strcmp( token, "triangle" ) == 0 )
@@ -178,7 +181,6 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
 			{
-				outInfo->hasLightmap = TRUE;
 				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
 			}
 			else
@@ -193,7 +195,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"blendfunc",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
 			if ( strcmp( token, "add" ) == 0 )
@@ -221,7 +223,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = ( GLenum ) blendFactor;
 						
-				ZEROMEM( token );
+				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
 
 				blendFactor = GL_EnumFromStr( token );
@@ -242,7 +244,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"alphafunc",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 				
 			if ( strcmp( token, "ge128" ) == 0 )
@@ -269,7 +271,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"rgbgen",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 					
 			if ( strcmp( token, "vertex" ) == 0 )
@@ -296,17 +298,24 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"tcmod",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
-
-			outInfo->stageBuffer[ outInfo->stageCount ].hasTexMod = TRUE;
 
 			if ( strcmp( token, "scale" ) == 0 )
 			{
+				effect_t op;
+
+				op.name = "tcModScale";
+
 				float s = ReadFloat( buffer );
 				float t = ReadFloat( buffer );
 
-				outInfo->stageBuffer[ outInfo->stageCount ].texTransformStack.push( glm::mat2( glm::vec2( s, s ), glm::vec2( t, t ) ) );
+				op.data.scale2D[ 0 ][ 0 ] = s;
+				op.data.scale2D[ 0 ][ 1 ] = s;
+				op.data.scale2D[ 1 ][ 0 ] = t;
+				op.data.scale2D[ 1 ][ 1 ] = t;
+
+				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
 			}
 			else if ( strcmp( token, "turb" ) == 0 )
 			{
@@ -341,7 +350,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				float angRad = glm::radians( ReadFloat( buffer ) );
 
 				op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
-				op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
+				op.data.rotation2D.transform[ 0 ][ 1 ] =-glm::sin( angRad );
 				op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
 				op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
 
@@ -359,7 +368,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"depthfunc",
 		STAGE_READ_FUNC
 		{
-			ZEROMEM( token );
+			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
 			GLsizei depthf = GL_DepthFuncFromStr( token );
@@ -377,58 +386,41 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"depthwrite",
 		STAGE_READ_FUNC
 		{
-			outInfo->stageBuffer[ outInfo->stageCount ].isDepthPass = TRUE;
+			outInfo->stageBuffer[ outInfo->stageCount ].depthPass = true;
 			return true;
 		}
 	}
 };
 
- //stageEvalFunc;
-
 shaderStage_t::shaderStage_t( void )
-	: texTransform( 1.0f ),
+	: textureSlot( 0 ),
+	  rgbSrc( GL_ONE ),
+	  rgbDest( GL_ZERO ),
+	  alphaSrc( GL_ONE ),
+	  alphaDest( GL_ZERO ),
+	  depthFunc( GL_LEQUAL ),
+	  rgbGen( RGBGEN_VERTEX ),
+	  alphaFunc( ALPHA_FUNC_UNDEFINED ),
+	  mapCmd( MAP_CMD_UNDEFINED ),
+	  mapType( MAP_TYPE_UNDEFINED ),
+	  alphaGen( 0.0f ),
 	  program( nullptr )
 {
-	isDepthPass = FALSE;
-	hasTexMod = FALSE;
-
-	textureSlot = 0;
-
-	rgbSrc = GL_ONE;
-	rgbDest = GL_ZERO;
-
-	alphaSrc = GL_ONE;
-	alphaDest = GL_ZERO;
-
-	depthFunc = GL_LEQUAL;
-
-	alphaGen = 0.0f;
-
-	rgbGen = RGBGEN_IDENTITY;
-	alphaFunc = ALPHA_FUNC_UNDEFINED;
-	mapCmd = MAP_CMD_UNDEFINED;
-	mapType = MAP_TYPE_UNDEFINED;
-
 	memset( texturePath, 0, sizeof( texturePath ) );
 }
 
 shaderInfo_t::shaderInfo_t( void )
+	:	deform( false ),
+		deformCmd( VERTEXDEFORM_CMD_UNDEFINED ),
+		deformFn( VERTEXDEFORM_FUNC_UNDEFINED ),
+		surfaceParms( 0 ),
+		loadFlags( 0 ),
+		stageCount( 0 ),
+		surfaceLight( 0.0f ),
+		tessSize( 0.0f )
+	  
 {
 	memset( name, 0, sizeof( name ) );
-
-	deform = false;
-	hasLightmap = FALSE;
-	hasPolygonOffset = FALSE;
-	
-	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;
-	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
-	
-	surfaceParms = 0;
-	loadFlags = 0;
-	stageCount = 0;
-	
-	surfaceLight = 0.0f;
-	tessSize = 0.0f;
 }
 
 enum tokType_t
@@ -648,18 +640,6 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 		entry.loadFlags = loadFlags;
 		pChar = ParseEntry( &entry, pChar, 0 );
 
-		// Perform post processing.
-		// We check for stubs (i.e., stages with features not taken into consideration yet),
-		// and right multiply any texture transforms, since the order each transform is specified
-		// in the effect shader is the order it needs to be transformed in ( and because we're using OpenGL ).
-		for ( int i = 0; i < entry.stageCount; ++i )
-		{
-			while ( entry.stageBuffer[ i ].texTransformStack.size() > 0 )
-			{
-				entry.stageBuffer[ i ].texTransform *= entry.stageBuffer[ i ].texTransformStack.top();
-				entry.stageBuffer[ i ].texTransformStack.pop();
-			}
-		}
 		entries.insert( shaderMapEntry_t( entry.name, entry ) );
 	}
 
@@ -790,17 +770,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			const size_t fragUnifOffset = 3;
 
-			// If we have a matrix transform for the texcoord, go with that first.
-			if ( shader.stageBuffer[ j ].hasTexMod )
-			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texTransform;" );
-				fragmentSrc.push_back( "\tvec2 st = texTransform * frag_Tex;" );
-				uniforms.push_back( "texTransform" );
-			}
-			else
-			{
-				fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
-			}
+			fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
 
 			for ( const effect_t& op: shader.stageBuffer[ j ].effects )
 			{
@@ -825,6 +795,12 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 					uniforms.push_back( "texRotate" );
 					uniforms.push_back( "texCenter" );
+				}
+				else if ( op.name == "tcModScale" )
+				{
+					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 tcModScale;" );
+					fragmentSrc.push_back( "\tst = tcModScale * st;" );
+					uniforms.push_back( "tcModScale" );
 				}
 			}
 

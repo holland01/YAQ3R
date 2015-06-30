@@ -230,7 +230,12 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 		return false;
 	}
 		
-	FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
+	for ( int i = 0; i < width * height * bpp; ++i )
+	{
+		pixels[ i ] = imagePixels[ i ];
+	}
+
+	//FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
 		
 	if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
 	{
