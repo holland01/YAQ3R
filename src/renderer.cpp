@@ -560,8 +560,8 @@ void BSPRenderer::Render( uint32_t renderFlags )
 
 	static auto LDrawClear = [ this ]( drawPass_t& pass ) -> void
 	{
-		LDrawList( pass, pass.patches );
 		LDrawList( pass, pass.polymeshes );
+		LDrawList( pass, pass.patches );
 		pass.shader = nullptr;
 		pass.face = nullptr;
 	};
@@ -889,6 +889,11 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 		else
 		{
 			tex = ( stage.texture.handle != 0 )? &stage.texture: &glDummyTexture; 
+		}
+
+		if ( stage.tcgen == TCGEN_ENVIRONMENT )
+		{
+			__nop();
 		}
 
 		ImPrep( pass.view.transform, pass.view.clipTransform );

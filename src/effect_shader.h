@@ -94,7 +94,7 @@ enum mapType_t
 	MAP_TYPE_WHITE_IMAGE
 };
 
-enum texCoordGenType_t
+enum texCoordGen_t
 {
 	TCGEN_BASE = 0,
 	TCGEN_LIGHTMAP,
@@ -164,6 +164,7 @@ struct shaderStage_t
 {
 	bool						depthPass;
 
+	texCoordGen_t				tcgen;
 	GLuint						textureSlot;
 	texture_t					texture;
 

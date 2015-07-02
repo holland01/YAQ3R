@@ -62,29 +62,6 @@ void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )
 	{
 		switch ( key )
 		{
-			/*
-		case GLFW_KEY_RIGHT:
-			lightSamplerPos.x += ofsStep;
-			renderer->lightSampler.SetOrigin( lightSamplerPos );
-			break;
-
-		case GLFW_KEY_UP:
-			lightSamplerPos.z -= ofsStep;
-			renderer->lightSampler.SetOrigin( lightSamplerPos );
-			break;
-
-		case GLFW_KEY_LEFT:
-			lightSamplerPos.x -= ofsStep;
-			renderer->lightSampler.SetOrigin( lightSamplerPos );
-			break;
-
-		case GLFW_KEY_DOWN:
-			lightSamplerPos.z += ofsStep;
-			renderer->lightSampler.SetOrigin( lightSamplerPos );		
-			break;
-		*/
-
-
 		case GLFW_KEY_V:
 			if ( renderer->curView == VIEW_MAIN )
 			{

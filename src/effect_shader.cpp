@@ -227,7 +227,6 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				buffer = ReadToken( token, buffer );
 
 				blendFactor = GL_EnumFromStr( token );
-
 				if ( blendFactor == -1 )
 				{
 					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
@@ -293,6 +292,33 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			return true;
 		}
+	},
+	{
+		"tcgen",
+		STAGE_READ_FUNC
+		{
+			ZEROTOK( token );
+			buffer = ReadToken( token, buffer );
+
+			if ( strcmp( token, "environment" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_ENVIRONMENT;
+			}
+			else if ( strcmp( token, "base" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_BASE;
+			}
+			else if ( strcmp( token, "lightmap" ) == 0 )
+			{
+				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_LIGHTMAP;
+			}
+			else
+			{
+				return false;
+			}
+
+			return true;
+		} 
 	},
 	{
 		"tcmod",
@@ -393,13 +419,14 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 };
 
 shaderStage_t::shaderStage_t( void )
-	: textureSlot( 0 ),
+	: tcgen( TCGEN_BASE ),
+	  textureSlot( 0 ),
 	  rgbSrc( GL_ONE ),
 	  rgbDest( GL_ZERO ),
 	  alphaSrc( GL_ONE ),
 	  alphaDest( GL_ZERO ),
 	  depthFunc( GL_LEQUAL ),
-	  rgbGen( RGBGEN_VERTEX ),
+	  rgbGen( RGBGEN_IDENTITY_LIGHTING ),
 	  alphaFunc( ALPHA_FUNC_UNDEFINED ),
 	  mapCmd( MAP_CMD_UNDEFINED ),
 	  mapType( MAP_TYPE_UNDEFINED ),
@@ -762,7 +789,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 450",
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
-				"const float gamma = 1.0 / 2.6;",
+				"const float gamma = 1.0 / 2.2;",
 				"uniform sampler2D sampler0;",
 				"out vec4 fragment;",
 				"void main(void) {"
@@ -778,13 +805,14 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				if ( op.name == "tcModTurb" )
 				{
 					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
-					fragmentSrc.push_back( "\tst += tcModTurb;" );
+					fragmentSrc.push_back( "\tst *= tcModTurb;" );
 					uniforms.push_back( "tcModTurb" );
 				}
 				else if ( op.name == "tcModScroll" )
 				{
 					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
-					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
+					fragmentSrc.push_back( "\tst += tcModScroll.xy /** tcModScroll.zw*/;" );
+					fragmentSrc.push_back( "\tst = mod( st, 1.0 );" );
 					uniforms.push_back( "tcModScroll" );
 				}
 				else if ( op.name == "tcModRotate" )
