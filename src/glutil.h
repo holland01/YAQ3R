@@ -158,7 +158,7 @@ static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
 	GL_CHECK( glDrawElements( GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 }
-
+//---------------------------------------------------------------------
 struct texture_t
 {
 	bool srgb: 1;
@@ -337,3 +337,26 @@ INLINE void Program::Release( void ) const
 {
 	GL_CHECK( glUseProgram( 0 ) );
 }
+//-------------------------------------------------------------------------------------------------
+struct loadBlend_t
+{
+	GLenum prevSrcFactor, prevDstFactor;
+
+	loadBlend_t( GLenum srcFactor, GLenum dstFactor );
+   ~loadBlend_t( void );
+};
+//---------------------------------------------------------------------
+struct rtt_t
+{
+	texture_t	texture;
+	GLuint		fbo;
+	GLenum		attachment;
+
+	rtt_t( GLenum attachment );
+
+	~rtt_t( void );
+
+	void Attach( void ) const;
+	void Bind( void ) const;
+	void Release( void ) const;
+};

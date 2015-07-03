@@ -11,9 +11,21 @@
 ===========================================
 */
 
+struct plane_t;
+
 class AABB
 {
 public:
+
+	enum face_t
+	{
+		FACE_TOP = 0,
+		FACE_RIGHT,
+		FACE_FRONT,
+		FACE_LEFT,
+		FACE_BACK,
+		FACE_BOTTOM
+	};
 
     AABB( void ); // Calls Empty() on default init
 
@@ -47,15 +59,25 @@ public:
 
 	glm::vec4		Corner4( int index ) const;
 
-    bool        IsEmpty( void ) const;
+	bool			InXRange( const glm::vec3& v ) const;
+	
+	bool			InYRange( const glm::vec3& v ) const;
 
-    bool        InPointRange( float k ) const;
+	bool			InZRange( const glm::vec3& v ) const;
+
+    bool			IsEmpty( void ) const;
+
+    bool			InPointRange( float k ) const;
+
+	float			CalcIntersection( const glm::vec3& ray, const glm::vec3& origin ) const;
+
+	void			GetFacePlane( face_t face, plane_t& plane ) const;
 
     static void FromTransform( AABB& box, const glm::mat4& transform );
 
     static void FromPoints( AABB& box, const glm::vec3 p[], int32_t n );
 
-    glm::vec3        maxPoint, minPoint;
+    glm::vec3 maxPoint, minPoint;
 };
 
 INLINE glm::vec4 AABB::Corner4( int32_t index ) const
@@ -67,23 +89,37 @@ INLINE bool	AABB::Encloses( const AABB& box ) const
 {
 #ifdef AABB_MAX_Z_LESS_THAN_MIN_Z
 	
-	//if ( minPoint.x > box.maxPoint.x ) return false;
 	if ( minPoint.x > box.minPoint.x ) return false;
-	//if ( maxPoint.x < box.minPoint.x ) return false;
 	if ( maxPoint.x < box.maxPoint.x ) return false;
 
-	//if ( minPoint.y > box.maxPoint.y ) return false;
 	if ( minPoint.y > box.minPoint.y ) return false;
-	//if ( maxPoint.y < box.minPoint.y ) return false;
 	if ( maxPoint.y < box.maxPoint.y ) return false;
 
-	//if ( minPoint.z < box.maxPoint.x ) return false;
 	if ( minPoint.z < box.minPoint.z ) return false;
-	//if ( maxPoint.z < box.minPoint.z ) return false;
 	if ( maxPoint.z > box.maxPoint.z ) return false;
 
 	return true;
 #else
 	return !glm::any( glm::greaterThan( minPoint, box.maxPoint ) ) && !glm::any( glm::lessThan( maxPoint, box.minPoint ) );
 #endif
+}
+
+INLINE bool	AABB::InXRange( const glm::vec3& v ) const
+{
+	return ( v.x <= maxPoint.x && v.x >= minPoint.x );
+}
+	
+INLINE bool AABB::InYRange( const glm::vec3& v ) const
+{
+	return ( v.y <= maxPoint.y && v.y >= minPoint.y );
+}
+
+INLINE bool AABB::InZRange( const glm::vec3& v ) const
+{
+#ifdef AABB_MAX_Z_LESS_THAN_MIN_Z
+	return ( v.z >= maxPoint.z && v.z <= minPoint.z );
+#else
+	return ( v.z <= maxPoint.z && v.z >= minPoint.z );
+#endif
+
 }

@@ -57,6 +57,7 @@ struct mapModel_t
 	bool						deform: 1;
 	GLuint						vboOffset;
 	int32_t						subdivLevel;
+	std::shared_ptr< rtt_t >	envmap;
 
 	// used if face type == mesh or polygon
 	std::vector< int32_t >				indices;
@@ -66,28 +67,35 @@ struct mapModel_t
 	std::vector< bspVertex_t >			vertices;
 	std::vector< int32_t* >				rowIndices;
 	std::vector< int32_t  >				trisPerRow;
+	
+	AABB								bounds;
 
 	mapModel_t( void );
+	~mapModel_t( void );
+
+	void								CalcBounds( int32_t faceType, const mapData_t& data );
 };
 
 struct drawSurface_t
 {
 	// Every face within a given surface must
-	// have the same following three values
-	const shaderInfo_t*			shader;
+	// have the same following 4 values
+	
 	int32_t						textureIndex;
 	int32_t						lightmapIndex;
 	int32_t						faceType;
+	const shaderInfo_t*			shader;
+	
 
 	std::vector< const int32_t*		>	indexBuffers;
 	std::vector< int32_t			>	indexBufferSizes;
-	std::vector< const mapModel_t*	>	deformFaces; 
+	std::vector< int32_t			>	faceIndices;			
 
 			drawSurface_t( void )
-				:	shader( nullptr ), 
-					textureIndex( 0 ),
+				:	textureIndex( 0 ),
 					lightmapIndex( 0 ),
-					faceType( 0 )
+					faceType( 0 ),
+					shader( nullptr )
 			{}
 };
 
@@ -115,7 +123,7 @@ struct drawPass_t
 	const viewParams_t& view;
 
     std::vector< byte > facesVisited;
-	std::vector< int > transparent, opaque;
+	std::vector< int32_t > transparent, opaque;
 
 	drawSurfaceList_t patches;
 	drawSurfaceList_t polymeshes;
@@ -124,7 +132,7 @@ struct drawPass_t
 };
 
 struct lightSampler_t {
-	static const int NUM_BUFFERS = 2;
+	static const int32_t NUM_BUFFERS = 2;
 	
 	InputCamera								camera;
 	glm::vec4								targetPlane;
@@ -137,7 +145,7 @@ struct lightSampler_t {
 	
 	~lightSampler_t( void );
 
-	void				Bind( int which ) const;
+	void				Bind( int32_t which ) const;
 	
 	void				Release( void ) const;
 	
@@ -153,7 +161,7 @@ private:
 
 	// last two integers are textureIndex and lightmapIndex, respectively
 	// the const void* is either a const drawSurface_t* or const bspFace_t*, depending on objectType_t
-	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int >; 
+	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int32_t >; 
 
 	texture_t					glDummyTexture;
 	std::vector< texture_t >	glTextures;			// has one->one mapping with texture indices
@@ -172,9 +180,9 @@ private:
 
 	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
 
-	const texture_t&	GetTextureOrDummy( int index, bool predicate, const std::vector< texture_t >& textures ) const;
+	const texture_t&	GetTextureOrDummy( int32_t index, bool predicate, const std::vector< texture_t >& textures ) const;
 
-	void				DeformVertexes( const mapModel_t* m, const shaderInfo_t* shader ) const;
+	void				DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const;
 
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
@@ -183,9 +191,9 @@ private:
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
-	bool				IsTransFace( int faceIndex, const shaderInfo_t* shader ) const;
+	bool				IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const;
 
-	void				LoadPassParams( drawPass_t& pass, int face, passDrawType_t defaultPass ) const;
+	void				LoadPassParams( drawPass_t& pass, int32_t face, passDrawType_t defaultPass ) const;
 
 	void				DrawMapPass( drawPass_t& parms );
 	
@@ -193,23 +201,25 @@ private:
 	
 	void				EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
-	void				AddSurface( const shaderInfo_t* shader, int faceIndex, std::vector< drawSurface_t >& surfList );
+	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList );
 
 	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const;
 
 	void				DrawSurface( const drawSurface_t& surface, const Program& program ) const;
 
-	void				DrawFaceList( drawPass_t& p, const std::vector< int >& list );
+	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
 	void				DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list ) const;
 
 	void				DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data ) const;
 
-	void				DrawNode( drawPass_t& pass, int nodeIndex );
+	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 
     void				DrawFace( drawPass_t& pass );
 
 	void				DrawFaceVerts( const drawPass_t& pass, const Program& program ) const;
+
+	void				DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) const;
 
 public:
 	Q3BspMap*       map;
@@ -241,7 +251,7 @@ public:
 	InputCamera* CameraFromView( void );
 };
 
-INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int index, 
+INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int32_t index, 
 	bool predicate, const std::vector< texture_t >& textures ) const
 {
 	if ( predicate )
@@ -268,11 +278,11 @@ INLINE void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_
 	}
 }
 
-INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& list )
+INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list )
 {
 	passDrawType_t defaultPass = p.drawType;
 
-	for ( int face: list )
+	for ( int32_t face: list )
 	{
 		LoadPassParams( p, face, defaultPass );
 		DrawFace( p );
@@ -281,9 +291,9 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int >& 
 
 INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& program ) const
 {
-	for ( const mapModel_t* m: surf.deformFaces )
+	for ( int32_t i: surf.faceIndices )
 	{
-		DeformVertexes( m, surf.shader );
+		DeformVertexes( glFaces[ i ], surf.shader );
 	}
 
 	program.LoadAttribLayout();
@@ -296,7 +306,7 @@ INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& 
 #ifdef _DEBUG_FACE_TYPES
 	GLint srcFactor, dstFactor;
 	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &srcFactor ) );
-	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &dstFactor ) );
+	GL_CHECK( glGetIntegerv( GL_BLEND_DST_RGB, &dstFactor ) );
 
 	GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
 
@@ -332,6 +342,9 @@ INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4&
 {
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( projection ) ) );
+
+	//glm::mat4 viewMod( view );
+	//viewMod[ 3 ].z -= 200.0f;
 
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );

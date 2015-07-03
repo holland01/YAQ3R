@@ -317,7 +317,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -364,7 +364,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -3647,7 +3647,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -3691,7 +3691,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5117,7 +5117,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5161,7 +5161,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5205,7 +5205,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5253,7 +5253,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5300,7 +5300,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5344,7 +5344,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5474,7 +5474,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5557,7 +5557,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5642,7 +5642,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5686,7 +5686,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5902,7 +5902,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -5985,7 +5985,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -6027,7 +6027,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -6117,7 +6117,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -6548,7 +6548,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -6838,7 +6838,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -6885,7 +6885,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -6930,7 +6930,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -7381,7 +7381,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -7467,7 +7467,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -8044,7 +8044,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -8209,7 +8209,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -8251,7 +8251,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -8459,7 +8459,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -8501,7 +8501,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9263,7 +9263,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9467,7 +9467,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9589,7 +9589,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9631,7 +9631,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9673,7 +9673,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9719,7 +9719,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9763,7 +9763,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9807,7 +9807,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9853,7 +9853,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9897,7 +9897,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -9941,7 +9941,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -10024,7 +10024,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -10265,7 +10265,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -10518,7 +10518,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -10851,7 +10851,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11063,7 +11063,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11105,7 +11105,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11147,7 +11147,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11310,7 +11310,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11354,7 +11354,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11437,7 +11437,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11694,7 +11694,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -11944,7 +11944,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -12367,7 +12367,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -12573,7 +12573,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -12900,7 +12900,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st += texRotate * ( frag_Tex - texCenter );
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -13064,7 +13064,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -13524,7 +13524,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -13733,7 +13733,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -13818,7 +13818,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -13867,7 +13867,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -14314,7 +14314,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -14358,7 +14358,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -15006,7 +15006,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -15132,7 +15132,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -15260,7 +15260,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -15966,7 +15966,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -16178,7 +16178,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -16346,7 +16346,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -16468,7 +16468,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -16681,7 +16681,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -17050,7 +17050,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -17136,7 +17136,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -17386,7 +17386,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -17554,7 +17554,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18046,7 +18046,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18090,7 +18090,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18134,7 +18134,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18585,7 +18585,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18673,7 +18673,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18761,7 +18761,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18808,7 +18808,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -18975,7 +18975,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -19101,7 +19101,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -19598,7 +19598,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -19641,7 +19641,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -19772,7 +19772,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -19859,7 +19859,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -19905,7 +19905,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -19991,7 +19991,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -20402,7 +20402,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -20535,7 +20535,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -20582,7 +20582,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21116,7 +21116,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21158,7 +21158,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21243,7 +21243,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21285,7 +21285,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21411,7 +21411,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21458,7 +21458,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21500,7 +21500,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21706,7 +21706,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -21963,7 +21963,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -22012,7 +22012,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -22145,7 +22145,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -22192,7 +22192,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -22282,7 +22282,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -22367,7 +22367,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -22537,7 +22537,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -23199,7 +23199,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -24041,7 +24041,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -25091,7 +25091,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -25179,7 +25179,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -25305,7 +25305,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -25952,7 +25952,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -26077,7 +26077,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -26322,7 +26322,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -26487,7 +26487,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -26985,7 +26985,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -27117,7 +27117,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -27242,7 +27242,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -27609,7 +27609,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -28219,7 +28219,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -28687,7 +28687,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -28731,7 +28731,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -28855,7 +28855,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -28899,7 +28899,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -29023,7 +29023,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -29067,7 +29067,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -29193,7 +29193,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -29237,7 +29237,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -30541,7 +30541,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -40943,7 +40943,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -41381,7 +41381,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -41423,7 +41423,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -47318,7 +47318,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -47479,7 +47479,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -47527,7 +47527,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -47809,7 +47809,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -48210,7 +48210,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -48332,7 +48332,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -48706,7 +48706,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -48950,7 +48950,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -48993,7 +48993,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -49035,7 +49035,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -49473,7 +49473,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -49517,7 +49517,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -50219,7 +50219,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -50348,7 +50348,7 @@ void main(void) {
 	st += texRotate * ( frag_Tex - texCenter );
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -50628,7 +50628,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -54167,7 +54167,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -54367,7 +54367,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -54567,7 +54567,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -54928,7 +54928,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -55055,7 +55055,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -56549,7 +56549,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -56591,7 +56591,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -56754,7 +56754,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -57038,7 +57038,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -57162,7 +57162,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -57409,7 +57409,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -58269,7 +58269,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -58756,7 +58756,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -59685,7 +59685,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -59729,7 +59729,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -60004,7 +60004,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -60050,7 +60050,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -60094,7 +60094,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -60929,7 +60929,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -61131,7 +61131,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -61454,7 +61454,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -61664,7 +61664,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -63139,7 +63139,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -63226,7 +63226,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63268,7 +63268,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63311,7 +63311,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -63357,7 +63357,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -63400,7 +63400,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63443,7 +63443,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -63486,7 +63486,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63614,7 +63614,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63660,7 +63660,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63706,7 +63706,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -63751,7 +63751,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -63798,7 +63798,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -63844,7 +63844,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -63889,7 +63889,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -63936,7 +63936,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -63982,7 +63982,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -64027,7 +64027,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -65239,7 +65239,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65285,7 +65285,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65329,7 +65329,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65496,7 +65496,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -65544,7 +65544,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65670,7 +65670,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65716,7 +65716,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65803,7 +65803,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -65849,7 +65849,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -66059,7 +66059,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -66105,7 +66105,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -67151,7 +67151,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -67559,7 +67559,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -67686,7 +67686,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -67732,7 +67732,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -67856,7 +67856,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -67984,7 +67984,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -68945,7 +68945,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -68989,7 +68989,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -69237,7 +69237,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -69447,7 +69447,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -69697,7 +69697,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -69861,7 +69861,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -70067,7 +70067,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -70193,7 +70193,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -70874,7 +70874,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -71120,7 +71120,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -71882,7 +71882,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -72173,7 +72173,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -72494,7 +72494,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -73058,7 +73058,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -73349,7 +73349,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -73593,7 +73593,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -73721,7 +73721,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -74241,7 +74241,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -74406,7 +74406,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -74533,7 +74533,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -86499,7 +86499,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -89062,7 +89062,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -89107,7 +89107,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -89151,7 +89151,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -89196,7 +89196,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -89240,7 +89240,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -90252,7 +90252,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -90296,7 +90296,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -90425,7 +90425,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90471,7 +90471,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90515,7 +90515,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90563,7 +90563,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90609,7 +90609,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90653,7 +90653,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90697,7 +90697,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90743,7 +90743,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90787,7 +90787,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90831,7 +90831,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90877,7 +90877,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90921,7 +90921,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -90967,7 +90967,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91013,7 +91013,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91059,7 +91059,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91103,7 +91103,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91229,7 +91229,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91275,7 +91275,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91321,7 +91321,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91365,7 +91365,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91409,7 +91409,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91496,7 +91496,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91540,7 +91540,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91625,7 +91625,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91669,7 +91669,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91713,7 +91713,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91798,7 +91798,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91842,7 +91842,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91886,7 +91886,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -91971,7 +91971,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92015,7 +92015,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92059,7 +92059,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92144,7 +92144,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92188,7 +92188,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92232,7 +92232,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92530,7 +92530,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st += texRotate * ( frag_Tex - texCenter );
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -92577,7 +92577,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -92746,7 +92746,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93251,7 +93251,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93295,7 +93295,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93341,7 +93341,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93387,7 +93387,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93433,7 +93433,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93477,7 +93477,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93562,7 +93562,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93606,7 +93606,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93650,7 +93650,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -93862,7 +93862,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st += texRotate * ( frag_Tex - texCenter );
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -93910,7 +93910,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 layout( depth_unchanged ) float gl_FragDepth;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -94039,7 +94039,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94083,7 +94083,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94169,7 +94169,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -94257,7 +94257,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94303,7 +94303,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94349,7 +94349,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94395,7 +94395,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94441,7 +94441,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94487,7 +94487,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94533,7 +94533,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94579,7 +94579,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94625,7 +94625,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94671,7 +94671,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94717,7 +94717,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94763,7 +94763,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94809,7 +94809,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94855,7 +94855,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94940,7 +94940,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -94984,7 +94984,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -95030,7 +95030,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -95076,7 +95076,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -95122,7 +95122,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -95168,7 +95168,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st += texRotate * ( frag_Tex - texCenter );
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -95215,7 +95215,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -95261,7 +95261,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -95307,7 +95307,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96003,7 +96003,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96047,7 +96047,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96093,7 +96093,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96178,7 +96178,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96224,7 +96224,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96268,7 +96268,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96314,7 +96314,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96362,7 +96362,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96408,7 +96408,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -96454,7 +96454,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -97653,7 +97653,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102036,7 +102036,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102082,7 +102082,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102126,7 +102126,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102174,7 +102174,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102220,7 +102220,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102264,7 +102264,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102312,7 +102312,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102358,7 +102358,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -102402,7 +102402,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -104294,7 +104294,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -104617,7 +104617,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105030,7 +105030,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -105240,7 +105240,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105284,7 +105284,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105330,7 +105330,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105374,7 +105374,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105420,7 +105420,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105464,7 +105464,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105510,7 +105510,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105554,7 +105554,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105600,7 +105600,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105644,7 +105644,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105690,7 +105690,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105734,7 +105734,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105821,7 +105821,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105865,7 +105865,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -105913,7 +105913,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st += texRotate * ( frag_Tex - texCenter );
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -106590,7 +106590,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -106751,7 +106751,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -106912,7 +106912,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -107073,7 +107073,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -107117,7 +107117,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -107163,7 +107163,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -108912,7 +108912,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -108956,7 +108956,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -109002,7 +109002,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -109046,7 +109046,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -109092,7 +109092,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -109136,7 +109136,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -109188,7 +109188,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -109232,7 +109232,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -110691,7 +110691,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -110860,7 +110860,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -110943,7 +110943,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111115,7 +111115,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111602,7 +111602,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111646,7 +111646,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111692,7 +111692,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111736,7 +111736,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111782,7 +111782,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111826,7 +111826,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -111871,7 +111871,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -111914,7 +111914,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -112362,7 +112362,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -112572,7 +112572,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st *= tcModTurb;
 	st = tcModScale * st;
@@ -112901,7 +112901,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -112945,7 +112945,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -113323,7 +113323,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -113372,7 +113372,7 @@ void main(void) {
 	st = tcModScale * st;
 	st *= tcModTurb;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -113455,7 +113455,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -113540,7 +113540,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -113584,7 +113584,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -113628,7 +113628,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -114049,7 +114049,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -114095,7 +114095,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -114139,7 +114139,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -114187,7 +114187,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -114233,7 +114233,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -114277,7 +114277,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -115356,7 +115356,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116126,7 +116126,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116170,7 +116170,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116214,7 +116214,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116256,7 +116256,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116300,7 +116300,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116344,7 +116344,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116388,7 +116388,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116430,7 +116430,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116569,7 +116569,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -116614,7 +116614,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116658,7 +116658,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116703,7 +116703,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -116749,7 +116749,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -116793,7 +116793,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -116840,7 +116840,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116884,7 +116884,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -116929,7 +116929,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -116973,7 +116973,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117019,7 +117019,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117063,7 +117063,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117110,7 +117110,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -117154,7 +117154,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -117199,7 +117199,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117243,7 +117243,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117289,7 +117289,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117333,7 +117333,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117380,7 +117380,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -117424,7 +117424,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -117470,7 +117470,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -117514,7 +117514,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -117559,7 +117559,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117603,7 +117603,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117673,7 +117673,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117717,7 +117717,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117763,7 +117763,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117807,7 +117807,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117853,7 +117853,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117897,7 +117897,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117943,7 +117943,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -117987,7 +117987,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118034,7 +118034,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -118078,7 +118078,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -118124,7 +118124,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -118168,7 +118168,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -118213,7 +118213,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118257,7 +118257,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118303,7 +118303,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118347,7 +118347,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118394,7 +118394,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -118438,7 +118438,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -118483,7 +118483,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118533,7 +118533,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118577,7 +118577,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118623,7 +118623,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118667,7 +118667,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118713,7 +118713,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118757,7 +118757,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118803,7 +118803,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118847,7 +118847,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118893,7 +118893,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118937,7 +118937,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -118983,7 +118983,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -119027,7 +119027,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -119073,7 +119073,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -119117,7 +119117,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -119164,7 +119164,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119208,7 +119208,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119254,7 +119254,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119298,7 +119298,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119344,7 +119344,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119388,7 +119388,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119433,7 +119433,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -119477,7 +119477,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -119524,7 +119524,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119568,7 +119568,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119614,7 +119614,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119658,7 +119658,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119704,7 +119704,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119748,7 +119748,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119794,7 +119794,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119838,7 +119838,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119884,7 +119884,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -119928,7 +119928,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -120055,7 +120055,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120099,7 +120099,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120145,7 +120145,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120189,7 +120189,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120235,7 +120235,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120279,7 +120279,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120325,7 +120325,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120369,7 +120369,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120415,7 +120415,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120459,7 +120459,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120505,7 +120505,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120549,7 +120549,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120595,7 +120595,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120639,7 +120639,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120685,7 +120685,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120729,7 +120729,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120776,7 +120776,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -120820,7 +120820,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -120865,7 +120865,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120909,7 +120909,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -120956,7 +120956,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -121000,7 +121000,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -121125,7 +121125,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -122897,7 +122897,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -122941,7 +122941,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -122990,7 +122990,7 @@ void main(void) {
 	st *= tcModTurb;
 	st = tcModScale * st;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123039,7 +123039,7 @@ void main(void) {
 	st *= tcModTurb;
 	st = tcModScale * st;
 	st += texRotate * ( frag_Tex - texCenter );
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123124,7 +123124,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123166,7 +123166,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123213,7 +123213,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -123260,7 +123260,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123305,7 +123305,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -123350,7 +123350,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123396,7 +123396,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123443,7 +123443,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -123489,7 +123489,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -123534,7 +123534,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123660,7 +123660,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123705,7 +123705,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -123751,7 +123751,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -123796,7 +123796,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123842,7 +123842,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123886,7 +123886,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123932,7 +123932,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
 	st = tcModScale * st;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -123978,7 +123978,7 @@ void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -124024,7 +124024,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -124068,7 +124068,7 @@ out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st *= tcModTurb;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
@@ -124111,7 +124111,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	vec4 color = texture( sampler0, st ) * frag_Color;
@@ -124199,7 +124199,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	st = tcModScale * st;
 	st *= tcModTurb;
@@ -124245,7 +124245,7 @@ uniform sampler2D sampler0;
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	st += tcModScroll.xy /** tcModScroll.zw*/;
+	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
 	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );

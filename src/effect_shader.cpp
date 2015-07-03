@@ -14,8 +14,7 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t*
 
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, char* token ) -> bool
 
-#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) )
-
+#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 
 std::map< std::string, stageEvalFunc_t > stageReadFuncs = 
 {
@@ -303,6 +302,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			if ( strcmp( token, "environment" ) == 0 )
 			{
 				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_ENVIRONMENT;
+				outInfo->surfaceParms |= SURFPARM_ENVMAP;
 			}
 			else if ( strcmp( token, "base" ) == 0 )
 			{
@@ -754,6 +754,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			std::vector< std::string > uniforms = { "sampler0" };
 			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
 
+			const size_t vertInsertOffset = 4;
+
 			// Load vertex header;
 			std::vector< std::string > vertexSrc = 
 			{	
@@ -761,15 +763,41 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"layout( location = 0 ) in vec3 position;", 
 				"layout( location = 1 ) in vec4 color;", 
 				"layout( location = 2 ) in vec2 $tex0;",
-				"layout( std140 ) uniform Transforms {",
-				"\tmat4 viewToClip;",
-				"\tmat4 modelToView;",
-				"};",
 				"out vec2 frag_Tex;",
 				"out vec4 frag_Color;",
 				"void main(void) {",
-				"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );"
 			};
+
+/*			if ( stage.tcgen == TCGEN_ENVIRONMENT )
+			{
+				vertexSrc.insert( vertexSrc.begin() + vertInsertOffset,
+				{
+					"uniform vec4 surfaceNormal;",
+					"mat4 CalcLookAt( void ) {",
+					"\tvec3 up, right;",
+					"\tfloat d = dot( vec3( surfaceNormal ), vec3( 0.0, 1.0, 0.0 ) );",
+					"\tif ( abs( d ) == 1.0 ) {",
+					"\t\tvec3 v0 = vec3( 1.0, 0.0, 0.0 );",
+					"\t\tup = cross( surfaceNormal, v0 );"
+					"\t} else {",
+					"\t\tfindUp = vec3( 0.0, 1.0, 0.0 );",
+					"\t}",
+					"\t"
+				} ); 
+			}
+			else
+			*/
+			{
+				vertexSrc.insert( vertexSrc.begin() + vertInsertOffset, 
+				{  
+					"layout( std140 ) uniform Transforms {",
+					"\tmat4 viewToClip;",
+					"\tmat4 modelToView;",
+					"};"
+				} );
+
+				vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
+			}
 
 			vertexSrc.push_back( "\tfrag_Tex = $tex0;" );
 			
@@ -811,7 +839,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				else if ( op.name == "tcModScroll" )
 				{
 					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
-					fragmentSrc.push_back( "\tst += tcModScroll.xy /** tcModScroll.zw*/;" );
+					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
 					fragmentSrc.push_back( "\tst = mod( st, 1.0 );" );
 					uniforms.push_back( "tcModScroll" );
 				}

@@ -1,4 +1,6 @@
 #include "aabb.h"
+#include "plane.h"
+#include <array>
 
 /*
 ===========================================
@@ -52,8 +54,13 @@ void AABB::Empty( void )
 {
     const float pseudoInfinity = 1e37f;
 
+#ifdef AABB_MAX_Z_LESS_THAN_MIN_Z
+	maxPoint = glm::vec3( -pseudoInfinity, -pseudoInfinity, pseudoInfinity );
+	minPoint = glm::vec3( pseudoInfinity, pseudoInfinity, -pseudoInfinity );
+#else
     maxPoint = glm::vec3( -pseudoInfinity );
     minPoint = glm::vec3( pseudoInfinity );
+#endif
 }
 
 void AABB::TransformTo( const AABB& box, const glm::mat4& transform )
@@ -158,6 +165,18 @@ glm::vec3 AABB::Radius( void ) const
     return maxPoint - Center();
 }
 
+enum 
+{
+	CORNER_MIN = 0,
+	CORNER_NEAR_DOWN_RIGHT,
+	CORNER_NEAR_UP_LEFT,
+	CORNER_NEAR_UP_RIGHT,
+	CORNER_FAR_DOWN_LEFT,
+	CORNER_FAR_DOWN_RIGHT,
+	CORNER_FAR_UP_LEFT,
+	CORNER_MAX = 7
+};
+
 glm::vec3 AABB::Corner( int index ) const
 {
     assert( index >= 0 );
@@ -174,10 +193,13 @@ bool AABB::IsEmpty( void ) const
 {
     // Check to see if any of our
     // axes are inverted
-
     return ( maxPoint.x < minPoint.x )
         || ( maxPoint.y < minPoint.y )
+#ifdef AABB_MAX_Z_LESS_THAN_MIN_Z
         || ( maxPoint.z < minPoint.z );
+#else
+		|| ( maxPoint.z > minPoint.z );
+#endif
 }
 
 bool AABB::InPointRange( float k ) const
@@ -185,6 +207,179 @@ bool AABB::InPointRange( float k ) const
     return ( maxPoint.x >= k && maxPoint.y >= k && maxPoint.z >= k )
         && ( minPoint.x <= k && minPoint.y <= k && minPoint.z <= k );
 }
+
+// Find the closest 3 faces
+// Compute intersections;
+// then make sure the ray will be within the bounds of the three faces;
+float AABB::CalcIntersection( const glm::vec3& ray, const glm::vec3& origin ) const
+{
+	// Quick early out; 0 implies no scaling necessary
+	if ( InXRange( origin ) && InYRange( origin ) && InZRange( origin ) )
+	{
+		return 0.0f;
+	}
+
+	//std::array< plane_t, 3 > faces;
+	std::array< float, 3 > intersections;
+	
+	int32_t fcount = 0;
+	for ( int32_t i = 0; i < 6; ++i )
+	{
+		if ( fcount == 3 )
+		{
+			break;
+		}
+
+		plane_t p;
+
+		GetFacePlane( ( face_t )i, p );
+		
+		float fx = p.normal.x * ray.x;
+		float fy = p.normal.y * ray.y;
+		float fz = p.normal.z * ray.z;
+		
+		float thedot = fx + fy + fz;
+
+		// if true then face faces away from ray, so move on
+		if ( thedot >= 0.0f )
+		{
+			continue;	
+		}
+
+		float t = -( glm::dot( origin, p.normal ) + p.d ) / thedot;
+
+		if ( isinf( t ) )
+		{
+			continue;
+		}
+
+		glm::vec3 r( origin + ray * t );
+
+		// only one component can be nonzero, so we test
+		// against our current face to ensure that we're not outside of the bounds
+		// of the face
+
+		// If the origin is in the range of the corresponding
+		// face's axis, this implies that we're wasting our time: the origin
+		// isn't actually inside of the bounds, and since we've ommitted
+		// all normals which are within 90 degrees or less of the ray,
+		// the only way this face can be hit is if we negate the ray, which we don't want.
+
+		// front or back face
+		if ( fz != 0.0f )
+		{
+			if ( !InXRange( r ) ) continue;
+			if ( !InYRange( r ) ) continue;
+		}
+		// top or bottom face
+		else if ( fy != 0.0f )
+		{
+			if ( !InZRange( r ) ) continue;
+			if ( !InXRange( r ) ) continue;
+		}
+		// left or right face
+		else
+		{
+			if ( !InZRange( r ) ) continue;
+			if ( !InYRange( r ) ) continue;
+		}
+
+		//faces[ fcount ] = std::move( p );
+		intersections[ fcount++ ] = t;
+
+		//fcount++;
+	}
+
+	// find closest intersection
+	float t0 = FLT_MAX;
+
+	for ( int32_t i = 0; i < fcount; ++i )
+	{
+		if ( intersections[ i ] < t0 )
+		{
+			t0 = intersections[ i ];
+		}
+	}
+
+	return t0;
+}
+
+#define A_CalcEdge( e ) ( glm::normalize( e ) )
+void AABB::GetFacePlane( face_t face, plane_t& plane ) const
+{
+/*
+	
+Future reference for OBBs...
+	
+	glm::vec3 e0, e1, p;
+
+	switch ( face )
+	{
+	case AABB::FACE_TOP:
+		p  = maxPoint;
+		e0 = A_CalcEdge( p - Corner( CORNER_NEAR_UP_RIGHT ) );
+		e1 = A_CalcEdge(  Corner( CORNER_FAR_UP_LEFT ) - p );
+		break;
+	case AABB::FACE_RIGHT:
+		p  = maxPoint;
+		e0 = p - Corner( CORNER_FAR_DOWN_RIGHT );
+		e1 = Corner( CORNER_NEAR_UP_RIGHT ) - p;
+		break;
+	case AABB::FACE_FRONT:
+		p  = Corner( CORNER_NEAR_UP_RIGHT );
+		e0 = A_CalcEdge( p - Corner( CORNER_NEAR_DOWN_RIGHT ) );
+		e1 = A_CalcEdge( Corner( CORNER_NEAR_UP_LEFT ) - p );
+		break;
+	case AABB::FACE_LEFT:
+		p  = Corner( CORNER_NEAR_UP_LEFT );
+		e0 = A_CalcEdge( p - Corner( CORNER_MIN ) );
+		e1 = A_CalcEdge( Corner( CORNER_FAR_UP_LEFT ) - p );
+		break;
+	case AABB::FACE_BACK:
+		p  = Corner( CORNER_FAR_UP_LEFT );
+		e0 = A_CalcEdge( p - Corner( CORNER_FAR_DOWN_LEFT ) );
+		e1 = A_CalcEdge( Corner( CORNER_MAX ) - p );
+		break;
+	case AABB::FACE_BOTTOM:
+		p = Corner( CORNER_NEAR_DOWN_RIGHT );
+		e0 = A_CalcEdge( p - Corner( CORNER_FAR_DOWN_RIGHT ) );
+		e1 = A_CalcEdge( Corner( CORNER_MIN ) - p );
+		break;
+	}
+*/
+	glm::vec3 p;
+
+	switch ( face )
+	{
+		case AABB::FACE_TOP:
+			p  = maxPoint;
+			plane.normal = glm::vec3( 0.0f, 1.0f, 0.0f );
+			break;
+		case AABB::FACE_RIGHT:
+			p  = maxPoint;
+			plane.normal = glm::vec3( 1.0f, 0.0f, 0.0f );
+			break;
+		case AABB::FACE_FRONT:
+			p  = Corner( CORNER_NEAR_UP_RIGHT );
+			plane.normal = glm::vec3( 0.0f, 0.0f, 1.0f );
+			break;
+		case AABB::FACE_LEFT:
+			p  = Corner( CORNER_NEAR_UP_LEFT );
+			plane.normal = glm::vec3( -1.0f, 0.0f, 0.0f );
+			break;
+		case AABB::FACE_BACK:
+			p  = Corner( CORNER_FAR_UP_LEFT );
+			plane.normal = glm::vec3( 0.0f, 0.0f, -1.0f );
+			break;
+		case AABB::FACE_BOTTOM:
+			p = Corner( CORNER_NEAR_DOWN_RIGHT );
+			plane.normal = glm::vec3( 0.0f, -1.0f, 0.0f );
+			break;
+	}
+
+	plane.d = glm::dot( p, plane.normal );
+}
+#undef A_CalcEdge
 
 static const float AABB_SIZE_FACTOR = 1.5f;
 

@@ -505,3 +505,50 @@ void Program::LoadAttribLayout( void ) const
 		}
 	}
 }
+//-------------------------------------------------------------------------------------------------
+loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )
+{
+	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, ( GLint* ) &prevSrcFactor ) );
+	GL_CHECK( glGetIntegerv( GL_BLEND_DST_RGB, ( GLint* ) &prevDstFactor ) );
+
+	GL_CHECK( glBlendFunc( srcFactor, dstFactor ) );
+}
+
+loadBlend_t::~loadBlend_t( void )
+{
+	GL_CHECK( glBlendFunc( prevSrcFactor, prevDstFactor ) );
+}
+//-------------------------------------------------------------------------------------------------
+rtt_t::rtt_t( GLenum attachment_ )
+	: fbo( 0 ),
+	  attachment( attachment_ )
+{
+	GL_CHECK( glGenFramebuffers( 1, &fbo ) );
+}
+
+rtt_t::~rtt_t( void )
+{
+	if ( fbo )
+	{
+		GL_CHECK( glDeleteFramebuffers( 1, &fbo ) );
+	}
+}
+
+void rtt_t::Attach( void ) const
+{
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+	GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.handle, 0 ) );
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
+}
+
+void rtt_t::Bind( void ) const
+{
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+	GL_CHECK( glDrawBuffer( attachment ) );
+}
+
+void rtt_t::Release( void ) const
+{
+	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+	GL_CHECK( glDrawBuffer( GL_BACK ) );
+}

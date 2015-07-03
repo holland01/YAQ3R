@@ -80,7 +80,7 @@ void Frustum::Update( const viewParams_t& view, bool normalizeDistance )
 		return x;
 	}
 #else
-#	define F_PlaneSide( point, plane ) ( glm::dot( ( point ), ( plane ).normal ) - ( plane ).d
+#	define F_PlaneSide( point, plane ) ( glm::dot( ( point ), ( plane ).normal ) - ( plane ).d )
 ) 
 #endif
 

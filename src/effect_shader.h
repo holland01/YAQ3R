@@ -37,7 +37,8 @@ enum surfaceParms_t
 	SURFPARM_SLIME				= 1 << 21,
 	SURFPARM_STRUCTURAL			= 1 << 22,
 	SURFPARM_TRANS				= 1 << 23,
-	SURFPARM_WATER				= 1 << 24
+	SURFPARM_WATER				= 1 << 24,
+	SURFPARM_ENVMAP				= 1 << 25 // additional; not part of the standarad AFAIK
 };	
 
 enum vertexDeformCmd_t
