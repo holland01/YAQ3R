@@ -246,7 +246,7 @@ float AABB::CalcIntersection( const glm::vec3& ray, const glm::vec3& origin ) co
 			continue;	
 		}
 
-		float t = -( glm::dot( origin, p.normal ) + p.d ) / thedot;
+		float t = -( glm::dot( origin, p.normal ) - p.d ) / thedot;
 
 		if ( isinf( t ) )
 		{
@@ -266,22 +266,26 @@ float AABB::CalcIntersection( const glm::vec3& ray, const glm::vec3& origin ) co
 		// the only way this face can be hit is if we negate the ray, which we don't want.
 
 		// front or back face
-		if ( fz != 0.0f )
+		if ( fz != 0.0f && !isinf( fz ) )
 		{
 			if ( !InXRange( r ) ) continue;
 			if ( !InYRange( r ) ) continue;
 		}
 		// top or bottom face
-		else if ( fy != 0.0f )
+		else if ( fy != 0.0f && !isinf( fy ) )
 		{
 			if ( !InZRange( r ) ) continue;
 			if ( !InXRange( r ) ) continue;
 		}
 		// left or right face
-		else
+		else if ( fx != 0.0f && !isinf( fx ) )
 		{
 			if ( !InZRange( r ) ) continue;
 			if ( !InYRange( r ) ) continue;
+		}
+		else
+		{
+			continue;
 		}
 
 		//faces[ fcount ] = std::move( p );

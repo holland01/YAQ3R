@@ -21,3 +21,25 @@ glm::fquat MakeQuat( float angRad, const glm::vec3& axis )
 
     return glm::fquat( w, x, y, z );
 }
+
+void OrthoNormalBasisFromForward( const glm::vec3& forwardDir, glm::mat3& basis )
+{
+	const glm::vec3 up( 0.0f, 1.0f, 0.0f );
+	const glm::vec3 right( 1.0f, 0.0f, 0.0f );
+
+	float dotUp = glm::abs( glm::dot( forwardDir, up ) );
+	float dotRight = glm::abs( glm::dot( forwardDir, right ) );
+
+	if ( glm::min( dotUp, dotRight ) == dotUp )
+	{
+		basis[ 0 ] = glm::cross( forwardDir, up );
+		basis[ 1 ] = glm::cross( forwardDir, -basis[ 0 ] ); // right hand rule implies that forward X left will produce proper up
+	}
+	else
+	{
+		basis[ 1 ] = glm::cross( forwardDir, -right );
+		basis[ 0 ] = glm::cross( forwardDir, basis[ 1 ] );
+	}
+
+	basis[ 2 ] = forwardDir;
+}

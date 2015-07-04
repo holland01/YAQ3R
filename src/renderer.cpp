@@ -11,13 +11,15 @@ struct config_t
 	bool drawFacesOnly: 1;
 	bool drawIrradiance: 1;
 	bool drawFacePatches: 1;
+	bool drawFaceBounds: 1;
 };
 
-config_t config = 
+static config_t config = 
 {
 	false,
 	false,
-	false
+	false,
+	true
 };
 
 static uint64_t frameCount = 0;
@@ -41,13 +43,6 @@ static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vect
 	&& ( !!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) || surf.shader->deform ) )
 	{
 		surf.faceIndices.push_back( faceIndex );
-
-		if ( !!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) && !model.envmap )
-		{
-			model.envmap.reset( new rtt_t( GL_COLOR_ATTACHMENT0 ) );
-			model.envmap->texture.SetBufferSize( 256, 256, 3, 0 );
-			model.envmap->Attach();
-		}
 	}
 }
 
@@ -498,6 +493,7 @@ FAIL_WARN:
 	// which aren't of these two categories, we leave them be.
 	for ( int32_t i = 0; i < map->data.numFaces; ++i )
 	{
+		const shaderInfo_t* shader = map->GetShaderInfo( i );
 		mapModel_t* mod = &glFaces[ i ]; 
 
 		const bspFace_t* face = map->data.faces + i;
@@ -515,7 +511,6 @@ FAIL_WARN:
 			mod->vboOffset = ( GLuint ) vertexData.size();
 			int width = ( face->size[ 0 ] - 1 ) / 2;
 			int height = ( face->size[ 1 ] - 1 ) / 2;
-			const shaderInfo_t* shader = map->GetShaderInfo( i );
 
 			GLenum bufferUsage = ( shader && shader->deform )? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
@@ -555,7 +550,15 @@ FAIL_WARN:
 		}
 
 		mod->CalcBounds( face->type, map->data );
-		__nop();
+
+		if ( shader && !!( shader->surfaceParms & SURFPARM_ENVMAP ) )
+		{
+			glm::mat4 view( glm::lookAt( mod->bounds.maxPoint, mod->bounds.maxPoint + face->normal, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ); 
+
+			mod->envmap.reset( new rtt_t< BSPRenderer >( GL_COLOR_ATTACHMENT0, view ) );
+			mod->envmap->texture.SetBufferSize( 256, 256, 3, 0 );
+			mod->envmap->Attach();
+		}
 	}
 
 	//---------------------------------------------------------------------
@@ -911,6 +914,53 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
+void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const
+{
+	switch ( std::get< 0 >( data ) )
+	{
+		case OBJECT_FACE:
+			DrawFaceVerts( pass, program );
+			if ( config.drawFaceBounds )
+			{
+				DrawFaceBounds( pass.view, pass.faceIndex );
+			}
+			break;
+
+		case OBJECT_SURFACE:
+		{
+			const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
+			const shaderInfo_t& shader = *( std::get< 2 >( data ) );
+			DrawSurface( surf, program );
+
+			const glm::vec3 nforward( glm::normalize( pass.view.forward ) );
+
+			for ( int32_t i: surf.faceIndices )
+			{
+				if ( config.drawFaceBounds )
+				{
+					DrawFaceBounds( pass.view, i );
+				}
+
+				const mapModel_t& m = glFaces[ i ];
+				
+				if ( !!( shader.surfaceParms & SURFPARM_ENVMAP ) )
+				{
+					if ( m.bounds.CalcIntersection( nforward, pass.view.origin ) != FLT_MAX )
+					{
+						program.Release();
+						glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+						LoadTransforms( m.envmap->view, pass.view.clipTransform );
+						program.Bind();
+						DrawSurface( surf, program );
+						program.Release();
+					}
+				}
+			}
+		}
+		break;
+	}
+}
+
 void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data ) const
 {
 	const shaderInfo_t* shader = std::get< 2 >( data );
@@ -955,22 +1005,6 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 
 		stageProg.Release();
 		tex->Release( 0 );
-
-		switch ( std::get< 0 >( data ) )
-		{
-			case OBJECT_SURFACE:
-			{
-				const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
-				for ( int32_t i: surf.faceIndices )
-				{
-					DrawFaceBounds( pass.view, i );
-				}
-			}
-				break;
-			case OBJECT_FACE:
-				DrawFaceBounds( pass.view, pass.faceIndex );
-				break;
-		}
 	}
 	
 	/*

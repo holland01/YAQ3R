@@ -52,12 +52,14 @@ struct drawIndirect_t
     uint32_t baseInstance;
 };
 
+class BSPRenderer;
+
 struct mapModel_t
 {
 	bool						deform: 1;
 	GLuint						vboOffset;
 	int32_t						subdivLevel;
-	std::shared_ptr< rtt_t >	envmap;
+	std::shared_ptr< rtt_t< BSPRenderer > >	envmap;
 
 	// used if face type == mesh or polygon
 	std::vector< int32_t >				indices;
@@ -157,6 +159,9 @@ struct effect_t;
 class BSPRenderer
 {
 private:
+	friend struct transformStash_t< BSPRenderer >;
+	friend struct rtt_t< BSPRenderer >;
+
 	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
 	// last two integers are textureIndex and lightmapIndex, respectively
@@ -187,7 +192,7 @@ private:
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
-	void				LoadTransforms( const glm::mat4& view, const glm::mat4& projection );
+	void				LoadTransforms( const glm::mat4& view, const glm::mat4& projection ) const;
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
@@ -264,20 +269,6 @@ INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int32_t index,
 	}
 }
 
-INLINE void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const
-{
-	switch ( std::get< 0 >( data ) )
-	{
-	case OBJECT_FACE:
-		DrawFaceVerts( pass, program );
-		break;
-
-	case OBJECT_SURFACE:
-		DrawSurface( *( ( const drawSurface_t* ) std::get< 1 >( data ) ), program );
-		break;
-	}
-}
-
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list )
 {
 	passDrawType_t defaultPass = p.drawType;
@@ -338,7 +329,7 @@ INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& 
 #endif
 }
 
-INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection )
+INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection ) const
 {
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( projection ) ) );

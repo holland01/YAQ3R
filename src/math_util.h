@@ -29,3 +29,4 @@ INLINE void SetNearFar( glm::mat4& clipTrans, float znear, float zfar )
 	clipTrans[ 3 ][ 2 ] = -1.0f * ( 2.0f * zfar * znear ) * invDiff;
 }
 
+void OrthoNormalBasisFromForward( const glm::vec3& forwardDir, glm::mat3& basis ); 

@@ -346,17 +346,67 @@ struct loadBlend_t
    ~loadBlend_t( void );
 };
 //---------------------------------------------------------------------
+template< typename TRenderer >
 struct rtt_t
 {
 	texture_t	texture;
 	GLuint		fbo;
 	GLenum		attachment;
 
-	rtt_t( GLenum attachment );
+	glm::mat4	view;
 
-	~rtt_t( void );
+	rtt_t( GLenum attachment_, const glm::mat4& view_ ) 
+		:	fbo( 0 ),
+			attachment( attachment_ ),
+			view( view_ )
+	{
+		GL_CHECK( glGenFramebuffers( 1, &fbo ) );
+	}
 
-	void Attach( void ) const;
-	void Bind( void ) const;
-	void Release( void ) const;
+	~rtt_t( void )
+	{
+		if ( fbo )
+		{
+			GL_CHECK( glDeleteFramebuffers( 1, &fbo ) );
+		}
+	}
+
+	void Attach( void ) const
+	{
+		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+		GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.handle, 0 ) );
+		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
+	}
+
+	void Bind( const TRenderer& renderer, const glm::mat4& projection ) const
+	{
+		renderer.LoadTransforms( view, projection );
+
+		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+		GL_CHECK( glDrawBuffer( attachment ) );
+	}
+
+	void Release( void ) const
+	{
+		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+		GL_CHECK( glDrawBuffer( GL_BACK ) );
+	}
+};
+//---------------------------------------------------------------------
+template< typename TRenderer >
+struct transformStash_t
+{
+	const TRenderer& renderer;
+	const glm::mat4& view;
+	const glm::mat4& proj;
+	
+	transformStash_t( const TRenderer& renderer_, const glm::mat4& view_, const glm::mat4& proj_ )
+		: renderer( renderer_ ), view( view_ ), proj( proj_ )
+	{
+	}
+
+	~transformStash_t( void )
+	{
+		renderer.LoadTransforms( view, proj ); 
+	}
 };

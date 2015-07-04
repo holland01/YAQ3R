@@ -370,7 +370,7 @@ void ImDrawBounds( const AABB& bounds, const glm::vec4& color )
 	GL_CHECK( glPushMatrix() );
 	GL_CHECK( glTranslatef( center.x, center.y, center.z ) );
 	
-	glBegin( GL_POINTS );
+	glBegin( GL_LINE_STRIP );
 	glColor4fv( glm::value_ptr( color ) );
 
 	for ( int i = 0; i < 8; ++i )
@@ -517,38 +517,4 @@ loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )
 loadBlend_t::~loadBlend_t( void )
 {
 	GL_CHECK( glBlendFunc( prevSrcFactor, prevDstFactor ) );
-}
-//-------------------------------------------------------------------------------------------------
-rtt_t::rtt_t( GLenum attachment_ )
-	: fbo( 0 ),
-	  attachment( attachment_ )
-{
-	GL_CHECK( glGenFramebuffers( 1, &fbo ) );
-}
-
-rtt_t::~rtt_t( void )
-{
-	if ( fbo )
-	{
-		GL_CHECK( glDeleteFramebuffers( 1, &fbo ) );
-	}
-}
-
-void rtt_t::Attach( void ) const
-{
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
-	GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.handle, 0 ) );
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
-}
-
-void rtt_t::Bind( void ) const
-{
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
-	GL_CHECK( glDrawBuffer( attachment ) );
-}
-
-void rtt_t::Release( void ) const
-{
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
-	GL_CHECK( glDrawBuffer( GL_BACK ) );
 }
