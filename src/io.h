@@ -120,3 +120,6 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 
 	return true;
 }
+
+bool File_GetPixels( const std::string& filepath, 
+	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );

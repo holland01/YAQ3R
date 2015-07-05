@@ -461,9 +461,9 @@ FAIL_WARN:
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
+	/*
 	// And then generate all of the lightmaps
 	glLightmaps.resize( map->data.numLightmaps );
-
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
 	{	
 		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
@@ -477,6 +477,24 @@ FAIL_WARN:
 
 	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
 	glDummyTexture.Load2D();
+	*/
+
+	GLsizei depth = map->data.numLightmaps + glTextures.size();
+	GLsizei width = 0, height = 0;
+
+	for ( auto& entry: map->effectShaders )
+	{
+		const shaderInfo_t& shader = entry.second;
+
+		for ( int32_t stage = 0; stage < shader.stageCount; ++stage )
+		{
+			width = glm::max( shader.stageBuffer[ stage ].texture.width, width );
+			height = glm::max( shader.stageBuffer[ stage ].texture.height, height );
+			depth++;
+		}
+	}
+
+	glTextureArray.reset( new TextureBuffer( width, height, depth, 1 ) );
 
 	//---------------------------------------------------------------------
 	// Generate our face/render data
@@ -554,8 +572,7 @@ FAIL_WARN:
 			glm::mat4 view( glm::lookAt( mod->bounds.maxPoint, mod->bounds.maxPoint + face->normal, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ); 
 
 			mod->envmap.reset( new rtt_t( GL_COLOR_ATTACHMENT0, view ) );
-			mod->envmap->texture.SetBufferSize( 256, 256, 3, 0 );
-			mod->envmap->Attach();
+			mod->envmap->Attach( 256, 256, 3 );
 		}
 	}
 
@@ -644,7 +661,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 		LDrawClear( pass );
 	};
 
-	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
+	//GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
 	drawPass_t pass( map, view );
 	pass.envmap = envmap;
@@ -955,6 +972,7 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 					DrawFaceBounds( pass.view, i );
 				}
 
+				/*
 				const mapModel_t& m = glFaces[ i ];
 				
 				if ( !!( shader.surfaceParms & SURFPARM_ENVMAP ) && !pass.envmap )
@@ -966,6 +984,7 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 					
 					}
 				}
+				*/
 			}
 		}
 		break;

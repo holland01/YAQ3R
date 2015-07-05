@@ -27,7 +27,7 @@ TRenderer::~TRenderer( void )
 void TRenderer::Run( void )
 {
     renderer->Update( deltaTime );
-    renderer->Render( mapRenderFlags );
+    renderer->Render();
 
 	std::stringstream windowTitle;
 	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
@@ -45,7 +45,7 @@ void TRenderer::Load( void )
     renderer->Prep();
 	renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;
-	renderer->Sample( mapRenderFlags );
+	renderer->Sample();
 
 	lightSamplerPos = 
 		( renderer->map->data.models[ 0 ].boxMin + renderer->map->data.models[ 0 ].boxMax ) * 0.5f;

@@ -1,6 +1,7 @@
 #include "io.h"
 #include "q3bsp.h"
 #include "gldebug.h"
+#include "extern/stb_image.c"
 
 FILE* gDrawLog = NULL;
 FILE* gBspDataLog = NULL;
@@ -193,3 +194,30 @@ void KillSysLog( void )
     glDebugKill();
 }
 
+bool File_GetPixels( const std::string& filepath, 
+	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight )
+{
+	// Load image
+	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
+	byte* imagePixels = stbi_load( filepath.c_str(), &outWidth, &outHeight, &outBpp, STBI_default );
+
+	if ( !imagePixels )
+	{
+		MLOG_WARNING( "No file found for \'%s\'", filepath.c_str() );
+		return false;
+	}
+	
+	outBuffer.resize( outWidth * outHeight * outBpp );
+	memcpy( &outBuffer[ 0 ], imagePixels, outBuffer.size() ); 
+
+	/*
+	for ( int32_t i = 0; i < outWidth * outHeight * outBpp; ++i )
+	{
+		outBuffer[ i ] = imagePixels[ i ];
+	}
+	*/
+
+	stbi_image_free( imagePixels );
+
+	return true;
+}

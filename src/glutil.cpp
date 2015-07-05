@@ -2,7 +2,6 @@
 #include "q3bsp.h"
 #include "shader.h"
 #include "aabb.h"
-#include "extern/stb_image.c"
 
 static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions = 
 {
@@ -99,12 +98,13 @@ static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims,
 }
 
 texture_t::texture_t( void )
-	: srgb( true ), mipmap( true ),
+	: srgb( true ), mipmap( false ),
 	  handle( 0 ), sampler( 0 ),
 	  wrap( GL_CLAMP_TO_EDGE ), minFilter( GL_LINEAR ), magFilter( GL_LINEAR ), 
 	  format( 0 ), internalFormat( 0 ), target( GL_TEXTURE_2D ), maxMip( 0 ),
 	  width( 0 ),
 	  height( 0 ),
+	  depth( 0 ),
 	  bpp( 0 )
 {
 }
@@ -214,37 +214,23 @@ void texture_t::LoadSettings( void )
 
 bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 {
-	// Load image
-	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
-	byte* imagePixels = stbi_load( texPath, &width, &height, &bpp, STBI_default );
+	File_GetPixels( texPath, pixels, bpp, width, height );
 
-	if ( !imagePixels )
+	if ( !DetermineFormats() )
 	{
-		MLOG_WARNING( "No file found for \'%s\'", texPath );
+		MLOG_WARNING( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", 
+			bpp, texPath );
 		return false;
 	}
-		
-	if ( !SetBufferSize( width, height, bpp, 255 ) )
-	{
-		MLOG_WARNING( "Unsupported bits per pixel of %i specified; this needs to be fixed. For image file \'%s\'", bpp, texPath );
-		return false;
-	}
-		
-	for ( int i = 0; i < width * height * bpp; ++i )
-	{
-		pixels[ i ] = imagePixels[ i ];
-	}
-
-	//FlipBytes( &pixels[ 0 ], imagePixels, width, height, bpp );	
 		
 	if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
 	{
 		RotateSquareImage90CCW( pixels, width, bpp );
 	}
 
-	stbi_image_free( imagePixels );
+	LoadSettings();
 
-	Load2D();
+	//Load2D();
 	
 	return true;
 }
@@ -256,6 +242,11 @@ bool texture_t::SetBufferSize( int width0, int height0, int bpp0, byte fill )
 	bpp = bpp0;
 	pixels.resize( width * height * bpp, fill );
 
+	return DetermineFormats();
+}
+
+bool texture_t::DetermineFormats( void )
+{
 	switch( bpp )
 	{
 	case 1:
@@ -265,12 +256,12 @@ bool texture_t::SetBufferSize( int width0, int height0, int bpp0, byte fill )
 
 	case 3:
 		format = GL_RGB;
-		internalFormat = srgb? GL_SRGB8 : GL_RGB8;
+		internalFormat = srgb? GL_SRGB8: GL_RGB8;
 		break;
 
 	case 4:
 		format = GL_RGBA;
-		internalFormat = srgb? GL_SRGB8_ALPHA8 : GL_RGBA8;
+		internalFormat = srgb? GL_SRGB8_ALPHA8: GL_RGBA8;
 		break;
 	default:
 		return false;
@@ -517,4 +508,41 @@ loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )
 loadBlend_t::~loadBlend_t( void )
 {
 	GL_CHECK( glBlendFunc( prevSrcFactor, prevDstFactor ) );
+}
+//-------------------------------------------------------------------------------------------------
+TextureBuffer::TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsizei mipLevels )
+	: megaDims( width, height, depth )
+{
+	GL_CHECK( glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &handle ) );
+	GL_CHECK( glTextureStorage3D( handle, mipLevels, GL_SRGB8_ALPHA8, width, height, depth ) );
+
+	data.reserve( megaDims.z );
+	pixels.reserve( width * height * depth * 4 );
+}
+	
+TextureBuffer::~TextureBuffer( void )
+{
+	GL_CHECK( glDeleteTextures( 1, &handle ) );
+}
+
+void TextureBuffer::AddBuffer( GLsizei level, GLuint sampler, glm::ivec3& dims, const std::vector< uint8_t >& buffer )
+{
+	if ( data.size() == megaDims.z )
+	{
+		__nop();
+	}
+
+	pixels.insert( pixels.end(), buffer.begin(), buffer.end() );
+	
+	dims.z = data.size();
+	GL_CHECK( glTextureSubImage3D( handle, 
+		level, 0, 0, dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) ); 
+
+	textureData_t entry = 
+	{
+		sampler,
+		dims
+	};
+
+	data.push_back( std::move( entry ) );
 }

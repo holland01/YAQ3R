@@ -174,7 +174,7 @@ struct texture_t
 	GLenum target;
 	GLuint maxMip;
 
-	int width, height, bpp; // bpp is in bytes
+	GLsizei width, height, depth, bpp; // bpp is in bytes
 
 	std::vector< byte > pixels;
 
@@ -182,15 +182,26 @@ struct texture_t
 	~texture_t( void );
 	
 	void Bind( void ) const;
+	
 	void Bind( int offset, const std::string& unif, const Program& prog ) const;
+	
 	void Release( void ) const;
+	
 	void Release( int offset ) const;
+	
 	void GenHandle( void );
+	
 	void LoadCubeMap( void );
+	
 	void LoadSettings( void );
+	
 	void Load2D( void );
+	
 	bool LoadFromFile( const char* texPath, uint32_t loadFlags );
+	
 	bool SetBufferSize( int width, int height, int bpp, byte fill );
+
+	bool DetermineFormats( void );
 };
 //---------------------------------------------------------------------
 INLINE void texture_t::GenHandle( void )
@@ -370,8 +381,11 @@ struct rtt_t
 		}
 	}
 
-	void Attach( void ) const
+	void Attach( int32_t width, int32_t height, int32_t bpp )
 	{
+		texture.SetBufferSize( width, height, bpp, 0 );
+		texture.Load2D();
+
 		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
 		GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.handle, 0 ) );
 		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
@@ -385,7 +399,7 @@ struct rtt_t
 
 	void Release( void ) const
 	{
-		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
+		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
 		GL_CHECK( glDrawBuffer( GL_BACK ) );
 	}
 };
@@ -410,6 +424,23 @@ struct transformStash_t
 //---------------------------------------------------------------------
 class TextureBuffer
 {
+private:
+	struct textureData_t
+	{
+		GLuint sampler;
+		glm::ivec3 dimensions;
+	};
+
 	GLuint handle;
+	glm::ivec3 megaDims;
+
+public:
 	std::vector< uint8_t > pixels;
+	std::vector< textureData_t > data;
+
+	TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsizei mipLevels );
+	~TextureBuffer( void );
+
+	void AddBuffer( GLsizei level, 
+		GLuint sampler, glm::ivec3& dims, const std::vector< uint8_t >& buffer );
 };

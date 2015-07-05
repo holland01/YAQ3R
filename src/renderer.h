@@ -166,12 +166,18 @@ private:
 	// the const void* is either a const drawSurface_t* or const bspFace_t*, depending on objectType_t
 	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int32_t >; 
 
+	std::unique_ptr< TextureBuffer > glTextureArray;
+
 	texture_t					glDummyTexture;
+	
 	std::vector< texture_t >	glTextures;			// has one->one mapping with texture indices
+	
 	std::vector< texture_t >	glLightmaps;		// has one->one mapping with lightmap indices
+	
 	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
 
 	std::map< std::string, std::unique_ptr< Program > >		glPrograms;
+	
 	std::map< std::string, std::function< effectFnSig_t > >	glEffects;
 
 	const bspLeaf_t*    currLeaf;
