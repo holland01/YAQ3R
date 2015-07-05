@@ -52,14 +52,12 @@ struct drawIndirect_t
     uint32_t baseInstance;
 };
 
-class BSPRenderer;
-
 struct mapModel_t
 {
 	bool						deform: 1;
 	GLuint						vboOffset;
 	int32_t						subdivLevel;
-	std::shared_ptr< rtt_t< BSPRenderer > >	envmap;
+	std::shared_ptr< rtt_t >	envmap;
 
 	// used if face type == mesh or polygon
 	std::vector< int32_t >				indices;
@@ -109,6 +107,7 @@ struct drawSurfaceList_t
 struct drawPass_t
 {
 	bool isSolid: 1;
+	bool envmap: 1;
 
 	int faceIndex, viewLeafIndex;
 
@@ -160,7 +159,6 @@ class BSPRenderer
 {
 private:
 	friend struct transformStash_t< BSPRenderer >;
-	friend struct rtt_t< BSPRenderer >;
 
 	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
@@ -208,15 +206,15 @@ private:
 
 	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList );
 
-	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const;
+	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
 	void				DrawSurface( const drawSurface_t& surface, const Program& program ) const;
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
-	void				DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list ) const;
+	void				DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list );
 
-	void				DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data ) const;
+	void				DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data );
 
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 
@@ -244,10 +242,14 @@ public:
 				~BSPRenderer( void );
 
     void		Prep( void );
-    void		Load( const std::string& filepath, uint32_t loadFlags );
+    
+	void		Load( const std::string& filepath, uint32_t loadFlags );
 
-	void		Sample( uint32_t renderFlags );
-    void		Render( uint32_t renderFlags );
+	void		Sample( void );
+    
+	void		Render( void );
+	
+	void		RenderPass( const viewParams_t& view, bool envmap );
 
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 

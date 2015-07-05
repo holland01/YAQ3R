@@ -93,6 +93,7 @@ void mapModel_t::CalcBounds( int32_t faceType, const mapData_t& data )
 //--------------------------------------------------------------
 drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData )
     : isSolid( true ),
+	  envmap( false ),
 	  faceIndex( 0 ), viewLeafIndex( 0 ), 
 	  type( PASS_DRAW ), drawType( PASS_DRAW_MAIN ),
 	  renderFlags( 0 ),
@@ -385,10 +386,7 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 {
 	p.face = &map->data.faces[ face ];
 	p.faceIndex = face;
-
-	{
-		p.shader = map->GetShaderInfo( face );
-	}
+	p.shader = map->GetShaderInfo( face );
 
 	if ( p.shader )
 	{
@@ -555,7 +553,7 @@ FAIL_WARN:
 		{
 			glm::mat4 view( glm::lookAt( mod->bounds.maxPoint, mod->bounds.maxPoint + face->normal, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ); 
 
-			mod->envmap.reset( new rtt_t< BSPRenderer >( GL_COLOR_ATTACHMENT0, view ) );
+			mod->envmap.reset( new rtt_t( GL_COLOR_ATTACHMENT0, view ) );
 			mod->envmap->texture.SetBufferSize( 256, 256, 3, 0 );
 			mod->envmap->Attach();
 		}
@@ -581,9 +579,20 @@ FAIL_WARN:
 	glm::vec3 max( map->data.nodes[ 0 ].boxMax );
 
 	lightSampler.Elevate( min, max );
+
+	for ( mapModel_t& model: glFaces )
+	{
+		if ( model.envmap )
+		{
+			model.envmap->Bind();
+			RenderPass( InputCamera( model.envmap->view, 
+				CameraFromView()->ViewData().clipTransform ).ViewData(), true );
+			model.envmap->Release();
+		}
+	}
 }
 
-void BSPRenderer::Sample( uint32_t renderFlags )
+void BSPRenderer::Sample( void )
 {
 	// Clear the color buffer to black so that any sample hits outside of the sky 
 	// won't contribute anything in the irradiance generation shader. Depth range
@@ -592,14 +601,25 @@ void BSPRenderer::Sample( uint32_t renderFlags )
 	curView = VIEW_LIGHT_SAMPLE;
 	lightSampler.Bind( 0 );
 
-	Render( renderFlags );
+	Render();
 	lightSampler.Release();
 
 	curView = VIEW_MAIN;
 }
 
-void BSPRenderer::Render( uint32_t renderFlags )
+void BSPRenderer::Render( void )
 { 
+	double startTime = glfwGetTime();
+
+	RenderPass( CameraFromView()->ViewData(), false );
+	
+	frameTime = glfwGetTime() - startTime;
+
+	frameCount++;
+}
+
+void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
+{
 	static auto LDrawList = [ this ]( drawPass_t& pass, drawSurfaceList_t& list ) -> void
 	{
 		DrawSurfaceList( pass, list.surfaces );
@@ -624,65 +644,57 @@ void BSPRenderer::Render( uint32_t renderFlags )
 		LDrawClear( pass );
 	};
 
-	double startTime = glfwGetTime();
+	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
-	viewParams_t& viewRef = CameraFromView()->ViewDataMut();
-	
-	drawPass_t pass( map, viewRef );
+	drawPass_t pass( map, view );
+	pass.envmap = envmap;
 	pass.leaf = map->FindClosestLeaf( pass.view.origin );
-	pass.renderFlags = renderFlags;
-	//pass.type = PASS_BRUSH;
-
-	//DrawNode( pass, 0 );
-
+	
 	// Draw Models and Leaf Faces
 	LoadTransforms( pass.view.transform, pass.view.clipTransform );
+
+	frustum->Update( pass.view, true );
+
+	for ( int32_t i = 1; i < map->data.numModels; ++i )
 	{
-		frustum->Update( viewRef, true );
-
-		AABB bounds;
-		for ( int32_t i = 1; i < map->data.numModels; ++i )
-		{
-			bspModel_t* model = &map->data.models[ i ];
-
-			bounds.maxPoint = model->boxMax;
-			bounds.minPoint = model->boxMin;
-
-			if ( !frustum->IntersectsBox( bounds ) )
-				continue;
-
-			for ( int32_t j = 0; j < model->numFaces; ++j )
-			{
-				if ( pass.facesVisited[ model->faceOffset + j ] )
-					continue;
-				
-				LoadPassParams( pass, model->faceOffset + j, PASS_DRAW_MAIN );
+		bspModel_t* model = &map->data.models[ i ];
 		
-				if ( pass.face->type == BSP_FACE_TYPE_PATCH || config.drawFacesOnly )
-				{
-					DrawFace( pass );
-				}
-				else 
-				{
-					drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
+		AABB bounds( model->boxMax, model->boxMin );
 
-					AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
-					pass.facesVisited[ pass.faceIndex ] = true;
-				}
-			}
+		if ( !frustum->IntersectsBox( bounds ) )
+		{
+			continue;
 		}
 
-		LDrawClear( pass );
+		for ( int32_t j = 0; j < model->numFaces; ++j )
+		{
+			if ( pass.facesVisited[ model->faceOffset + j ] )
+			{
+				continue;
+			}
+
+			LoadPassParams( pass, model->faceOffset + j, PASS_DRAW_MAIN );
+		
+			if ( pass.face->type == BSP_FACE_TYPE_PATCH || config.drawFacesOnly )
+			{
+				DrawFace( pass );
+			}
+			else 
+			{
+				drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
+
+				AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
+				pass.facesVisited[ pass.faceIndex ] = true;
+			}
+		}
 	}
+
+	LDrawClear( pass );
 	
 	pass.type = PASS_DRAW;
 
 	LTraverseDraw( pass, true );
 	LTraverseDraw( pass, false );
-	
-	frameTime = glfwGetTime() - startTime;
-
-	frameCount++;
 }
 
 void BSPRenderer::Update( float dt )
@@ -914,7 +926,7 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
-void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program ) const
+void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program )
 {
 	switch ( std::get< 0 >( data ) )
 	{
@@ -934,6 +946,8 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 
 			const glm::vec3 nforward( glm::normalize( pass.view.forward ) );
 
+			viewParams_t view = camera->ViewData();
+
 			for ( int32_t i: surf.faceIndices )
 			{
 				if ( config.drawFaceBounds )
@@ -943,16 +957,13 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 
 				const mapModel_t& m = glFaces[ i ];
 				
-				if ( !!( shader.surfaceParms & SURFPARM_ENVMAP ) )
+				if ( !!( shader.surfaceParms & SURFPARM_ENVMAP ) && !pass.envmap )
 				{
 					if ( m.bounds.CalcIntersection( nforward, pass.view.origin ) != FLT_MAX )
 					{
-						program.Release();
-						glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-						LoadTransforms( m.envmap->view, pass.view.clipTransform );
-						program.Bind();
-						DrawSurface( surf, program );
-						program.Release();
+						
+						
+					
 					}
 				}
 			}
@@ -961,7 +972,7 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 	}
 }
 
-void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data ) const
+void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data )
 {
 	const shaderInfo_t* shader = std::get< 2 >( data );
 	int lightmapIndex = std::get< 4 >( data );
@@ -1048,7 +1059,7 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
     pass.facesVisited[ pass.faceIndex ] = 1;
 }
 
-void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list ) const
+void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list )
 {	
 	const Program& main = *( glPrograms.at( "main" ).get() );
 

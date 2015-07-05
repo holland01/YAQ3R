@@ -346,7 +346,6 @@ struct loadBlend_t
    ~loadBlend_t( void );
 };
 //---------------------------------------------------------------------
-template< typename TRenderer >
 struct rtt_t
 {
 	texture_t	texture;
@@ -378,10 +377,8 @@ struct rtt_t
 		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
 	}
 
-	void Bind( const TRenderer& renderer, const glm::mat4& projection ) const
+	void Bind( void ) const
 	{
-		renderer.LoadTransforms( view, projection );
-
 		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
 		GL_CHECK( glDrawBuffer( attachment ) );
 	}
@@ -409,4 +406,10 @@ struct transformStash_t
 	{
 		renderer.LoadTransforms( view, proj ); 
 	}
+};
+//---------------------------------------------------------------------
+class TextureBuffer
+{
+	GLuint handle;
+	std::vector< uint8_t > pixels;
 };

@@ -36,6 +36,19 @@ InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
     }
 }
 
+InputCamera::InputCamera( const glm::mat4& view, const glm::mat4& projection )
+{
+	viewData.origin = glm::vec3( -view[ 3 ] );
+	viewData.transform = view;
+	viewData.clipTransform = projection;
+	viewData.orientation = view;
+	viewData.orientation[ 3 ] = glm::vec4( 0.0f, 0.0f, 0.0f, 1.0f );
+	viewData.inverseOrient = glm::inverse( viewData.orientation );
+	viewData.forward = Forward();
+	viewData.up = Up();
+	viewData.right = Right();
+}
+
 void InputCamera::EvalMouseMove( float x, float y )
 {
     currRot.pitch += ( y - lastMouse.y ) * MOUSE_SENSE;

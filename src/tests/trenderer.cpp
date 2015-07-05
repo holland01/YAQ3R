@@ -14,8 +14,7 @@ TRenderer::TRenderer( void )
 	  currentTime( 0.0f ),
       renderer( nullptr ),
 	  mapFilepath( tourney ),
-	  mapLoadFlags( Q3LOAD_ALL ),
-	  mapRenderFlags( RENDER_BSP_EFFECT | RENDER_BSP_USE_TCMOD )
+	  mapLoadFlags( Q3LOAD_ALL )
 {
 }
 

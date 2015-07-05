@@ -50,6 +50,8 @@ public:
 
 	InputCamera( const viewParams_t& view, const EuAng& currRot );
 
+	InputCamera( const glm::mat4& view, const glm::mat4& projection );
+
 	float	moveStep;
 
     void    EvalKeyPress( int key );
@@ -74,6 +76,8 @@ public:
 
     const   viewParams_t& ViewData( void ) const;
 	viewParams_t& ViewDataMut( void );
+
+	static viewParams_t CalcViewData(  );
 
 	friend class Test;
 };
