@@ -15,7 +15,6 @@
 #define DEFORM_CALC_TABLE( table, base, offset, t, f, a ) \
 	( ( base ) + ( table )[ int ( ( offset ) + ( t ) * ( f ) * DEFORM_TABLE_SIZE ) & DEFORM_TABLE_MASK ] * ( a ) )
 
-struct bspVertex_t;
 struct bspFace_t;
 struct shaderInfo_t;
 struct deformModel_t;

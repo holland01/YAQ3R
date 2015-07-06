@@ -123,3 +123,13 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 
 bool File_GetPixels( const std::string& filepath, 
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );
+
+INLINE void Pixels_24BitTo32Bit( uint8_t* destination, const uint8_t* source, int32_t length )
+{
+	for ( int32_t i = 0; i < length; ++i )
+	{
+		destination[ i * 4 + 0 ] = source[ i * 3 + 0 ];
+		destination[ i * 4 + 1 ] = source[ i * 3 + 1 ];
+		destination[ i * 4 + 2 ] = source[ i * 3 + 2 ];
+	}
+}

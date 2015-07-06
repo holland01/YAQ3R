@@ -5,7 +5,7 @@
 #include <memory>
 #include <array>
 
-struct bspVertex_t;
+//struct bspVertex_t;
 
 class TessTest;
 

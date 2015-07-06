@@ -1,8 +1,9 @@
 #pragma once
 
 #include "common.h"
+#include "render_data.h"
 
-struct bspVertex_t;
+//struct bspVertex_t;
 
 // BSP file meta-data
 enum
@@ -134,6 +135,7 @@ struct bspBrushSide_t
 	int texture;
 };
 
+/*
 struct bspVertex_t
 {
     glm::vec3 position;
@@ -147,14 +149,9 @@ struct bspVertex_t
 	bspVertex_t( const bspVertex_t& v );
 	bspVertex_t& operator=( bspVertex_t v );
 };
+*/
 
-bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b );
 
-bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b );
-bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b );
-bspVertex_t operator *( const bspVertex_t& a, float b );
-
-bool operator == ( const bspVertex_t&a, const bspVertex_t& b );
 
 struct bspTexture_t
 {

@@ -214,7 +214,19 @@ void texture_t::LoadSettings( void )
 
 bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 {
-	File_GetPixels( texPath, pixels, bpp, width, height );
+	std::vector< uint8_t > tmp;
+	File_GetPixels( texPath, tmp, bpp, width, height );
+
+	if ( bpp == 3 )
+	{
+		pixels.resize( width * height * 4, 255 ); 
+		Pixels_24BitTo32Bit( &pixels[ 0 ], &tmp[ 0 ], width * height );
+		bpp = 4;
+	}
+	else
+	{
+		pixels = std::move( tmp );
+	}
 
 	if ( !DetermineFormats() )
 	{
@@ -228,8 +240,9 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 		RotateSquareImage90CCW( pixels, width, bpp );
 	}
 
-	LoadSettings();
+	Load2D();
 
+	//LoadSettings();
 	//Load2D();
 	
 	return true;
@@ -515,7 +528,7 @@ TextureBuffer::TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsi
 {
 	GL_CHECK( glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &handle ) );
 	GL_CHECK( glTextureStorage3D( handle, mipLevels, GL_SRGB8_ALPHA8, width, height, depth ) );
-
+	
 	data.reserve( megaDims.z );
 	pixels.reserve( width * height * depth * 4 );
 }

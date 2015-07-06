@@ -411,6 +411,9 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	// Now, we find and generate the textures. We first start with the image files.
 	//---------------------------------------------------------------------
 
+	std::vector< const texture_t* > allTextures;
+	allTextures.reserve( map->data.numTextures + map->data.numLightmaps );
+
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
@@ -441,6 +444,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 
 				if ( glTextures[ t ].LoadFromFile( str.c_str(), mapLoadFlags ) )
 				{
+					allTextures.push_back( &glTextures[ t ] );  
 					success = true;
 					break;
 				}
@@ -461,24 +465,25 @@ FAIL_WARN:
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
-	/*
 	// And then generate all of the lightmaps
 	glLightmaps.resize( map->data.numLightmaps );
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
 	{	
-		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 3, 0 );
+		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 4, 255 );
 		
-		memcpy( &glLightmaps[ l ].pixels[ 0 ], 
-			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], sizeof( byte ) * glLightmaps[ l ].pixels.size() );
+		Pixels_24BitTo32Bit( &glLightmaps[ l ].pixels[ 0 ], 
+			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
 		glLightmaps[ l ].wrap = GL_REPEAT;
 		glLightmaps[ l ].Load2D();
+
+		allTextures.push_back( &glLightmaps[ l ] );
 	}
 
-	glDummyTexture.SetBufferSize( 32, 32, 3, 255 );
+	glDummyTexture.SetBufferSize( 32, 32, 4, 255 );
 	glDummyTexture.Load2D();
-	*/
 
+	/*
 	GLsizei depth = map->data.numLightmaps + glTextures.size();
 	GLsizei width = 0, height = 0;
 
@@ -488,14 +493,21 @@ FAIL_WARN:
 
 		for ( int32_t stage = 0; stage < shader.stageCount; ++stage )
 		{
-			width = glm::max( shader.stageBuffer[ stage ].texture.width, width );
-			height = glm::max( shader.stageBuffer[ stage ].texture.height, height );
-			depth++;
+			const texture_t& tex = shader.stageBuffer[ stage ].texture;
+
+			if ( tex.handle )
+			{
+				width = glm::max( tex.width, width );
+				height = glm::max( tex.height, height );
+				allTextures.push_back( &tex );
+				depth++;
+			}
 		}
 	}
 
 	glTextureArray.reset( new TextureBuffer( width, height, depth, 1 ) );
-
+	*/
+	
 	//---------------------------------------------------------------------
 	// Generate our face/render data
 	//---------------------------------------------------------------------
@@ -597,6 +609,7 @@ FAIL_WARN:
 
 	lightSampler.Elevate( min, max );
 
+	/*
 	for ( mapModel_t& model: glFaces )
 	{
 		if ( model.envmap )
@@ -607,6 +620,7 @@ FAIL_WARN:
 			model.envmap->Release();
 		}
 	}
+	*/
 }
 
 void BSPRenderer::Sample( void )
@@ -971,20 +985,6 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 				{
 					DrawFaceBounds( pass.view, i );
 				}
-
-				/*
-				const mapModel_t& m = glFaces[ i ];
-				
-				if ( !!( shader.surfaceParms & SURFPARM_ENVMAP ) && !pass.envmap )
-				{
-					if ( m.bounds.CalcIntersection( nforward, pass.view.origin ) != FLT_MAX )
-					{
-						
-						
-					
-					}
-				}
-				*/
 			}
 		}
 		break;

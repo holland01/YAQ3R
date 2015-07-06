@@ -1,20 +1,10 @@
-﻿Build started 7/4/2015 8:12:47 PM.
+﻿Build started 7/5/2015 10:41:11 PM.
 Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" on node 2 (Build target(s)).
 InitializeBuildStatus:
-  Creating "Release\bspview.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+  Touching "Release\bspview.tlog\unsuccessfulbuild".
 ClCompile:
-  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\dev\lib\glutil/glew-msvc/include" /IC:\dev\lib\glutil/glm/ /IC:\dev\lib\glutil/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\bsp_data.cpp ..\..\src\deform.cpp ..\..\src\effect_shader.cpp ..\..\src\glutil.cpp ..\..\src\io.cpp ..\..\src\main.cpp ..\..\src\q3bsp.cpp ..\..\src\shader.cpp ..\..\src\tests\test.cpp ..\..\src\tests\trenderer.cpp
-  bsp_data.cpp
-  deform.cpp
-  effect_shader.cpp
-  glutil.cpp
-  io.cpp
+  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\dev\lib\glutil/glew-msvc/include" /IC:\dev\lib\glutil/glm/ /IC:\dev\lib\glutil/glfw3/include /Zi /nologo /W3 /WX /Od /Oy- /D WIN32 /D _CRT_SECURE_NO_WARNINGS /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MD /GS- /Gy- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\..\src\main.cpp
   main.cpp
-  q3bsp.cpp
-  shader.cpp
-  test.cpp
-  trenderer.cpp
-  Generating Code...
 Link:
   C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"C:\dev\lib\glutil/glew-msvc/lib/Release/Win32/" /LIBPATH:"C:\dev\lib\glutil/glfw3/lib-vc2013/" opengl32.lib glu32.lib glew32.lib glfw3dll.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Dev\bspview\bspviewer\vs\bspview\Release\bspview.lib" /MACHINE:X86 /SAFESEH Release\aabb.obj
   Release\deform.obj
@@ -31,6 +21,7 @@ Link:
   Release\q3bsp.obj
   Release\bsp_data.obj
   Release\renderer.obj
+  Release\render_data.obj
   Release\shader.obj
   Release\test.obj
   Release\trenderer.obj
@@ -42,4 +33,4 @@ Done Building Project "C:\Dev\bspview\bspviewer\vs\bspview\bspview.vcxproj" (Bui
 
 Build succeeded.
 
-Time Elapsed 00:00:08.06
+Time Elapsed 00:00:02.18
