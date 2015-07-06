@@ -166,7 +166,7 @@ private:
 	// the const void* is either a const drawSurface_t* or const bspFace_t*, depending on objectType_t
 	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int32_t >; 
 
-	std::unique_ptr< TextureBuffer > glTextureArray;
+	std::unique_ptr< TextureBuffer > glTextureArray, glLightmapArray;
 
 	texture_t					glDummyTexture;
 	

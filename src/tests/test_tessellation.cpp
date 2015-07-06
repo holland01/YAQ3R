@@ -65,7 +65,7 @@ TessTri::TessTri( const TessTest* test, const std::array< glm::vec3, 4 >& verts 
 		LGenVertex( 0 ),
 		LGenVertex( 1 ),
 		LGenVertex( 2 ),
-		LGenVertex( 3 ),
+		LGenVertex( 3 )
 	};
 
 	LSetTexCoords( 3, 1.0f, 1.0f );

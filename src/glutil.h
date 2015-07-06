@@ -68,14 +68,6 @@ void ImDrawAxes( const float size );
 void ImDrawBounds( const AABB& bounds, const glm::vec4& color ); 
 void ImDrawPoint( const glm::vec3& point, const glm::vec4& color, float size = 1.0f );
 
-void LoadVertexLayout( uint32_t attribFlags, const Program& program );
-
-static INLINE void MapAttribTexCoord( int location, size_t offset )
-{
-	GL_CHECK( glEnableVertexAttribArray( location ) );
-	GL_CHECK( glVertexAttribPointer( location, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
-}
-
 static INLINE void MapVec3( int location, size_t offset )
 {
 	GL_CHECK( glEnableVertexAttribArray( location ) );
@@ -144,12 +136,6 @@ static INLINE void DeleteBufferObject( GLenum target, GLuint obj )
 		GL_CHECK( glBindBuffer( target, 0 ) );
 		GL_CHECK( glDeleteBuffers( 1, &obj ) );
 	}
-}
-
-static INLINE void LoadBufferLayout( GLuint vbo, uint32_t attribFlags, const Program& program )
-{
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-	LoadVertexLayout( attribFlags, program );
 }
 
 static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
@@ -432,15 +418,19 @@ private:
 	};
 
 	GLuint handle;
-	glm::ivec3 megaDims;
 
 public:
+	glm::ivec3 megaDims;
+
 	std::vector< uint8_t > pixels;
 	std::vector< textureData_t > data;
 
 	TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsizei mipLevels );
 	~TextureBuffer( void );
 
-	void AddBuffer( GLsizei level, 
-		GLuint sampler, glm::ivec3& dims, const std::vector< uint8_t >& buffer );
+	void SetBuffer( GLsizei level, GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer );
+	
+	void Bind( GLuint unit, const std::string& samplerName, const Program& program ) const;
+	
+	void Release( GLuint unit ) const;
 };

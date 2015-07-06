@@ -319,20 +319,21 @@ void BSPRenderer::Prep( void )
 			"position",
 			"color",
 			"lightmap",
-			"tex0",
-			"normal"
+			"tex0"
 		};
 
 		std::vector< std::string > uniforms = 
 		{
-			"fragTexSampler",
+			"fragSampler",
 			"fragLightmapSampler",
-			"fragIrradianceSampler",
-			"fragCubeFace"
+			"fragLightmapIndex",
+			"fragTexIndex",
+			"fragBias"
 		};
 
 		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs, true );
 
+		/*
 		uniforms.insert( uniforms.end(), {
 			"fragAmbient",
 			"fragDirectional",
@@ -342,6 +343,7 @@ void BSPRenderer::Prep( void )
 		attribs.push_back( "normal" );
 
 		MakeProg( "model", "src/model.vert", "src/model.frag", uniforms, attribs, true );
+		*/
 
 		uniforms = 
 		{
@@ -403,16 +405,13 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
     map->Read( filepath, 1, mapLoadFlags );
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
-	Shader_LoadAll( &map->data, map->effectShaders, mapLoadFlags );
+	//Shader_LoadAll( &map->data, map->effectShaders, mapLoadFlags );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
 	// This is just a temporary hack to brute force load assets without taking into account the effect shader files.
 	// Now, we find and generate the textures. We first start with the image files.
 	//---------------------------------------------------------------------
-
-	std::vector< const texture_t* > allTextures;
-	allTextures.reserve( map->data.numTextures + map->data.numLightmaps );
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
@@ -423,6 +422,8 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	{
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
+
+	GLsizei width = 0, height = 0;
 
 	for ( int32_t t = 0; t < map->data.numTextures; t++ )
 	{
@@ -444,7 +445,8 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 
 				if ( glTextures[ t ].LoadFromFile( str.c_str(), mapLoadFlags ) )
 				{
-					allTextures.push_back( &glTextures[ t ] );  
+					width = glm::max( width, glTextures[ t ].width );
+					height = glm::max( height, glTextures[ t ].height );
 					success = true;
 					break;
 				}
@@ -463,8 +465,6 @@ FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 	}
 
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
-
 	// And then generate all of the lightmaps
 	glLightmaps.resize( map->data.numLightmaps );
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
@@ -474,47 +474,44 @@ FAIL_WARN:
 		Pixels_24BitTo32Bit( &glLightmaps[ l ].pixels[ 0 ], 
 			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
-		glLightmaps[ l ].wrap = GL_REPEAT;
-		glLightmaps[ l ].Load2D();
-
-		allTextures.push_back( &glLightmaps[ l ] );
+		glLightmaps[ l ].LoadSettings();
 	}
 
 	glDummyTexture.SetBufferSize( 32, 32, 4, 255 );
 	glDummyTexture.Load2D();
 
-	/*
-	GLsizei depth = map->data.numLightmaps + glTextures.size();
-	GLsizei width = 0, height = 0;
-
-	for ( auto& entry: map->effectShaders )
+	glTextureArray.reset( new TextureBuffer( width, height, glTextures.size(), 1 ) );
+	
+	for ( int32_t i = 0; i < map->data.numTextures; ++i )
 	{
-		const shaderInfo_t& shader = entry.second;
-
-		for ( int32_t stage = 0; stage < shader.stageCount; ++stage )
+		const texture_t& tex = glTextures[ i ];  
+		
+		if ( !tex.pixels.empty() )
 		{
-			const texture_t& tex = shader.stageBuffer[ stage ].texture;
-
-			if ( tex.handle )
-			{
-				width = glm::max( tex.width, width );
-				height = glm::max( tex.height, height );
-				allTextures.push_back( &tex );
-				depth++;
-			}
+			glm::ivec3 dims( tex.width, tex.height, i );
+			glTextureArray->SetBuffer( 0, tex.sampler, dims, tex.pixels ); 
 		}
 	}
 
-	glTextureArray.reset( new TextureBuffer( width, height, depth, 1 ) );
-	*/
-	
+	glLightmapArray.reset( new TextureBuffer( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, glLightmaps.size(), 1 ) );
+
+	for ( int32_t i = 0; i < map->data.numLightmaps; ++i )
+	{
+		const texture_t& tex = glLightmaps[ i ];  
+		glm::ivec3 dims( tex.width, tex.height, i );
+		glLightmapArray->SetBuffer( 0, tex.sampler, dims, tex.pixels ); 
+	}
+
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
+
 	//---------------------------------------------------------------------
 	// Generate our face/render data
 	//---------------------------------------------------------------------
 
 	glFaces.resize( map->data.numFaces );
-
+	
 	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
+
 	int indexOffset = ( int32_t ) vertexData.size();
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
@@ -706,7 +703,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 
 			LoadPassParams( pass, model->faceOffset + j, PASS_DRAW_MAIN );
 		
-			if ( pass.face->type == BSP_FACE_TYPE_PATCH || config.drawFacesOnly )
+			if ( config.drawFacesOnly )
 			{
 				DrawFace( pass );
 			}
@@ -1082,8 +1079,16 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 {	
 	const Program& main = *( glPrograms.at( "main" ).get() );
 
+	glTextureArray->Bind( 0, "fragSampler", main );
+
+	glLightmapArray->Bind( 1, "fragLightmapSampler", main );
+	GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
+
+	glm::vec2 lmBias( 256.0f / ( float ) glTextureArray->megaDims.x, 256.0f / ( float ) glTextureArray->megaDims.y );
+
 	for ( const drawSurface_t& surf: list )
 	{
+		/*
 		if ( surf.shader )
 		{
 			drawTuple_t tuple = std::make_tuple( OBJECT_SURFACE, 
@@ -1091,27 +1096,54 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 			DrawEffectPass( pass, tuple );
 		}
 		else
+		*/
 		{
 			GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 			GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
+			/*
 			const texture_t& tex0 = GetTextureOrDummy( surf.textureIndex, 
 				surf.textureIndex >= 0 && glTextures[ surf.textureIndex ].handle != 0, glTextures );
 		
 			const texture_t& lightmap = GetTextureOrDummy( surf.lightmapIndex,
 				surf.lightmapIndex >= 0, glLightmaps );
+			*/
 
-			tex0.Bind( 0, "fragTexSampler", main );
-			lightmap.Bind( 1, "fragLightmapSampler", main );
+			glm::vec4 bias( 1.0f, 1.0f, 1.0f, 1.0f );
+			
+			if ( surf.textureIndex >= 0 && !glTextures[ surf.textureIndex ].pixels.empty() )
+			{
+				bias.x = ( float ) glTextures[ surf.textureIndex ].width / ( float ) glTextureArray->megaDims.x;
+				bias.y = ( float ) glTextures[ surf.textureIndex ].height / ( float ) glTextureArray->megaDims.y;
+			}
+
+			main.LoadVec4( "fragBias", bias );
+			main.LoadInt( "fragTexIndex", glm::max( 0, surf.textureIndex ) );
+
+			if ( surf.textureIndex >= 0 )
+			{
+				GL_CHECK( glBindSampler( 0, glTextures[ surf.textureIndex ].sampler ) ); 
+			}
+			else
+			{
+				GL_CHECK( glBindSampler( 0, glDummyTexture.sampler ) );
+			}
+
+			main.LoadInt( "fragLightmapIndex", glm::max( 0, surf.lightmapIndex ) );
+
+			//tex0.Bind( 0, "fragTexSampler", main );
+			//lightmap.Bind( 1, "fragLightmapSampler", main );
 
 			main.Bind();
 			DrawSurface( surf, main );
 			main.Release();
 
-			tex0.Release( 0 );
-			lightmap.Release( 1 );
+		//	tex0.Release( 0 );
+			//lightmap.Release( 1 );
 		}
 	}
+
+	glTextureArray->Release( 0 );
 }
 
 void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const Program& program ) const

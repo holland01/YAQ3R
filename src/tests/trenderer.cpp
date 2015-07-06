@@ -13,7 +13,7 @@ TRenderer::TRenderer( void )
     : Test( 1920, 1080, false ),
 	  currentTime( 0.0f ),
       renderer( nullptr ),
-	  mapFilepath( tourney ),
+	  mapFilepath( railgunArena ),
 	  mapLoadFlags( Q3LOAD_ALL )
 {
 }

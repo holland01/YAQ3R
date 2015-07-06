@@ -35,7 +35,7 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"tex0",
 		[]( const Program& program ) -> void
 		{
-			MapAttribTexCoord( program.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
+			MapVec3( program.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
 			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "tex0" ), 0 ), "attribLoadFunctions" ); 
 		}
 	},
@@ -43,7 +43,7 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"lightmap",
 		[]( const Program& program ) -> void
 		{
-			MapAttribTexCoord( program.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
+			MapVec3( program.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
 			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "lightmap" ), 0 ), "attribLoadFunctions" ); 
 		}
 	}
@@ -100,7 +100,7 @@ static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims,
 texture_t::texture_t( void )
 	: srgb( true ), mipmap( false ),
 	  handle( 0 ), sampler( 0 ),
-	  wrap( GL_CLAMP_TO_EDGE ), minFilter( GL_LINEAR ), magFilter( GL_LINEAR ), 
+	  wrap( GL_REPEAT ), minFilter( GL_LINEAR ), magFilter( GL_LINEAR ), 
 	  format( 0 ), internalFormat( 0 ), target( GL_TEXTURE_2D ), maxMip( 0 ),
 	  width( 0 ),
 	  height( 0 ),
@@ -240,10 +240,8 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 		RotateSquareImage90CCW( pixels, width, bpp );
 	}
 
-	Load2D();
-
-	//LoadSettings();
 	//Load2D();
+	LoadSettings();
 	
 	return true;
 }
@@ -282,45 +280,6 @@ bool texture_t::DetermineFormats( void )
 	}
 
 	return true;
-}
-
-void LoadVertexLayout( uint32_t attribFlags, const Program& prog )
-{
-	for ( GLuint i = 0; i < GLUTIL_NUM_ATTRIBS_MAX; ++i )
-	{
-		GL_CHECK( glDisableVertexAttribArray( i ) );
-	}
-
-	if ( attribFlags & GLUTIL_LAYOUT_POSITION ) 
-	{
-		MapVec3( prog.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
-		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "position" ), 0 ) ); 
-	}
-
-	if ( attribFlags & GLUTIL_LAYOUT_NORMAL )
-	{
-		MapVec3( prog.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
-		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "normal" ), 0 ) ); 
-	}
-
-	if ( attribFlags & GLUTIL_LAYOUT_COLOR )
-	{
-		GL_CHECK( glEnableVertexAttribArray( prog.attribs.at( "color" ) ) ); 
-		GL_CHECK( glVertexAttribPointer( prog.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ) );
-		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "color" ), 0 ) ); 
-	}
-
-	if ( attribFlags & GLUTIL_LAYOUT_TEX0 )
-	{
-		MapAttribTexCoord( prog.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
-		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "tex0" ), 0 ) ); 
-	}
-
-	if ( attribFlags & GLUTIL_LAYOUT_LIGHTMAP )
-	{
-		MapAttribTexCoord( prog.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
-		GL_CHECK( glVertexAttribDivisor( prog.attribs.at( "lightmap" ), 0 ) ); 
-	}
 }
 
 void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
@@ -529,8 +488,11 @@ TextureBuffer::TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsi
 	GL_CHECK( glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &handle ) );
 	GL_CHECK( glTextureStorage3D( handle, mipLevels, GL_SRGB8_ALPHA8, width, height, depth ) );
 	
-	data.reserve( megaDims.z );
-	pixels.reserve( width * height * depth * 4 );
+	std::vector< uint8_t > fill;
+	fill.resize( width * height * depth * 4, 255 );
+	GL_CHECK( glTextureSubImage3D( handle, 0, 0, 0, 0, width, height, depth, GL_RGBA, GL_UNSIGNED_BYTE, &fill[ 0 ] ) );
+	data.resize( megaDims.z );
+	//pixels.reserve( width * height * depth * 4 );
 }
 	
 TextureBuffer::~TextureBuffer( void )
@@ -538,16 +500,9 @@ TextureBuffer::~TextureBuffer( void )
 	GL_CHECK( glDeleteTextures( 1, &handle ) );
 }
 
-void TextureBuffer::AddBuffer( GLsizei level, GLuint sampler, glm::ivec3& dims, const std::vector< uint8_t >& buffer )
+void TextureBuffer::SetBuffer( GLsizei level, GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer )
 {
-	if ( data.size() == megaDims.z )
-	{
-		__nop();
-	}
-
-	pixels.insert( pixels.end(), buffer.begin(), buffer.end() );
-	
-	dims.z = data.size();
+	//pixels.insert( pixels.begin + , buffer.begin(), buffer.end() );
 	GL_CHECK( glTextureSubImage3D( handle, 
 		level, 0, 0, dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) ); 
 
@@ -557,5 +512,18 @@ void TextureBuffer::AddBuffer( GLsizei level, GLuint sampler, glm::ivec3& dims, 
 		dims
 	};
 
-	data.push_back( std::move( entry ) );
+	data[ dims.z ] = std::move( entry );
+}
+
+void TextureBuffer::Bind( GLuint unit, const std::string& samplerName, const Program& program ) const
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, handle ) );
+	program.LoadInt( samplerName, unit );
+}
+	
+void TextureBuffer::Release( GLuint unit ) const
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
 }
