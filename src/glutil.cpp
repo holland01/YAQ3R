@@ -49,6 +49,7 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 	}
 };
 
+/*
 static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
 {
 	int destOfs = ( width * destY + destX ) * bpp;
@@ -68,37 +69,12 @@ static INLINE void FlipBytes( byte* out, const byte* src, int width, int height,
 		}
 	}
 }
+*/
 
-// Assumes square dimensions; solution based off of an image rotation algorithm from "Cracking the Coding Interview"
-static INLINE void RotateSquareImage90CCW( std::vector< byte >& image, int dims, int bpp )
-{
-	const int layerCount = dims / 2;
-	for ( int y = dims - 1; y >= layerCount; --y )
-	{
-		int upMost = y;
-		int downMost = dims - y - 1;
-		for ( int x = downMost; x <= upMost; ++x )
-		{
-			// Pixel Base: ( width * row + column ) * bytes per pixel
-
-			int up = ( dims * upMost + dims - x - 1 ) * bpp; 
-			int down = ( dims * downMost + x ) * bpp;
-			int left = ( dims * ( dims - x - 1 ) + downMost ) * bpp;
-			int right = ( dims * x + upMost ) * bpp;
-
-			byte tmp[ 4 ] = { 0, 0, 0, 0 };
-			memcpy( tmp, &image[ left ], sizeof( byte ) * bpp );
-			
-			memcpy( &image[ left ], &image[ up ], sizeof( byte ) * bpp );
-			memcpy( &image[ up ], &image[ right ], sizeof( byte ) * bpp );
-			memcpy( &image[ right ], &image[ down ], sizeof( byte ) * bpp );
-			memcpy( &image[ down ], &tmp, sizeof( byte ) * bpp );
-		}
-	}
-}
+//-------------------------------------------------------------------------------------------------
 
 texture_t::texture_t( void )
-	: srgb( true ), mipmap( false ),
+	: srgb( true ), mipmap( true ),
 	  handle( 0 ), sampler( 0 ),
 	  wrap( GL_REPEAT ), minFilter( GL_LINEAR ), magFilter( GL_LINEAR ), 
 	  format( 0 ), internalFormat( 0 ), target( GL_TEXTURE_2D ), maxMip( 0 ),
@@ -133,6 +109,7 @@ void texture_t::Bind( int offset, const std::string& unif, const Program& prog )
 void texture_t::LoadCubeMap( void )
 {
 	target = GL_TEXTURE_CUBE_MAP;
+	
 	GenHandle();
 	Bind();
 	for ( int i = 0; i < 6; ++i )
@@ -153,31 +130,10 @@ void texture_t::Load2D( void )
 
 	if ( mipmap )
 	{
-		int maxLevels = glm::min( ( int ) glm::log2( ( float ) width ), ( int ) glm::log2( ( float ) height ) ); 
-
-		int w = width;
-		int h = height;
-		int mip;
-
-		for ( mip = 0; h != 1 || w != 1; ++mip )
-		{
-			GL_CHECK( glTexImage2D( target, 
-				mip, internalFormat, w, h, 0, format, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
-
-			if ( h > 1 )
-			{
-				h /= 2;
-			}
-
-			if ( w > 1 )
-			{
-				w /= 2;
-			}
-		}
+		maxMip = Texture_CalcMipLevels2D< texture_t >( *this, width, height, 0 );
 
 		GL_CHECK( glGenerateMipmap( target ) );
 		minFilter = GL_LINEAR_MIPMAP_LINEAR;
-		maxMip = mip;
 	}
 	else
 	{
@@ -234,14 +190,9 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 			bpp, texPath );
 		return false;
 	}
-		
-	if ( loadFlags & Q3LOAD_TEXTURE_ROTATE90CCW )
-	{
-		RotateSquareImage90CCW( pixels, width, bpp );
-	}
 
 	//Load2D();
-	LoadSettings();
+	//LoadSettings();
 	
 	return true;
 }
@@ -379,6 +330,7 @@ void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
 }
 
 // -------------------------------------------------------------------------------------------------
+
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader )
 	: program( 0 )
 {
@@ -468,7 +420,9 @@ void Program::LoadAttribLayout( void ) const
 		}
 	}
 }
+
 //-------------------------------------------------------------------------------------------------
+
 loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )
 {
 	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, ( GLint* ) &prevSrcFactor ) );
@@ -481,48 +435,87 @@ loadBlend_t::~loadBlend_t( void )
 {
 	GL_CHECK( glBlendFunc( prevSrcFactor, prevDstFactor ) );
 }
+
 //-------------------------------------------------------------------------------------------------
-TextureBuffer::TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsizei mipLevels )
-	: megaDims( width, height, depth )
+
+textureArray_t::mipSetter_t::mipSetter_t( 
+	const GLuint handle_,
+	const int32_t layerOffset_,
+	const int32_t numLayers_,
+	const std::vector< uint8_t >& buffer_ )
+	: handle( handle_ ),
+	  layerOffset( layerOffset_ ),
+	  numLayers( numLayers_ ),
+	  buffer( buffer_ )
+{
+}
+
+void textureArray_t::mipSetter_t::CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const
+{
+	GL_CHECK( glTextureSubImage3D( handle, 
+			mip, 0, 0, layerOffset, mipWidth, mipHeight, numLayers, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
+}
+
+//-------------------------------------------------------------------------------------------------
+textureArray_t::textureArray_t( GLsizei width, GLsizei height, GLsizei depth )
+	:	mipmap( true ),
+		megaDims( 
+			width, 
+			height, 
+			depth, 
+			mipmap? Texture_GetMaxMipLevels2D( width, height ): 1 )
 {
 	GL_CHECK( glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &handle ) );
-	GL_CHECK( glTextureStorage3D( handle, mipLevels, GL_SRGB8_ALPHA8, width, height, depth ) );
+
+	GL_CHECK( glTextureStorage3D( handle, megaDims.w, GL_SRGB8_ALPHA8, width, height, depth ) );
 	
 	std::vector< uint8_t > fill;
 	fill.resize( width * height * depth * 4, 255 );
-	GL_CHECK( glTextureSubImage3D( handle, 0, 0, 0, 0, width, height, depth, GL_RGBA, GL_UNSIGNED_BYTE, &fill[ 0 ] ) );
-	data.resize( megaDims.z );
-	//pixels.reserve( width * height * depth * 4 );
+	
+	if ( mipmap )
+	{
+		mipSetter_t ms( handle, 0, depth, fill ); 
+		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, width, height, megaDims.w );
+	}
+	else
+	{
+		GL_CHECK( glTextureSubImage3D( handle, 
+			0, 0, 0, 0, width, height, depth, GL_RGBA, GL_UNSIGNED_BYTE, &fill[ 0 ] ) );
+	}
+	
+	samplers.resize( megaDims.z, 0 );
 }
 	
-TextureBuffer::~TextureBuffer( void )
+textureArray_t::~textureArray_t( void )
 {
 	GL_CHECK( glDeleteTextures( 1, &handle ) );
+	GL_CHECK( glDeleteSamplers( samplers.size(), &samplers[ 0 ] ) );
 }
 
-void TextureBuffer::SetBuffer( GLsizei level, GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer )
+void textureArray_t::SetBuffer( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer )
 {
-	//pixels.insert( pixels.begin + , buffer.begin(), buffer.end() );
-	GL_CHECK( glTextureSubImage3D( handle, 
-		level, 0, 0, dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) ); 
-
-	textureData_t entry = 
+	if ( mipmap )
 	{
-		sampler,
-		dims
-	};
+		mipSetter_t ms( handle, dims.z, 1, buffer ); 
+		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, dims.x, dims.y, megaDims.w );
+	}
+	else
+	{
+		GL_CHECK( glTextureSubImage3D( handle, 
+			0, 0, 0, dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
+	}
 
-	data[ dims.z ] = std::move( entry );
+	samplers[ dims.z ] = sampler;
 }
 
-void TextureBuffer::Bind( GLuint unit, const std::string& samplerName, const Program& program ) const
+void textureArray_t::Bind( GLuint unit, const std::string& samplerName, const Program& program ) const
 {
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, handle ) );
 	program.LoadInt( samplerName, unit );
 }
 	
-void TextureBuffer::Release( GLuint unit ) const
+void textureArray_t::Release( GLuint unit ) const
 {
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );

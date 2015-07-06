@@ -448,6 +448,10 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 					width = glm::max( width, glTextures[ t ].width );
 					height = glm::max( height, glTextures[ t ].height );
 					success = true;
+					
+					glTextures[ t ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
+					glTextures[ t ].LoadSettings();
+					
 					break;
 				}
 			}
@@ -474,13 +478,14 @@ FAIL_WARN:
 		Pixels_24BitTo32Bit( &glLightmaps[ l ].pixels[ 0 ], 
 			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
+		glLightmaps[ l ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
 		glLightmaps[ l ].LoadSettings();
 	}
 
 	glDummyTexture.SetBufferSize( 32, 32, 4, 255 );
 	glDummyTexture.Load2D();
 
-	glTextureArray.reset( new TextureBuffer( width, height, glTextures.size(), 1 ) );
+	glTextureArray.reset( new textureArray_t( width, height, glTextures.size() ) );
 	
 	for ( int32_t i = 0; i < map->data.numTextures; ++i )
 	{
@@ -489,17 +494,17 @@ FAIL_WARN:
 		if ( !tex.pixels.empty() )
 		{
 			glm::ivec3 dims( tex.width, tex.height, i );
-			glTextureArray->SetBuffer( 0, tex.sampler, dims, tex.pixels ); 
+			glTextureArray->SetBuffer( tex.sampler, dims, tex.pixels ); 
 		}
 	}
 
-	glLightmapArray.reset( new TextureBuffer( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, glLightmaps.size(), 1 ) );
+	glLightmapArray.reset( new textureArray_t( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, glLightmaps.size() ) );
 
 	for ( int32_t i = 0; i < map->data.numLightmaps; ++i )
 	{
 		const texture_t& tex = glLightmaps[ i ];  
 		glm::ivec3 dims( tex.width, tex.height, i );
-		glLightmapArray->SetBuffer( 0, tex.sampler, dims, tex.pixels ); 
+		glLightmapArray->SetBuffer( tex.sampler, dims, tex.pixels ); 
 	}
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );

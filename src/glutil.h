@@ -5,6 +5,7 @@
 #include "gldebug.h"
 #include "io.h"
 #include <array>
+#include <tuple>
 
 #define UBO_TRANSFORMS_BLOCK_BINDING 0
 #define ATTRIB_OFFSET( type, member )( ( void* ) offsetof( type, member ) ) 
@@ -144,6 +145,50 @@ static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
 	GL_CHECK( glDrawElements( GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 }
+
+static INLINE uint32_t Texture_GetMaxMipLevels2D( int32_t baseWidth, int32_t baseHeight )
+{
+	return glm::min( ( int32_t ) glm::log2( ( float ) baseWidth ), ( int32_t ) glm::log2( ( float ) baseHeight ) );
+}
+
+template< typename textureHelper_t >
+static INLINE uint32_t Texture_CalcMipLevels2D( const textureHelper_t& tex, int32_t baseWidth, int32_t baseHeight, int32_t maxLevels )
+{
+	if ( !maxLevels )
+	{
+		maxLevels = Texture_GetMaxMipLevels2D( baseWidth, baseHeight );
+	}
+
+	int32_t w = baseWidth;
+	int32_t h = baseHeight;
+	int32_t mip;
+
+	for ( mip = 0; h != 1 || w != 1; ++mip )
+	{
+		tex.CalcMipLevel2D( mip, w, h );
+
+		if ( h > 1 )
+		{
+			h /= 2;
+		}
+
+		if ( w > 1 )
+		{
+			w /= 2;
+		}
+	}
+
+	if ( mip < maxLevels - 1 )
+	{
+		for ( ; mip < maxLevels; ++mip )
+		{
+			tex.CalcMipLevel2D( mip, w, h );
+		}
+	}
+
+	return mip;
+}
+
 //---------------------------------------------------------------------
 struct texture_t
 {
@@ -188,8 +233,54 @@ struct texture_t
 	bool SetBufferSize( int width, int height, int bpp, byte fill );
 
 	bool DetermineFormats( void );
+
+	void CalcMipLevel2D( int32_t mip, int32_t width, int32_t height ) const;
 };
 //---------------------------------------------------------------------
+struct textureArray_t
+{
+	struct mipSetter_t
+	{
+		const std::vector< uint8_t >& buffer;
+		
+		const GLuint handle;
+		const int32_t layerOffset;
+		const int32_t numLayers;
+
+		mipSetter_t( 
+			const GLuint handle,
+			const int32_t layerOffset,
+			const int32_t numLayers,
+			const std::vector< uint8_t >& buffer );
+
+		void CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const;
+	};
+
+	bool mipmap;
+
+	GLuint handle;
+
+	glm::ivec4 megaDims;
+
+	std::vector< uint8_t > pixels;
+	std::vector< GLuint > samplers;
+
+	textureArray_t( GLsizei width, GLsizei height, GLsizei depth );
+	~textureArray_t( void );
+
+	void SetBuffer( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer );
+	
+	void Bind( GLuint unit, const std::string& samplerName, const Program& program ) const;
+	
+	void Release( GLuint unit ) const;
+};
+//---------------------------------------------------------------------
+INLINE void texture_t::CalcMipLevel2D( int32_t mip, int32_t mipwidth, int32_t mipheight ) const
+{
+	GL_CHECK( glTexImage2D( target, mip, internalFormat, 
+				mipwidth, mipheight, 0, format, GL_UNSIGNED_BYTE, &pixels[ 0 ] ) );
+}
+
 INLINE void texture_t::GenHandle( void )
 {
 	if ( !handle )
@@ -406,31 +497,4 @@ struct transformStash_t
 	{
 		renderer.LoadTransforms( view, proj ); 
 	}
-};
-//---------------------------------------------------------------------
-class TextureBuffer
-{
-private:
-	struct textureData_t
-	{
-		GLuint sampler;
-		glm::ivec3 dimensions;
-	};
-
-	GLuint handle;
-
-public:
-	glm::ivec3 megaDims;
-
-	std::vector< uint8_t > pixels;
-	std::vector< textureData_t > data;
-
-	TextureBuffer( GLsizei width, GLsizei height, GLsizei depth, GLsizei mipLevels );
-	~TextureBuffer( void );
-
-	void SetBuffer( GLsizei level, GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer );
-	
-	void Bind( GLuint unit, const std::string& samplerName, const Program& program ) const;
-	
-	void Release( GLuint unit ) const;
 };
