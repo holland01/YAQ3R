@@ -59,6 +59,13 @@ enum
 	GLUTIL_NUM_ATTRIBS_MAX = 5
 };
 
+class GLConfig
+{
+public:
+	// must match the same number used in main.frag
+	static const int32_t MAX_MIP_LEVELS = 16; 
+};
+
 class Program;
 class AABB;
 
@@ -163,7 +170,7 @@ static INLINE uint32_t Texture_CalcMipLevels2D( const textureHelper_t& tex, int3
 	int32_t h = baseHeight;
 	int32_t mip;
 
-	for ( mip = 0; h != 1 || w != 1; ++mip )
+	for ( mip = 0; h != 1 && w != 1; ++mip )
 	{
 		tex.CalcMipLevel2D( mip, w, h );
 
@@ -175,14 +182,6 @@ static INLINE uint32_t Texture_CalcMipLevels2D( const textureHelper_t& tex, int3
 		if ( w > 1 )
 		{
 			w /= 2;
-		}
-	}
-
-	if ( mip < maxLevels - 1 )
-	{
-		for ( ; mip < maxLevels; ++mip )
-		{
-			tex.CalcMipLevel2D( mip, w, h );
 		}
 	}
 
@@ -236,45 +235,7 @@ struct texture_t
 
 	void CalcMipLevel2D( int32_t mip, int32_t width, int32_t height ) const;
 };
-//---------------------------------------------------------------------
-struct textureArray_t
-{
-	struct mipSetter_t
-	{
-		const std::vector< uint8_t >& buffer;
-		
-		const GLuint handle;
-		const int32_t layerOffset;
-		const int32_t numLayers;
 
-		mipSetter_t( 
-			const GLuint handle,
-			const int32_t layerOffset,
-			const int32_t numLayers,
-			const std::vector< uint8_t >& buffer );
-
-		void CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const;
-	};
-
-	bool mipmap;
-
-	GLuint handle;
-
-	glm::ivec4 megaDims;
-
-	std::vector< uint8_t > pixels;
-	std::vector< GLuint > samplers;
-
-	textureArray_t( GLsizei width, GLsizei height, GLsizei depth );
-	~textureArray_t( void );
-
-	void SetBuffer( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer );
-	
-	void Bind( GLuint unit, const std::string& samplerName, const Program& program ) const;
-	
-	void Release( GLuint unit ) const;
-};
-//---------------------------------------------------------------------
 INLINE void texture_t::CalcMipLevel2D( int32_t mip, int32_t mipwidth, int32_t mipheight ) const
 {
 	GL_CHECK( glTexImage2D( target, mip, internalFormat, 
@@ -305,6 +266,55 @@ INLINE void texture_t::Release( int offset ) const
 	GL_CHECK( glBindTexture( target, 0 ) );
 	GL_CHECK( glBindSampler( offset, 0 ) );
 }
+
+//---------------------------------------------------------------------
+struct textureArray_t
+{
+	struct mipSetter_t
+	{
+		const GLuint handle;
+		
+		const int32_t layerOffset;
+		const int32_t numLayers;
+
+		const std::vector< uint8_t >& buffer;
+
+		mipSetter_t( 
+			const GLuint handle,
+			const int32_t layerOffset,
+			const int32_t numLayers,
+			const std::vector< uint8_t >& buffer );
+
+		void CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const;
+	};
+
+	struct params_t
+	{
+		int32_t width, height;
+		int32_t offset;
+		int32_t depth;
+		GLenum  wrap;
+	};
+
+	GLuint handle;
+
+	glm::ivec4 megaDims;
+
+	std::vector< GLuint > samplers;
+	std::vector< uint8_t > usedSlices;	// 1 -> true, 0 -> false
+	std::vector< glm::vec3 > biases;	// x and y point to sliceWidth / megaWidth and sliceHeight / megaHeight, respectively. z is the slice index
+
+				textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bool genMipLevels );
+				
+				~textureArray_t( void );
+
+	void			LoadSlice( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer, bool genMipMaps );
+	
+	void			Bind( GLuint unit, const std::string& samplerName, const Program& program ) const;
+	
+	void			Release( GLuint unit ) const;
+};
+
 //-------------------------------------------------------------------------------------------------
 class Program
 {
@@ -344,18 +354,26 @@ public:
 	void LoadVec2( const std::string& name, const glm::vec2& v ) const;
 	void LoadVec2( const std::string& name, const float* v ) const;
 
+	void LoadVec2Array( const std::string& name, const float* v, int32_t num ) const;
+
 	void LoadVec3( const std::string& name, const glm::vec3& v ) const;
+
+	void LoadVec3Array( const std::string& name, const float* v, int32_t num ) const;
 
 	void LoadVec4( const std::string& name, const glm::vec4& v ) const;
 	void LoadVec4( const std::string& name, const float* v ) const;
+
+	void LoadVec4Array( const std::string& name, const float* v, int32_t num ) const;
 
 	void LoadInt( const std::string& name, int v ) const;
 	void LoadFloat( const std::string& name, float v ) const;
 
 	void Bind( void ) const;
 	void Release( void ) const;
+
+	static std::vector< std::string > ArrayLocationNames( const std::string& name, int32_t length );
 };
-//-------------------------------------------------------------------------------------------------
+
 INLINE void Program::AddUnif( const std::string& name ) 
 {
 	GL_CHECK( uniforms[ name ] = glGetUniformLocation( program, name.c_str() ) ); 
@@ -391,9 +409,19 @@ INLINE void Program::LoadVec2( const std::string& name, const float* v ) const
 	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), 1, v ) );
 }
 
+INLINE void Program::LoadVec2Array( const std::string& name, const float* v, int32_t num ) const
+{
+	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), num, v ) );
+}
+
 INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const
 {
 	GL_CHECK( glProgramUniform3fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
+}
+
+INLINE void Program::LoadVec3Array( const std::string& name, const float* v, int32_t num ) const
+{
+	GL_CHECK( glProgramUniform3fv( program, uniforms.at( name ), num, v ) );
 }
 
 INLINE void Program::LoadVec4( const std::string& name, const glm::vec4& v ) const
@@ -405,6 +433,12 @@ INLINE void Program::LoadVec4( const std::string& name, const float* v ) const
 {
 	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), 1, v ) );
 }
+
+INLINE void Program::LoadVec4Array( const std::string& name, const float* v, int32_t num ) const
+{
+	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), num, v ) );
+}
+
 
 INLINE void Program::LoadInt( const std::string& name, int v ) const
 {

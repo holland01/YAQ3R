@@ -49,6 +49,24 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 	}
 };
 
+static GLuint GenSampler( bool mipmap, GLenum wrap )
+{
+	GLuint sampler;
+	GL_CHECK( glGenSamplers( 1, &sampler ) );
+
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MIN_FILTER, mipmap? GL_LINEAR_MIPMAP_LINEAR: GL_LINEAR ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_S, wrap ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_T, wrap ) );
+	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_R, wrap ) );
+
+	GLfloat maxSamples;
+	GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
+	GL_CHECK( glSamplerParameterf( sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
+
+	return sampler;
+}
+
 /*
 static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
 {
@@ -149,18 +167,8 @@ void texture_t::LoadSettings( void )
 {
 	if ( !sampler )
 	{
-		GL_CHECK( glGenSamplers( 1, &sampler ) );
+		sampler = GenSampler( mipmap, wrap );
 	}
-
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MIN_FILTER, minFilter ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MAG_FILTER, magFilter ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_S, wrap ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_T, wrap ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_R, wrap ) );
-
-	GLfloat maxSamples;
-	GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
-	GL_CHECK( glSamplerParameterf( sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
 
 	GL_CHECK( glBindTexture( target, handle ) );
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_BASE_LEVEL, 0 ) );
@@ -190,9 +198,6 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 			bpp, texPath );
 		return false;
 	}
-
-	//Load2D();
-	//LoadSettings();
 	
 	return true;
 }
@@ -232,6 +237,108 @@ bool texture_t::DetermineFormats( void )
 
 	return true;
 }
+
+//-------------------------------------------------------------------------------------------------
+
+textureArray_t::mipSetter_t::mipSetter_t( 
+	const GLuint handle_,
+	const int32_t layerOffset_,
+	const int32_t numLayers_,
+	const std::vector< uint8_t >& buffer_ )
+
+	:	handle( handle_ ),
+		layerOffset( layerOffset_ ),
+		numLayers( numLayers_ ),
+		buffer( buffer_ )
+{
+}
+
+void textureArray_t::mipSetter_t::CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const
+{
+	GL_CHECK( glTextureSubImage3D( handle, 
+			mip, 0, 0, layerOffset, mipWidth, mipHeight, numLayers, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
+}
+
+//-------------------------------------------------------------------------------------------------
+
+textureArray_t::textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bool genMipLevels )
+	:	megaDims( 
+			width, 
+			height, 
+			depth, 
+			genMipLevels? Texture_GetMaxMipLevels2D( width, height ): 1 )
+{
+	GL_CHECK( glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &handle ) );
+
+	megaDims.w = glm::min( megaDims.w, GLConfig::MAX_MIP_LEVELS );
+
+	GL_CHECK( glTextureStorage3D( handle, megaDims.w, GL_SRGB8_ALPHA8, megaDims.x, megaDims.y, megaDims.z ) );
+	
+	std::vector< uint8_t > fill;
+	fill.resize( width * height * depth * 4, 255 );
+	if ( genMipLevels )
+	{
+		// the vec2 here isn't really necessary, since there is no mip bias for this initial fill
+		mipSetter_t ms( handle, 0, depth, fill ); 
+		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, width, height, megaDims.w );
+	}
+	else
+	{
+		GL_CHECK( glTextureSubImage3D( handle, 
+			0, 0, 0, 0, width, height, depth, GL_RGBA, GL_UNSIGNED_BYTE, &fill[ 0 ] ) );
+	}
+	
+	samplers.resize( megaDims.z, 0 );
+	usedSlices.resize( megaDims.z, 0 );
+	biases.resize( megaDims.z, glm::vec3( 0.0f ) );
+}
+	
+textureArray_t::~textureArray_t( void )
+{
+	GL_CHECK( glDeleteTextures( 1, &handle ) );
+	GL_CHECK( glDeleteSamplers( samplers.size(), &samplers[ 0 ] ) );
+}
+
+void textureArray_t::LoadSlice( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer, bool genMipMaps )
+{
+	if ( genMipMaps )
+	{
+		mipSetter_t ms( handle, dims.z, 1, buffer ); 
+		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, dims.x, dims.y, megaDims.w );
+	}
+	else
+	{
+		for ( int32_t i = 0; i < megaDims.w; ++i )
+		{
+			GL_CHECK( glTextureSubImage3D( handle, i, 0, 0, 
+				dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
+		}
+	}
+
+	if ( !sampler )
+	{
+		sampler = GenSampler( genMipMaps, GL_REPEAT );
+	}
+
+	samplers[ dims.z ] = sampler;
+	usedSlices[ dims.z ] = 1;
+	biases[ dims.z ] = glm::vec3( ( float )dims.x / ( float )megaDims.x, ( float )dims.y / ( float )megaDims.y, ( float ) dims.z );
+}
+
+void textureArray_t::Bind( GLuint unit, const std::string& samplerName, const Program& program ) const
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, handle ) );
+	program.LoadInt( samplerName, unit );
+}
+	
+void textureArray_t::Release( GLuint unit ) const
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
+}
+
+//-------------------------------------------------------------------------------------------------
 
 void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
 {
@@ -329,7 +436,7 @@ void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
 	}
 }
 
-// -------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader )
 	: program( 0 )
@@ -421,6 +528,18 @@ void Program::LoadAttribLayout( void ) const
 	}
 }
 
+std::vector< std::string > Program::ArrayLocationNames( const std::string& name, int32_t length )
+{
+	std::vector< std::string > names;
+	names.resize( length );
+
+	for ( int32_t i = 0; i < length; ++i )
+	{
+		names[ i ] = name + "[" + std::to_string( i ) + "]";
+	}
+	return names;
+}
+
 //-------------------------------------------------------------------------------------------------
 
 loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )
@@ -438,85 +557,4 @@ loadBlend_t::~loadBlend_t( void )
 
 //-------------------------------------------------------------------------------------------------
 
-textureArray_t::mipSetter_t::mipSetter_t( 
-	const GLuint handle_,
-	const int32_t layerOffset_,
-	const int32_t numLayers_,
-	const std::vector< uint8_t >& buffer_ )
-	: handle( handle_ ),
-	  layerOffset( layerOffset_ ),
-	  numLayers( numLayers_ ),
-	  buffer( buffer_ )
-{
-}
 
-void textureArray_t::mipSetter_t::CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const
-{
-	GL_CHECK( glTextureSubImage3D( handle, 
-			mip, 0, 0, layerOffset, mipWidth, mipHeight, numLayers, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
-}
-
-//-------------------------------------------------------------------------------------------------
-textureArray_t::textureArray_t( GLsizei width, GLsizei height, GLsizei depth )
-	:	mipmap( true ),
-		megaDims( 
-			width, 
-			height, 
-			depth, 
-			mipmap? Texture_GetMaxMipLevels2D( width, height ): 1 )
-{
-	GL_CHECK( glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &handle ) );
-
-	GL_CHECK( glTextureStorage3D( handle, megaDims.w, GL_SRGB8_ALPHA8, width, height, depth ) );
-	
-	std::vector< uint8_t > fill;
-	fill.resize( width * height * depth * 4, 255 );
-	
-	if ( mipmap )
-	{
-		mipSetter_t ms( handle, 0, depth, fill ); 
-		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, width, height, megaDims.w );
-	}
-	else
-	{
-		GL_CHECK( glTextureSubImage3D( handle, 
-			0, 0, 0, 0, width, height, depth, GL_RGBA, GL_UNSIGNED_BYTE, &fill[ 0 ] ) );
-	}
-	
-	samplers.resize( megaDims.z, 0 );
-}
-	
-textureArray_t::~textureArray_t( void )
-{
-	GL_CHECK( glDeleteTextures( 1, &handle ) );
-	GL_CHECK( glDeleteSamplers( samplers.size(), &samplers[ 0 ] ) );
-}
-
-void textureArray_t::SetBuffer( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer )
-{
-	if ( mipmap )
-	{
-		mipSetter_t ms( handle, dims.z, 1, buffer ); 
-		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, dims.x, dims.y, megaDims.w );
-	}
-	else
-	{
-		GL_CHECK( glTextureSubImage3D( handle, 
-			0, 0, 0, dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
-	}
-
-	samplers[ dims.z ] = sampler;
-}
-
-void textureArray_t::Bind( GLuint unit, const std::string& samplerName, const Program& program ) const
-{
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, handle ) );
-	program.LoadInt( samplerName, unit );
-}
-	
-void textureArray_t::Release( GLuint unit ) const
-{
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
-}

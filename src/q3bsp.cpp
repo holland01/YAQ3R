@@ -1,8 +1,6 @@
 #include "q3bsp.h"
 #include "aabb.h"
 #include "io.h"
-
-
 #include "effect_shader.h"
 
 using namespace std;

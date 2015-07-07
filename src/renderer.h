@@ -5,6 +5,7 @@
 #include "input.h"
 #include "frustum.h"
 #include "aabb.h"
+#include "glutil.h"
 #include <set>
 #include <array>
 #include <functional>
@@ -169,6 +170,8 @@ private:
 	std::unique_ptr< textureArray_t > glTextureArray, glLightmapArray;
 
 	texture_t					glDummyTexture;
+
+	std::array< glm::vec2, GLConfig::MAX_MIP_LEVELS > glDummyBiases;
 	
 	std::vector< texture_t >	glTextures;			// has one->one mapping with texture indices
 	

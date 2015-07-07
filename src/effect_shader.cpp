@@ -420,7 +420,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 shaderStage_t::shaderStage_t( void )
 	: tcgen( TCGEN_BASE ),
-	  textureSlot( 0 ),
+	  textureIndex( -1 ),
 	  rgbSrc( GL_ONE ),
 	  rgbDest( GL_ZERO ),
 	  alphaSrc( GL_ONE ),
@@ -681,15 +681,17 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, 
 		const shaderStage_t& stage, bool doGammaCorrect, const char* discardPredicate ) 
 	{
+		const std::string sampleTextureExpr( "texture( sampler0, vec3( st * bias.xy, bias.z ) )" );
+
 		if ( stage.alphaGen != 0.0f )
 		{
 			fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
 			fragmentSrc.push_back( 
-				"\tvec4 color = vec4( texture( sampler0, st ).rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
+				"\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
 		}
 		else
 		{
-			fragmentSrc.push_back( "\tvec4 color = texture( sampler0, st ) * frag_Color;" );
+			fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
 		}
 
 		if ( discardPredicate )
@@ -719,20 +721,6 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 		for ( std::string& line: lines )
 		{
-			size_t index = line.find_first_of( "$" );
-			if ( index != std::string::npos )
-			{
-				if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
-				{
-					line.replace( index, 5, "lightmap" );
-					attribs[ 2 ] = "lightmap";
-				}
-				else
-				{
-					line.erase( index, 1 );
-				}
-			}
-
 			shaderSrc << line << '\n';
 		}
 
@@ -750,9 +738,13 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 		for ( int j = 0; j < shader.stageCount; ++j )
 		{	
+			shaderStage_t& stage = shader.stageBuffer[ j ];
+
 			// Uniform variable names
-			std::vector< std::string > uniforms = { "sampler0" };
+			std::vector< std::string > uniforms = { "sampler0", "bias" };
 			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
+
+			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
 
 			const size_t vertInsertOffset = 4;
 
@@ -762,7 +754,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 450", 
 				"layout( location = 0 ) in vec3 position;", 
 				"layout( location = 1 ) in vec4 color;", 
-				"layout( location = 2 ) in vec2 $tex0;",
+				"layout( location = 2 ) in vec2 " + texCoordName + ";",
 				"out vec2 frag_Tex;",
 				"out vec4 frag_Color;",
 				"void main(void) {",
@@ -799,7 +791,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
 			}
 
-			vertexSrc.push_back( "\tfrag_Tex = $tex0;" );
+			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
 			
 			if ( Shader_StageHasIdentityColor( shader.stageBuffer[ j ] ) )
 			{ 
@@ -817,8 +809,9 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 450",
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
-				"const float gamma = 1.0 / 2.2;",
+				"const float gamma = 1.0 / 3.0;",
 				"uniform sampler2D sampler0;",
+				"uniform vec3 bias;",
 				"out vec4 fragment;",
 				"void main(void) {"
 			};
@@ -862,33 +855,33 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
 			// given the potential for fragment discard if an alpha function is defined
-			if ( shader.stageBuffer[ j ].alphaFunc != ALPHA_FUNC_UNDEFINED )
+			if ( stage.alphaFunc != ALPHA_FUNC_UNDEFINED )
 			{
 				// Enable extensions directly below the version decl to aid in readability
 				fragmentSrc.insert( fragmentSrc.begin() + 1, "#extension GL_ARB_conservative_depth: enable" );
 				fragmentSrc.push_back( "layout( depth_unchanged ) float gl_FragDepth;" );
 			}
 
-			switch ( shader.stageBuffer[ j ].alphaFunc )
+			switch ( stage.alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, NULL );
+				LWriteTexture( fragmentSrc, stage, true, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, "color.a < 0.5" );
+				LWriteTexture( fragmentSrc, stage, true, "color.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, "color.a == 0" );
+				LWriteTexture( fragmentSrc, stage, true, "color.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-				LWriteTexture( fragmentSrc, shader.stageBuffer[ j ], true, "color.a >= 0.5" );
+				LWriteTexture( fragmentSrc, stage, true, "color.a >= 0.5" );
 				break;
 			}
 
-			const std::string& vertexString = LJoinLines( shader.stageBuffer[ j ], vertexSrc, attribs );
-			const std::string& fragmentString = LJoinLines( shader.stageBuffer[ j ], fragmentSrc, attribs );
+			const std::string& vertexString = LJoinLines( stage, vertexSrc, attribs );
+			const std::string& fragmentString = LJoinLines( stage, fragmentSrc, attribs );
 
-			shader.stageBuffer[ j ].program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
+			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 			
 			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, 
@@ -900,43 +893,32 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	fclose( f );
 }
 
-static void LoadStageTexture( shaderInfo_t& info, int i, const mapData_t* map )
+static void LoadStageTexture( std::vector< texture_t >& textures, shaderInfo_t& info, int i, const mapData_t* map )
 {
 	shaderStage_t& stage = info.stageBuffer[ i ];
 
 	if ( stage.mapType == MAP_TYPE_IMAGE )
 	{
-		stage.textureSlot = i;
-		stage.texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-		stage.texture.mipmap = !!( info.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
+		texture_t texture;
+
+		texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+		texture.mipmap = !!( info.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
 		texFileRoot.append( stage.texturePath );
 
-		if ( !stage.texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
+		if ( !texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
 		{
 			MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
+			return;
 		}
+
+		stage.textureIndex = textures.size();
+		textures.push_back( std::move( texture ) );
 	}
 }
 
-void Shader_SetEffectTextureData( effect_t& op, const texture_t& texture )
-{
-	if ( op.name == "tcModScroll" )
-	{
-		op.data.xyzw[ 2 ] = ( float ) texture.width;
-		op.data.xyzw[ 3 ] = ( float ) texture.height;
-	}
-	else if ( op.name == "tcModRotate" )
-	{
-		op.data.rotation2D.center[ 0 ] = 
-			( ( float ) texture.width * 0.5f ) / ( float ) texture.width;
-		op.data.rotation2D.center[ 1 ] = 
-			( ( float ) texture.height * 0.5f ) / ( float ) texture.height;
-	}
-}
-
-void Shader_LoadAll( const mapData_t* map, shaderMap_t& effectShaders, uint32_t loadFlags )
+void Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
@@ -955,12 +937,12 @@ void Shader_LoadAll( const mapData_t* map, shaderMap_t& effectShaders, uint32_t 
 	}
 	
 	GenShaderPrograms( effectShaders );
-	
+
 	for ( auto& entry: effectShaders )
 	{
 		for ( int i = 0; i < entry.second.stageCount; ++i )
 		{
-			LoadStageTexture( entry.second, i, map );
+			LoadStageTexture( textures, entry.second, i, map );
 		}
 	}
 }

@@ -294,7 +294,7 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glBlendEquationSeparate( GL_FUNC_ADD, GL_FUNC_ADD ) );
 	
 	GL_CHECK( glPointSize( 20.0f ) );
-	GL_CHECK( glPolygonOffset( 5.0f, 1.0f ) );
+	//GL_CHECK( glPolygonOffset( 5.0f, 1.0f ) );
 
 	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
 	GL_CHECK( glClearDepth( 1.0f ) );
@@ -312,6 +312,8 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, UBO_TRANSFORMS_BLOCK_BINDING, transformBlockObj, 0, transformBlockSize ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
 
+	glDummyBiases.fill( glm::vec2( 1.0f ) );
+
 	// Load main shader glPrograms
 	{
 		std::vector< std::string > attribs = 
@@ -326,10 +328,18 @@ void BSPRenderer::Prep( void )
 		{
 			"fragSampler",
 			"fragLightmapSampler",
-			"fragLightmapIndex",
-			"fragTexIndex",
-			"fragBias"
+			"fragBiases"
 		};
+
+		/*
+		{
+			std::vector< std::string > fragTexBiasNames = Program::ArrayLocationNames( "fragTexBiases", GLConfig::MAX_MIP_LEVELS );
+			uniforms.insert( uniforms.end(), fragTexBiasNames.begin(), fragTexBiasNames.end() );
+
+			std::vector< std::string > fragLightmapBiasNames = Program::ArrayLocationNames( "fragLightmapBiases", GLConfig::MAX_MIP_LEVELS );
+			uniforms.insert( uniforms.end(), fragLightmapBiasNames.begin(), fragLightmapBiasNames.end() );
+		}
+		*/
 
 		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs, true );
 
@@ -482,10 +492,9 @@ FAIL_WARN:
 		glLightmaps[ l ].LoadSettings();
 	}
 
-	glDummyTexture.SetBufferSize( 32, 32, 4, 255 );
-	glDummyTexture.Load2D();
+	glDummyTexture.LoadSettings();
 
-	glTextureArray.reset( new textureArray_t( width, height, glTextures.size() ) );
+	glTextureArray.reset( new textureArray_t( width, height, glTextures.size(), true ) );
 	
 	for ( int32_t i = 0; i < map->data.numTextures; ++i )
 	{
@@ -494,17 +503,17 @@ FAIL_WARN:
 		if ( !tex.pixels.empty() )
 		{
 			glm::ivec3 dims( tex.width, tex.height, i );
-			glTextureArray->SetBuffer( tex.sampler, dims, tex.pixels ); 
+			glTextureArray->LoadSlice( tex.sampler, dims, tex.pixels, true ); 
 		}
 	}
 
-	glLightmapArray.reset( new textureArray_t( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, glLightmaps.size() ) );
+	glLightmapArray.reset( new textureArray_t( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, glLightmaps.size(), true ) );
 
 	for ( int32_t i = 0; i < map->data.numLightmaps; ++i )
 	{
 		const texture_t& tex = glLightmaps[ i ];  
 		glm::ivec3 dims( tex.width, tex.height, i );
-		glLightmapArray->SetBuffer( tex.sampler, dims, tex.pixels ); 
+		glLightmapArray->LoadSlice( tex.sampler, dims, tex.pixels, true ); 
 	}
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
@@ -1010,26 +1019,27 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
 		
-		const texture_t* tex = nullptr;
-
-		if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
-		{
-			tex = &glLightmaps[ lightmapIndex ];
-		}
-		else
-		{
-			tex = ( stage.texture.handle != 0 )? &stage.texture: &glDummyTexture; 
-		}
-
 		for ( effect_t e: stage.effects )
-		{
-			Shader_SetEffectTextureData( e, *tex );
+		{/*
+			if ( e.name == "tcModScroll" )
+			{
+				e.data.xyzw[ 2 ] = ( float ) tex.width;
+				e.data.xyzw[ 3 ] = ( float ) tex.height;
+			}
+			else if ( e.name == "tcModRotate" )
+			{
+				e.data.rotation2D.center[ 0 ] = 
+					( ( float ) texture.width * 0.5f ) / ( float ) tex.width;
+				e.data.rotation2D.center[ 1 ] = 
+					( ( float ) texture.height * 0.5f ) / ( float ) tex.height;
+			}
+			*/
+
 			glEffects.at( e.name )( *( stage.program.get() ), e ); 
 		}
 
 		const Program& stageProg = *( stage.program.get() );
 
-		tex->Bind( 0, "sampler0", stageProg );
 		stageProg.LoadInt( "sampler0", 0 );
 		stageProg.Bind();
 
@@ -1089,8 +1099,6 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 	glLightmapArray->Bind( 1, "fragLightmapSampler", main );
 	GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
 
-	glm::vec2 lmBias( 256.0f / ( float ) glTextureArray->megaDims.x, 256.0f / ( float ) glTextureArray->megaDims.y );
-
 	for ( const drawSurface_t& surf: list )
 	{
 		/*
@@ -1106,39 +1114,30 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 			GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 			GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
-			/*
-			const texture_t& tex0 = GetTextureOrDummy( surf.textureIndex, 
-				surf.textureIndex >= 0 && glTextures[ surf.textureIndex ].handle != 0, glTextures );
-		
-			const texture_t& lightmap = GetTextureOrDummy( surf.lightmapIndex,
-				surf.lightmapIndex >= 0, glLightmaps );
-			*/
-
-			glm::vec4 bias( 1.0f, 1.0f, 1.0f, 1.0f );
-			
-			if ( surf.textureIndex >= 0 && !glTextures[ surf.textureIndex ].pixels.empty() )
-			{
-				bias.x = ( float ) glTextures[ surf.textureIndex ].width / ( float ) glTextureArray->megaDims.x;
-				bias.y = ( float ) glTextures[ surf.textureIndex ].height / ( float ) glTextureArray->megaDims.y;
-			}
-
-			main.LoadVec4( "fragBias", bias );
-			main.LoadInt( "fragTexIndex", glm::max( 0, surf.textureIndex ) );
+			std::array< glm::vec3, 2 > fragBiases;
 
 			if ( surf.textureIndex >= 0 )
 			{
-				GL_CHECK( glBindSampler( 0, glTextures[ surf.textureIndex ].sampler ) ); 
+				fragBiases[ 0 ] = glTextureArray->biases[ surf.textureIndex ];
+				GL_CHECK( glBindSampler( 0, glTextureArray->samplers[ surf.textureIndex ] ) ); 
 			}
 			else
 			{
+				fragBiases[ 0 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
 				GL_CHECK( glBindSampler( 0, glDummyTexture.sampler ) );
+			} 
+
+			if ( surf.lightmapIndex >= 0 )
+			{
+				fragBiases[ 1 ] = glLightmapArray->biases[ surf.lightmapIndex ];
 			}
+			else
+			{
+				fragBiases[ 1 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
+			} 
 
-			main.LoadInt( "fragLightmapIndex", glm::max( 0, surf.lightmapIndex ) );
-
-			//tex0.Bind( 0, "fragTexSampler", main );
-			//lightmap.Bind( 1, "fragLightmapSampler", main );
-
+			main.LoadVec3Array( "fragBiases", &fragBiases[ 0 ][ 0 ], 2 ); 
+				
 			main.Bind();
 			DrawSurface( surf, main );
 			main.Release();

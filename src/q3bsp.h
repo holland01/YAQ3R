@@ -3,7 +3,6 @@
 #include "common.h"
 #include "deform.h"
 #include "bsp_data.h"
-#include "glutil.h"
 #include <memory>
 
 struct shaderInfo_t;

@@ -164,10 +164,10 @@ struct effect_t
 struct shaderStage_t
 {
 	bool						depthPass;
+	
+	int32_t						textureIndex;
 
 	texCoordGen_t				tcgen;
-	GLuint						textureSlot;
-	texture_t					texture;
 
 	GLenum						rgbSrc;
 	GLenum						rgbDest;
@@ -219,9 +219,7 @@ struct shaderInfo_t
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-void Shader_LoadAll( const mapData_t* map, shaderMap_t& effectShaders, uint32_t loadFlags );
-
-void Shader_SetEffectTextureData( effect_t& op, const texture_t& t ); 
+void Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
 
 static INLINE bool Shader_StageHasIdentityColor( const shaderStage_t& s )
 {
