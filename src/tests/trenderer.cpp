@@ -41,7 +41,7 @@ void TRenderer::Load( void )
     if ( !Test::Load( "I am a floating camera" ) )
         return;
 
-    renderer = new BSPRenderer();
+    renderer = new BSPRenderer( ( float ) width, ( float ) height );
     renderer->Prep();
 	renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;

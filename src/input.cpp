@@ -36,7 +36,7 @@ InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
     }
 }
 
-InputCamera::InputCamera( const glm::mat4& view, const glm::mat4& projection )
+InputCamera::InputCamera( float width, float height, const glm::mat4& view, const glm::mat4& projection )
 {
 	viewData.origin = glm::vec3( -view[ 3 ] );
 	viewData.transform = view;
@@ -47,6 +47,8 @@ InputCamera::InputCamera( const glm::mat4& view, const glm::mat4& projection )
 	viewData.forward = Forward();
 	viewData.up = Up();
 	viewData.right = Right();
+	viewData.width = width;
+	viewData.height = height;
 }
 
 void InputCamera::EvalMouseMove( float x, float y )

@@ -73,9 +73,9 @@ public:
 
 	void			GetFacePlane( face_t face, plane_t& plane ) const;
 
-    static void FromTransform( AABB& box, const glm::mat4& transform );
+    static void		FromTransform( AABB& box, const glm::mat4& transform );
 
-    static void FromPoints( AABB& box, const glm::vec3 p[], int32_t n );
+    static void		FromPoints( AABB& box, const glm::vec3 p[], int32_t n );
 
     glm::vec3 maxPoint, minPoint;
 };

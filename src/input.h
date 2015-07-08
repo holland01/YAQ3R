@@ -14,6 +14,7 @@ struct viewParams_t
     glm::vec3   origin;
 
     float       fovy, aspect, zNear, zFar;
+	float		width, height;
 
     glm::mat4   transform;
 
@@ -26,6 +27,7 @@ struct viewParams_t
 		: forward( 0.0f ), up( 0.0f ), right( 0.0f ),
 		  origin( 0.0f ),
 		  fovy( 0.0f ), aspect( 0.0f ), zNear( 0.0f ), zFar( 0.0f ),
+		  width( 0.0f ), height( 0.0f ),
 		  transform( 1.0f ),
 		  orientation( 1.0f ),
 		  inverseOrient( 1.0f ),
@@ -50,7 +52,7 @@ public:
 
 	InputCamera( const viewParams_t& view, const EuAng& currRot );
 
-	InputCamera( const glm::mat4& view, const glm::mat4& projection );
+	InputCamera( float width, float height, const glm::mat4& view, const glm::mat4& projection );
 
 	float	moveStep;
 
@@ -64,7 +66,7 @@ public:
     void    Strafe( float amount );
     void    Raise( float amount );
 
-    void    SetPerspective( float fovy, float aspect, float znear, float zfar );
+    void    SetPerspective( float fovy, float width, float height, float znear, float zfar );
     void	SetClipTransform( const glm::mat4& proj );
 	void	SetViewTransform( const glm::mat4& view );
 
@@ -121,9 +123,11 @@ INLINE void InputCamera::Raise( float amount )
     viewData.origin += viewData.right;
 }
 
-INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, float zFar )
+INLINE void InputCamera::SetPerspective( float fovy, float width, float height, float zNear, float zFar )
 {
 	fovy = glm::radians( fovy );
+
+	float aspect = width / height;
 
     viewData.clipTransform = glm::perspective( fovy, aspect, zNear, zFar );
 
@@ -132,6 +136,8 @@ INLINE void InputCamera::SetPerspective( float fovy, float aspect, float zNear, 
     viewData.aspect = aspect;
     viewData.zNear = zNear;
     viewData.zFar = zFar;
+	viewData.width = width;
+	viewData.height = height;
 }
 
 INLINE void InputCamera::SetClipTransform( const glm::mat4& proj )

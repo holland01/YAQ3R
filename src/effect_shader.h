@@ -201,6 +201,7 @@ struct shaderInfo_t
 	vertexDeformFunc_t	deformFn;
 	wave_t				deformParms;	
 
+	GLenum				cullFace;
 	uint32_t			surfaceParms;
 	uint32_t			loadFlags; // we pass a list of global flags we'd like to see applied everywhere, however some shaders may contradict this
 
@@ -219,7 +220,7 @@ struct shaderInfo_t
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-void Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
+glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
 
 static INLINE bool Shader_StageHasIdentityColor( const shaderStage_t& s )
 {

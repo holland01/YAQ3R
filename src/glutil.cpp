@@ -49,7 +49,7 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 	}
 };
 
-static GLuint GenSampler( bool mipmap, GLenum wrap )
+GLuint GenSampler( bool mipmap, GLenum wrap )
 {
 	GLuint sampler;
 	GL_CHECK( glGenSamplers( 1, &sampler ) );
@@ -65,6 +65,15 @@ static GLuint GenSampler( bool mipmap, GLenum wrap )
 	GL_CHECK( glSamplerParameterf( sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
 
 	return sampler;
+}
+
+void BindTexture( GLenum target, GLuint handle, int32_t offset,  
+	int32_t sampler, const std::string& uniform, const Program& program )
+{
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+	GL_CHECK( glBindTexture( target, handle ) );
+	GL_CHECK( glBindSampler( offset, sampler ) );
+	program.LoadInt( uniform, offset );
 }
 
 /*
@@ -92,7 +101,7 @@ static INLINE void FlipBytes( byte* out, const byte* src, int width, int height,
 //-------------------------------------------------------------------------------------------------
 
 texture_t::texture_t( void )
-	: srgb( true ), mipmap( true ),
+	: srgb( true ), mipmap( false ),
 	  handle( 0 ), sampler( 0 ),
 	  wrap( GL_REPEAT ), minFilter( GL_LINEAR ), magFilter( GL_LINEAR ), 
 	  format( 0 ), internalFormat( 0 ), target( GL_TEXTURE_2D ), maxMip( 0 ),
@@ -118,10 +127,7 @@ texture_t::~texture_t( void )
 
 void texture_t::Bind( int offset, const std::string& unif, const Program& prog ) const
 {
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	GL_CHECK( glBindTexture( target, handle ) );
-	GL_CHECK( glBindSampler( offset, sampler ) );
-	prog.LoadInt( unif, offset );
+	BindTexture( GL_TEXTURE_2D, handle, offset, sampler, unif, prog );
 }
 
 void texture_t::LoadCubeMap( void )
@@ -276,6 +282,7 @@ textureArray_t::textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bo
 	
 	std::vector< uint8_t > fill;
 	fill.resize( width * height * depth * 4, 255 );
+	
 	if ( genMipLevels )
 	{
 		// the vec2 here isn't really necessary, since there is no mip bias for this initial fill
@@ -308,16 +315,8 @@ void textureArray_t::LoadSlice( GLuint sampler, const glm::ivec3& dims, const st
 	}
 	else
 	{
-		for ( int32_t i = 0; i < megaDims.w; ++i )
-		{
-			GL_CHECK( glTextureSubImage3D( handle, i, 0, 0, 
-				dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
-		}
-	}
-
-	if ( !sampler )
-	{
-		sampler = GenSampler( genMipMaps, GL_REPEAT );
+		GL_CHECK( glTextureSubImage3D( handle, 0, 0, 0, 
+			dims.z, dims.x, dims.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
 	}
 
 	samplers[ dims.z ] = sampler;
@@ -327,9 +326,7 @@ void textureArray_t::LoadSlice( GLuint sampler, const glm::ivec3& dims, const st
 
 void textureArray_t::Bind( GLuint unit, const std::string& samplerName, const Program& program ) const
 {
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + unit ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, handle ) );
-	program.LoadInt( samplerName, unit );
+	BindTexture( GL_TEXTURE_2D_ARRAY, handle, unit, 0, samplerName, program );
 }
 	
 void textureArray_t::Release( GLuint unit ) const

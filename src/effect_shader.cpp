@@ -132,6 +132,34 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		}
 	},
 	{
+		"cull",
+		STAGE_READ_FUNC
+		{
+			ZEROTOK( token );
+			buffer = ReadToken( token, buffer );
+
+			if ( strcmp( token, "front" ) == 0 )
+			{
+				outInfo->cullFace = GL_FRONT;
+			}
+			else if ( strcmp( token, "back" ) == 0 )
+			{
+				outInfo->cullFace = GL_BACK;
+			}
+			else if ( strcmp( token, "none" ) == 0 || strcmp( token, "disable" ) == 0 )
+			{
+				// shaderInfo_t::cullFace is GL_FALSE (i.e., no cull) by default, so no worries...
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+
+			return true;
+		}
+	},
+	{
 		"nopicmip",
 		STAGE_READ_FUNC
 		{
@@ -426,7 +454,7 @@ shaderStage_t::shaderStage_t( void )
 	  alphaSrc( GL_ONE ),
 	  alphaDest( GL_ZERO ),
 	  depthFunc( GL_LEQUAL ),
-	  rgbGen( RGBGEN_IDENTITY_LIGHTING ),
+	  rgbGen( RGBGEN_IDENTITY ),
 	  alphaFunc( ALPHA_FUNC_UNDEFINED ),
 	  mapCmd( MAP_CMD_UNDEFINED ),
 	  mapType( MAP_TYPE_UNDEFINED ),
@@ -440,6 +468,7 @@ shaderInfo_t::shaderInfo_t( void )
 	:	deform( false ),
 		deformCmd( VERTEXDEFORM_CMD_UNDEFINED ),
 		deformFn( VERTEXDEFORM_FUNC_UNDEFINED ),
+		cullFace( GL_FALSE ),
 		surfaceParms( 0 ),
 		loadFlags( 0 ),
 		stageCount( 0 ),
@@ -694,6 +723,11 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
 		}
 
+		if ( stage.tcgen == TCGEN_ENVIRONMENT )
+		{
+			fragmentSrc.push_back( "\tcolor *= vec4( texture( samplerReflect, st ).rgb, 0.2 );" );
+		}
+
 		if ( discardPredicate )
 		{
 			fragmentSrc.push_back( "\tif ( " + std::string( discardPredicate ) + " )" );
@@ -745,7 +779,6 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
 
 			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
-
 			const size_t vertInsertOffset = 4;
 
 			// Load vertex header;
@@ -792,8 +825,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			}
 
 			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
-			
-			if ( Shader_StageHasIdentityColor( shader.stageBuffer[ j ] ) )
+			if ( stage.rgbGen == RGBGEN_IDENTITY || stage.rgbGen == RGBGEN_IDENTITY_LIGHTING )
 			{ 
 				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 			}
@@ -810,13 +842,19 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
 				"const float gamma = 1.0 / 3.0;",
-				"uniform sampler2D sampler0;",
+				"uniform sampler2DArray sampler0;",
 				"uniform vec3 bias;",
 				"out vec4 fragment;",
 				"void main(void) {"
 			};
 
-			const size_t fragUnifOffset = 3;
+			const size_t fragUnifOffset = 4;
+
+			if ( stage.tcgen == TCGEN_ENVIRONMENT )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform sampler2D samplerReflect;" );
+				uniforms.push_back( "samplerReflect" );
+			}
 
 			fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
 
@@ -893,7 +931,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	fclose( f );
 }
 
-static void LoadStageTexture( std::vector< texture_t >& textures, shaderInfo_t& info, int i, const mapData_t* map )
+static void LoadStageTexture( glm::ivec2& maxDims, std::vector< texture_t >& textures, shaderInfo_t& info, int i, const mapData_t* map )
 {
 	shaderStage_t& stage = info.stageBuffer[ i ];
 
@@ -901,7 +939,7 @@ static void LoadStageTexture( std::vector< texture_t >& textures, shaderInfo_t& 
 	{
 		texture_t texture;
 
-		texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+		texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP? GL_CLAMP_TO_EDGE : GL_REPEAT;
 		texture.mipmap = !!( info.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
@@ -909,16 +947,28 @@ static void LoadStageTexture( std::vector< texture_t >& textures, shaderInfo_t& 
 
 		if ( !texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
 		{
-			MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
-			return;
+			std::string ext;
+			size_t index = File_GetExt( ext, texFileRoot );
+			if ( index != std::string::npos && ext == "tga" )
+			{
+				texFileRoot.replace( index, 4, ".jpg" );
+				if ( !texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
+				{
+					MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
+					texture.SetBufferSize( 64, 64, 4, 0 );
+				}
+			}
 		}
+
+		maxDims.x = glm::max( texture.width, maxDims.x );
+		maxDims.y = glm::max( texture.height, maxDims.y );
 
 		stage.textureIndex = textures.size();
 		textures.push_back( std::move( texture ) );
 	}
 }
 
-void Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
+glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
@@ -938,11 +988,14 @@ void Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, s
 	
 	GenShaderPrograms( effectShaders );
 
+	glm::ivec2 maxDims( 0 );
 	for ( auto& entry: effectShaders )
 	{
 		for ( int i = 0; i < entry.second.stageCount; ++i )
 		{
-			LoadStageTexture( textures, entry.second, i, map );
+			LoadStageTexture( maxDims, textures, entry.second, i, map );
 		}
 	}
+
+	return maxDims;
 }

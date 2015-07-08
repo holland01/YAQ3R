@@ -124,7 +124,7 @@ struct drawPass_t
 
 	const viewParams_t& view;
 
-    std::vector< byte > facesVisited;
+    std::vector< uint8_t > facesVisited;
 	std::vector< int32_t > transparent, opaque;
 
 	drawSurfaceList_t patches;
@@ -167,7 +167,9 @@ private:
 	// the const void* is either a const drawSurface_t* or const bspFace_t*, depending on objectType_t
 	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int32_t >; 
 
-	std::unique_ptr< textureArray_t > glTextureArray, glLightmapArray;
+	std::unique_ptr< textureArray_t > glTextureArray, 
+									  glLightmapArray,
+									  glShaderArray;
 
 	texture_t					glDummyTexture;
 
@@ -189,6 +191,9 @@ private:
 
     float               deltaTime;
 	double				frameTime;
+
+	void				LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
+							std::vector< texture_t >& textures, int32_t width, int32_t height );
 
 	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
 
@@ -214,6 +219,8 @@ private:
 	void				EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
 
 	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList );
+
+	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
 	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
@@ -246,7 +253,7 @@ public:
 
 	lightSampler_t	lightSampler;	
 
-				BSPRenderer( void );
+				BSPRenderer( float viewWidth, float viewHeight );
 				
 				~BSPRenderer( void );
 

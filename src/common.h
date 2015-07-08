@@ -73,15 +73,3 @@ typedef unsigned char byte;
 
 using glHandleMap_t = std::map< std::string, GLint >;
 using glHandleMapEntry_t = std::pair< std::string, GLint >;
-
-INLINE bool FileGetExt( std::string& outExt, const std::string& filename  )
-{
-	// Second condition is to ensure we actually have a file extension we can use
-	size_t index;
-	if ( ( index = filename.find_last_of( '.' ) ) != std::string::npos && index != filename.size() - 1 )
-	{
-		outExt = filename.substr( index + 1 );
-		return true;
-	}
-    return false;
-}

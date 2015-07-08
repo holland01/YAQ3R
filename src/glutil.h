@@ -76,6 +76,10 @@ void ImDrawAxes( const float size );
 void ImDrawBounds( const AABB& bounds, const glm::vec4& color ); 
 void ImDrawPoint( const glm::vec3& point, const glm::vec4& color, float size = 1.0f );
 
+GLuint GenSampler( bool mipmap, GLenum wrap );
+void BindTexture( GLenum target, GLuint handle, int32_t offset, 
+	int32_t sampler, const std::string& uniform, const Program& program );
+
 static INLINE void MapVec3( int location, size_t offset )
 {
 	GL_CHECK( glEnableVertexAttribArray( location ) );
@@ -494,11 +498,21 @@ struct rtt_t
 
 	void Attach( int32_t width, int32_t height, int32_t bpp )
 	{
-		texture.SetBufferSize( width, height, bpp, 0 );
+		texture.mipmap = false;
+		texture.wrap = GL_REPEAT;
+		texture.SetBufferSize( width, height, bpp, 255 );
 		texture.Load2D();
+		texture.LoadSettings();
 
 		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbo ) );
 		GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.handle, 0 ) );
+
+		GLenum fbocheck;
+		GL_CHECK( fbocheck = glCheckFramebufferStatus( GL_FRAMEBUFFER ) );
+		if ( fbocheck != GL_FRAMEBUFFER_COMPLETE )
+		{
+			MLOG_ERROR( "FBO check incomplete; value returned is 0x%x", fbocheck );	
+		}
 		GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
 	}
 
@@ -530,5 +544,21 @@ struct transformStash_t
 	~transformStash_t( void )
 	{
 		renderer.LoadTransforms( view, proj ); 
+	}
+};
+
+struct viewportStash_t
+{
+	std::array< GLint, 4 > original; 
+
+	viewportStash_t( GLint originX, GLint originY, GLint width, GLint height )
+	{
+		GL_CHECK( glGetIntegerv( GL_VIEWPORT, &original[ 0 ] ) );
+		GL_CHECK( glViewport( originX, originY, width, height ) );
+	}
+
+	~viewportStash_t( void )
+	{
+		GL_CHECK( glViewport( original[ 0 ], original[ 1 ], original[ 2 ], original[ 3 ] ) );
 	}
 };

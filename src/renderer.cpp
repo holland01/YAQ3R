@@ -196,7 +196,7 @@ void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
 	camera.SetViewOrigin( eye ); 
 }
 //--------------------------------------------------------------
-BSPRenderer::BSPRenderer( void )
+BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	:	glEffects( {
 			{ 
 				"tcModTurb", 
@@ -252,7 +252,7 @@ BSPRenderer::BSPRenderer( void )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, 16.0f / 9.0f, 1.0f, 5000.0f );
+	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 0.1f, 5000.0f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -303,6 +303,7 @@ void BSPRenderer::Prep( void )
     GL_CHECK( glGenBuffers( 1, &vbo ) );
 	
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
+
 
 	// Gen transforms UBO
 	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
@@ -410,12 +411,52 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 	}
 }
 
+void BSPRenderer::LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
+	std::vector< texture_t >& textures, int32_t width, int32_t height )
+{
+	textures.push_back( glDummyTexture );
+
+	texArray.reset( new textureArray_t( width, height, textures.size(), false ) ); 
+	for ( uint32_t i = 0; i < textures.size(); ++i )
+	{
+		const texture_t& tex = textures[ i ];
+		if ( !tex.pixels.empty() )
+		{
+			GLuint sampler = tex.sampler;
+			if ( !sampler )
+			{
+				sampler = GenSampler( tex.mipmap, tex.wrap );
+			}
+
+			glm::ivec3 dims( tex.width, tex.height, i );
+			texArray->LoadSlice( sampler, dims, tex.pixels, false );
+		}
+	}
+}
+
+static glm::vec3 CalcUpVector( const glm::vec3& forward, const glm::vec3& desired )
+{
+	float cosAng = glm::abs( glm::dot( glm::normalize( forward ), desired ) );
+	if ( cosAng == 1.0f )
+	{
+		return glm::normalize( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), forward ) ); 
+	}
+	else
+	{
+		return desired;
+	}
+}
+
 void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 {
     map->Read( filepath, 1, mapLoadFlags );
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
-	//Shader_LoadAll( &map->data, map->effectShaders, mapLoadFlags );
+	std::vector< texture_t > shaderTextures;
+	glm::ivec2 shaderMegaDims = Shader_LoadAll( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
+	
+	glDummyTexture.SetBufferSize( 64, 64, 4, 255 );
+	LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
@@ -459,8 +500,8 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 					height = glm::max( height, glTextures[ t ].height );
 					success = true;
 					
+					glTextures[ t ].wrap = GL_REPEAT;
 					glTextures[ t ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
-					glTextures[ t ].LoadSettings();
 					
 					break;
 				}
@@ -478,6 +519,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 	}
+	LoadTextureArray( glTextureArray, glTextures, width, height );
 
 	// And then generate all of the lightmaps
 	glLightmaps.resize( map->data.numLightmaps );
@@ -488,33 +530,10 @@ FAIL_WARN:
 		Pixels_24BitTo32Bit( &glLightmaps[ l ].pixels[ 0 ], 
 			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
+		glLightmaps[ l ].wrap = GL_REPEAT;
 		glLightmaps[ l ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
-		glLightmaps[ l ].LoadSettings();
 	}
-
-	glDummyTexture.LoadSettings();
-
-	glTextureArray.reset( new textureArray_t( width, height, glTextures.size(), true ) );
-	
-	for ( int32_t i = 0; i < map->data.numTextures; ++i )
-	{
-		const texture_t& tex = glTextures[ i ];  
-		
-		if ( !tex.pixels.empty() )
-		{
-			glm::ivec3 dims( tex.width, tex.height, i );
-			glTextureArray->LoadSlice( tex.sampler, dims, tex.pixels, true ); 
-		}
-	}
-
-	glLightmapArray.reset( new textureArray_t( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, glLightmaps.size(), true ) );
-
-	for ( int32_t i = 0; i < map->data.numLightmaps; ++i )
-	{
-		const texture_t& tex = glLightmaps[ i ];  
-		glm::ivec3 dims( tex.width, tex.height, i );
-		glLightmapArray->LoadSlice( tex.sampler, dims, tex.pixels, true ); 
-	}
+	LoadTextureArray( glLightmapArray, glLightmaps, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT );
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
@@ -523,7 +542,6 @@ FAIL_WARN:
 	//---------------------------------------------------------------------
 
 	glFaces.resize( map->data.numFaces );
-	
 	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
 
 	int indexOffset = ( int32_t ) vertexData.size();
@@ -592,10 +610,13 @@ FAIL_WARN:
 
 		if ( shader && !!( shader->surfaceParms & SURFPARM_ENVMAP ) )
 		{
-			glm::mat4 view( glm::lookAt( mod->bounds.maxPoint, mod->bounds.maxPoint + face->normal, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ); 
+			glm::vec3 center( mod->bounds.maxPoint );
+			glm::vec3 target( mod->bounds.maxPoint + face->normal );
+
+			glm::mat4 view( glm::lookAt( center, target, CalcUpVector( face->normal, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ) ); 
 
 			mod->envmap.reset( new rtt_t( GL_COLOR_ATTACHMENT0, view ) );
-			mod->envmap->Attach( 256, 256, 3 );
+			mod->envmap->Attach( 1920, 1024, 4 );
 		}
 	}
 
@@ -619,19 +640,6 @@ FAIL_WARN:
 	glm::vec3 max( map->data.nodes[ 0 ].boxMax );
 
 	lightSampler.Elevate( min, max );
-
-	/*
-	for ( mapModel_t& model: glFaces )
-	{
-		if ( model.envmap )
-		{
-			model.envmap->Bind();
-			RenderPass( InputCamera( model.envmap->view, 
-				CameraFromView()->ViewData().clipTransform ).ViewData(), true );
-			model.envmap->Release();
-		}
-	}
-	*/
 }
 
 void BSPRenderer::Sample( void )
@@ -653,6 +661,12 @@ void BSPRenderer::Render( void )
 { 
 	double startTime = glfwGetTime();
 
+	/*
+	GLint width = GLint( CameraFromView()->ViewData().width * 0.5f );
+	GLint height = GLint( CameraFromView()->ViewData().height );
+	viewportStash_t viewStash( 0, 0, width, height ); 
+	*/
+
 	RenderPass( CameraFromView()->ViewData(), false );
 	
 	frameTime = glfwGetTime() - startTime;
@@ -662,6 +676,11 @@ void BSPRenderer::Render( void )
 
 void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
+	GL_CHECK( glDisable( GL_CULL_FACE ) );
+	GL_CHECK( glClearDepth( 1.0f ) );
+	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
+	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
+
 	static auto LDrawList = [ this ]( drawPass_t& pass, drawSurfaceList_t& list ) -> void
 	{
 		DrawSurfaceList( pass, list.surfaces );
@@ -685,8 +704,6 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 		DrawNode( pass, 0 );
 		LDrawClear( pass );
 	};
-
-	//GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
 	drawPass_t pass( map, view );
 	pass.envmap = envmap;
@@ -968,6 +985,54 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
+void BSPRenderer::ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program )
+{
+	if ( pass.envmap )
+	{
+		glDummyTexture.Bind( 1, "samplerReflect", program );
+		return;
+	}
+
+	/*
+	GLint width = GLint( pass.view.width * 0.5f );
+	GLint height = GLint( pass.view.height );
+	viewportStash_t viewStash( width, 0, width, height ); 
+	*/
+
+	switch ( std::get< 0 >( data ) )
+	{
+	case OBJECT_SURFACE:
+		const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
+
+		for ( int32_t face: surf.faceIndices )
+		{
+			mapModel_t& model = glFaces[ face ];	
+			if ( model.envmap 
+				&& model.bounds.CalcIntersection( glm::normalize( pass.view.forward ), pass.view.origin ) )
+			{
+				//glm::mat4 view( glm::lookAt( model.bounds.maxPoint, 
+					//model.bounds.maxPoint + pass.view.origin, CalcUpVector( pass.view.origin, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ) );
+
+				model.envmap->Bind();
+
+				{
+					InputCamera camera( pass.view.width, 
+						pass.view.height, model.envmap->view, CameraFromView()->ViewData().clipTransform );
+					RenderPass( camera.ViewData(), true );
+				}
+				//glDummyTexture.Bind( 1, "samplerReflect", program );
+
+				model.envmap->Release();
+				model.envmap->texture.Bind( 1, "samplerReflect", program );
+
+				break;
+			}
+		}
+
+		break;
+	}
+}
+
 void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program )
 {
 	switch ( std::get< 0 >( data ) )
@@ -983,13 +1048,7 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 		case OBJECT_SURFACE:
 		{
 			const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
-			const shaderInfo_t& shader = *( std::get< 2 >( data ) );
 			DrawSurface( surf, program );
-
-			const glm::vec3 nforward( glm::normalize( pass.view.forward ) );
-
-			viewParams_t view = camera->ViewData();
-
 			for ( int32_t i: surf.faceIndices )
 			{
 				if ( config.drawFaceBounds )
@@ -1002,6 +1061,22 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 	}
 }
 
+static INLINE void EffectPassTexFromArray( glm::vec2& dims, 
+	int32_t index, const textureArray_t& texArray, const Program& program )
+{
+	if ( index < 0 )
+	{
+		index = ( int32_t ) texArray.biases.size() - 1;
+	}
+
+	const glm::vec3& bias = texArray.biases[ index ]; 
+	texArray.Bind( 0, "sampler0", program ); 
+	program.LoadVec3( "bias", bias );
+	GL_CHECK( glBindSampler( 0, texArray.samplers[ index ] ) );
+	dims.x = bias.x;
+	dims.y = bias.y;
+}
+
 void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data )
 {
 	const shaderInfo_t* shader = std::get< 2 >( data );
@@ -1010,43 +1085,58 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
-	bool envmap = false;
-
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
-	{			
+	{	
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
+		const Program& stageProg = *( stage.program.get() );
+
+		if ( stage.tcgen == TCGEN_ENVIRONMENT )
+		{
+			ReflectFromTuple( data, pass, stageProg );
+		}
+
+		if  ( shader->cullFace )
+		{
+			GL_CHECK( glEnable( GL_CULL_FACE ) );
+			GL_CHECK( glCullFace( shader->cullFace ) );
+			GL_CHECK( glFrontFace( GL_CCW ) );
+		}
 
 		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
+
+		glm::vec2 texDims( 0 );
 		
+		if ( stage.mapType == MAP_TYPE_IMAGE )
+		{
+			EffectPassTexFromArray( texDims, 
+				stage.textureIndex, *( glShaderArray.get() ), stageProg );
+		}
+		else
+		{
+			EffectPassTexFromArray( texDims, 
+				lightmapIndex, *( glLightmapArray.get() ), stageProg );
+		}
+
 		for ( effect_t e: stage.effects )
-		{/*
+		{
 			if ( e.name == "tcModScroll" )
 			{
-				e.data.xyzw[ 2 ] = ( float ) tex.width;
-				e.data.xyzw[ 3 ] = ( float ) tex.height;
+				e.data.xyzw[ 2 ] = texDims.x;
+				e.data.xyzw[ 3 ] = texDims.y;
 			}
 			else if ( e.name == "tcModRotate" )
 			{
-				e.data.rotation2D.center[ 0 ] = 
-					( ( float ) texture.width * 0.5f ) / ( float ) tex.width;
-				e.data.rotation2D.center[ 1 ] = 
-					( ( float ) texture.height * 0.5f ) / ( float ) tex.height;
+				e.data.rotation2D.center[ 0 ] = 0.5f;
+				e.data.rotation2D.center[ 1 ] = 0.5f;
 			}
-			*/
 
 			glEffects.at( e.name )( *( stage.program.get() ), e ); 
-		}
+		}	
 
-		const Program& stageProg = *( stage.program.get() );
-
-		stageProg.LoadInt( "sampler0", 0 );
 		stageProg.Bind();
-
 		DrawFromTuple( data, pass, stageProg );
-
 		stageProg.Release();
-		tex->Release( 0 );
 	}
 	
 	/*
@@ -1064,8 +1154,16 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 	*/
 
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
+
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	GL_CHECK( glBindSampler( 0, 0 ) );
+
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+	GL_CHECK( glBindSampler( 1, 0 ) );
+
+	GL_CHECK( glDisable( GL_CULL_FACE ) );
 }
 
 void BSPRenderer::DrawFace( drawPass_t& pass )
@@ -1094,14 +1192,8 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 {	
 	const Program& main = *( glPrograms.at( "main" ).get() );
 
-	glTextureArray->Bind( 0, "fragSampler", main );
-
-	glLightmapArray->Bind( 1, "fragLightmapSampler", main );
-	GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
-
 	for ( const drawSurface_t& surf: list )
 	{
-		/*
 		if ( surf.shader )
 		{
 			drawTuple_t tuple = std::make_tuple( OBJECT_SURFACE, 
@@ -1109,8 +1201,11 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 			DrawEffectPass( pass, tuple );
 		}
 		else
-		*/
 		{
+			glTextureArray->Bind( 0, "fragSampler", main );
+			glLightmapArray->Bind( 1, "fragLightmapSampler", main );
+			GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
+
 			GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 			GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
@@ -1142,8 +1237,11 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 			DrawSurface( surf, main );
 			main.Release();
 
-		//	tex0.Release( 0 );
-			//lightmap.Release( 1 );
+			glTextureArray->Release( 0 );
+			GL_CHECK( glBindSampler( 0, 0 ) );
+
+			glLightmapArray->Release( 1 );
+			GL_CHECK( glBindSampler( 1, 0 ) );
 		}
 	}
 
