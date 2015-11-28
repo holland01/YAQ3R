@@ -61,7 +61,8 @@ void glDebugInit( void )
 
 void glDebugKill( void )
 {
-    fclose( glLog );
+    if ( glLog )
+        fclose( glLog );
 
     if ( dateTime )
     {

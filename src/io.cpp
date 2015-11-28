@@ -161,7 +161,7 @@ void LogBSPData( int type, void* data, int length )
             break;
 
         default:
-            MLOG_ERROR( "Log functionality for data type index %i has not been implemented yet!", type );
+            MLOG_WARNING( "Log functionality for data type index %i has not been implemented yet!", type );
             break;
 
     }
@@ -175,10 +175,16 @@ void InitSysLog( void )
     gBspDataLog = fopen( "log/bspData.log", "w" );
 
     if ( !gDrawLog )
+    {
         MLOG_ERROR( "could not open gDrawLog" );
+        return;
+    }
 
     if ( !gBspDataLog )
+    {
         MLOG_ERROR( "could not open gBspDataLog" );
+        return;
+    }
 
     glDebugInit();
 }

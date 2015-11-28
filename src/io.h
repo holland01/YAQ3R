@@ -124,11 +124,9 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 static INLINE size_t File_GetExt( std::string& outExt, const std::string& filename  )
 {
 	// Second condition is to ensure we actually have a file extension we can use
-	size_t index;
-	if ( ( index = filename.find_last_of( '.' ) ) != std::string::npos && index != filename.size() - 1 )
-	{
+    size_t index = filename.find_last_of( '.' );
+    if ( index != std::string::npos && index != filename.size() - 1 )
 		outExt = filename.substr( index + 1 );
-	}
     
 	return index;
 }

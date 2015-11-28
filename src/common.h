@@ -14,6 +14,10 @@
 #	include <stdint.h>
 #endif
 
+#ifdef __linux__
+#include <ftw.h>
+#endif
+
 #include "global.h"
 
 #include <GL/glew.h>

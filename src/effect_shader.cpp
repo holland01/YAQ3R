@@ -970,6 +970,20 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< texture_t >& tex
 	}
 }
 
+namespace {
+    using ftw_function_t = std::function< int( const char*, const struct stat*, int ) >;
+
+    std::shared_ptr< ftw_function_t > gLinuxCallback( nullptr );
+
+    extern "C" int invoke( const char* path, const struct stat* sb, int typeFlag )
+    {
+        if ( gLinuxCallback )
+            return ( *gLinuxCallback )( path, sb, typeFlag );
+
+        return 1;
+    }
+}
+
 glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
@@ -987,10 +1001,27 @@ glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textu
 	{
 		ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
 		success = FindNextFileA( file, &findFileData );
-	}
-	
-	GenShaderPrograms( effectShaders );
+	}	
+#else
+    if ( !gLinuxCallback )
+    {
+        gLinuxCallback = std::make_shared< ftw_function_t >( [ & ]( const char* fpath, const struct stat* sb, int typeFlag ) -> int
+        {
+            std::string ext;
+            std::string sPath( fpath );
+            File_GetExt( ext, sPath );
+
+            if ( ext == "shader" )
+                ParseShader( effectShaders, loadFlags, sPath );
+
+            return 0;
+        } );
+    }
+
+    ftw( shaderRootDir.c_str(), invoke, 3 );
 #endif
+
+    GenShaderPrograms( effectShaders );
 
 	glm::ivec2 maxDims( 0 );
 	for ( auto& entry: effectShaders )
