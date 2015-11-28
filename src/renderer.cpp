@@ -235,17 +235,17 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 				}
 			}
 		} ),
-		map ( new Q3BspMap() ),
-		camera( nullptr ),
-		frustum( new Frustum() ),
+        currLeaf( nullptr ),
+        vao( 0 ),
+        vbo( 0 ),
+        deltaTime( 0.0f ),
+        frameTime( 0.0f ),
+        map ( new Q3BspMap() ),
+        camera( nullptr ),
+        frustum( new Frustum() ),
 		transformBlockIndex( 0 ),
 		transformBlockObj( 0 ),
 		transformBlockSize( sizeof( glm::mat4 ) * 2 ),
-		currLeaf( nullptr ),
-		vao( 0 ),
-		vbo( 0 ),
-		deltaTime( 0.0f ),
-		frameTime( 0.0f ),
 		curView( VIEW_MAIN )
 {
 	viewParams_t view;
@@ -1002,34 +1002,38 @@ void BSPRenderer::ReflectFromTuple( const drawTuple_t& data, const drawPass_t& p
 	switch ( std::get< 0 >( data ) )
 	{
 	case OBJECT_SURFACE:
-		const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
+        {
+            const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
 
-		for ( int32_t face: surf.faceIndices )
-		{
-			mapModel_t& model = glFaces[ face ];	
-			if ( model.envmap 
-				&& model.bounds.CalcIntersection( glm::normalize( pass.view.forward ), pass.view.origin ) )
-			{
-				//glm::mat4 view( glm::lookAt( model.bounds.maxPoint, 
-					//model.bounds.maxPoint + pass.view.origin, CalcUpVector( pass.view.origin, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ) );
+            for ( int32_t face: surf.faceIndices )
+            {
+                mapModel_t& model = glFaces[ face ];
+                if ( model.envmap
+                    && model.bounds.CalcIntersection( glm::normalize( pass.view.forward ), pass.view.origin ) )
+                {
+                    //glm::mat4 view( glm::lookAt( model.bounds.maxPoint,
+                        //model.bounds.maxPoint + pass.view.origin, CalcUpVector( pass.view.origin, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ) );
 
-				model.envmap->Bind();
+                    model.envmap->Bind();
 
-				{
-					InputCamera camera( pass.view.width, 
-						pass.view.height, model.envmap->view, CameraFromView()->ViewData().clipTransform );
-					RenderPass( camera.ViewData(), true );
-				}
-				//glDummyTexture.Bind( 1, "samplerReflect", program );
+                    {
+                        InputCamera camera( pass.view.width,
+                            pass.view.height, model.envmap->view, CameraFromView()->ViewData().clipTransform );
+                        RenderPass( camera.ViewData(), true );
+                    }
+                    //glDummyTexture.Bind( 1, "samplerReflect", program );
 
-				model.envmap->Release();
-				model.envmap->texture.Bind( 1, "samplerReflect", program );
+                    model.envmap->Release();
+                    model.envmap->texture.Bind( 1, "samplerReflect", program );
 
-				break;
-			}
-		}
+                    break;
+                }
+            }
+        }
 
 		break;
+    default: // compiler
+            break;
 	}
 }
 

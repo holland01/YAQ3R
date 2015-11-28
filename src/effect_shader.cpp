@@ -16,6 +16,8 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t*
 
 #define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 
+#define MLOG_WARNING_SANS_FUNCNAME( title, message ) ( MyPrintf( "WARNING", "[%s]:\n%s", title, message ) )
+
 std::map< std::string, stageEvalFunc_t > stageReadFuncs = 
 {
 	{
@@ -447,8 +449,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 };
 
 shaderStage_t::shaderStage_t( void )
-	: tcgen( TCGEN_BASE ),
-	  textureIndex( -1 ),
+    : depthPass( false ),
+      textureIndex( -1 ),
+      tcgen( TCGEN_BASE ),
 	  rgbSrc( GL_ONE ),
 	  rgbDest( GL_ZERO ),
 	  alphaSrc( GL_ONE ),
@@ -471,10 +474,9 @@ shaderInfo_t::shaderInfo_t( void )
 		cullFace( GL_FALSE ),
 		surfaceParms( 0 ),
 		loadFlags( 0 ),
+        tessSize( 0.0f ),
 		stageCount( 0 ),
-		surfaceLight( 0.0f ),
-		tessSize( 0.0f )
-	  
+        surfaceLight( 0.0f )
 {
 	memset( name, 0, sizeof( name ) );
 }
@@ -973,6 +975,7 @@ glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textu
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
 
+#ifdef _WIN32
 	// Find shader files
 	WIN32_FIND_DATAA findFileData;
 	HANDLE file;
@@ -987,6 +990,7 @@ glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textu
 	}
 	
 	GenShaderPrograms( effectShaders );
+#endif
 
 	glm::ivec2 maxDims( 0 );
 	for ( auto& entry: effectShaders )

@@ -8,6 +8,7 @@
 //struct bspVertex_t;
 
 class TessTest;
+class Program;
 
 static const int TESS_TEST_NUM_VBOS = 4;
 

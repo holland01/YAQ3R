@@ -140,7 +140,7 @@ void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& progra
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texture ) );
 	GL_CHECK( glBindSampler( 0, sampler ) );
 
-	program->LoadMatrix( "modelToView", view.transform * modelTransform );
+    program->LoadMat4( "modelToView", view.transform * modelTransform );
 	program->Bind();
 
 	switch ( tessVaoIndex )
@@ -191,8 +191,11 @@ void TessTri::Render( int tessVaoIndex, const std::unique_ptr< Program >& progra
 
 //----------------------------------------------------------------
 
+#define SCREEN_WIDTH 1366
+#define SCREEN_HEIGHT 768
+
 TessTest::TessTest( void )
-	:	Test( 1366, 768 ),
+    :	Test( SCREEN_WIDTH, SCREEN_HEIGHT, false ),
 		camera( nullptr )
 {
 }
@@ -276,9 +279,9 @@ void TessTest::Load( void )
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) );
 
-	camera->SetPerspective( glm::radians( 60.0f ), 16.0f / 9.0f, 0.1f, 10000.0f );
-	fillProgram->LoadMatrix( "viewToClip", camera->ViewData().clipTransform );
-	lineProgram->LoadMatrix( "viewToClip", camera->ViewData().clipTransform );
+    camera->SetPerspective( glm::radians( 60.0f ), SCREEN_WIDTH, SCREEN_HEIGHT, 0.1f, 10000.0f );
+    fillProgram->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+    lineProgram->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
 	GL_CHECK( glPointSize( 10.0f ) );
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
@@ -319,6 +322,9 @@ void TessTest::Load( void )
 
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
 }
+
+#undef SCREEN_WIDTH
+#undef SCREEN_HEIGHT
 
 void TessTest::Run( void )
 {

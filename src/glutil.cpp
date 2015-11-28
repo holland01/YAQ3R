@@ -2,6 +2,7 @@
 #include "q3bsp.h"
 #include "shader.h"
 #include "aabb.h"
+#include <algorithm>
 
 static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions = 
 {
@@ -505,13 +506,13 @@ void Program::LoadAttribLayout( void ) const
 		GL_CHECK( glDisableVertexAttribArray( i ) );
 	}
 
-	for ( const auto& attrib: attribs )
+    for ( const auto& attrib: attribs )
 	{
 		if ( attrib.second != -1 )
 		{
 			if ( !disableAttribs.empty() )
 			{
-				auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
+                auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
 
 				if ( it != disableAttribs.end() )
 				{

@@ -310,7 +310,7 @@ INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& 
 	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
 	GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ], 
-		GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+        GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
 
 #ifdef _DEBUG_FACE_TYPES
 	GLint srcFactor, dstFactor;

@@ -4,8 +4,6 @@
 #include "tests/trenderer.h"
 #include "tests/test_tessellation.h"
 
-#pragma comment(linker, "/HEAP:100000000")
-
 // Is global
 void FlagExit( void )
 {

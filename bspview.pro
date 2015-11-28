@@ -1,33 +1,33 @@
 QT -= core gui
 
-QMAKE_CXXFLAGS += -std=c++11 -Wall -Werror
+QMAKE_CXXFLAGS += -std=c++1y -Wall -Werror
 
 
 #for stb_image.c lib
 QMAKE_CXXFLAGS += \
 -Wno-unused-but-set-variable \
--Wno-missing-field-initializers
+-Wno-missing-field-initializers \
+-Wno-sign-compare
 
 debug {
    QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-multi-line-comment
 }
 
 unix {
+    INCLUDEPATH += $$PWD
     INCLUDEPATH += /home/amsterdam/include/glm
-    LIBS += -lGL -lGLU -lGLEW -lglfw3 -lX11 -lXxf86vm -lXrandr -lpthread -lXi
+    LIBS += -L/usr/lib64 -lGL -lGLU -lGLEW -lglfw -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 }
 
 HEADERS += \
     src/common.h \
     src/vec.h \
     src/shader.h \
-    src/log.h \
     src/renderer.h \
     src/global.h \
     src/gldebug.h \
     src/tests/trenderer.h \
     src/def.h \
-    src/q3m_model.h \
     src/math_util.h \
     src/mtrand.h \
     src/input.h \
@@ -41,7 +41,10 @@ HEADERS += \
     src/tests/test_tessellation.h \
     src/deform.h \
     src/effect_shader.h \
-    src/glutil.h
+    src/glutil.h \
+    src/bsp_data.h \
+    src/render_data.h \
+    src/io.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -73,12 +76,10 @@ OTHER_FILES += \
 
 SOURCES += \
     src/shader.cpp \
-    src/log.cpp \
     src/renderer.cpp \
     src/main.cpp \
     src/gldebug.cpp \
     src/tests/trenderer.cpp \
-    src/q3m_model.cpp \
     src/math_util.cpp \
     src/mtrand.cpp \
     src/input.cpp \
@@ -91,5 +92,8 @@ SOURCES += \
     src/tests/test_tessellation.cpp \
     src/deform.cpp \
     src/effect_shader.cpp \
-    src/glutil.cpp
+    src/glutil.cpp \
+    src/bsp_data.cpp \
+    src/render_data.cpp \
+    src/io.cpp
 
