@@ -135,24 +135,6 @@ struct bspBrushSide_t
 	int texture;
 };
 
-/*
-struct bspVertex_t
-{
-    glm::vec3 position;
-    glm::vec2 texCoords[ 2 ]; // 0 => surface, 1 => lightmap
-    glm::vec3 normal;
-
-    glm::u8vec4 color;
-
-	bspVertex_t( void );
-	bspVertex_t( const glm::vec3& pos, const glm::vec3& norm, const glm::vec2& surfTexCoords, const glm::vec2& lightmapTexCoords, const glm::u8vec4& colors );
-	bspVertex_t( const bspVertex_t& v );
-	bspVertex_t& operator=( bspVertex_t v );
-};
-*/
-
-
-
 struct bspTexture_t
 {
     char    name[ 64 ];

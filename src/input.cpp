@@ -151,5 +151,9 @@ void InputCamera::Update( void )
 
     viewData.inverseOrient = glm::inverse( viewData.orientation );
 
+    //viewData.inverseOrient = quake * viewData.inverseOrient;
+
     viewData.transform = viewData.orientation * glm::translate( glm::mat4( 1.0f ), -viewData.origin );
+
+    viewData.orientation = viewData.orientation;
 }

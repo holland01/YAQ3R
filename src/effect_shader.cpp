@@ -727,7 +727,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
 		if ( stage.tcgen == TCGEN_ENVIRONMENT )
 		{
-			fragmentSrc.push_back( "\tcolor *= vec4( texture( samplerReflect, st ).rgb, 0.2 );" );
+            // should no longer be needed
+            //fragmentSrc.push_back( "\tcolor *= vec4( texture( samplerReflect, st ).rgb, 1.0 );" );
 		}
 
 		if ( discardPredicate )
@@ -781,7 +782,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
 
 			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
-			const size_t vertInsertOffset = 4;
+            const size_t vertGlobalVarInsertOffset = 4;
 
 			// Load vertex header;
 			std::vector< std::string > vertexSrc = 
@@ -795,36 +796,31 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"void main(void) {",
 			};
 
-/*			if ( stage.tcgen == TCGEN_ENVIRONMENT )
-			{
-				vertexSrc.insert( vertexSrc.begin() + vertInsertOffset,
-				{
-					"uniform vec4 surfaceNormal;",
-					"mat4 CalcLookAt( void ) {",
-					"\tvec3 up, right;",
-					"\tfloat d = dot( vec3( surfaceNormal ), vec3( 0.0, 1.0, 0.0 ) );",
-					"\tif ( abs( d ) == 1.0 ) {",
-					"\t\tvec3 v0 = vec3( 1.0, 0.0, 0.0 );",
-					"\t\tup = cross( surfaceNormal, v0 );"
-					"\t} else {",
-					"\t\tfindUp = vec3( 0.0, 1.0, 0.0 );",
-					"\t}",
-					"\t"
-				} ); 
-			}
-			else
-			*/
-			{
-				vertexSrc.insert( vertexSrc.begin() + vertInsertOffset, 
-				{  
-					"layout( std140 ) uniform Transforms {",
-					"\tmat4 viewToClip;",
-					"\tmat4 modelToView;",
-					"};"
-				} );
+            if ( stage.tcgen == TCGEN_ENVIRONMENT )
+            {
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, "uniform vec3 surfaceNormal;" );
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_Normal;" );
+                uniforms.push_back( "surfaceNormal" );
+            }
 
-				vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
-			}
+            vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset,
+            {
+                "layout( std140 ) uniform Transforms {",
+                "\tmat4 viewToClip;",
+                "\tmat4 modelToView;",
+                "};"
+            } );
+
+            vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
+
+            if ( stage.tcgen == TCGEN_ENVIRONMENT )
+            {
+                vertexSrc.insert( vertexSrc.end(),
+                {
+                    "mat3 normalT = mat3( inverse( modelToView ) );",
+                    "frag_Normal = normalT * surfaceNormal;"
+                } );
+            }
 
 			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
 			if ( stage.rgbGen == RGBGEN_IDENTITY || stage.rgbGen == RGBGEN_IDENTITY_LIGHTING )
@@ -850,36 +846,40 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"void main(void) {"
 			};
 
-			const size_t fragUnifOffset = 4;
+            const size_t fragGlobalDeclOffset = 4;
 
 			if ( stage.tcgen == TCGEN_ENVIRONMENT )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform sampler2D samplerReflect;" );
-				uniforms.push_back( "samplerReflect" );
+                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_Normal;" );
+                fragmentSrc.push_back( "\tvec2 st = frag_Normal.xy * 0.5 + vec2( 0.5 );" );
+                // should no longer be needed
+                //fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform sampler2D samplerReflect;" );
+                //uniforms.push_back( "samplerReflect" );
 			}
-
-			fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
-
+            else
+            {
+                fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+            }
 			for ( const effect_t& op: shader.stageBuffer[ j ].effects )
 			{
 				// Modify the texture coordinate as necessary before we write to the texture
 				if ( op.name == "tcModTurb" )
 				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
+                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform float tcModTurb;" );
 					fragmentSrc.push_back( "\tst *= tcModTurb;" );
 					uniforms.push_back( "tcModTurb" );
 				}
 				else if ( op.name == "tcModScroll" )
 				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
+                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec4 tcModScroll;" );
 					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
 					fragmentSrc.push_back( "\tst = mod( st, 1.0 );" );
 					uniforms.push_back( "tcModScroll" );
 				}
 				else if ( op.name == "tcModRotate" )
 				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texRotate;" );
-					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec2 texCenter;" );
+                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 texRotate;" );
+                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec2 texCenter;" );
 					fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
 
 					uniforms.push_back( "texRotate" );
@@ -887,7 +887,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				}
 				else if ( op.name == "tcModScale" )
 				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 tcModScale;" );
+                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 tcModScale;" );
 					fragmentSrc.push_back( "\tst = tcModScale * st;" );
 					uniforms.push_back( "tcModScale" );
 				}

@@ -4,11 +4,17 @@ Feature:
 //- Gamma correction
 //- Anisotropy
 - Billboards
-- Shader parser
-	* We'll need a struct for every shader entry. Research the file format to get a better idea.
+//- Shader parser
+//	* We'll need a struct for every shader entry. Research the file format to get a better idea.
 
 - Models
 - Lightvols
+- Environment Maps:
+	- Check tr_shade_calc.c, line 888. The function you can replicate
+	in the shader. To derive, draw a simple quad and emulate 
+	the process with four vertices and an arbitrary viewing direction.
+	The interesting bit is, in the st calculation, how the YZ coordinates
+	are mapped to the st coords using the reflection direction. 
 
 - Ability to save camera position/orientation and load it later.
 

@@ -16,7 +16,6 @@ static void SwizzleCoords( glm::vec3& v )
 static void SwizzleCoords( glm::ivec3& v )
 {
     int tmp = v.y;
-
     v.y = v.z;
     v.z = -tmp;
 }
@@ -174,7 +173,7 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
         ScaleCoords( data.nodes[ i ].boxMin, scale );
 
         SwizzleCoords( data.nodes[ i ].boxMax );
-        SwizzleCoords(data. nodes[ i ].boxMin );
+        SwizzleCoords( data. nodes[ i ].boxMin );
     }
 	
     data.leaves = ( bspLeaf_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAVES ].offset );

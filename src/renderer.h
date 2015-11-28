@@ -155,6 +155,7 @@ struct lightSampler_t {
 };
 
 struct effect_t;
+struct shaderStage_t;
 
 class BSPRenderer
 {
@@ -222,9 +223,9 @@ private:
 
 	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
-	void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
+    void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const shaderStage_t* stage, const Program& program );
 
-	void				DrawSurface( const drawSurface_t& surface, const Program& program ) const;
+    void				DrawSurface( const drawSurface_t& surface, const shaderStage_t* stage, const Program& program ) const;
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
@@ -265,7 +266,7 @@ public:
     
 	void		Render( void );
 	
-	void		RenderPass( const viewParams_t& view, bool envmap );
+    void		RenderPass( const viewParams_t& view, bool envmap );
 
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
@@ -298,55 +299,6 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t
 	}
 }
 
-INLINE void BSPRenderer::DrawSurface( const drawSurface_t& surf, const Program& program ) const
-{
-	for ( int32_t i: surf.faceIndices )
-	{
-		DeformVertexes( glFaces[ i ], surf.shader );
-	}
-
-	program.LoadAttribLayout();
-
-	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
-
-	GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ], 
-        GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
-
-#ifdef _DEBUG_FACE_TYPES
-	GLint srcFactor, dstFactor;
-	GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &srcFactor ) );
-	GL_CHECK( glGetIntegerv( GL_BLEND_DST_RGB, &dstFactor ) );
-
-	GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
-
-	glPrograms.at( "debug" )->Bind();
-
-	glm::vec4 color;
-
-	if ( surf.faceType == BSP_FACE_TYPE_PATCH )
-	{
-		color = glm::vec4( 1.0f, 0.0f, 0.0f, 0.3f );
-	}
-	else if ( surf.faceType == BSP_FACE_TYPE_POLYGON )
-	{
-		color = glm::vec4( 0.0f, 1.0f, 0.0f, 0.3f );
-	}
-	else
-	{
-		color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.3f );
-	}
-
-	glPrograms.at( "debug" )->LoadVec4( "fragColor", color );
-
-	GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ], 
-		GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
-
-	glPrograms.at( "debug" )->Release();
-
-	GL_CHECK( glBlendFunc( srcFactor, dstFactor ) );
-#endif
-}
-
 INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection ) const
 {
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
@@ -355,7 +307,7 @@ INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4&
 	//glm::mat4 viewMod( view );
 	//viewMod[ 3 ].z -= 200.0f;
 
-	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
+    GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
 }
 

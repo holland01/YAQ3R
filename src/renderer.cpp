@@ -19,7 +19,7 @@ static config_t config =
 	false,
 	false,
 	false,
-	true
+    false
 };
 
 static uint64_t frameCount = 0;
@@ -678,12 +678,12 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 	GL_CHECK( glClearDepth( 1.0f ) );
-	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
+    GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
 	static auto LDrawList = [ this ]( drawPass_t& pass, drawSurfaceList_t& list ) -> void
 	{
-		DrawSurfaceList( pass, list.surfaces );
+        DrawSurfaceList( pass, list.surfaces );
 		DrawSurfaceList( pass, list.effectSurfaces );
 
 		list.surfaces.clear();
@@ -705,7 +705,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 		LDrawClear( pass );
 	};
 
-	drawPass_t pass( map, view );
+    drawPass_t pass( map, view );
 	pass.envmap = envmap;
 	pass.leaf = map->FindClosestLeaf( pass.view.origin );
 	
@@ -713,6 +713,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 	LoadTransforms( pass.view.transform, pass.view.clipTransform );
 
 	frustum->Update( pass.view, true );
+
+    pass.facesVisited.assign( pass.facesVisited.size(), 0 );
 
 	for ( int32_t i = 1; i < map->data.numModels; ++i )
 	{
@@ -748,12 +750,14 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 		}
 	}
 
-	LDrawClear( pass );
-	
-	pass.type = PASS_DRAW;
+    pass.facesVisited.assign( pass.facesVisited.size(), 0 );
 
-	LTraverseDraw( pass, true );
-	LTraverseDraw( pass, false );
+    LDrawClear( pass );
+
+    pass.type = PASS_DRAW;
+
+    LTraverseDraw( pass, false );
+    LTraverseDraw( pass, true );
 }
 
 void BSPRenderer::Update( float dt )
@@ -989,15 +993,9 @@ void BSPRenderer::ReflectFromTuple( const drawTuple_t& data, const drawPass_t& p
 {
 	if ( pass.envmap )
 	{
-		glDummyTexture.Bind( 1, "samplerReflect", program );
+        glDummyTexture.Bind( 1, "samplerReflect", program );
 		return;
 	}
-
-	/*
-	GLint width = GLint( pass.view.width * 0.5f );
-	GLint height = GLint( pass.view.height );
-	viewportStash_t viewStash( width, 0, width, height ); 
-	*/
 
 	switch ( std::get< 0 >( data ) )
 	{
@@ -1021,7 +1019,6 @@ void BSPRenderer::ReflectFromTuple( const drawTuple_t& data, const drawPass_t& p
                             pass.view.height, model.envmap->view, CameraFromView()->ViewData().clipTransform );
                         RenderPass( camera.ViewData(), true );
                     }
-                    //glDummyTexture.Bind( 1, "samplerReflect", program );
 
                     model.envmap->Release();
                     model.envmap->texture.Bind( 1, "samplerReflect", program );
@@ -1037,7 +1034,7 @@ void BSPRenderer::ReflectFromTuple( const drawTuple_t& data, const drawPass_t& p
 	}
 }
 
-void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program )
+void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const shaderStage_t* stage, const Program& program )
 {
 	switch ( std::get< 0 >( data ) )
 	{
@@ -1052,18 +1049,75 @@ void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass
 		case OBJECT_SURFACE:
 		{
 			const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
-			DrawSurface( surf, program );
-			for ( int32_t i: surf.faceIndices )
-			{
-				if ( config.drawFaceBounds )
-				{
-					DrawFaceBounds( pass.view, i );
-				}
-			}
+            DrawSurface( surf, stage, program );
+
+            if ( config.drawFaceBounds )
+            {
+                for ( int32_t i: surf.faceIndices )
+                {
+                    DrawFaceBounds( pass.view, i );
+                }
+            }
 		}
 		break;
 	}
 }
+
+void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* stage, const Program& program ) const
+{
+    for ( int32_t i: surf.faceIndices )
+    {
+        DeformVertexes( glFaces[ i ], surf.shader );
+    }
+
+    if ( stage && stage->tcgen == TCGEN_ENVIRONMENT )
+    {
+        glm::vec3 n( map->data.faces[ surf.faceIndices[ 0 ] ].normal );
+        program.LoadVec3( "surfaceNormal", n );
+    }
+
+    program.LoadAttribLayout();
+
+    GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
+
+    GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ],
+        GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+
+#ifdef _DEBUG_FACE_TYPES
+    GLint srcFactor, dstFactor;
+    GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &srcFactor ) );
+    GL_CHECK( glGetIntegerv( GL_BLEND_DST_RGB, &dstFactor ) );
+
+    GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
+
+    glPrograms.at( "debug" )->Bind();
+
+    glm::vec4 color;
+
+    if ( surf.faceType == BSP_FACE_TYPE_PATCH )
+    {
+        color = glm::vec4( 1.0f, 0.0f, 0.0f, 0.3f );
+    }
+    else if ( surf.faceType == BSP_FACE_TYPE_POLYGON )
+    {
+        color = glm::vec4( 0.0f, 1.0f, 0.0f, 0.3f );
+    }
+    else
+    {
+        color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.3f );
+    }
+
+    glPrograms.at( "debug" )->LoadVec4( "fragColor", color );
+
+    GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ],
+        GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+
+    glPrograms.at( "debug" )->Release();
+
+    GL_CHECK( glBlendFunc( srcFactor, dstFactor ) );
+#endif
+}
+
 
 static INLINE void EffectPassTexFromArray( glm::vec2& dims, 
 	int32_t index, const textureArray_t& texArray, const Program& program )
@@ -1089,22 +1143,17 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
-	for ( int32_t i = 0; i < shader->stageCount; ++i )
+    if  ( shader->cullFace )
+    {
+        GL_CHECK( glEnable( GL_CULL_FACE ) );
+        GL_CHECK( glCullFace( shader->cullFace ) );
+        GL_CHECK( glFrontFace( GL_CCW ) );
+    }
+
+    for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{	
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
 		const Program& stageProg = *( stage.program.get() );
-
-		if ( stage.tcgen == TCGEN_ENVIRONMENT )
-		{
-			ReflectFromTuple( data, pass, stageProg );
-		}
-
-		if  ( shader->cullFace )
-		{
-			GL_CHECK( glEnable( GL_CULL_FACE ) );
-			GL_CHECK( glCullFace( shader->cullFace ) );
-			GL_CHECK( glFrontFace( GL_CCW ) );
-		}
 
 		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
@@ -1135,27 +1184,13 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 				e.data.rotation2D.center[ 1 ] = 0.5f;
 			}
 
-			glEffects.at( e.name )( *( stage.program.get() ), e ); 
+            glEffects.at( e.name )( stageProg, e );
 		}	
 
 		stageProg.Bind();
-		DrawFromTuple( data, pass, stageProg );
+        DrawFromTuple( data, pass, &stage, stageProg );
 		stageProg.Release();
 	}
-	
-	/*
-	if ( envmap )
-	{
-		loadBlend_t blend( GL_ONE, GL_ZERO );
-
-		const Program& prog = *( glPrograms.at( "debug" ).get() );
-		prog.LoadVec4( "fragColor", glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f ) );
-
-		prog.Bind();	
-		DrawFromTuple( data, pass, prog );
-		prog.Release();
-	}
-	*/
 
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
@@ -1166,6 +1201,8 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
 	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
 	GL_CHECK( glBindSampler( 1, 0 ) );
+
+    GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 }
@@ -1238,7 +1275,7 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 			main.LoadVec3Array( "fragBiases", &fragBiases[ 0 ][ 0 ], 2 ); 
 				
 			main.Bind();
-			DrawSurface( surf, main );
+            DrawSurface( surf, nullptr, main );
 			main.Release();
 
 			glTextureArray->Release( 0 );
