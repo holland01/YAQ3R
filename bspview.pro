@@ -11,6 +11,7 @@ QMAKE_CXXFLAGS += \
 
 debug {
    QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-multi-line-comment
+   QMAKE_CXXFLAGS += -O0
 }
 
 unix {

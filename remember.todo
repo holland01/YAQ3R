@@ -1,129 +1,39 @@
-Feature:
-//- Lightmaps; use a separate tex sampler for that ( almost done )
-//- Textures; need to be mipmapped (priority)
-//- Gamma correction
-//- Anisotropy
-- Billboards
-//- Shader parser
-//	* We'll need a struct for every shader entry. Research the file format to get a better idea.
+11/29/2015
 
+- [Priority]:
+	It's pretty clear that some very, very important things need to be done before moving on. The code base is pretty mangled, and things aren't as organized as they should be.
+	
+	[Major Tasks]:
+
+	* This ties in with the environment maps; either way, you should redesign your draw surfaces to be matched by surfacenormal in addition to the other parameters
+	they employ; this will allow for more flexibility, the caching and performance benefits will be retained, and you'll have a better working environment map.
+	
+	* Break up the code in renderer.cpp into separately organized modules: the class is becoming disgustingly big, and there's a lot of "dead code"
+	in there which shouldn't be used.
+		- Be sure to take into account the fact that you'll need to sort the shaders according to their specified heuristic.
+
+	[Notes]:
+
+	* There's a weird bug which causes strange color flashes, when the faces are rendered separately (i.e., without the draw surfaces). My guess is
+	this is likely to do with the texture arrays (are they being unbound after the draw is made?), but I'm not sure.
+	
 - Models
+
 - Lightvols
-- Environment Maps:
-	- Check tr_shade_calc.c, line 888. The function you can replicate
-	in the shader. To derive, draw a simple quad and emulate 
-	the process with four vertices and an arbitrary viewing direction.
-	The interesting bit is, in the st calculation, how the YZ coordinates
-	are mapped to the st coords using the reflection direction. 
+
+- Environment Maps:  
+	While the drawsurfaces have neighboring/similar faces grouped together, it's very possible that there can be varying surface normals within a single drawsurface.
+	This isn't good, because the renderer doesn't currently take this into account. It's going to need to be able to support this.
+
+- Sorting shaders:
+	Shaders are depth sorted against each other. What this means, exactly, I'm not sure, but this will need some more time to figure out.
+	
+
+- Game Units: 
+	* Incorporating these into the renderer will be important: it should aid in ensuring that the scaling and spread of things like texture coordinates and
+	deformed tessellations will be properly computed. (see: http://toolz.nexuizninjaz.com/shader/shader/section2.htm#2.4.2 section 2.4.7 "measurements")
 
 - Ability to save camera position/orientation and load it later.
-
-
-Impl:
-- Shaders:
-	* The chunk of texture loading code used is good and should be saved. This is actually necessary, since effect shaders don't necessarily specify paths to all of the texture 
-    assets listed in the folders.
-	* Railgun_Arena.shader is your friend; use it as a basis to go off of before moving onto more complex layouts.
-	* Test the map with the first draft of the parser when it's done. Think about the passes; each shader "name" (i.e., entry)
-	  has a multi-tier layer of passes which begin after the globals are specified in its own entry: those are the passes to focus
-	  on and consider. This likely ties into the "isSolid" bool variable which is passed into the DrawNode(...) function 
-  
-  TODO:
-    //- Write a debug function which checks to see if a shader stage within an entry is a "stub" (an entry which wasn't parsed due to unsupported functionality);
-     // for every stage which is a stub, use the default shader to render.
-    
-    - Start mapping out current usage for the renderer; look into testing shader entries with multiple passes ( aka "stages" ). 
-      Also use glPolygonOffset to test entries which use that.
-      
-      //- Each shader stage should be its own GLSL program. 
-      //- GLSL program generation will begin after the initial parsing is finished. Remember: this doesn't need to be perfect; it just needs to get the job done.
-      
-      - Uniform blocks should exist for global entry parameters, in addition to the standard view/projection transforms.
-      
-      //- effect shader structs are stored in a std::map file. The next step is to create textures for every light stage which which references a texture file; 
-       // this texture data will be stored in the light stage itself. Sampler objects should be used. Also, be sure to review the differences between "map" and "clampmap"
-       // keywords.
-     
-     // - In BSPRenderer::DrawFace - Iterate through the shader stages for every entity (the names of which are stored in the textures lump) and use the DrawFaceVerts function for every 
-     
-     //stage. If the face is a bezier patch, be sure to cache the subdivision level before passing it to the draw function.
-     
-     - Figure out where to go now; some lightmaps aren't being loaded (properly, at least) when the shaders are used, so that would probably be a good place to start.
-     
-     //- Merge shader_impl branch into master; let shader_impl overwrite any conflicts
-     
-
-  NOTES:
-    - Eventually, all terms should default to lower case when read by the parser, to eliminate issues with case sensitivity
-
-    //- Integrate Uniform Buffer Objects for matrix transformations
-    - Look for other ways of optimizing the shaders; example, "conservative depth", for fragment discards.
-    - Also, some resources for railgun_arena are missing. See if there's a workaround somehow around this.
-    - Let Railgun_Arena.shader be the main focus for now.
-    - TODO list ( in order of importance ):
-      - lightmaps; test Railgun_Arena with other BSP renderer and compare to make sure this is working right;
-        
-        - Need to look into cull settings - this may alleviate some issues
-      
-      - vertexDeformation
-        test out triangle; make sure that works properly by comparing the results with a different renderer. Then, refactor the ungodly mess which is Q3BspMap::Read.
-        Separate that into different functions; something like:
-          - Read data.
-          - Gen textures
-          - Gen models (BSP Patches, cached vertex data for polygon/mesh types, etc.)
-
-          Don't be afraid to be more cut and dry, though.
-
-        - it's important to verify whether or not the deformations should take place after a given triangle is subdivided, 
-          *while* a given triangle is being subdivided (i.e., each subdivided triangle has the deform applied regardless of whether or not it's added
-          to the subdivision list), or only after all subdivisions have been performed (i.e., performing a batch deform).
-
-      - rgbGen ( need to test with other shaders )
-      - tcMod 
-      - depthWrite
-
-Perf:
-//- Use the same vao for the bezier patches that is being used for the rest of the data
-//- Pre-construct face indices so they don't need to be re-computed every pass
-//- Cache uniform locations
-//- Minimize state changes as much as possible
-
-( Cause of this hit seems to be mostly due to bezier patch LOD and running in debug mode. Lel...)
-/*
-- Testing on map "aty3dm1v2.bsp" produces some areas where there is a pretty bad drop in performance. The following is a list
-  of things which are known to not be causes of the performance hit:
-  - Rendering bezier patches
-  - using alpha blending
-  Things which have appeared to provide improvements:
-  - Capping bezier tessellation level at 10
-  - Improving the speed of the frustum collision loop by 8x
-  - Moving glActiveTexture and the glUniform1i call used to set the sampler parameter out of the render loop.  
-  */
-
-
-Bug:
-- Some bezier patches have a "reflection"-like artifact appearing on them. These look like Egyptian pots, and I think this may be due to the filtering...and maybe even wrap modes, 
-though I'm not sure. Regardless, all of these specifics should be handled via the shader parser, as it will likely have the best configuration for a particular material.
-
-- Plant meshes are just flat polygons that will render as black in areas where there is no image data for the texel. 
-  As a result, any zero length fragment coming from a plant mesh in the fragment shader should just be discarded. Shader may provide info for this. 
-  UPDATE: yes, it does. surfaceparms "trans" and "nonsolid" seem to be what we want.
-
-- Artifacts which appear in various forms of the scenery (for example, the columns in "aty3dm1v2"). They look like little tiny sketches (or lines, rather) which appear 
-  on the models in varying places as the camera moves around. If effect shader support doesn't fix this, this will need to be revisited. 
-  UPDATE: this is likely what is known as "Z-Fighting". polygonoffset in the shaders should ammend any issues with this. 
-
-
-Refactor:
-  - Move all OpenGL utility functions into glutil.h (e.g., shader compilation and linking functions); ideally, any function which has an OpenGL call should be thrown in there.
-//- All GL state management should be handled in ONE place.
-//- Have a global interface function which can be called for setting the function source and call strings in GL_CHECK macro, as opposed to just directly setting globals...
-//- Make all variables camelcase in gldebug.cpp
-//- For consistency, remove std::vector usage from Q3BspMap class (as well as mapModel_t). Replace with buffers.
-- Precompile headers...
-//- Ditch malloc usage in Q3BspMap::Read(...) and call new instead. Also consider allocating one gigantic buffer, and then simply using pointers to point to the actual data in their respective memory formats.
-
-
 
 
 

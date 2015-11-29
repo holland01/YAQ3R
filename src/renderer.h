@@ -213,11 +213,7 @@ private:
 
 	void				LoadPassParams( drawPass_t& pass, int32_t face, passDrawType_t defaultPass ) const;
 
-	void				DrawMapPass( drawPass_t& parms );
-	
-	void				BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 );
-	
-	void				EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 );
+    void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& )> callback );
 
 	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList );
 
@@ -237,7 +233,7 @@ private:
 
     void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts( const drawPass_t& pass, const Program& program ) const;
+    void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const;
 
 	void				DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) const;
 

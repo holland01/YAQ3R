@@ -156,8 +156,9 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
         MLOG_ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, data.header->version );
     }
 
-	// Read map data, swizzle coordinates from Z UP axis to Y UP axis in a right-handed system.
-	// Scale anything as necessary (or desired)
+    //
+    // Read map data
+    //
     data.entities.infoString = ( char* )( data.buffer + data.header->directories[ BSP_LUMP_ENTITIES ].offset );
     data.entityStringLen = data.header->directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
 
@@ -166,79 +167,21 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
     data.nodes = ( bspNode_t* )( data.buffer + data.header->directories[ BSP_LUMP_NODES ].offset );
 	data.numNodes = data.header->directories[ BSP_LUMP_NODES ].length / sizeof( bspNode_t );
-
-    for ( int i = 0; i < data.numNodes; ++i )
-    {
-        ScaleCoords( data.nodes[ i ].boxMax, scale );
-        ScaleCoords( data.nodes[ i ].boxMin, scale );
-
-        SwizzleCoords( data.nodes[ i ].boxMax );
-        SwizzleCoords( data. nodes[ i ].boxMin );
-    }
 	
     data.leaves = ( bspLeaf_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAVES ].offset );
 	data.numLeaves = data.header->directories[ BSP_LUMP_LEAVES ].length / sizeof( bspLeaf_t );
 
-    for ( int i = 0; i < data.numLeaves; ++i )
-    {
-        ScaleCoords( data.leaves[ i ].boxMax, scale );
-        ScaleCoords( data.leaves[ i ].boxMin, scale );
-
-        SwizzleCoords( data.leaves[ i ].boxMax );
-        SwizzleCoords( data.leaves[ i ].boxMin );
-    }
-
 	data.planes = ( bspPlane_t* )( data.buffer + data.header->directories[ BSP_LUMP_PLANES ].offset );
     data.numPlanes = data.header->directories[ BSP_LUMP_PLANES ].length / sizeof( bspPlane_t );
-
-    for ( int i = 0; i < data.numPlanes; ++i )
-    {
-		data.planes[ i ].distance *= scale;
-        ScaleCoords( data.planes[ i ].normal, ( float ) scale );
-        SwizzleCoords( data.planes[ i ].normal );
-    }
 	
     data.vertexes = ( bspVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_VERTEXES ].offset );
 	data.numVertexes = data.header->directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
 	
-	for ( int i = 0; i < data.numVertexes; ++i )
-	{
-		ScaleCoords( data.vertexes[ i ].texCoords[ 0 ], ( float ) scale );
-        ScaleCoords( data.vertexes[ i ].texCoords[ 1 ], ( float ) scale );
-        ScaleCoords( data.vertexes[ i ].normal, ( float ) scale );
-        ScaleCoords( data.vertexes[ i ].position, ( float ) scale );
-
-        SwizzleCoords( data.vertexes[ i ].position );
-        SwizzleCoords( data.vertexes[ i ].normal );
-	}
-	
     data.models = ( bspModel_t* )( data.buffer + data.header->directories[ BSP_LUMP_MODELS ].offset );
 	data.numModels = data.header->directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
 
-    for ( int i = 0; i < data.numModels; ++i )
-    {
-        ScaleCoords( data.models[ i ].boxMax, ( float ) scale );
-        ScaleCoords( data.models[ i ].boxMin, ( float ) scale );
-
-        SwizzleCoords( data.models[ i ].boxMax );
-        SwizzleCoords( data.models[ i ].boxMin );
-    }
-
     data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
 	data.numFaces = data.header->directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
-
-    for ( int i = 0; i < data.numFaces; ++i )
-    {
-        ScaleCoords( data.faces[ i ].normal, ( float ) scale );
-        ScaleCoords( data.faces[ i ].lightmapOrigin, ( float ) scale );
-        ScaleCoords( data.faces[ i ].lightmapStVecs[ 0 ], ( float ) scale );
-        ScaleCoords( data.faces[ i ].lightmapStVecs[ 1 ], ( float ) scale );
-
-        SwizzleCoords( data.faces[ i ].normal );
-        SwizzleCoords( data.faces[ i ].lightmapOrigin );
-        SwizzleCoords( data.faces[ i ].lightmapStVecs[ 0 ] );
-        SwizzleCoords( data.faces[ i ].lightmapStVecs[ 1 ] );
-    }
 
     data.leafFaces = ( bspLeafFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_FACES ].offset );
 	data.numLeafFaces = data.header->directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
@@ -266,7 +209,7 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
     data.visdata = ( bspVisdata_t* )( data.buffer + data.header->directories[ BSP_LUMP_VISDATA ].offset );
 	data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;
-    
+
 	// Reading the last portion of the data from the file directly has appeared to produce better results.
 	// Not quite sure why, admittedly. See: http://stackoverflow.com/questions/27653440/mapping-data-to-an-offset-of-a-byte-buffer-allocated-for-an-entire-file-versus-r 
 	// for the full story
@@ -277,6 +220,90 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	fread( data.visdata->bitsets, size, 1, file );
 
 	fclose( file );
+
+    //
+    // swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis. Also scale anything as necessary (or desired)
+    //
+
+    for ( int i = 0; i < data.numNodes; ++i )
+    {
+        ScaleCoords( data.nodes[ i ].boxMax, scale );
+        ScaleCoords( data.nodes[ i ].boxMin, scale );
+
+        SwizzleCoords( data.nodes[ i ].boxMax );
+        SwizzleCoords( data. nodes[ i ].boxMin );
+    }
+
+    for ( int i = 0; i < data.numLeaves; ++i )
+    {
+        ScaleCoords( data.leaves[ i ].boxMax, scale );
+        ScaleCoords( data.leaves[ i ].boxMin, scale );
+
+        SwizzleCoords( data.leaves[ i ].boxMax );
+        SwizzleCoords( data.leaves[ i ].boxMin );
+    }
+
+    for ( int i = 0; i < data.numPlanes; ++i )
+    {
+        data.planes[ i ].distance *= scale;
+        ScaleCoords( data.planes[ i ].normal, ( float ) scale );
+        SwizzleCoords( data.planes[ i ].normal );
+    }
+
+    for ( int i = 0; i < data.numVertexes; ++i )
+    {
+        ScaleCoords( data.vertexes[ i ].texCoords[ 0 ], ( float )scale );
+        ScaleCoords( data.vertexes[ i ].texCoords[ 1 ], ( float )scale );
+        ScaleCoords( data.vertexes[ i ].normal, ( float ) scale );
+        ScaleCoords( data.vertexes[ i ].position, ( float ) scale );
+
+        SwizzleCoords( data.vertexes[ i ].position );
+        SwizzleCoords( data.vertexes[ i ].normal );
+    }
+
+    for ( int i = 0; i < data.numModels; ++i )
+    {
+        ScaleCoords( data.models[ i ].boxMax, ( float ) scale );
+        ScaleCoords( data.models[ i ].boxMin, ( float ) scale );
+
+        SwizzleCoords( data.models[ i ].boxMax );
+        SwizzleCoords( data.models[ i ].boxMin );
+    }
+
+    auto LOffsetLMCoords = []( bspFace_t& face, bspVertex_t& v )
+    {
+        v.texCoords[ 1 ].x = ( v.texCoords[ 1 ].x * face.lightmapSize[ 0 ] ) + face.lightmapStartCorner[ 0 ];
+        v.texCoords[ 1 ].y = ( v.texCoords[ 1 ].y * face.lightmapSize[ 1 ] ) + face.lightmapStartCorner[ 1 ];
+    };
+
+    for ( int i = 0; i < data.numFaces; ++i )
+    {
+        bspFace_t& face = data.faces[ i ];
+
+        ScaleCoords( face.normal, ( float ) scale );
+        ScaleCoords( face.lightmapOrigin, ( float ) scale );
+        ScaleCoords( face.lightmapStVecs[ 0 ], ( float ) scale );
+        ScaleCoords( face.lightmapStVecs[ 1 ], ( float ) scale );
+
+        /*
+        for ( uint32_t v = 0; v < face.numMeshVertexes; ++v )
+        {
+            bspVertex_t& vertex = data.vertexes[ face.vertexOffset + data.meshVertexes[ face.meshVertexOffset + v ].offset ];
+            LOffsetLMCoords( face, vertex );
+        }
+
+        for ( uint32_t v = 0; v < face.numVertexes; ++v )
+        {
+            bspVertex_t& vertex = data.vertexes[ face.vertexOffset + v ];
+            LOffsetLMCoords( face, vertex );
+        }
+        */
+
+        SwizzleCoords( face.normal );
+        SwizzleCoords( face.lightmapOrigin );
+        SwizzleCoords( face.lightmapStVecs[ 0 ] );
+        SwizzleCoords( face.lightmapStVecs[ 1 ] );
+    }
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

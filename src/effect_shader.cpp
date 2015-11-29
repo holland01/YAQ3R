@@ -10,9 +10,9 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
 static float ReadFloat( const char*& buffer );
 static const char* ReadToken( char* out, const char* buffer );
 
-using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t* outInfo, char* token ) >;
+using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) >;
 
-#define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, char* token ) -> bool
+#define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) -> bool
 
 #define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 
@@ -189,9 +189,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"clampmap",
 		STAGE_READ_FUNC
 		{
-			buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
-			outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_CLAMPMAP;
-			outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+            buffer = ReadToken( theStage.texturePath, buffer );
+            theStage.mapCmd = MAP_CMD_CLAMPMAP;
+            theStage.mapType = MAP_TYPE_IMAGE;
 			return true;
 		}
 	},
@@ -199,22 +199,22 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"map",
 		STAGE_READ_FUNC
 		{
-			buffer = ReadToken( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, buffer );
-			outInfo->stageBuffer[ outInfo->stageCount ].mapCmd = MAP_CMD_MAP;
+            buffer = ReadToken( theStage.texturePath, buffer );
+            theStage.mapCmd = MAP_CMD_MAP;
 
 			// TODO: add support for this
-			if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$whiteimage" ) == 0 )
+            if ( strcmp( theStage.texturePath, "$whiteimage" ) == 0 )
 			{
 				return true;
 			}
 
-			if ( strcmp( outInfo->stageBuffer[ outInfo->stageCount ].texturePath, "$lightmap" ) == 0 )
+            if ( strcmp( theStage.texturePath, "$lightmap" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_LIGHT_MAP;
+                theStage.mapType = MAP_TYPE_LIGHT_MAP;
 			}
 			else
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].mapType = MAP_TYPE_IMAGE;
+                theStage.mapType = MAP_TYPE_IMAGE;
 			}
 
 			return true;
@@ -229,18 +229,18 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "add" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_ONE;
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE;
+                theStage.rgbSrc = GL_ONE;
+                theStage.rgbDest = GL_ONE;
 			}
 			else if ( strcmp( token, "blend" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_SRC_ALPHA;
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ONE_MINUS_SRC_ALPHA;
+                theStage.rgbSrc = GL_SRC_ALPHA;
+                theStage.rgbDest = GL_ONE_MINUS_SRC_ALPHA;
 			}
 			else if ( strcmp( token, "filter" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = GL_DST_COLOR;
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = GL_ZERO;
+                theStage.rgbSrc = GL_DST_COLOR;
+                theStage.rgbDest = GL_ZERO;
 			}
 			else
 			{
@@ -250,7 +250,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					return false;
 				}
 
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc = ( GLenum ) blendFactor;
+                theStage.rgbSrc = ( GLenum ) blendFactor;
 						
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
@@ -258,11 +258,11 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				blendFactor = GL_EnumFromStr( token );
 				if ( blendFactor == -1 )
 				{
-					outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = outInfo->stageBuffer[ outInfo->stageCount ].rgbSrc;
+                    theStage.rgbDest = theStage.rgbSrc;
 					return false;
 				}
 
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbDest = ( GLenum ) blendFactor;
+                theStage.rgbDest = ( GLenum ) blendFactor;
 			}
 
 			return true;
@@ -277,15 +277,15 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				
 			if ( strcmp( token, "ge128" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GEQUAL_128;
+                theStage.alphaFunc = ALPHA_FUNC_GEQUAL_128;
 			}
 			else if ( strcmp( token, "gT0" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_GTHAN_0;
+                theStage.alphaFunc = ALPHA_FUNC_GTHAN_0;
 			}
 			else if ( strcmp( token, "lt128" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].alphaFunc = ALPHA_FUNC_LTHAN_128;
+                theStage.alphaFunc = ALPHA_FUNC_LTHAN_128;
 			}
 			else
 			{
@@ -304,15 +304,15 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					
 			if ( strcmp( token, "vertex" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_VERTEX;
+                theStage.rgbGen = RGBGEN_VERTEX;
 			}
 			else if ( strcmp( token, "identity" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY;
+                theStage.rgbGen = RGBGEN_IDENTITY;
 			}
 			else if ( strcmp( token, "identitylighting" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].rgbGen = RGBGEN_IDENTITY_LIGHTING;
+                theStage.rgbGen = RGBGEN_IDENTITY_LIGHTING;
 			}
 			else
 			{
@@ -331,16 +331,16 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "environment" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_ENVIRONMENT;
+                theStage.tcgen = TCGEN_ENVIRONMENT;
 				outInfo->surfaceParms |= SURFPARM_ENVMAP;
 			}
 			else if ( strcmp( token, "base" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_BASE;
+                theStage.tcgen = TCGEN_BASE;
 			}
 			else if ( strcmp( token, "lightmap" ) == 0 )
 			{
-				outInfo->stageBuffer[ outInfo->stageCount ].tcgen = TCGEN_LIGHTMAP;
+                theStage.tcgen = TCGEN_LIGHTMAP;
 			}
 			else
 			{
@@ -366,12 +366,22 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				float s = ReadFloat( buffer );
 				float t = ReadFloat( buffer );
 
+                /*
+                NOTE: a scale may imply a division by the value, versus a multiplication. I'm not sure...
+
+                if ( s != 0.0f )
+                    s = 1.0f / s;
+
+                if ( t != 0.0f )
+                    t = 1.0f / t;
+                */
+
 				op.data.scale2D[ 0 ][ 0 ] = s;
 				op.data.scale2D[ 0 ][ 1 ] = s;
 				op.data.scale2D[ 1 ][ 0 ] = t;
 				op.data.scale2D[ 1 ][ 1 ] = t;
 
-				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+                theStage.effects.push_back( op );
 			}
 			else if ( strcmp( token, "turb" ) == 0 )
 			{
@@ -384,7 +394,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				op.data.wave.phase = ReadFloat( buffer );
 				op.data.wave.frequency = ReadFloat( buffer );
 
-				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+                theStage.effects.push_back( op );
 			}
 			else if ( strcmp( token, "scroll" ) == 0 )
 			{
@@ -395,7 +405,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				op.data.xyzw[ 0 ] = ReadFloat( buffer );
 				op.data.xyzw[ 1 ] = ReadFloat( buffer );
 
-				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+                theStage.effects.push_back( op );
 			}
 			else if ( strcmp( token, "rotate" ) == 0 )
 			{
@@ -410,7 +420,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
 				op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
 
-				outInfo->stageBuffer[ outInfo->stageCount ].effects.push_back( op );
+                theStage.effects.push_back( op );
 			}
 			else
 			{
@@ -434,7 +444,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				return false;
 			}
 
-			outInfo->stageBuffer[ outInfo->stageCount ].depthFunc = ( GLenum ) depthf;
+            theStage.depthFunc = ( GLenum ) depthf;
 			return true;
 		}
 	},
@@ -442,7 +452,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"depthwrite",
 		STAGE_READ_FUNC
 		{
-			outInfo->stageBuffer[ outInfo->stageCount ].depthPass = true;
+            theStage.depthPass = true;
 			return true;
 		}
 	}
@@ -457,7 +467,7 @@ shaderStage_t::shaderStage_t( void )
 	  alphaSrc( GL_ONE ),
 	  alphaDest( GL_ZERO ),
 	  depthFunc( GL_LEQUAL ),
-	  rgbGen( RGBGEN_IDENTITY ),
+      rgbGen( RGBGEN_UNDEFINED ),
 	  alphaFunc( ALPHA_FUNC_UNDEFINED ),
 	  mapCmd( MAP_CMD_UNDEFINED ),
 	  mapType( MAP_TYPE_UNDEFINED ),
@@ -612,6 +622,8 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, int le
 	
 	char first = 0; 
 
+    shaderStage_t stage;
+
 	while ( true )
 	{
 		memset( token, 0, sizeof( token ) );
@@ -642,6 +654,9 @@ evaluate_tok:
 			// We're not in the main level, but we're leaving this stage, so decrease our level by 1 and add on to our stageCount
 			else
 			{
+                //outInfo->stageBuffer.insert( outInfo->stageBuffer.begin(), stage );
+                outInfo->stageBuffer.push_back( stage );
+                stage = shaderStage_t();
 				outInfo->stageCount += 1;
 				level -= 1;
 				continue;	
@@ -661,7 +676,7 @@ evaluate_tok:
 			continue;
 		}
 
-		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, token ) )
+        if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
 		{
 			goto evaluate_tok;
 		}
@@ -767,6 +782,23 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		return shaderSrc.str();
 	};
 
+    auto LAddCalcEnvmap = []( std::vector< std::string >& destGLSL,
+                               const std::string& vertexID,
+                               const std::string& normalID,
+                               const std::string& eyeID )
+    {
+
+        destGLSL.insert( destGLSL.end(),
+        {
+            "\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
+            "\tvec3 R = normalize( 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye );",
+            "\tvec2 displace = ( R.xz ) * 0.5;",
+            "\tvec2 st = vec2( 0.5 );",
+            "\tst.s -= displace.x;",
+            "\tst.t += displace.y;"
+        } );
+    };
+
 	// Convert each effect stage to its GLSL equivalent
 	for ( auto& entry: effectShaders )
 	{
@@ -799,7 +831,14 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
             if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
                 vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, "uniform vec3 surfaceNormal;" );
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_Normal;" );
+
+                /*
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_WorldNormal;" );
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_WorldVertex;" );
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_ViewOrigin;" );
+                */
+
+
                 uniforms.push_back( "surfaceNormal" );
             }
 
@@ -815,15 +854,26 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
             if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
+                /*
                 vertexSrc.insert( vertexSrc.end(),
                 {
-                    "mat3 normalT = mat3( inverse( modelToView ) );",
-                    "frag_Normal = normalT * surfaceNormal;"
+                    "mat4 T = mat4( 1.0 );",
+                    "frag_WorldNormal = mat3( T ) * surfaceNormal;",
+                    "frag_WorldVertex = vec3( T * vec4( position, 1.0 ) ); // position is already calculated relative to the world, so there is no need to apply an offset",
+                    "frag_ViewOrigin = -vec3( modelToView[ 3 ] );"
                 } );
+
+                */
+
+                LAddCalcEnvmap( vertexSrc, "position", "surfaceNormal", "vec3( -modelToView[ 3 ] )" );
+                vertexSrc.push_back( "frag_Tex = st;" );
+            }
+            else
+            {
+                vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
             }
 
-			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
-			if ( stage.rgbGen == RGBGEN_IDENTITY || stage.rgbGen == RGBGEN_IDENTITY_LIGHTING )
+            if ( stage.rgbGen == RGBGEN_IDENTITY || stage.rgbGen == RGBGEN_IDENTITY_LIGHTING )
 			{ 
 				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 			}
@@ -848,15 +898,20 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
             const size_t fragGlobalDeclOffset = 4;
 
-			if ( stage.tcgen == TCGEN_ENVIRONMENT )
-			{
-                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_Normal;" );
-                fragmentSrc.push_back( "\tvec2 st = frag_Normal.xy * 0.5 + vec2( 0.5 );" );
-                // should no longer be needed
-                //fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform sampler2D samplerReflect;" );
-                //uniforms.push_back( "samplerReflect" );
+            /*if ( stage.tcgen == TCGEN_ENVIRONMENT )
+            {
+
+                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_WorldNormal;" );
+                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_WorldVertex;" );
+                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_ViewOrigin;" );
+
+                LAddCalcEnvmap( fragmentSrc, "frag_WorldVertex", "frag_WorldNormal", "frag_ViewOrigin" );
+
+                //fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+
 			}
             else
+            */
             {
                 fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
             }

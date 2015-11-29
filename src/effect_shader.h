@@ -61,7 +61,7 @@ enum vertexDeformFunc_t
 
 enum rgbGen_t
 {
-	//RGBGEN_UNDEFINED = 0,
+    RGBGEN_UNDEFINED = 0xFF,
 	RGBGEN_VERTEX = 0,
 	RGBGEN_ONE_MINUS_VERTEX,
 	RGBGEN_IDENTITY_LIGHTING,
@@ -212,7 +212,7 @@ struct shaderInfo_t
 
 	char				name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
 	
-	std::array< shaderStage_t, SHADER_MAX_NUM_STAGES > stageBuffer;
+    std::vector< shaderStage_t > stageBuffer;
 
 	shaderInfo_t( void );
 };

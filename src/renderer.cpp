@@ -16,7 +16,7 @@ struct config_t
 
 static config_t config = 
 {
-	false,
+    true,
 	false,
 	false,
     false
@@ -569,7 +569,7 @@ FAIL_WARN:
 			int width = ( face->size[ 0 ] - 1 ) / 2;
 			int height = ( face->size[ 1 ] - 1 ) / 2;
 
-			GLenum bufferUsage = ( shader && shader->deform )? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
+            //GLenum bufferUsage = ( shader && shader->deform )? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
 			// ( k, j ) maps to a ( row, col ) index scheme referring to the beginning of a patch 
 			int n, m;
@@ -756,8 +756,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 
     pass.type = PASS_DRAW;
 
-    LTraverseDraw( pass, false );
     LTraverseDraw( pass, true );
+    LTraverseDraw( pass, false );
 }
 
 void BSPRenderer::Update( float dt )
@@ -805,10 +805,11 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 			
 			LoadPassParams( pass, faceIndex, PASS_DRAW_MAIN );
 			
-			bool add = ( !pass.isSolid && IsTransFace( pass.faceIndex, pass.shader ) ) 
-				    || ( pass.isSolid && !IsTransFace( pass.faceIndex, pass.shader ) );
+            bool transparent = IsTransFace( pass.faceIndex, pass.shader );
 
-			if ( add )
+            bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
+
+            if ( add )
 			{
 				// Only draw individual faces if they're patches, since meshes and polygons
 				// can be easily grouped together from the original vbo
@@ -865,97 +866,52 @@ static std::array< glm::vec3, 6 > faceNormals =
 	glm::vec3( 0.0f, 0.0f, -1.0f ),
 };
 
-void BSPRenderer::DrawMapPass( drawPass_t& pass )
+void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& mainRef ) > callback )
 {
-	int best = 0;
-	if ( config.drawIrradiance )
-	{
-		float cosAng = 0.0f;
-		const glm::vec3 drawFaceNormal( pass.face->normal );
-		for ( int32_t i = 0; i < 6; ++i )
-		{
-			float c = glm::clamp( glm::dot( faceNormals[ i ], drawFaceNormal ), 0.0f, 1.0f );
-			if ( c > cosAng )
-			{
-				best = i;
-				cosAng = c;
-			}
-		}
+    const Program& main = *( glPrograms.at( "main" ) );
 
-		glPrograms[ "irradiate" ]->LoadAttribLayout();
+    glTextureArray->Bind( 0, "fragSampler", main );
+    glLightmapArray->Bind( 1, "fragLightmapSampler", main );
+    GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
 
-		lightSampler.Bind( 1 );
+    GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
+    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
-		GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-			GL_TEXTURE_CUBE_MAP_POSITIVE_X + best, lightSampler.attachments[ 1 ].handle, 0 ) );
+    std::array< glm::vec3, 2 > fragBiases;
 
-		GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-		lightSampler.attachments[ 0 ].Bind();
-		GL_CHECK( glBindSampler( 0, lightSampler.attachments[ 0 ].sampler ) );
+    if ( textureIndex >= 0 )
+    {
+        fragBiases[ 0 ] = glTextureArray->biases[ textureIndex ];
+        GL_CHECK( glBindSampler( 0, glTextureArray->samplers[ textureIndex ] ) );
+    }
+    else
+    {
+        fragBiases[ 0 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
+        GL_CHECK( glBindSampler( 0, glDummyTexture.sampler ) );
+    }
 
-		const Program& irradiate = *( glPrograms[ "irradiate" ].get() );
+    if ( lightmapIndex >= 0 )
+    {
+        fragBiases[ 1 ] = glLightmapArray->biases[ lightmapIndex ];
+    }
+    else
+    {
+        fragBiases[ 1 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
+    }
 
-		irradiate.LoadInt( "fragRadianceSampler", 0 );
-		irradiate.LoadVec2( "fragMin", lightSampler.boundsMin );
-		irradiate.LoadVec2( "fragMax", lightSampler.boundsMax );
-		irradiate.LoadVec4( "fragTargetPlane", lightSampler.targetPlane );
-		irradiate.Bind();
+    main.LoadVec3Array( "fragBiases", &fragBiases[ 0 ][ 0 ], 2 );
 
-		DrawFaceVerts( pass, irradiate );
+    main.Bind();
 
-		irradiate.Release();
+    callback( main );
 
-		lightSampler.Release();
+    main.Release();
 
-		lightSampler.attachments[ 0 ].Release();
-		GL_CHECK( glBindSampler( 0, 0 ) );
-	}
-	
-	const texture_t* tex0 = nullptr;
-	const texture_t* tex1 = nullptr;
+    glTextureArray->Release( 0 );
+    GL_CHECK( glBindSampler( 0, 0 ) );
 
-	BeginMapPass( pass, &tex0, &tex1 );
-	DrawFaceVerts( pass, *( glPrograms[ "main" ].get() ) );
-	EndMapPass( pass, tex0, tex1 );
-}
-
-void BSPRenderer::BeginMapPass( drawPass_t& pass, const texture_t** tex0, const texture_t** tex1 )
-{
-	if ( glTextures[ pass.face->texture ].handle )
-	{
-	 	*tex0 = &glTextures[ pass.face->texture ]; 
-	}
-	else
-	{
-		*tex0 = &glDummyTexture;
-	}
-
-	if ( pass.face->lightmapIndex >= 0 )
-	{
-		*tex1 = &glLightmaps[ pass.face->lightmapIndex ];
-	}
-	else
-	{
-		*tex1 = &glDummyTexture;
-	}
-
-	const Program& main = *( glPrograms[ "main" ].get() );
-
-	( *tex0 )->Bind( 0, "fragTexSampler", main );
-	( *tex1 )->Bind( 1, "fragLightmapSampler", main ); 
-
-	main.LoadAttribLayout();
-	main.Bind();
-}
-
-void BSPRenderer::EndMapPass( drawPass_t& pass, const texture_t* tex0, const texture_t* tex1 )
-{
-	glPrograms[ "main" ]->Release();
-	
-	tex0->Release( 0 );
-	tex1->Release( 1 );
-	
-	//lightSampler.attachments[ 1 ].Release( 1 );
+    glLightmapArray->Release( 1 );
+    GL_CHECK( glBindSampler( 1, 0 ) );
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
@@ -989,62 +945,19 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
-void BSPRenderer::ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program )
-{
-	if ( pass.envmap )
-	{
-        glDummyTexture.Bind( 1, "samplerReflect", program );
-		return;
-	}
-
-	switch ( std::get< 0 >( data ) )
-	{
-	case OBJECT_SURFACE:
-        {
-            const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
-
-            for ( int32_t face: surf.faceIndices )
-            {
-                mapModel_t& model = glFaces[ face ];
-                if ( model.envmap
-                    && model.bounds.CalcIntersection( glm::normalize( pass.view.forward ), pass.view.origin ) )
-                {
-                    //glm::mat4 view( glm::lookAt( model.bounds.maxPoint,
-                        //model.bounds.maxPoint + pass.view.origin, CalcUpVector( pass.view.origin, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ) );
-
-                    model.envmap->Bind();
-
-                    {
-                        InputCamera camera( pass.view.width,
-                            pass.view.height, model.envmap->view, CameraFromView()->ViewData().clipTransform );
-                        RenderPass( camera.ViewData(), true );
-                    }
-
-                    model.envmap->Release();
-                    model.envmap->texture.Bind( 1, "samplerReflect", program );
-
-                    break;
-                }
-            }
-        }
-
-		break;
-    default: // compiler
-            break;
-	}
-}
-
 void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const shaderStage_t* stage, const Program& program )
 {
 	switch ( std::get< 0 >( data ) )
 	{
 		case OBJECT_FACE:
-			DrawFaceVerts( pass, program );
-			if ( config.drawFaceBounds )
+            DrawFaceVerts( pass, stage, program );
+
+            if ( config.drawFaceBounds )
 			{
 				DrawFaceBounds( pass.view, pass.faceIndex );
 			}
-			break;
+
+            break;
 
 		case OBJECT_SURFACE:
 		{
@@ -1212,17 +1125,23 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
-	drawTuple_t data = std::make_tuple( OBJECT_FACE, 
-		( const void* ) pass.face, pass.shader, pass.face->texture, pass.face->lightmapIndex );
-
 	switch ( pass.drawType )
 	{
 		case PASS_DRAW_EFFECT:
+        {
+            drawTuple_t data = std::make_tuple( OBJECT_FACE,
+                ( const void* ) pass.face, pass.shader, pass.face->texture, pass.face->lightmapIndex );
 			DrawEffectPass( pass, data );
-			break;
+        }
+            break;
 	
 		case PASS_DRAW_MAIN:
-			DrawMapPass( pass );
+
+            DrawMapPass( pass.face->texture, pass.face->lightmapIndex, [ &pass, this ]( const Program& main )
+            {
+                DrawFaceVerts( pass, nullptr, main );
+            });
+
 			break;
 	}
 
@@ -1231,8 +1150,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 
 void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list )
 {	
-	const Program& main = *( glPrograms.at( "main" ).get() );
-
 	for ( const drawSurface_t& surf: list )
 	{
 		if ( surf.shader )
@@ -1243,54 +1160,23 @@ void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< dr
 		}
 		else
 		{
-			glTextureArray->Bind( 0, "fragSampler", main );
-			glLightmapArray->Bind( 1, "fragLightmapSampler", main );
-			GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
-
-			GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
-			GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-
-			std::array< glm::vec3, 2 > fragBiases;
-
-			if ( surf.textureIndex >= 0 )
-			{
-				fragBiases[ 0 ] = glTextureArray->biases[ surf.textureIndex ];
-				GL_CHECK( glBindSampler( 0, glTextureArray->samplers[ surf.textureIndex ] ) ); 
-			}
-			else
-			{
-				fragBiases[ 0 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
-				GL_CHECK( glBindSampler( 0, glDummyTexture.sampler ) );
-			} 
-
-			if ( surf.lightmapIndex >= 0 )
-			{
-				fragBiases[ 1 ] = glLightmapArray->biases[ surf.lightmapIndex ];
-			}
-			else
-			{
-				fragBiases[ 1 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
-			} 
-
-			main.LoadVec3Array( "fragBiases", &fragBiases[ 0 ][ 0 ], 2 ); 
-				
-			main.Bind();
-            DrawSurface( surf, nullptr, main );
-			main.Release();
-
-			glTextureArray->Release( 0 );
-			GL_CHECK( glBindSampler( 0, 0 ) );
-
-			glLightmapArray->Release( 1 );
-			GL_CHECK( glBindSampler( 1, 0 ) );
+            DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
+            {
+                DrawSurface( surf, nullptr, main );
+            });
 		}
 	}
 
 	glTextureArray->Release( 0 );
 }
 
-void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const Program& program ) const
+void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const
 {
+    if ( stage && stage->tcgen == TCGEN_ENVIRONMENT )
+    {
+        program.LoadVec3( "surfaceNormal", pass.face->normal );
+    }
+
 	const mapModel_t& m = glFaces[ pass.faceIndex ];
 
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
