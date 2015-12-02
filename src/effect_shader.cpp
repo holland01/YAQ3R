@@ -83,7 +83,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			switch ( outInfo->deformCmd )
 			{
 			case VERTEXDEFORM_CMD_WAVE:
-				outInfo->deformParms.spread = ReadFloat( buffer ); 
+                outInfo->deformParms.data.wave.spread = ReadFloat( buffer );
 			
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
@@ -109,23 +109,23 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
 				}
 
-				outInfo->deformParms.base = ReadFloat( buffer );
-				outInfo->deformParms.amplitude = ReadFloat( buffer );
+                outInfo->deformParms.data.wave.base = ReadFloat( buffer );
+                outInfo->deformParms.data.wave.amplitude = ReadFloat( buffer );
 				
 				// Normal command has no phase translation
 				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
 				{
-					outInfo->deformParms.phase = ReadFloat( buffer );
+                    outInfo->deformParms.data.wave.phase = ReadFloat( buffer );
 				}
 
-				outInfo->deformParms.frequency = ReadFloat( buffer );
+                outInfo->deformParms.data.wave.frequency = ReadFloat( buffer );
 
-				outInfo->deform = true;
-				break;
+                outInfo->deform = true;
+                break;
 
 			default:
 				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes", "Unsupported vertex deform found!" );
-				outInfo->deform = false;
+                outInfo->deform = false;
 				return false;
 				break;
 			}
@@ -165,7 +165,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"nopicmip",
 		STAGE_READ_FUNC
 		{
-			outInfo->loadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+            outInfo->localLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
 			return true;
 		}
 	},
@@ -189,7 +189,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"clampmap",
 		STAGE_READ_FUNC
 		{
-            buffer = ReadToken( theStage.texturePath, buffer );
+            buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
             theStage.mapCmd = MAP_CMD_CLAMPMAP;
             theStage.mapType = MAP_TYPE_IMAGE;
 			return true;
@@ -199,16 +199,16 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"map",
 		STAGE_READ_FUNC
 		{
-            buffer = ReadToken( theStage.texturePath, buffer );
+            buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
             theStage.mapCmd = MAP_CMD_MAP;
 
 			// TODO: add support for this
-            if ( strcmp( theStage.texturePath, "$whiteimage" ) == 0 )
+            if ( strcmp( &theStage.texturePath[ 0 ], "$whiteimage" ) == 0 )
 			{
 				return true;
 			}
 
-            if ( strcmp( theStage.texturePath, "$lightmap" ) == 0 )
+            if ( strcmp( &theStage.texturePath[ 0 ], "$lightmap" ) == 0 )
 			{
                 theStage.mapType = MAP_TYPE_LIGHT_MAP;
 			}
@@ -229,18 +229,18 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "add" ) == 0 )
 			{
-                theStage.rgbSrc = GL_ONE;
-                theStage.rgbDest = GL_ONE;
+                theStage.blendSrc = GL_ONE;
+                theStage.blendDest = GL_ONE;
 			}
 			else if ( strcmp( token, "blend" ) == 0 )
 			{
-                theStage.rgbSrc = GL_SRC_ALPHA;
-                theStage.rgbDest = GL_ONE_MINUS_SRC_ALPHA;
+                theStage.blendSrc = GL_SRC_ALPHA;
+                theStage.blendDest = GL_ONE_MINUS_SRC_ALPHA;
 			}
 			else if ( strcmp( token, "filter" ) == 0 )
 			{
-                theStage.rgbSrc = GL_DST_COLOR;
-                theStage.rgbDest = GL_ZERO;
+                theStage.blendSrc = GL_DST_COLOR;
+                theStage.blendDest = GL_ZERO;
 			}
 			else
 			{
@@ -250,7 +250,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					return false;
 				}
 
-                theStage.rgbSrc = ( GLenum ) blendFactor;
+                theStage.blendSrc = ( GLenum ) blendFactor;
 						
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
@@ -258,11 +258,11 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				blendFactor = GL_EnumFromStr( token );
 				if ( blendFactor == -1 )
 				{
-                    theStage.rgbDest = theStage.rgbSrc;
+                    theStage.blendDest = theStage.blendSrc;
 					return false;
 				}
 
-                theStage.rgbDest = ( GLenum ) blendFactor;
+                theStage.blendDest = ( GLenum ) blendFactor;
 			}
 
 			return true;
@@ -458,39 +458,6 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 	}
 };
 
-shaderStage_t::shaderStage_t( void )
-    : depthPass( false ),
-      textureIndex( -1 ),
-      tcgen( TCGEN_BASE ),
-	  rgbSrc( GL_ONE ),
-	  rgbDest( GL_ZERO ),
-	  alphaSrc( GL_ONE ),
-	  alphaDest( GL_ZERO ),
-	  depthFunc( GL_LEQUAL ),
-      rgbGen( RGBGEN_UNDEFINED ),
-	  alphaFunc( ALPHA_FUNC_UNDEFINED ),
-	  mapCmd( MAP_CMD_UNDEFINED ),
-	  mapType( MAP_TYPE_UNDEFINED ),
-	  alphaGen( 0.0f ),
-	  program( nullptr )
-{
-	memset( texturePath, 0, sizeof( texturePath ) );
-}
-
-shaderInfo_t::shaderInfo_t( void )
-	:	deform( false ),
-		deformCmd( VERTEXDEFORM_CMD_UNDEFINED ),
-		deformFn( VERTEXDEFORM_FUNC_UNDEFINED ),
-		cullFace( GL_FALSE ),
-		surfaceParms( 0 ),
-		loadFlags( 0 ),
-        tessSize( 0.0f ),
-		stageCount( 0 ),
-        surfaceLight( 0.0f )
-{
-	memset( name, 0, sizeof( name ) );
-}
-
 enum tokType_t
 {
 	TOKTYPE_VALID = 0,
@@ -666,7 +633,7 @@ evaluate_tok:
 		// No invalid tokens ( e.g., spaces, indents, comments, etc. ); so, this must be a header
 		if ( level == 0 )
 		{
-			strcpy( outInfo->name, token );
+            strcpy( &outInfo->name[ 0 ], token );
 			continue;
 		}
 
@@ -692,28 +659,23 @@ evaluate_tok:
 
 static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::string& filepath )
 {
-	FILE* file = fopen( filepath.c_str(), "rb" );
-	MLOG_ASSERT( file, "Could not open file \'%s\'", filepath.c_str() );
+    std::vector< uint8_t > fileBuffer;
+    if ( !File_GetBuf( fileBuffer, filepath ) )
+    {
+        MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
+        return;
+    }
 
-	fseek( file, 0, SEEK_END );
-	size_t charlen = ftell( file );
-	char* fileBuffer = new char[ charlen + 1 ]();
-	fileBuffer[ charlen ] = '\0';
-	fseek( file, 0, SEEK_SET );
-	fread( fileBuffer, 1, charlen, file );
-	fclose( file );
-
-	const char* pChar = fileBuffer;
-	const char* end = fileBuffer + charlen;
+    const char* pChar = ( const char* ) &fileBuffer[ 0 ];
 
 	while ( *pChar )
 	{	
 		shaderInfo_t entry;
 
-		entry.loadFlags = loadFlags;
+        entry.localLoadFlags = loadFlags;
 		pChar = ParseEntry( &entry, pChar, 0 );
 
-		entries.insert( shaderMapEntry_t( entry.name, entry ) );
+        entries.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
 	}
 
 	gLineCount = 0;
@@ -725,10 +687,11 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	FILE* f = fopen( "log/shader_gen.txt", "w" );
 
 	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, 
-		const shaderStage_t& stage, bool doGammaCorrect, const char* discardPredicate ) 
+        const shaderStage_t& stage, const char* discardPredicate )
 	{
 		const std::string sampleTextureExpr( "texture( sampler0, vec3( st * bias.xy, bias.z ) )" );
 
+        // Some shader entries will incorporate specific alpha values
 		if ( stage.alphaGen != 0.0f )
 		{
 			fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
@@ -740,12 +703,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
 		}
 
-		if ( stage.tcgen == TCGEN_ENVIRONMENT )
-		{
-            // should no longer be needed
-            //fragmentSrc.push_back( "\tcolor *= vec4( texture( samplerReflect, st ).rgb, 1.0 );" );
-		}
-
+        // Is used occasionally, for example in situations like a bad alpha value.
 		if ( discardPredicate )
 		{
 			fragmentSrc.push_back( "\tif ( " + std::string( discardPredicate ) + " )" );
@@ -754,27 +712,24 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			fragmentSrc.push_back( "\t}" );
 		}
 
-		if ( doGammaCorrect )
-		{
-			fragmentSrc.insert( fragmentSrc.end(), 
-			{
-				"\tcolor.r = pow( color.r, gamma );",
-				"\tcolor.g = pow( color.g, gamma );",
-				"\tcolor.b = pow( color.b, gamma );"
-			} );
-		}
+        // Gamma correction
+        fragmentSrc.insert( fragmentSrc.end(),
+        {
+            "\tcolor.r = pow( color.r, gamma );",
+            "\tcolor.g = pow( color.g, gamma );",
+            "\tcolor.b = pow( color.b, gamma );"
+        } );
+
 		
 		fragmentSrc.push_back( "\tfragment = color;" );
 	};
 
-	auto LJoinLines = []( shaderStage_t& stage, std::vector< std::string >& lines, std::vector< std::string >& attribs ) -> std::string
+    auto LJoinLines = []( std::vector< std::string >& lines, std::vector< std::string >& attribs ) -> std::string
 	{
 		std::stringstream shaderSrc;
 
 		for ( std::string& line: lines )
-		{
 			shaderSrc << line << '\n';
-		}
 
 		// Append the end bracket for the main function
 		shaderSrc << '}';
@@ -782,6 +737,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 		return shaderSrc.str();
 	};
 
+    // Quick subroutine enabling the calculation of environment map;
+    // uses a simple form of displacement mapping to achieve desired results.
     auto LAddCalcEnvmap = []( std::vector< std::string >& destGLSL,
                                const std::string& vertexID,
                                const std::string& normalID,
@@ -803,7 +760,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	for ( auto& entry: effectShaders )
 	{
 		shaderInfo_t& shader = entry.second;
-		fprintf( f, "------------------------------------------\n%s\n", shader.name );
+        fprintf( f, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
 
 		for ( int j = 0; j < shader.stageCount; ++j )
 		{	
@@ -960,21 +917,21 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			switch ( stage.alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-				LWriteTexture( fragmentSrc, stage, true, NULL );
+                LWriteTexture( fragmentSrc, stage, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-				LWriteTexture( fragmentSrc, stage, true, "color.a < 0.5" );
+                LWriteTexture( fragmentSrc, stage, "color.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-				LWriteTexture( fragmentSrc, stage, true, "color.a == 0" );
+                LWriteTexture( fragmentSrc, stage, "color.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-				LWriteTexture( fragmentSrc, stage, true, "color.a >= 0.5" );
+                LWriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
 				break;
 			}
 
-			const std::string& vertexString = LJoinLines( stage, vertexSrc, attribs );
-			const std::string& fragmentString = LJoinLines( stage, fragmentSrc, attribs );
+            const std::string& vertexString = LJoinLines( vertexSrc, attribs );
+            const std::string& fragmentString = LJoinLines( fragmentSrc, attribs );
 
 			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 			
@@ -997,19 +954,19 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< texture_t >& tex
 		texture_t texture;
 
 		texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP? GL_CLAMP_TO_EDGE : GL_REPEAT;
-		texture.mipmap = !!( info.loadFlags & Q3LOAD_TEXTURE_MIPMAP );
+        texture.mipmap = !!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
-		texFileRoot.append( stage.texturePath );
+        texFileRoot.append( std::string( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) ) );
 
-		if ( !texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
+        if ( !texture.LoadFromFile( texFileRoot.c_str(), info.localLoadFlags ) )
 		{
 			std::string ext;
 			size_t index = File_GetExt( ext, texFileRoot );
 			if ( index != std::string::npos && ext == "tga" )
 			{
 				texFileRoot.replace( index, 4, ".jpg" );
-				if ( !texture.LoadFromFile( texFileRoot.c_str(), info.loadFlags ) )
+                if ( !texture.LoadFromFile( texFileRoot.c_str(), info.localLoadFlags ) )
 				{
 					MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
 					texture.SetBufferSize( 64, 64, 4, 0 );
@@ -1025,56 +982,21 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< texture_t >& tex
 	}
 }
 
-namespace {
-    using ftw_function_t = std::function< int( const char*, const struct stat*, int ) >;
-
-    std::shared_ptr< ftw_function_t > gLinuxCallback( nullptr );
-
-    extern "C" int invoke( const char* path, const struct stat* sb, int typeFlag )
-    {
-        if ( gLinuxCallback )
-            return ( *gLinuxCallback )( path, sb, typeFlag );
-
-        return 1;
-    }
-}
-
-glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
+glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
 
-#ifdef _WIN32
-	// Find shader files
-	WIN32_FIND_DATAA findFileData;
-	HANDLE file;
-
-	file = FindFirstFileA( ( shaderRootDir + "*.shader" ).c_str(), &findFileData ); 
-	int success = file != INVALID_HANDLE_VALUE;
-
-	while ( success )
-	{
-		ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
-		success = FindNextFileA( file, &findFileData );
-	}	
-#else
-    if ( !gLinuxCallback )
+    File_IterateDirTree( shaderRootDir, [ & ]( const fileStat_t& f ) -> bool
     {
-        gLinuxCallback = std::make_shared< ftw_function_t >( [ & ]( const char* fpath, const struct stat* sb, int typeFlag ) -> int
-        {
-            std::string ext;
-            std::string sPath( fpath );
-            File_GetExt( ext, sPath );
+        std::string ext;
+        File_GetExt( ext, f.filepath );
 
-            if ( ext == "shader" )
-                ParseShader( effectShaders, loadFlags, sPath );
+        if ( ext == "shader" )
+            ParseShader( effectShaders, loadFlags, f.filepath );
 
-            return 0;
-        } );
-    }
-
-    ftw( shaderRootDir.c_str(), invoke, 3 );
-#endif
+        return true;
+    } );
 
     GenShaderPrograms( effectShaders );
 

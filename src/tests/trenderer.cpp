@@ -45,10 +45,6 @@ void TRenderer::Load( void )
     renderer->Prep();
 	renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;
-	renderer->Sample();
-
-	lightSamplerPos = 
-		( renderer->map->data.models[ 0 ].boxMin + renderer->map->data.models[ 0 ].boxMax ) * 0.5f;
 }
 
 void TRenderer::OnKeyPress( int key, int scancode, int action, int mods )

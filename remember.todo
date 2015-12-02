@@ -10,7 +10,16 @@
 	
 	* Break up the code in renderer.cpp into separately organized modules: the class is becoming disgustingly big, and there's a lot of "dead code"
 	in there which shouldn't be used.
-		- Be sure to take into account the fact that you'll need to sort the shaders according to their specified heuristic.
+		- Be sure to take into account the fact that you'll need to sort 
+		the shaders according to their specified heuristic.
+		- You'll also need to support WebGL, which means getting rid of some things like texture arrays and UBOs.
+		In order to achieve this, you'll be better off replacing them optimizations which have been proven
+		(e.g., texture atlas). All uniforms for a shader parameter can be stored in something which is local
+		in a separate rendering mechanism as well; this way, whenever a program is bound, it can load the values
+		automatically (like the modelView matrix, etc). Emulated behavior isn't awesome, but it's better than
+		nothing.
+
+	* After you're finished refactoring, you'll want to work on the Emscripten port.
 
 	[Notes]:
 

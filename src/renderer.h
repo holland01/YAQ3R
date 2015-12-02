@@ -65,7 +65,7 @@ struct mapModel_t
 
 	// used if face type == patch  
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
-	std::vector< bspVertex_t >			vertices;
+    std::vector< bspVertex_t >			patchVertices;
 	std::vector< int32_t* >				rowIndices;
 	std::vector< int32_t  >				trisPerRow;
 	
@@ -164,9 +164,8 @@ private:
 
 	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
-	// last two integers are textureIndex and lightmapIndex, respectively
-	// the const void* is either a const drawSurface_t* or const bspFace_t*, depending on objectType_t
-	using drawTuple_t	= std::tuple< objectType_t, const void*, const shaderInfo_t*, int, int32_t >; 
+    // last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
+    using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
 
 	std::unique_ptr< textureArray_t > glTextureArray, 
 									  glLightmapArray,
@@ -191,7 +190,10 @@ private:
     GLuint              vao, vbo;
 
     float               deltaTime;
+
 	double				frameTime;
+
+    using               drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
 
 	void				LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
 							std::vector< texture_t >& textures, int32_t width, int32_t height );
@@ -219,15 +221,13 @@ private:
 
 	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
-    void				DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const shaderStage_t* stage, const Program& program );
-
     void				DrawSurface( const drawSurface_t& surface, const shaderStage_t* stage, const Program& program ) const;
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
-	void				DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list );
+    void				DrawSurfaceList( const std::vector< drawSurface_t >& list );
 
-	void				DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data );
+    void				DrawEffectPass( const drawTuple_t& data, drawCall_t callback );
 
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 

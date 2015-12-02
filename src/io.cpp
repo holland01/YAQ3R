@@ -200,6 +200,63 @@ void KillSysLog( void )
     glDebugKill();
 }
 
+#ifdef __linux__
+namespace {
+    using ftwFunction_t = std::function< int( const char*, const struct stat*, int ) >;
+
+    ftwFunction_t gLinuxCallback;
+
+    extern "C" int invoke( const char* path, const struct stat* sb, int typeFlag )
+    {
+        //if ( gLinuxCallback )
+            return gLinuxCallback( path, sb, typeFlag );
+
+        return 1;
+    }
+}
+#endif // __linux__
+
+void File_IterateDirTree( const std::string& directory, fileSystemTraversalFn_t callback )
+{
+#ifdef _WIN32
+#error "you need to do for the Win32 API what you did for the Linux API"
+    // Find shader files
+    WIN32_FIND_DATAA findFileData;
+    HANDLE file;
+
+    file = FindFirstFileA( ( shaderRootDir + "*.shader" ).c_str(), &findFileData );
+    int success = file != INVALID_HANDLE_VALUE;
+
+    while ( success )
+    {
+        ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
+        success = FindNextFileA( file, &findFileData );
+    }
+#elif defined( __linux__ )
+
+    fileStat_t fs;
+    gLinuxCallback = [ & ]( const char* fpath, const struct stat* sb, int typeFlag ) -> int
+    {
+        UNUSED( sb );
+        UNUSED( typeFlag );
+
+        fs.filepath = std::string( fpath );
+
+        // Keep going?
+        if ( callback( fs ) )
+            return 0;
+
+        // Nope, we're finished
+        return 1;
+    };
+
+
+    ftw( directory.c_str(), invoke, 3 );
+#else
+#error "Unsupported OS"
+#endif
+}
+
 bool File_GetPixels( const std::string& filepath, 
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight )
 {

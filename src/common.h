@@ -60,6 +60,10 @@ static void __nop( void )
 {}
 #endif
 
+#define INDEX_UNDEFINED -1
+#define KEY_UNDEFINED "undefined"
+#define KEY_DEFINED "active"
+
 #define _DEBUG_USE_GL_GET_ERR
 #define AABB_MAX_Z_LESS_THAN_MIN_Z // quake 3 maps use this standard in their bounds computations/storage
 
@@ -71,6 +75,8 @@ static void __nop( void )
 
 #define Mem_Alloc( s ) ( malloc( ( s ) ) )
 #define Mem_Free( ptr ) ( free( ( ptr ) ) )
+
+#define UNUSED( p ) ( void )p
 
 typedef unsigned int uint;
 typedef unsigned char byte;

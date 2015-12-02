@@ -7,11 +7,7 @@
 
 struct mapData_t;
 
-#define SHADER_MAX_NUM_STAGES 8 
-#define SHADER_MAX_TOKEN_CHAR_LENGTH 64
-
 // Info can be obtained from http://toolz.nexuizninjaz.com/shader/
-
 enum surfaceParms_t
 {
 	SURFPARM_ALPHA_SHADOW		= 1 << 1,
@@ -39,7 +35,7 @@ enum surfaceParms_t
 	SURFPARM_TRANS				= 1 << 23,
 	SURFPARM_WATER				= 1 << 24,
 	SURFPARM_ENVMAP				= 1 << 25 // additional; not part of the standarad AFAIK
-};	
+};
 
 enum vertexDeformCmd_t
 {
@@ -147,9 +143,16 @@ struct effect_t
 	} data;
 	 
 	effect_t( void )
-		: data()
+        : name( KEY_UNDEFINED ),
+          data()
 	{
 	}
+
+    effect_t( const std::string& name_ )
+        : name( name_ ),
+          data()
+    {
+    }
 
 	effect_t( const effect_t& e )
 		: name( e.name ),
@@ -161,68 +164,72 @@ struct effect_t
 	{}
 };
 
+#define SHADER_MAX_TOKEN_CHAR_LENGTH 64
+
 struct shaderStage_t
 {
-	bool						depthPass;
+    bool						depthPass = false;
 	
-	int32_t						textureIndex;
+    int32_t						textureIndex = INDEX_UNDEFINED;
 
-	texCoordGen_t				tcgen;
+    texCoordGen_t				tcgen = TCGEN_BASE; // Normal texcoord generation (if textureIndex is defined)
 
-	GLenum						rgbSrc;
-	GLenum						rgbDest;
+    GLenum						blendSrc = GL_ONE; // src is incoming pixels
 
-	GLenum						alphaSrc;
-	GLenum						alphaDest;
+    GLenum						blendDest = GL_ZERO; // destination is the pixels which are already within the framebuffer from the previous frame
 
-	GLenum						depthFunc; // Default is LEQUAL
+    GLenum						depthFunc = GL_LEQUAL; // Default is LEQUAL
 
-	rgbGen_t					rgbGen;
-	alphaFunc_t					alphaFunc;
-	mapCmd_t					mapCmd;
-	mapType_t					mapType;
+    rgbGen_t					rgbGen = RGBGEN_UNDEFINED; // how colors are generated - identity refers to a white image
 
-	std::vector< effect_t >		effects;
+    alphaFunc_t					alphaFunc = ALPHA_FUNC_UNDEFINED;  // alpha constraint for the fragment; if fragment fails the condition, we discard it
 
-	float						alphaGen; // if 0, use 1.0
+    mapCmd_t					mapCmd = MAP_CMD_UNDEFINED; // either "map" or "clampmap"; clampmap refers to a non-repeating texture
 
-	char						texturePath[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+    mapType_t					mapType = MAP_TYPE_UNDEFINED; // can be an image, a lightmap, or a whiteimage
 
-	std::shared_ptr< Program >	program;
+    std::vector< effect_t >		effects;  // dynamic effects, designed to be passed to the shader
 
-	shaderStage_t( void );
+    float						alphaGen = 0.0f; // if 0, assume an alpha value of 1
+
+    std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath = {{ 0 }}; // path to the texture image, if we have one
+
+    std::shared_ptr< Program >	program; // handle to our generated program
 };
 
 struct shaderInfo_t
 {
-	bool				deform: 1;
+    bool				deform = false; // implies an animated vertex deformation
 	
-	vertexDeformCmd_t	deformCmd;
-	vertexDeformFunc_t	deformFn;
-	wave_t				deformParms;	
+    vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED; // choose wave, normal, or bulge
 
-	GLenum				cullFace;
-	uint32_t			surfaceParms;
-	uint32_t			loadFlags; // we pass a list of global flags we'd like to see applied everywhere, however some shaders may contradict this
+    vertexDeformFunc_t	deformFn = VERTEXDEFORM_FUNC_UNDEFINED; // arbitrary sinusoidal functions which are applied by the command (e.g., sawtooth, triangle, a normal sine wave, etc)
 
-	float				tessSize; // 0 if none
-	int					stageCount;
+    effect_t            deformParms; // arbitrary parameters for our deform
 
-	float				surfaceLight; // 0 if no light
+    GLenum				cullFace = GL_FALSE;
 
-	char				name[ SHADER_MAX_TOKEN_CHAR_LENGTH ];
+    uint32_t			surfaceParms = 0; // global surface parameters
+
+    uint32_t			localLoadFlags = 0; // we pass a list of global flags we'd like to see applied everywhere, however some shaders may contradict this
+
+    float				tessSize = 0.0f; // 0 if none
+
+    int					stageCount = 0; // the amount of draw passes for this shader entry
+
+    float				surfaceLight = 0.0f; // 0 if no light
+
+    std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > name = {{ 0 }};
 	
     std::vector< shaderStage_t > stageBuffer;
-
-	shaderInfo_t( void );
 };
 
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-glm::ivec2 Shader_LoadAll( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
+glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
 
-static INLINE bool Shader_StageHasIdentityColor( const shaderStage_t& s )
+static INLINE bool S_StageHasIdentityColor( const shaderStage_t& s )
 {
 	return s.rgbGen == RGBGEN_IDENTITY || s.rgbGen == RGBGEN_IDENTITY_LIGHTING;
 }

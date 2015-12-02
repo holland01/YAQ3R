@@ -20,6 +20,18 @@ void InitLogBSPData( Q3BspMap* map );
 
 void KillSysLog( void );
 
+struct fileStat_t
+{
+    std::string filepath;
+
+    uint32_t flags; // TODO: is directory, hidden, etc etc.
+};
+
+// A return value of true means "keep iterating, unless we're at the end"; false will terminate the iteration
+using fileSystemTraversalFn_t = std::function< bool( const fileStat_t& stat ) >;
+
+void File_IterateDirTree( const std::string& directory, fileSystemTraversalFn_t callback );
+
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__
 #	define _LINE_NUM_ __LINE__

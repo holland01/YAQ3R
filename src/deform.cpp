@@ -128,9 +128,11 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 			case VERTEXDEFORM_FUNC_TRIANGLE:
 				{
 					// Distribute the "weight" of the tessellation spread across the length of the vertex position vector, where the vertex's tail is located at the world origin.
-					float offset = shader->deformParms.phase + ( position.x + position.y + position.z ) * shader->deformParms.spread;
+                    float offset =
+                            shader->deformParms.data.wave.phase + ( position.x + position.y + position.z ) * shader->deformParms.data.wave.spread;
 
-					return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.base, offset, glfwGetTime(), shader->deformParms.frequency, shader->deformParms.amplitude );
+                    return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.data.wave.base, offset, glfwGetTime(), shader->deformParms.data.wave.frequency,
+                        shader->deformParms.data.wave.amplitude );
 				}
 				break;
             default:
@@ -154,20 +156,16 @@ void GenPatch( mapModel_t* model, const shaderInfo_t* shader, int controlPointSt
 	if ( !model->subdivLevel )
 	{
 		if ( shader && shader->tessSize != 0.0f )
-		{
 			model->subdivLevel = ( int )shader->tessSize;
-		}
 		else
-		{
 			model->subdivLevel = 10;
-		}
 	}
 
-	const size_t vertexStart = model->vertices.size();
+    const size_t vertexStart = model->patchVertices.size();
 
 	// Vertex count along a side is 1 + number of edges
     const int L1 = model->subdivLevel + 1;
-	model->vertices.resize( vertexStart + L1 * L1 );
+    model->patchVertices.resize( vertexStart + L1 * L1 );
 
 	// Compute the first spline along the edge
 	for ( int i = 0; i <= model->subdivLevel; ++i )
@@ -175,7 +173,7 @@ void GenPatch( mapModel_t* model, const shaderInfo_t* shader, int controlPointSt
 		float a = ( float )i / ( float )model->subdivLevel;
 		float b = 1.0f - a;
 
-		model->vertices[ vertexStart + i ] = 
+        model->patchVertices[ vertexStart + i ] =
 			*( model->controlPoints[ controlPointStart + 0 ] ) * ( b * b ) +
 		 	*( model->controlPoints[ controlPointStart + 3 ] ) * ( 2 * b * a ) + 
 			*( model->controlPoints[ controlPointStart + 6 ] ) * ( a * a );
@@ -205,7 +203,7 @@ void GenPatch( mapModel_t* model, const shaderInfo_t* shader, int controlPointSt
 			float a1 = ( float )j / ( float )model->subdivLevel;
 			float b1 = 1.0f - a1;
 
-			bspVertex_t& v = model->vertices[ vertexStart + i * L1 + j ];
+            bspVertex_t& v = model->patchVertices[ vertexStart + i * L1 + j ];
 
 			v = tmp[ 0 ] * ( b1 * b1 ) + 
 				tmp[ 1 ] * ( 2 * b1 * a1 ) +

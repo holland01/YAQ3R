@@ -16,7 +16,7 @@ struct config_t
 
 static config_t config = 
 {
-    true,
+    false,
 	false,
 	false,
     false
@@ -40,7 +40,7 @@ static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vect
 	}
 
 	if ( surf.shader 
-	&& ( !!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) || surf.shader->deform ) )
+    && ( !!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) || surf.shader->deform ) )
 	{
 		surf.faceIndices.push_back( faceIndex );
 	}
@@ -76,7 +76,7 @@ void mapModel_t::CalcBounds( int32_t faceType, const mapData_t& data )
 
 	if ( faceType == BSP_FACE_TYPE_PATCH )
 	{
-		for ( const bspVertex_t& v: vertices )
+        for ( const bspVertex_t& v: patchVertices )
 		{
 			LCheck( v.position ); 
 		}
@@ -453,7 +453,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
 	std::vector< texture_t > shaderTextures;
-	glm::ivec2 shaderMegaDims = Shader_LoadAll( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
+    glm::ivec2 shaderMegaDims = S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
 	
 	glDummyTexture.SetBufferSize( 64, 64, 4, 255 );
 	LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
@@ -469,12 +469,13 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
 	glTextures.resize( map->data.numTextures );
-	static const char* validImgExt[] = 
+    static const char* validImgExt[] =
 	{
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
 
 	GLsizei width = 0, height = 0;
+
 
 	for ( int32_t t = 0; t < map->data.numTextures; t++ )
 	{
@@ -519,6 +520,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 	}
+
 	LoadTextureArray( glTextureArray, glTextures, width, height );
 
 	// And then generate all of the lightmaps
@@ -543,8 +545,6 @@ FAIL_WARN:
 
 	glFaces.resize( map->data.numFaces );
 	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
-
-	int indexOffset = ( int32_t ) vertexData.size();
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
@@ -603,21 +603,10 @@ FAIL_WARN:
 				mod->rowIndices[ row ] = &mod->indices[ row * 2 * L1 ];  
 			}
 
-			vertexData.insert( vertexData.end(), mod->vertices.begin(), mod->vertices.end() );
+            vertexData.insert( vertexData.end(), mod->patchVertices.begin(), mod->patchVertices.end() );
 		}
 
 		mod->CalcBounds( face->type, map->data );
-
-		if ( shader && !!( shader->surfaceParms & SURFPARM_ENVMAP ) )
-		{
-			glm::vec3 center( mod->bounds.maxPoint );
-			glm::vec3 target( mod->bounds.maxPoint + face->normal );
-
-			glm::mat4 view( glm::lookAt( center, target, CalcUpVector( face->normal, glm::vec3( 0.0f, 1.0f, 0.0f ) ) ) ); 
-
-			mod->envmap.reset( new rtt_t( GL_COLOR_ATTACHMENT0, view ) );
-			mod->envmap->Attach( 1920, 1024, 4 );
-		}
 	}
 
 	//---------------------------------------------------------------------
@@ -633,39 +622,11 @@ FAIL_WARN:
 	// and "model" should both have the same attribute location values though
 
 	glPrograms[ "main" ]->LoadAttribLayout();
-
-	const bspNode_t* root = &map->data.nodes[ 0 ];
-
-	glm::vec3 min( map->data.nodes[ 0 ].boxMin );
-	glm::vec3 max( map->data.nodes[ 0 ].boxMax );
-
-	lightSampler.Elevate( min, max );
-}
-
-void BSPRenderer::Sample( void )
-{
-	// Clear the color buffer to black so that any sample hits outside of the sky 
-	// won't contribute anything in the irradiance generation shader. Depth range
-	// is changed so that only the sky is seen
-
-	curView = VIEW_LIGHT_SAMPLE;
-	lightSampler.Bind( 0 );
-
-	Render();
-	lightSampler.Release();
-
-	curView = VIEW_MAIN;
 }
 
 void BSPRenderer::Render( void )
 { 
 	double startTime = glfwGetTime();
-
-	/*
-	GLint width = GLint( CameraFromView()->ViewData().width * 0.5f );
-	GLint height = GLint( CameraFromView()->ViewData().height );
-	viewportStash_t viewStash( 0, 0, width, height ); 
-	*/
 
 	RenderPass( CameraFromView()->ViewData(), false );
 	
@@ -681,19 +642,19 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
     GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
-	static auto LDrawList = [ this ]( drawPass_t& pass, drawSurfaceList_t& list ) -> void
+    static auto LDrawList = [ this ]( drawSurfaceList_t& list ) -> void
 	{
-        DrawSurfaceList( pass, list.surfaces );
-		DrawSurfaceList( pass, list.effectSurfaces );
+        DrawSurfaceList( list.surfaces );
+        DrawSurfaceList( list.effectSurfaces );
 
 		list.surfaces.clear();
 		list.effectSurfaces.clear();
 	};
 
-	static auto LDrawClear = [ this ]( drawPass_t& pass ) -> void
+    static auto LDrawClear = [ this ]( drawPass_t& pass ) -> void
 	{
-		LDrawList( pass, pass.polymeshes );
-		LDrawList( pass, pass.patches );
+        LDrawList( pass.polymeshes );
+        LDrawList( pass.patches );
 		pass.shader = nullptr;
 		pass.face = nullptr;
 	};
@@ -945,37 +906,6 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
-void BSPRenderer::DrawFromTuple( const drawTuple_t& data, const drawPass_t& pass, const shaderStage_t* stage, const Program& program )
-{
-	switch ( std::get< 0 >( data ) )
-	{
-		case OBJECT_FACE:
-            DrawFaceVerts( pass, stage, program );
-
-            if ( config.drawFaceBounds )
-			{
-				DrawFaceBounds( pass.view, pass.faceIndex );
-			}
-
-            break;
-
-		case OBJECT_SURFACE:
-		{
-			const drawSurface_t& surf = *( ( const drawSurface_t* ) std::get< 1 >( data ) );
-            DrawSurface( surf, stage, program );
-
-            if ( config.drawFaceBounds )
-            {
-                for ( int32_t i: surf.faceIndices )
-                {
-                    DrawFaceBounds( pass.view, i );
-                }
-            }
-		}
-		break;
-	}
-}
-
 void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* stage, const Program& program ) const
 {
     for ( int32_t i: surf.faceIndices )
@@ -995,40 +925,6 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
 
     GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ],
         GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
-
-#ifdef _DEBUG_FACE_TYPES
-    GLint srcFactor, dstFactor;
-    GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &srcFactor ) );
-    GL_CHECK( glGetIntegerv( GL_BLEND_DST_RGB, &dstFactor ) );
-
-    GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
-
-    glPrograms.at( "debug" )->Bind();
-
-    glm::vec4 color;
-
-    if ( surf.faceType == BSP_FACE_TYPE_PATCH )
-    {
-        color = glm::vec4( 1.0f, 0.0f, 0.0f, 0.3f );
-    }
-    else if ( surf.faceType == BSP_FACE_TYPE_POLYGON )
-    {
-        color = glm::vec4( 0.0f, 1.0f, 0.0f, 0.3f );
-    }
-    else
-    {
-        color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.3f );
-    }
-
-    glPrograms.at( "debug" )->LoadVec4( "fragColor", color );
-
-    GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ],
-        GL_UNSIGNED_INT, ( const GLvoid* const * ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
-
-    glPrograms.at( "debug" )->Release();
-
-    GL_CHECK( glBlendFunc( srcFactor, dstFactor ) );
-#endif
 }
 
 
@@ -1048,10 +944,10 @@ static INLINE void EffectPassTexFromArray( glm::vec2& dims,
 	dims.y = bias.y;
 }
 
-void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& data )
+void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall_t callback )
 {
-	const shaderInfo_t* shader = std::get< 2 >( data );
-	int lightmapIndex = std::get< 4 >( data );
+    const shaderInfo_t* shader = std::get< 1 >( data );
+    int lightmapIndex = std::get< 3 >( data );
 
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
@@ -1068,7 +964,7 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
 		const Program& stageProg = *( stage.program.get() );
 
-		GL_CHECK( glBlendFunc( stage.rgbSrc, stage.rgbDest ) );
+        GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
 
 		glm::vec2 texDims( 0 );
@@ -1101,7 +997,7 @@ void BSPRenderer::DrawEffectPass( const drawPass_t& pass, const drawTuple_t& dat
 		}	
 
 		stageProg.Bind();
-        DrawFromTuple( data, pass, &stage, stageProg );
+        callback( std::get< 0 >( data ), stageProg, &stage );
 		stageProg.Release();
 	}
 
@@ -1129,9 +1025,20 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	{
 		case PASS_DRAW_EFFECT:
         {
-            drawTuple_t data = std::make_tuple( OBJECT_FACE,
-                ( const void* ) pass.face, pass.shader, pass.face->texture, pass.face->lightmapIndex );
-			DrawEffectPass( pass, data );
+            drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->texture, pass.face->lightmapIndex );
+
+            DrawEffectPass( data, [ &pass, this ]( const void* param, const Program& prog, const shaderStage_t* stage )
+            {
+                UNUSED( param );
+                DrawFaceVerts( pass, stage, prog );
+
+                /*
+                if ( config.drawFaceBounds )
+                {
+                    DrawFaceBounds( pass.view, pass.faceIndex );
+                }
+                */
+            });
         }
             break;
 	
@@ -1148,22 +1055,38 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
     pass.facesVisited[ pass.faceIndex ] = 1;
 }
 
-void BSPRenderer::DrawSurfaceList( const drawPass_t& pass, const std::vector< drawSurface_t >& list )
+void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 {	
+    auto LEffectCallback = [ this ]( const void* voidsurf, const Program& prog, const shaderStage_t* stage )
+    {
+        const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
+
+        DrawSurface( surf, stage, prog );
+
+        /*
+        if ( config.drawFaceBounds )
+        {
+            for ( int32_t i: surf.faceIndices )
+            {
+                DrawFaceBounds( pass.view, i );
+            }
+        }
+        */
+    };
+
 	for ( const drawSurface_t& surf: list )
 	{
 		if ( surf.shader )
 		{
-			drawTuple_t tuple = std::make_tuple( OBJECT_SURFACE, 
-				( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
-			DrawEffectPass( pass, tuple );
+            drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
+            DrawEffectPass( tuple, LEffectCallback );
 		}
 		else
 		{
             DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
             {
                 DrawSurface( surf, nullptr, main );
-            });
+            });  
 		}
 	}
 
@@ -1185,7 +1108,7 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 	}
 	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
 	{
-		if ( pass.shader && pass.shader->deform )
+        if ( pass.shader && pass.shader->deform )
 		{
 			DeformVertexes( m, pass.shader );
 		}
@@ -1216,35 +1139,15 @@ void BSPRenderer::DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) 
 
 	ImDrawAxes( 100.0f );
 	
-	/*
-	switch ( map->data.faces[ faceIndex ].type )
-	{
-	case BSP_FACE_TYPE_POLYGON:
-		color = glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f );
-		break;
-	case BSP_FACE_TYPE_PATCH:
-		color = glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f );
-		break;
-	case BSP_FACE_TYPE_MESH:
-		color = glm::vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-		break;
-	default:
-		color = glm::vec4( 1.0f );
-		break;
-	}*/
-
-
-
 	ImDrawBounds( glFaces[ faceIndex ].bounds, color );
 }
 
 void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const
 {
-	std::vector< bspVertex_t > verts = m.vertices;
-	
-	int32_t stride = m.subdivLevel + 1;
-	int32_t numPatchVerts = stride * stride;
-	int32_t numPatches = verts.size() / numPatchVerts;
+    if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED )
+        return;
+
+    std::vector< bspVertex_t > verts = m.patchVertices;
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
