@@ -107,95 +107,6 @@ drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData
 }
 
 //--------------------------------------------------------------
-lightSampler_t::lightSampler_t( void )
-	:	targetPlane( 0.0f, 0.0f, 0.0f, 1.0f ),
-		boundsMin( 0.0f ), boundsMax( 0.0f ),
-		fbos( { 0, 0 } )
-{
-	GLint viewport[ 4 ];
-	GL_CHECK( glGetIntegerv( GL_VIEWPORT, viewport ) );
-
-	GLint cubeDims = glm::max( viewport[ 2 ], viewport[ 3 ] );
-
-	attachments[ 0 ].mipmap = false;
-	attachments[ 0 ].SetBufferSize( viewport[ 2 ], viewport[ 3 ], 4, 0 );
-	attachments[ 0 ].Load2D();
-
-	attachments[ 1 ].mipmap = false;
-	attachments[ 1 ].SetBufferSize( cubeDims, cubeDims, 4, 255 );
-	attachments[ 1 ].LoadCubeMap();
-
-	GL_CHECK( glGenFramebuffers( lightSampler_t::NUM_BUFFERS, &fbos[ 0 ] ) );
-	
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbos[ 0 ] ) );
-	GL_CHECK( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-		GL_TEXTURE_2D, attachments[ 0 ].handle, 0 ) );
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
-}
-
-lightSampler_t::~lightSampler_t( void )
-{
-	GL_CHECK( glDeleteFramebuffers( lightSampler_t::NUM_BUFFERS, &fbos[ 0 ] ) );
-}
-
-void lightSampler_t::Bind( int32_t fbo ) const
-{
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, fbos[ fbo ] ) );
-	GL_CHECK( glDrawBuffer( GL_COLOR_ATTACHMENT0 ) );
-}
-
-void lightSampler_t::Release( void ) const
-{
-	GL_CHECK( glBindFramebuffer( GL_FRAMEBUFFER, 0 ) );
-	GL_CHECK( glDrawBuffer( GL_BACK ) );
-}
-
-// Create a view projection transform which looks up at the sky
-// and fills the screen with as much space as possible so the FBO
-// can be sampled from
-void lightSampler_t::Elevate( const glm::vec3& min, const glm::vec3& max )
-{
-	glm::vec3 a( glm::vec3( min.x, max.y, max.z ) - max );
-	glm::vec3 b( glm::vec3( max.x, max.y, min.z ) - max );
-	glm::vec3 n( -glm::cross( a, b ) );
-
-	targetPlane = glm::vec4( n, glm::dot( n, max ) );
-	boundsMin = glm::vec2( min.x, min.z );
-	boundsMax = glm::vec2( max.x, max.z );
-
-	float w, h;
-	float xDist = max.x - min.x;
-	float zDist = min.z - max.z;
-	float yDist = max.y - min.y;
-
-	glm::vec3 up;
-
-	if ( xDist > zDist )
-	{
-		w = xDist;
-		h = zDist;
-		up = glm::vec3( min.x, 0.0f, max.z ) - glm::vec3( min.x, 0.0f, min.z );
-	}
-	else
-	{
-		w = zDist;
-		h = xDist;
-		up = glm::vec3( max.x, 0.0f, max.z ) - glm::vec3( min.x, 0.0f, max.z );
-	}
-	
-	up = glm::normalize( up );
-
-	camera.SetClipTransform( glm::ortho< float >( -w * 0.5f, w * 0.5f, -h * 0.5f, h * 0.5f, 0.0f, 1000000.0f ) );
-
-	glm::vec3 eye( ( min + max ) * 0.5f );
-	eye.y += ( max.y - min.y ) * 0.3f;
-
-	glm::vec3 target( eye + glm::vec3( 0.0f, yDist, 0.0f ) );
-
-	camera.SetViewTransform( glm::lookAt( eye, target, up ) );
-	camera.SetViewOrigin( eye ); 
-}
-//--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	:	glEffects( {
 			{ 
@@ -412,24 +323,28 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 }
 
 void BSPRenderer::LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
-	std::vector< texture_t >& textures, int32_t width, int32_t height )
+    std::vector< gImageParams_t >& images, int32_t width, int32_t height )
 {
-	textures.push_back( glDummyTexture );
+    images.push_back( glDummyTexture );
 
-	texArray.reset( new textureArray_t( width, height, textures.size(), false ) ); 
-	for ( uint32_t i = 0; i < textures.size(); ++i )
+    texArray.reset( new textureArray_t( width, height, images.size(), false ) );
+    for ( uint32_t i = 0; i < images.size(); ++i )
 	{
-		const texture_t& tex = textures[ i ];
-		if ( !tex.pixels.empty() )
+        const gImageParams_t& img = images[ i ];
+        if ( !img.data.empty() )
 		{
-			GLuint sampler = tex.sampler;
+            /*
+            GLuint sampler = img.sampler;
 			if ( !sampler )
 			{
-				sampler = GenSampler( tex.mipmap, tex.wrap );
+                sampler = GenSampler( img.mipmap, img.wrap );
 			}
+            */
 
-			glm::ivec3 dims( tex.width, tex.height, i );
-			texArray->LoadSlice( sampler, dims, tex.pixels, false );
+            GLuint sampler = GenSampler( img.mipmap, img.wrap );
+
+            glm::ivec3 dims( img.width, img.height, i );
+            texArray->LoadSlice( sampler, dims, img.data, false );
 		}
 	}
 }
@@ -452,10 +367,10 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
     map->Read( filepath, 1, mapLoadFlags );
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
-	std::vector< texture_t > shaderTextures;
+    std::vector< gImageParams_t > shaderTextures;
     glm::ivec2 shaderMegaDims = S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
 	
-	glDummyTexture.SetBufferSize( 64, 64, 4, 255 );
+    GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
 	LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
 
 	//---------------------------------------------------------------------
@@ -495,14 +410,15 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 			{
 				const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-				if ( glTextures[ t ].LoadFromFile( str.c_str(), mapLoadFlags ) )
+                if ( GLoadImageFromFile( str, glTextures[ t ] ) )
 				{
 					width = glm::max( width, glTextures[ t ].width );
 					height = glm::max( height, glTextures[ t ].height );
 					success = true;
 					
 					glTextures[ t ].wrap = GL_REPEAT;
-					glTextures[ t ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
+                    glTextures[ t ].minFilter = GL_LINEAR;
+                    //glTextures[ t ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
 					
 					break;
 				}
@@ -527,13 +443,13 @@ FAIL_WARN:
 	glLightmaps.resize( map->data.numLightmaps );
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
 	{	
-		glLightmaps[ l ].SetBufferSize( BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 4, 255 );
+        GSetImageBuffer( glLightmaps[ l ], BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 4, 255 );
 		
-		Pixels_24BitTo32Bit( &glLightmaps[ l ].pixels[ 0 ], 
+        Pixels_24BitTo32Bit( &glLightmaps[ l ].data[ 0 ],
 			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
 		glLightmaps[ l ].wrap = GL_REPEAT;
-		glLightmaps[ l ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
+        glLightmaps[ l ].minFilter = GL_LINEAR; //GL_LINEAR_MIPMAP_LINEAR;
 	}
 	LoadTextureArray( glLightmapArray, glLightmaps, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT );
 
@@ -628,7 +544,7 @@ void BSPRenderer::Render( void )
 { 
 	double startTime = glfwGetTime();
 
-	RenderPass( CameraFromView()->ViewData(), false );
+    RenderPass( camera->ViewData(), false );
 	
 	frameTime = glfwGetTime() - startTime;
 
@@ -725,7 +641,7 @@ void BSPRenderer::Update( float dt )
 {
 	camera->Update();
 
-	viewParams_t& view = CameraFromView()->ViewDataMut();
+    viewParams_t& view = camera->ViewDataMut();
 	SetNearFar( view.clipTransform, 1.0f, 100000.0f );
 
     frustum->Update( view, false );
@@ -833,7 +749,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
     glTextureArray->Bind( 0, "fragSampler", main );
     glLightmapArray->Bind( 1, "fragLightmapSampler", main );
-    GL_CHECK( glBindSampler( 1, glLightmaps[ 0 ].sampler ) );
+    GL_CHECK( glBindSampler( 1, glLightmapArray->samplers[ 0 ] ) );
 
     GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
@@ -848,7 +764,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
     else
     {
         fragBiases[ 0 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
-        GL_CHECK( glBindSampler( 0, glDummyTexture.sampler ) );
+        GL_CHECK( glBindSampler( 0, glTextureArray->samplers[ 0 ] ) );
     }
 
     if ( lightmapIndex >= 0 )

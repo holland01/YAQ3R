@@ -6,6 +6,7 @@
 #include "frustum.h"
 #include "aabb.h"
 #include "glutil.h"
+#include "renderer/texture.h"
 #include <set>
 #include <array>
 #include <functional>
@@ -171,13 +172,13 @@ private:
 									  glLightmapArray,
 									  glShaderArray;
 
-	texture_t					glDummyTexture;
+    gImageParams_t					glDummyTexture;
 
 	std::array< glm::vec2, GLConfig::MAX_MIP_LEVELS > glDummyBiases;
 	
-	std::vector< texture_t >	glTextures;			// has one->one mapping with texture indices
+    std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture indices
 	
-	std::vector< texture_t >	glLightmaps;		// has one->one mapping with lightmap indices
+    std::vector< gImageParams_t >	glLightmaps;		// has one->one mapping with lightmap indices
 	
 	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
 
@@ -196,11 +197,9 @@ private:
     using               drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
 
 	void				LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
-							std::vector< texture_t >& textures, int32_t width, int32_t height );
+                            std::vector< gImageParams_t >& textures, int32_t width, int32_t height );
 
 	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
-
-	const texture_t&	GetTextureOrDummy( int32_t index, bool predicate, const std::vector< texture_t >& textures ) const;
 
 	void				DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const;
 
@@ -246,9 +245,7 @@ public:
 	GLuint			transformBlockObj;
 	size_t			transformBlockSize;
 
-	viewMode_t		curView;
-
-	lightSampler_t	lightSampler;	
+	viewMode_t		curView;	
 
 				BSPRenderer( float viewWidth, float viewHeight );
 				
@@ -267,22 +264,7 @@ public:
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
     void		Update( float dt );
-
-	InputCamera* CameraFromView( void );
 };
-
-INLINE const texture_t& BSPRenderer::GetTextureOrDummy( int32_t index, 
-	bool predicate, const std::vector< texture_t >& textures ) const
-{
-	if ( predicate )
-	{
-		return textures[ index ];
-	}
-	else
-	{
-		return glDummyTexture;
-	}
-}
 
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list )
 {
@@ -305,21 +287,4 @@ INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4&
 
     GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
-}
-
-INLINE InputCamera* BSPRenderer::CameraFromView( void )
-{
-	InputCamera* pCamera = nullptr;
-
-	switch ( curView )
-	{
-		case VIEW_MAIN:
-			pCamera = camera;
-			break;
-		case VIEW_LIGHT_SAMPLE:
-			pCamera = &lightSampler.camera;
-			break;
-	}
-
-	return pCamera;
 }

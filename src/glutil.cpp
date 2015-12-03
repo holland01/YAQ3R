@@ -246,8 +246,30 @@ bool texture_t::DetermineFormats( void )
 }
 
 //-------------------------------------------------------------------------------------------------
+// OpenGL 4.x Texture Array
+//-------------------------------------------------------------------------------------------------
 
-textureArray_t::mipSetter_t::mipSetter_t( 
+namespace {
+
+struct mipSetter_t
+{
+    const GLuint handle;
+
+    const int32_t layerOffset;
+    const int32_t numLayers;
+
+    const std::vector< uint8_t >& buffer;
+
+    mipSetter_t(
+        const GLuint handle,
+        const int32_t layerOffset,
+        const int32_t numLayers,
+        const std::vector< uint8_t >& buffer );
+
+    void CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const;
+};
+
+mipSetter_t::mipSetter_t(
 	const GLuint handle_,
 	const int32_t layerOffset_,
 	const int32_t numLayers_,
@@ -260,13 +282,13 @@ textureArray_t::mipSetter_t::mipSetter_t(
 {
 }
 
-void textureArray_t::mipSetter_t::CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const
+void mipSetter_t::CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const
 {
 	GL_CHECK( glTextureSubImage3D( handle, 
 			mip, 0, 0, layerOffset, mipWidth, mipHeight, numLayers, GL_RGBA, GL_UNSIGNED_BYTE, &buffer[ 0 ] ) );
 }
 
-//-------------------------------------------------------------------------------------------------
+}
 
 textureArray_t::textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bool genMipLevels )
 	:	megaDims( 
@@ -288,7 +310,7 @@ textureArray_t::textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bo
 	{
 		// the vec2 here isn't really necessary, since there is no mip bias for this initial fill
 		mipSetter_t ms( handle, 0, depth, fill ); 
-		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, width, height, megaDims.w );
+        Texture_CalcMipLevels2D< mipSetter_t >( ms, width, height, megaDims.w );
 	}
 	else
 	{
@@ -312,7 +334,7 @@ void textureArray_t::LoadSlice( GLuint sampler, const glm::ivec3& dims, const st
 	if ( genMipMaps )
 	{
 		mipSetter_t ms( handle, dims.z, 1, buffer ); 
-		Texture_CalcMipLevels2D< textureArray_t::mipSetter_t >( ms, dims.x, dims.y, megaDims.w );
+        Texture_CalcMipLevels2D< mipSetter_t >( ms, dims.x, dims.y, megaDims.w );
 	}
 	else
 	{

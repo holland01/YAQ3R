@@ -17,11 +17,11 @@
 		(e.g., texture atlas). All uniforms for a shader parameter can be stored in something which is local
 		in a separate rendering mechanism as well; this way, whenever a program is bound, it can load the values
 		automatically (like the modelView matrix, etc). Emulated behavior isn't awesome, but it's better than
-		nothing.
+        nothing. See [2]
 
 	* After you're finished refactoring, you'll want to work on the Emscripten port.
 
-	[Notes]:
+    [Notes]:
 
 	* There's a weird bug which causes strange color flashes, when the faces are rendered separately (i.e., without the draw surfaces). My guess is
 	this is likely to do with the texture arrays (are they being unbound after the draw is made?), but I'm not sure.
@@ -45,4 +45,12 @@
 - Ability to save camera position/orientation and load it later.
 
 
+[2 - GL features which are not supported by WebGL]:
+    (NOTE: mipmapping is currently disabled, to make the process of porting easier)
+    (NOTE: localOverrideFlags which are added to teh shader/stages are not taken into account with the new image loading function)
 
+    - UBOs
+    - VAOs
+    - Texture Arrays
+    - GLSL Extensions
+    - Current GLSL syntax/layer

@@ -227,7 +227,9 @@ struct shaderInfo_t
 using shaderMap_t = std::map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;
 
-glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
+struct gImageParams_t;
+
+glm::ivec2 S_LoadShaders(const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags );
 
 static INLINE bool S_StageHasIdentityColor( const shaderStage_t& s )
 {

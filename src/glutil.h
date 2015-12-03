@@ -140,6 +140,14 @@ static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset,
 	}
 }
 
+static INLINE void DeleteVertexArray( GLuint vao )
+{
+    if ( vao )
+    {
+        GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
+    }
+}
+
 static INLINE void DeleteBufferObject( GLenum target, GLuint obj )
 {
 	if ( obj )
@@ -274,32 +282,6 @@ INLINE void texture_t::Release( int offset ) const
 //---------------------------------------------------------------------
 struct textureArray_t
 {
-	struct mipSetter_t
-	{
-		const GLuint handle;
-		
-		const int32_t layerOffset;
-		const int32_t numLayers;
-
-		const std::vector< uint8_t >& buffer;
-
-		mipSetter_t( 
-			const GLuint handle,
-			const int32_t layerOffset,
-			const int32_t numLayers,
-			const std::vector< uint8_t >& buffer );
-
-		void CalcMipLevel2D( int32_t mip, int32_t mipWidth, int32_t mipHeight ) const;
-	};
-
-	struct params_t
-	{
-		int32_t width, height;
-		int32_t offset;
-		int32_t depth;
-		GLenum  wrap;
-	};
-
 	GLuint handle;
 
 	glm::ivec4 megaDims;
@@ -308,7 +290,7 @@ struct textureArray_t
 	std::vector< uint8_t > usedSlices;	// 1 -> true, 0 -> false
 	std::vector< glm::vec3 > biases;	// x and y point to sliceWidth / megaWidth and sliceHeight / megaHeight, respectively. z is the slice index
 
-				textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bool genMipLevels );
+                textureArray_t( GLsizei width, GLsizei height, GLsizei depth, bool genMipLevels );
 				
 				~textureArray_t( void );
 
@@ -528,6 +510,7 @@ struct rtt_t
 		GL_CHECK( glDrawBuffer( GL_BACK ) );
 	}
 };
+
 //---------------------------------------------------------------------
 template< typename TRenderer >
 struct transformStash_t

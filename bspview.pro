@@ -15,7 +15,7 @@ debug {
 }
 
 unix {
-    INCLUDEPATH += $$PWD
+    INCLUDEPATH += $$PWD/src
     INCLUDEPATH += /home/amsterdam/include/glm
     LIBS += -L/usr/lib64 -lGL -lGLU -lGLEW -lglfw -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 }
@@ -45,7 +45,8 @@ HEADERS += \
     src/glutil.h \
     src/bsp_data.h \
     src/render_data.h \
-    src/io.h
+    src/io.h \
+    src/renderer/texture.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -96,5 +97,9 @@ SOURCES += \
     src/glutil.cpp \
     src/bsp_data.cpp \
     src/render_data.cpp \
-    src/io.cpp
+    src/io.cpp \
+    src/renderer/texture.cpp
+
+DISTFILES += \
+    remember.todo
 

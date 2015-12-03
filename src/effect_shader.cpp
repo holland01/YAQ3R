@@ -3,6 +3,7 @@
 #include "io.h"
 #include "shader.h"
 #include "glutil.h"
+#include "renderer/texture.h"
 #include <sstream>
 
 static INLINE GLsizei GL_EnumFromStr( const char* str );
@@ -945,44 +946,49 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	fclose( f );
 }
 
-static void LoadStageTexture( glm::ivec2& maxDims, std::vector< texture_t >& textures, shaderInfo_t& info, int i, const mapData_t* map )
+static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i, const mapData_t* map )
 {
 	shaderStage_t& stage = info.stageBuffer[ i ];
 
 	if ( stage.mapType == MAP_TYPE_IMAGE )
 	{
-		texture_t texture;
+        gImageParams_t img;
 
-		texture.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP? GL_CLAMP_TO_EDGE : GL_REPEAT;
-        texture.mipmap = !!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
+        img.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP? GL_CLAMP_TO_EDGE : GL_REPEAT;
+        img.mipmap = false; //!!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
         texFileRoot.append( std::string( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) ) );
 
-        if ( !texture.LoadFromFile( texFileRoot.c_str(), info.localLoadFlags ) )
+        // If it's a tga file and we fail, then chances are there is a jpeg duplicate
+        // of it that we can fall back on
+        if ( !GLoadImageFromFile( texFileRoot.c_str(), img ) )
 		{
 			std::string ext;
 			size_t index = File_GetExt( ext, texFileRoot );
 			if ( index != std::string::npos && ext == "tga" )
 			{
 				texFileRoot.replace( index, 4, ".jpg" );
-                if ( !texture.LoadFromFile( texFileRoot.c_str(), info.localLoadFlags ) )
+                if ( !GLoadImageFromFile( texFileRoot, img ) )
 				{
 					MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
-					texture.SetBufferSize( 64, 64, 4, 0 );
+                    GSetImageBuffer( img, 64, 64, 4, 255 );
 				}
 			}
 		}
 
-		maxDims.x = glm::max( texture.width, maxDims.x );
-		maxDims.y = glm::max( texture.height, maxDims.y );
+        // We need the highest dimensions out of all images for the texture array
+        maxDims.x = glm::max( img.width, maxDims.x );
+        maxDims.y = glm::max( img.height, maxDims.y );
 
-		stage.textureIndex = textures.size();
-		textures.push_back( std::move( texture ) );
+        // This index will persist in the texture array it's going into
+        stage.textureIndex = images.size();
+
+        images.push_back( img );
 	}
 }
 
-glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< texture_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
+glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
