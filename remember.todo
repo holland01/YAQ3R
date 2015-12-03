@@ -54,3 +54,8 @@
     - Texture Arrays
     - GLSL Extensions
     - Current GLSL syntax/layer
+
+    Progress
+    ========
+    - A few functions have been written to handle image loading and what-not. Next thing to do would be to implement a mechanism similar to
+    the textureArray_t which uses features available only to GLES 2.
