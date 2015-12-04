@@ -37,10 +37,6 @@ Test::~Test( void )
     if ( winPtr )
         glfwDestroyWindow( winPtr );
 
-    // Set to NULL in child dtor to avoid deletion.
-    if ( camPtr )
-        delete camPtr;
-
     glfwTerminate();
     KillSysLog();
 }
@@ -52,7 +48,7 @@ bool Test::Load( const char* winName )
 
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 5 );
-	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
+    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	glfwWindowHint( GLFW_SRGB_CAPABLE, GL_TRUE );
 
 	GLFWmonitor* monitor = fullscreen? glfwGetPrimaryMonitor(): nullptr;

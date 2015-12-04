@@ -16,16 +16,21 @@
 #   define G_RGBA_FORMAT GL_SRGB_ALPHA
 #endif
 
-
 enum
 {
     TEXTURE_ATLAS = ( 1 << 0 )
 };
 
+#define G_HANDLE_INVALID 0xDEADBEEF
+
 struct gTextureHandle_t
 {
-    uint32_t flags;
-    const void* data;
+    uint32_t id;
+};
+
+struct gVertexBufferHandle_t
+{
+    uint32_t id;
 };
 
 struct gImageParams_t
@@ -33,16 +38,26 @@ struct gImageParams_t
     bool mipmap = false;
     int32_t width = 0;
     int32_t height = 0;
-    int32_t bpp = 0;
-    GLenum wrap = GL_REPEAT;
-    GLenum minFilter = GL_LINEAR;
-    GLenum magFilter = GL_LINEAR;
-    GLenum format = G_RGBA_FORMAT;
-    GLenum internalFormat = G_INTERNAL_RGBA_FORMAT;
+    int8_t bpp = 0;
+    uint32_t wrap = GL_REPEAT;
+    uint32_t minFilter = GL_LINEAR;
+    uint32_t magFilter = GL_LINEAR;
+    uint32_t format = G_RGBA_FORMAT;
+    uint32_t internalFormat = G_INTERNAL_RGBA_FORMAT;
     std::vector< uint8_t > data;
 };
 
-gTextureHandle_t GMakeTexture( const gImageParams_t& image, const std::string& name, uint32_t flags );
+void GEnableDepthBuffer( void );
+
+gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertices );
+
+void GFreeVertexBuffer( gVertexBufferHandle_t& handle );
+
+void GBindVertexBuffer( const gVertexBufferHandle_t& buffer );
+
+void GReleaseVertexBuffer( void );
+
+gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint32_t flags );
 
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image );
 
@@ -50,4 +65,4 @@ bool GDetermineImageFormat( gImageParams_t& image );
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, int32_t bpp, uint8_t fillValue );
 
-void GFreeTexture( const gTextureHandle_t& handle );
+void GFreeTexture( gTextureHandle_t& handle );

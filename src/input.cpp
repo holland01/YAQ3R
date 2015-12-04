@@ -3,7 +3,7 @@
 #include "math_util.h"
 
 static const float MOUSE_SENSE = 0.1f;
-static const float DEF_MOVE_STEP_SPEED = 10.0f;
+static const float DEF_MOVE_STEP_SPEED = 1.0f;
 
 enum
 {
@@ -130,7 +130,7 @@ void InputCamera::EvalKeyRelease( int key )
 
 void InputCamera::Update( void )
 {
-     currRot.Normalize();
+     //currRot.Normalize();
 
      lastRot = currRot;
 
@@ -143,7 +143,7 @@ void InputCamera::Update( void )
     if ( keysPressed[ KEY_IN ] ) currRot.roll += moveStep;
     if ( keysPressed[ KEY_OUT ] ) currRot.roll -= moveStep;
 
-    currRot.Normalize();
+    //currRot.Normalize();
 
     viewData.orientation = glm::rotate( glm::mat4( 1.0f ), glm::radians( currRot.pitch ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
     viewData.orientation = glm::rotate( viewData.orientation, glm::radians( currRot.yaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );

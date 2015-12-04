@@ -125,7 +125,7 @@ INLINE void InputCamera::Raise( float amount )
 
 INLINE void InputCamera::SetPerspective( float fovy, float width, float height, float zNear, float zFar )
 {
-	fovy = glm::radians( fovy );
+    fovy = glm::radians( fovy );
 
 	float aspect = width / height;
 

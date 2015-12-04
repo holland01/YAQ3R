@@ -371,7 +371,10 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
     glm::ivec2 shaderMegaDims = S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
 	
     GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
-	LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
+
+    //GMakeTexture( shaderTextures, 0 );
+
+    LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
@@ -390,7 +393,6 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	};
 
 	GLsizei width = 0, height = 0;
-
 
 	for ( int32_t t = 0; t < map->data.numTextures; t++ )
 	{

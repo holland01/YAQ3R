@@ -46,7 +46,8 @@ HEADERS += \
     src/bsp_data.h \
     src/render_data.h \
     src/io.h \
-    src/renderer/texture.h
+    src/renderer/texture.h \
+    src/tests/test_textures.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -98,7 +99,8 @@ SOURCES += \
     src/bsp_data.cpp \
     src/render_data.cpp \
     src/io.cpp \
-    src/renderer/texture.cpp
+    src/renderer/texture.cpp \
+    src/tests/test_textures.cpp
 
 DISTFILES += \
     remember.todo

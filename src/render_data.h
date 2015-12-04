@@ -144,7 +144,6 @@ bool operator == ( const vertex_t< texCoord_t >&a, const vertex_t< texCoord_t >&
 }
 
 using bspVertex_t = vertex_t< glm::vec2 >;
-using drawVertex_t = vertex_t< glm::vec3 >;
 
 //-------------------------------------------------------------------------------
 

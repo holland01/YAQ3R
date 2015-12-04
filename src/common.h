@@ -39,7 +39,7 @@
 #include <utility>
 #include <stack>
 
-#define GLM_FORCE_RADIANS
+//#define GLM_FORCE_RADIANS
 
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>
