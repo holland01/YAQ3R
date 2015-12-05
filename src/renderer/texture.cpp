@@ -98,8 +98,8 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
         float fxEnd = fxStart + ( float )images[ x ].width * invByteWidth * tt->invRowPitch.x;
         float fyEnd = fyStart + ( float )images[ x ].height * invByteHeight * tt->invRowPitch.y;
 
-        tt->texCoordSlots[ y * stride + x ].stOffsetStart = glm::vec2( fxStart, fyStart );
-        tt->texCoordSlots[ y * stride + x ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
+        tt->texCoordSlots[ y * stride + ( x % stride ) ].stOffsetStart = glm::vec2( fxStart, fyStart );
+        tt->texCoordSlots[ y * stride + ( x % stride ) ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
 
         if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
             y++;
@@ -135,8 +135,6 @@ gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint
 
     while ( arrayDims * arrayDims < closeSquare )
         arrayDims += 2;
-
-    //arrayDims *= arrayDims;
 
     // TODO: just make these extra imageParams ivec2 when passing to the make texture function...
     gImageParams_t canvasParams;

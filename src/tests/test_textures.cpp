@@ -143,7 +143,7 @@ void TTextureTest::Load( void )
     }
 
     texture = GMakeTexture( imageInfo, 0 );
-    imageTransform = GTextureImageDimensions( texture, 0 );
+    imageTransform = GTextureImageDimensions( texture, 2 );
 }
 
 void TTextureTest::OnKeyPress( int key, int scancode, int action, int mods )
