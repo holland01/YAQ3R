@@ -3,6 +3,7 @@
 #include "test.h"
 #include "glutil.h"
 #include "renderer/texture.h"
+#include "renderer/buffer.h"
 #include "input.h"
 #include <memory>
 
@@ -17,6 +18,8 @@ private:
     std::unique_ptr< InputCamera > camera;
 
     gTextureHandle_t texture;
+
+    glm::vec4 imageTransform;
 
     gVertexBufferHandle_t vbo;
 

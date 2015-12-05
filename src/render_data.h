@@ -1,149 +1,258 @@
 #pragma once
 
 #include "common.h"
+#include <array>
 
 static const float INVERSE_255 = 1.0f / 255.0f;
 
-static INLINE glm::u8vec4 BlendColor( const glm::u8vec4& a, const glm::u8vec4& b )
-{
-	float aaNorm = a[ 3 ] * INVERSE_255;
- 	float alpha = aaNorm + b[ 3 ] * INVERSE_255 * ( 1.0f - aaNorm ); 
-	float inverseAlpha = 1.0f / alpha;
+//-------------------------------------------------------------------------------------------------------------
+// vertex_t: generic vertex type for arbitrary use cases
+//-------------------------------------------------------------------------------------------------------------
 
-	glm::vec3 anorm( glm::vec3( a ) * INVERSE_255 );
-	glm::vec3 bnorm( glm::vec3( b ) * INVERSE_255 );
+#define VERTEX_TEMPLATE_DECL template < typename position_type, typename texcoord_type, \
+    typename normal_type, typename color_type, int32_t positionTupleSize, \
+    int32_t texCoordTupleSize, int32_t normalTupleSize, int32_t colorTupleSize, \
+    int32_t numTexCoords >
 
-	glm::vec3 rgb( ( anorm * aaNorm + bnorm * ( 1.0f - aaNorm ) ) * inverseAlpha );
+#define VERTEX_TEMPLATE_TYPE vertex_t< position_type, texcoord_type, \
+    normal_type, color_type, positionTupleSize, texCoordTupleSize, \
+    normalTupleSize, colorTupleSize, numTexCoords >
 
-	glm::u8vec4 ret;
-
-	ret.r = ( uint8_t )( rgb.r * 255.0f );
-	ret.g = ( uint8_t )( rgb.g * 255.0f );
-	ret.b = ( uint8_t )( rgb.b * 255.0f );
-	ret.a = ( uint8_t )( alpha * 255.0f );
-
-	return ret;
-}
-
-template < typename texCoord_t >
+VERTEX_TEMPLATE_DECL
 struct vertex_t
-{
-	glm::vec3	position;
-    texCoord_t	texCoords[ 2 ]; // 0 => surface, 1 => lightmap
-    glm::vec3	normal;
+{ 
+    using vertex_type = vertex_t< position_type, texcoord_type, normal_type, color_type, positionTupleSize,
+       texCoordTupleSize, normalTupleSize, colorTupleSize, numTexCoords >;
 
-    glm::u8vec4 color;
+    using position_t = position_type[ positionTupleSize ];
+    using texcoord_t = texcoord_type[ texCoordTupleSize ];
+    using normal_t = normal_type[ normalTupleSize ];
+    using color_t = normal_type[ positionTupleSize ];
+
+    position_t   position;
+    texcoord_t   texCoords[ numTexCoords ];
+    normal_t     normal;
+    color_t      color;
 
 	vertex_t( void )
-		: vertex_t< texCoord_t >( 
-			glm::zero< glm::vec3  >(), 
-			glm::zero< glm::vec3  >(), 
-			glm::zero< texCoord_t >(), 
-			glm::zero< texCoord_t >(), 
-			glm::zero< glm::u8vec4 >() )
 	{
-	}
-	
-	vertex_t( 
-		const glm::vec3& pos, 
-		const glm::vec3& norm, 
-		const texCoord_t& surfTexCoords, 
-		const texCoord_t& lightmapTexCoords, 
-		const glm::u8vec4& color_ )
-		: position( pos ),
-		  normal( norm ),
-		  color( color_ )
-	{
-		texCoords[ 0 ] = surfTexCoords;
-		texCoords[ 1 ] = lightmapTexCoords;
+        memset( position, 0, sizeof( position ) );
+        memset( texCoords, 0, sizeof( texCoords[ 0 ] ) * 2 );
+        memset( normal, 0, sizeof( normal ) );
+        memset( color, 0, sizeof( color ) );
 	}
 
-	vertex_t( const vertex_t& v )
-		: position( v.position ),
-		  normal( v.normal ),
-		  color( v.color )
-	{
-		memcpy( texCoords, v.texCoords, sizeof( texCoords ) );
-	}
+    void BlendColor( color_t& outC, const VERTEX_TEMPLATE_TYPE& b )
+    {
+        for ( int32_t i = 0; i < colorTupleSize; ++i )
+        {
+            float x = ( float )color[ i ] * INVERSE_255;
+            float y = ( float )b.color[ i ] * INVERSE_255;
 
-	vertex_t< texCoord_t >& operator=( vertex_t< texCoord_t > v )
-	{
-		position = v.position;
-		normal = v.normal;
-		color = v.color;
-
-		memcpy( texCoords, v.texCoords, sizeof( texCoords ) );
-
-		return *this;
-	}
-
+            outC[ i ] = uint8_t( ( x * y ) * 255.0f );
+        }
+    }
 };
 
-template < typename texCoord_t >
-INLINE vertex_t< texCoord_t > operator +( const vertex_t< texCoord_t >& a, const vertex_t< texCoord_t >& b )
+VERTEX_TEMPLATE_DECL
+INLINE VERTEX_TEMPLATE_TYPE operator +( const VERTEX_TEMPLATE_TYPE& a, const VERTEX_TEMPLATE_TYPE& b )
 {
-	vertex_t< texCoord_t > vert;
+    VERTEX_TEMPLATE_TYPE vert;
 	
-	vert.position = a.position + b.position;
-	vert.color = BlendColor( a.color, b.color );
-	vert.normal = a.normal + b.normal;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
-	vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
+    for ( int32_t i = 0; i < positionTupleSize; ++i )
+        vert.position[ i ] = a.position[ i ] + b.position[ i ];
+
+    a.BlendColor( vert.color, b );
+
+    for ( int32_t i = 0; i < normalTupleSize; ++i )
+        vert.normal[ i ] = a.normal[ i ] + b.normal[ i ];
+
+    for ( int32_t i = 0; i < numTexCoords; ++i )
+        for ( int32_t j = 0; j < texCoordTupleSize; ++j )
+            vert.texCoords[ i ][ j ] = a.texCoords[ i ][ j ] + b.texCoords[ i ][ j ];
 
 	return vert;
 }
 
-template < typename texCoord_t >
-vertex_t< texCoord_t > operator -( const vertex_t< texCoord_t >& a, const vertex_t< texCoord_t >& b )
+VERTEX_TEMPLATE_DECL
+INLINE VERTEX_TEMPLATE_TYPE operator -( const VERTEX_TEMPLATE_TYPE& a, const VERTEX_TEMPLATE_TYPE& b )
 {
-	vertex_t< texCoord_t > vert;
-	
-	vert.position = a.position - b.position;
-	vert.color = BlendColor( b.color, a.color );
-	vert.normal = a.normal - b.normal;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] - b.texCoords[ 0 ];
-	vert.texCoords[ 1 ] = a.texCoords[ 1 ] - b.texCoords[ 1 ];
+    VERTEX_TEMPLATE_TYPE vert;
 
-	return vert;
+    for ( int32_t i = 0; i < positionTupleSize; ++i )
+        vert.position[ i ] = a.position[ i ] - b.position[ i ];
+
+    a.BlendColor( vert.color, b );
+
+    for ( int32_t i = 0; i < normalTupleSize; ++i )
+        vert.normal[ i ] = a.normal[ i ] - b.normal[ i ];
+
+    for ( int32_t i = 0; i < numTexCoords; ++i )
+        for ( int32_t j = 0; j < texCoordTupleSize; ++j )
+            vert.texCoords[ i ][ j ] = a.texCoords[ i ][ j ] - b.texCoords[ i ][ j ];
+
+    return vert;
 }
 
-template < typename texCoord_t >
-vertex_t< texCoord_t > operator *( const vertex_t< texCoord_t >& a, float b )
+VERTEX_TEMPLATE_DECL
+INLINE VERTEX_TEMPLATE_TYPE operator *( const VERTEX_TEMPLATE_TYPE& a, const VERTEX_TEMPLATE_TYPE& b )
 {
-	vertex_t< texCoord_t > vert;
-	
-	vert.position = a.position * b;
-	vert.normal = a.normal * b;
-	vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
-	vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
+    VERTEX_TEMPLATE_TYPE vert;
 
-	vert.color = a.color;
+    for ( int32_t i = 0; i < positionTupleSize; ++i )
+        vert.position[ i ] = a.position[ i ] * b.position[ i ];
 
-	return vert;
+    a.BlendColor( vert.color, b );
+
+    for ( int32_t i = 0; i < normalTupleSize; ++i )
+        vert.normal[ i ] = a.normal[ i ] * b.normal[ i ];
+
+    for ( int32_t i = 0; i < numTexCoords; ++i )
+        for ( int32_t j = 0; j < texCoordTupleSize; ++j )
+            vert.texCoords[ i ][ j ] = a.texCoords[ i ][ j ] * b.texCoords[ i ][ j ];
+
+    return vert;
 }
 
-template < typename texCoord_t >
-vertex_t< texCoord_t >& operator += ( vertex_t< texCoord_t >& a, const vertex_t< texCoord_t >& b )
+VERTEX_TEMPLATE_DECL
+INLINE VERTEX_TEMPLATE_TYPE& operator +=( const VERTEX_TEMPLATE_TYPE& a, const VERTEX_TEMPLATE_TYPE& b )
 {
-	a.position += b.position;
-	a.normal += b.normal;
-	a.texCoords[ 0 ] += b.texCoords[ 0 ];
-	a.texCoords[ 1 ] += b.texCoords[ 1 ];
+    for ( int32_t i = 0; i < positionTupleSize; ++i )
+        a.position[ i ] += b.position[ i ];
 
-	return a;
+    a.BlendColor( a.color, b );
+
+    for ( int32_t i = 0; i < normalTupleSize; ++i )
+        a.normal[ i ] += b.normal[ i ];
+
+    for ( int32_t i = 0; i < numTexCoords; ++i )
+        for ( int32_t j = 0; j < texCoordTupleSize; ++j )
+            a.texCoords[ i ][ j ] += b.texCoords[ i ][ j ];
+
+    return a;
 }
 
-template < typename texCoord_t >
-bool operator == ( const vertex_t< texCoord_t >&a, const vertex_t< texCoord_t >& b )
+VERTEX_TEMPLATE_DECL
+INLINE bool operator ==( const VERTEX_TEMPLATE_TYPE& a, const VERTEX_TEMPLATE_TYPE& b )
 {
-	return a.position == b.position 
-		&& a.texCoords[ 0 ] == b.texCoords[ 0 ]
-		&& a.texCoords[ 1 ] == b.texCoords[ 1 ]
-		&& a.normal == b.normal
-		&& a.color == b.color;
+    for ( int32_t i = 0; i < positionTupleSize; ++i )
+        if ( a.position[ i ] != b.position[ i ] )
+            return false;
+
+    for ( int32_t i = 0; i < colorTupleSize; ++i )
+        if ( a.color[ i ] != b.color[ i ] )
+            return false;
+
+    for ( int32_t i = 0; i < normalTupleSize; ++i )
+        if ( a.normal[ i ] != b.normal[ i ] )
+            return false;
+
+    for ( int32_t i = 0; i < numTexCoords; ++i )
+        for ( int32_t j = 0; j < texCoordTupleSize; ++j )
+            if ( a.texCoords[ i ][ j ] != b.texCoords[ i ][ j ] )
+                return false;
+
+    return a;
 }
 
-using bspVertex_t = vertex_t< glm::vec2 >;
+//-------------------------------------------------------------------------------------------------------------
+// bspVertex_t: specialized for the quake 3 renderer
+//-------------------------------------------------------------------------------------------------------------
+
+struct bspVertex_t
+{
+    glm::vec3 position;
+    glm::vec2 texCoords[ 2 ];
+    glm::vec3 normal;
+    glm::u8vec4 color;
+};
+
+static INLINE glm::u8vec4 BlendColor( const glm::u8vec4& a, const glm::u8vec4& b )
+{
+    /*
+    float aaNorm = a[ 3 ] * INVERSE_255;
+    float alpha = aaNorm + b[ 3 ] * INVERSE_255 * ( 1.0f - aaNorm );
+    float inverseAlpha = 1.0f / alpha;
+
+    glm::vec3 anorm( glm::vec3( a ) * INVERSE_255 );
+    glm::vec3 bnorm( glm::vec3( b ) * INVERSE_255 );
+
+    glm::vec3 rgb( ( anorm * aaNorm + bnorm * ( 1.0f - aaNorm ) ) * inverseAlpha );
+    */
+
+    glm::vec4 x( glm::vec4( a ) * INVERSE_255 );
+    glm::vec4 y( glm::vec4( b ) * INVERSE_255 );
+    glm::vec4 rgb( x * y );
+
+    glm::u8vec4 ret;
+
+    ret.r = ( uint8_t )( rgb.r * 255.0f );
+    ret.g = ( uint8_t )( rgb.g * 255.0f );
+    ret.b = ( uint8_t )( rgb.b * 255.0f );
+    ret.a = ( uint8_t )( rgb.a * 255.0f );
+
+    return ret;
+}
+
+static INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b )
+{
+    bspVertex_t vert;
+
+    vert.position = a.position + b.position;
+    vert.color = BlendColor( a.color, b.color );
+    vert.normal = a.normal + b.normal;
+    vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
+
+    return vert;
+}
+
+static INLINE bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b )
+{
+    bspVertex_t vert;
+
+    vert.position = a.position - b.position;
+    vert.color = BlendColor( b.color, a.color );
+    vert.normal = a.normal - b.normal;
+    vert.texCoords[ 0 ] = a.texCoords[ 0 ] - b.texCoords[ 0 ];
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] - b.texCoords[ 1 ];
+
+    return vert;
+}
+
+static INLINE bspVertex_t operator *( const bspVertex_t& a, float b )
+{
+    bspVertex_t vert;
+
+    vert.position = a.position * b;
+    vert.normal = a.normal * b;
+    vert.texCoords[ 0 ] = a.texCoords[ 0 ] * b;
+    vert.texCoords[ 1 ] = a.texCoords[ 1 ] * b;
+
+    vert.color = a.color;
+
+    return vert;
+}
+
+static INLINE bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b )
+{
+    a.position += b.position;
+    a.normal += b.normal;
+    a.texCoords[ 0 ] += b.texCoords[ 0 ];
+    a.texCoords[ 1 ] += b.texCoords[ 1 ];
+
+    return a;
+}
+
+static INLINE bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
+{
+    return a.position == b.position
+        && a.texCoords[ 0 ] == b.texCoords[ 0 ]
+        && a.texCoords[ 1 ] == b.texCoords[ 1 ]
+        && a.normal == b.normal
+        && a.color == b.color;
+}
+
 
 //-------------------------------------------------------------------------------
 

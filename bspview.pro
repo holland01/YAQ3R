@@ -47,7 +47,9 @@ HEADERS += \
     src/render_data.h \
     src/io.h \
     src/renderer/texture.h \
-    src/tests/test_textures.h
+    src/tests/test_textures.h \
+    src/renderer/buffer.h \
+    src/renderer/renderer_local.h
 
 OTHER_FILES += \
     asset/quake/aty3dm1v2.bsp \
@@ -100,7 +102,8 @@ SOURCES += \
     src/render_data.cpp \
     src/io.cpp \
     src/renderer/texture.cpp \
-    src/tests/test_textures.cpp
+    src/tests/test_textures.cpp \
+    src/renderer/buffer.cpp
 
 DISTFILES += \
     remember.todo

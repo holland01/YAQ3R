@@ -29,10 +29,13 @@ struct gTexture_t
     GLsizei width = 0;
     GLsizei height = 0;
     GLsizei bpp = 0; // bpp is in bytes
+    GLenum target;
 
     std::string name;
 
     std::vector< gTexSlot_t > texCoordSlots;
+
+    glm::vec2 invRowPitch;
 
     ~gTexture_t( void )
     {
@@ -51,18 +54,23 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
 {
     gTexture_t* tt = new gTexture_t();
 
-    GL_CHECK( glGenTextures( 1, &tt->handle ) );
-    GL_CHECK( glBindTexture( GL_TEXTURE_2D, tt->handle ) );
+    tt->target = GL_TEXTURE_2D;
 
-    GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, canvasParams.internalFormat,
+    GL_CHECK( glGenTextures( 1, &tt->handle ) );
+    GL_CHECK( glBindTexture( tt->target, tt->handle ) );
+
+    GL_CHECK( glTexImage2D( tt->target, 0, canvasParams.internalFormat,
            canvasParams.width,
            canvasParams.height,
            0,
            canvasParams.format,
-           GL_UNSIGNED_BYTE, &canvasParams.data[ 0 ] ) );
+           GL_UNSIGNED_BYTE, nullptr ) );
 
-    GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
-    GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
+    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
+    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
+
+    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
 
     const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
     const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
@@ -72,8 +80,8 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
     float invByteWidth = 1.0f / ( float ) slotParams.width;
     float invByteHeight = 1.0f / ( float ) slotParams.height;
 
-    float invStride = 1.0f / ( float ) stride;
-    float invRowCount = 1.0f / ( float ) rows;
+    tt->invRowPitch.x = 1.0f / ( float ) stride;
+    tt->invRowPitch.y = 1.0f / ( float ) rows;
 
     uint32_t y = 0;
     for ( uint32_t x = 0; x < images.size(); ++x )
@@ -84,11 +92,11 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
         GL_CHECK( glTexSubImage2D( GL_TEXTURE_2D, 0, xb, yb, images[ x ].width,
             images[ x ].height, images[ x ].format, GL_UNSIGNED_BYTE, &images[ x ].data[ 0 ] ) );
 
-        float fxStart = ( float )xb * invStride;
-        float fyStart = ( float )yb * invRowCount;
+        float fxStart = ( float )xb * invByteWidth * tt->invRowPitch.x;
+        float fyStart = ( float )yb * invByteHeight * tt->invRowPitch.y;
 
-        float fxEnd = fxStart + ( float )images[ x ].width * invByteWidth * invStride;
-        float fyEnd = fyStart + ( float )images[ x ].height * invByteHeight * invRowCount;
+        float fxEnd = fxStart + ( float )images[ x ].width * invByteWidth * tt->invRowPitch.x;
+        float fyEnd = fyStart + ( float )images[ x ].height * invByteHeight * tt->invRowPitch.y;
 
         tt->texCoordSlots[ y * stride + x ].stOffsetStart = glm::vec2( fxStart, fyStart );
         tt->texCoordSlots[ y * stride + x ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
@@ -97,97 +105,12 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
             y++;
     }
 
-    GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+    GL_CHECK( glBindTexture( tt->target, 0 ) );
 
     return tt;
 }
 
-struct gVertexBuffer_t
-{
-    int32_t id = 0;
-    GLuint handle = 0;
-
-    ~gVertexBuffer_t( void )
-    {
-        DeleteBufferObject( GL_ARRAY_BUFFER, handle );
-    }
-};
-
-using vertexBufferPointer_t = std::unique_ptr< gVertexBuffer_t >;
-
-std::vector< vertexBufferPointer_t > gVertexBufferMap;
-
-INLINE std::vector< bspVertex_t > ConvertToDrawVertex( const std::vector< glm::vec3 >& vertices )
-{
-    std::vector< bspVertex_t > bufferData;
-
-    for ( const auto& v: vertices )
-    {
-        bspVertex_t vt;
-        vt.position = v;
-        vt.color = glm::vec4( 1.0f );
-        vt.normal = glm::vec3( 1.0f );
-        vt.texCoords[ 0 ] = glm::vec2( 0.0f );
-        vt.texCoords[ 1 ] = glm::vec2( 0.0f );
-        bufferData.push_back( vt );
-    }
-
-    return std::move( bufferData );
-}
-
-INLINE gVertexBuffer_t* MakeVertexBuffer_GL( const std::vector< bspVertex_t >& bufferData )
-{
-    gVertexBuffer_t* buffer = new gVertexBuffer_t();
-
-    GL_CHECK( glGenBuffers( 1, &buffer->handle ) );
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, buffer->handle ) );
-    GL_CHECK( glBufferData( GL_ARRAY_BUFFER, bufferData.size() * sizeof( bspVertex_t ), &bufferData[ 0 ].position[ 0 ], GL_STATIC_DRAW ) );
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
-
-    return buffer;
-}
-
 } // end namespace
-
-void GEnableDepthBuffer( void )
-{
-    GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-    GL_CHECK( glClearDepth( 1.0f ) );
-}
-
-gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertices )
-{
-    gVertexBuffer_t* buffer = MakeVertexBuffer_GL( ConvertToDrawVertex( vertices ) );
-
-    gVertexBufferHandle_t handle =
-    {
-        .id = ( uint32_t ) gVertexBufferMap.size()
-    };
-
-    gVertexBufferMap.push_back( std::move( vertexBufferPointer_t( buffer ) ) );
-
-    return handle;
-}
-
-void GFreeVertexBuffer( gVertexBufferHandle_t& handle )
-{
-    if ( handle.id < gVertexBufferMap.size() )
-        gVertexBufferMap.erase( gVertexBufferMap.begin() + handle.id );
-
-    handle.id = G_HANDLE_INVALID;
-}
-
-void GBindVertexBuffer( const gVertexBufferHandle_t& buffer )
-{
-    if ( buffer.id < gVertexBufferMap.size() )
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, gVertexBufferMap[ buffer.id ]->handle ) );
-}
-
-void GReleaseVertexBuffer( void )
-{
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
-}
 
 gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint32_t flags )
 {
@@ -213,7 +136,7 @@ gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint
     while ( arrayDims * arrayDims < closeSquare )
         arrayDims += 2;
 
-    arrayDims *= arrayDims;
+    //arrayDims *= arrayDims;
 
     // TODO: just make these extra imageParams ivec2 when passing to the make texture function...
     gImageParams_t canvasParams;
@@ -244,6 +167,42 @@ void GFreeTexture( gTextureHandle_t& handle )
     }
 
     handle.id = G_HANDLE_INVALID;
+}
+
+void GBindTexture( const gTextureHandle_t& handle )
+{
+    const gTexture_t* t = gTextureMap[ handle.id ].get();
+
+    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+    GL_CHECK( glBindTexture( t->target, t->handle ) );
+}
+
+void GReleaseTexture( const gTextureHandle_t& handle )
+{
+    const gTexture_t* t = gTextureMap[ handle.id ].get();
+
+    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+    GL_CHECK( glBindTexture( t->target, 0 ) );
+}
+
+glm::vec4 GTextureImageDimensions( const gTextureHandle_t& handle, uint32_t slot )
+{
+    if ( handle.id >= gTextureMap.size() )
+        return glm::vec4( 0.0f );
+
+    const gTexture_t* t = gTextureMap[ handle.id ].get();
+
+    if ( slot < t->texCoordSlots.size() )
+    {
+        return glm::vec4(
+            t->texCoordSlots[ slot ].stOffsetStart.x,
+            t->texCoordSlots[ slot ].stOffsetStart.y,
+            t->invRowPitch.x,
+            t->invRowPitch.y
+        );
+    }
+
+    return glm::vec4( 0.0f );
 }
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, int32_t bpp, uint8_t fillValue )

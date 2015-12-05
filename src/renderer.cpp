@@ -63,7 +63,7 @@ void mapModel_t::CalcBounds( int32_t faceType, const mapData_t& data )
 {
 	bounds.Empty();
 
-	auto LCheck = [ & ]( const glm::vec3& v )
+    auto LCheck = [ & ]( const glm::vec3& v )
 	{
 		if ( v.x < bounds.minPoint.x ) bounds.minPoint.x = v.x;
 		if ( v.y < bounds.minPoint.y ) bounds.minPoint.y = v.y;
@@ -78,14 +78,14 @@ void mapModel_t::CalcBounds( int32_t faceType, const mapData_t& data )
 	{
         for ( const bspVertex_t& v: patchVertices )
 		{
-			LCheck( v.position ); 
+            LCheck( v.position );
 		}
 	}
 	else
 	{
 		for ( size_t i = 0; i < indices.size(); ++i ) 
 		{
-			LCheck( data.vertexes[ indices[ i ] ].position );	
+            LCheck( data.vertexes[ indices[ i ] ].position );
 		}
 	}
 }
@@ -1070,7 +1070,8 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
 		glm::vec3 n( verts[ i ].normal * GenDeformScale( verts[ i ].position, shader ) );
-		verts[ i ].position += n;
+
+        verts[ i ].position += n;
 	}
 
 	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, vbo, m.vboOffset, verts, false );
