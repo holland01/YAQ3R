@@ -19,7 +19,9 @@ private:
 
     gTextureHandle_t texture;
 
-    glm::vec4 imageTransform;
+    gTextureImage_t currImage;
+
+    glm::vec2 invRowPitch;
 
     gVertexBufferHandle_t vbo;
 

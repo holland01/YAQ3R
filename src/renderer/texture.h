@@ -41,6 +41,13 @@ struct gImageParams_t
     std::vector< uint8_t > data;
 };
 
+struct gTextureImage_t
+{
+    glm::vec2 stOffsetStart;
+    glm::vec2 stOffsetEnd;
+    glm::vec2 imageScaleRatio;
+};
+
 gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint32_t flags );
 
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image );
@@ -53,6 +60,8 @@ void GBindTexture( const gTextureHandle_t& handle );
 
 void GReleaseTexture( const gTextureHandle_t& handle );
 
-glm::vec4 GTextureImageDimensions( const gTextureHandle_t& handle, uint32_t slot );
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
+
+glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 
 void GFreeTexture( gTextureHandle_t& handle );

@@ -12,12 +12,6 @@ struct gSampler_t
     GLuint handle = 0;
 };
 
-struct gTexSlot_t
-{
-    glm::vec2 stOffsetStart;
-    glm::vec2 stOffsetEnd;
-};
-
 struct gTexture_t
 {
     bool srgb = false;
@@ -33,7 +27,7 @@ struct gTexture_t
 
     std::string name;
 
-    std::vector< gTexSlot_t > texCoordSlots;
+    std::vector< gTextureImage_t > texCoordSlots;
 
     glm::vec2 invRowPitch;
 
@@ -77,8 +71,8 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
 
     tt->texCoordSlots.resize( rows * stride );
 
-    float invByteWidth = 1.0f / ( float ) slotParams.width;
-    float invByteHeight = 1.0f / ( float ) slotParams.height;
+    float invSlotWidth = 1.0f / ( float ) slotParams.width;
+    float invSlotHeight = 1.0f / ( float ) slotParams.height;
 
     tt->invRowPitch.x = 1.0f / ( float ) stride;
     tt->invRowPitch.y = 1.0f / ( float ) rows;
@@ -92,14 +86,18 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
         GL_CHECK( glTexSubImage2D( GL_TEXTURE_2D, 0, xb, yb, images[ x ].width,
             images[ x ].height, images[ x ].format, GL_UNSIGNED_BYTE, &images[ x ].data[ 0 ] ) );
 
-        float fxStart = ( float )xb * invByteWidth * tt->invRowPitch.x;
-        float fyStart = ( float )yb * invByteHeight * tt->invRowPitch.y;
+        float fxStart = ( float )xb * invSlotWidth * tt->invRowPitch.x;
+        float fyStart = ( float )yb * invSlotHeight * tt->invRowPitch.y;
 
-        float fxEnd = fxStart + ( float )images[ x ].width * invByteWidth * tt->invRowPitch.x;
-        float fyEnd = fyStart + ( float )images[ x ].height * invByteHeight * tt->invRowPitch.y;
+        float fxEnd = fxStart + ( float )images[ x ].width * invSlotWidth * tt->invRowPitch.x;
+        float fyEnd = fyStart + ( float )images[ x ].height * invSlotHeight * tt->invRowPitch.y;
 
-        tt->texCoordSlots[ y * stride + ( x % stride ) ].stOffsetStart = glm::vec2( fxStart, fyStart );
-        tt->texCoordSlots[ y * stride + ( x % stride ) ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
+        uint32_t slot = y * stride + ( x % stride );
+
+        tt->texCoordSlots[ slot ].stOffsetStart = glm::vec2( fxStart, fyStart );
+        tt->texCoordSlots[ slot ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
+        tt->texCoordSlots[ slot ].imageScaleRatio = glm::vec2( ( float ) images[ x ].width * invSlotWidth,
+                                                ( float ) images[ x ].height * invSlotHeight );
 
         if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
             y++;
@@ -183,24 +181,21 @@ void GReleaseTexture( const gTextureHandle_t& handle )
     GL_CHECK( glBindTexture( t->target, 0 ) );
 }
 
-glm::vec4 GTextureImageDimensions( const gTextureHandle_t& handle, uint32_t slot )
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )
 {
-    if ( handle.id >= gTextureMap.size() )
-        return glm::vec4( 0.0f );
+    assert( handle.id < gTextureMap.size() );
 
     const gTexture_t* t = gTextureMap[ handle.id ].get();
+    assert( slot < t->texCoordSlots.size() );
 
-    if ( slot < t->texCoordSlots.size() )
-    {
-        return glm::vec4(
-            t->texCoordSlots[ slot ].stOffsetStart.x,
-            t->texCoordSlots[ slot ].stOffsetStart.y,
-            t->invRowPitch.x,
-            t->invRowPitch.y
-        );
-    }
+    return t->texCoordSlots[ slot ];
+}
 
-    return glm::vec4( 0.0f );
+glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
+{
+    assert( handle.id < gTextureMap.size() );
+
+    return gTextureMap[ handle.id ]->invRowPitch;
 }
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, int32_t bpp, uint8_t fillValue )

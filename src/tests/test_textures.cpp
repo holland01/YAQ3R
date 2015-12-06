@@ -21,7 +21,17 @@ void TTextureTest::Run( void )
 {
     camera->Update();
 
+    glm::vec4 imageTransform;
+
+    imageTransform.x = currImage.stOffsetStart.x;
+    imageTransform.y = currImage.stOffsetStart.y;
+    imageTransform.z = invRowPitch.x;
+    imageTransform.w = invRowPitch.y;
+
+    glm::vec2 imageScaleRatio = currImage.imageScaleRatio;
+
     prog->LoadVec4( "imageTransform", imageTransform );
+    prog->LoadVec2( "imageScaleRatio", imageScaleRatio );
     prog->LoadMat4( "modelToView", camera->ViewData().transform );
     prog->LoadInt( "sampler", 0 );
     prog->Bind();
@@ -71,20 +81,21 @@ void TTextureTest::Load( void )
         smooth in vec2 frag_TexCoords;
 
         uniform vec4 imageTransform;
+        uniform vec2 imageScaleRatio;
         uniform sampler2D sampler;
 
         out vec4 out_Color;
 
         void main(void)
-        {
-            vec2 st = frag_TexCoords * imageTransform.zw + imageTransform.xy;
+        { 
+            vec2 st = frag_TexCoords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 
             out_Color = texture( sampler, st );
         }
     )";
 
     prog.reset( new Program( vertex, fragment,
-        { "modelToView", "viewToClip", "imageTransform", "sampler" },
+        { "modelToView", "viewToClip", "imageTransform", "imageScaleRatio", "sampler" },
         { "position", "tex0" },
             false ) );
 
@@ -126,7 +137,7 @@ void TTextureTest::Load( void )
 
     std::vector< std::string > imagePaths =
     {
-       // "asset/random/image/01.jpg",
+        "asset/random/image/01.png",
         "asset/random/image/02.png",
         "asset/random/image/03.png",
         "asset/random/image/04.png"
@@ -143,7 +154,8 @@ void TTextureTest::Load( void )
     }
 
     texture = GMakeTexture( imageInfo, 0 );
-    imageTransform = GTextureImageDimensions( texture, 2 );
+    currImage = GTextureImage( texture, 3 );
+    invRowPitch = GTextureInverseRowPitch( texture );
 }
 
 void TTextureTest::OnKeyPress( int key, int scancode, int action, int mods )
