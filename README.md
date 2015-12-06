@@ -1,21 +1,16 @@
 bspviewer
 =========
 
-Pretty simple: just view a BSP map. This is really more of a project for educational purposes than anything else.
+Pretty simple: just view a BSP map. This is really more of a project for educational/portfolio purposes than anything else.
+
+It's a fun thing: despite Quake III's file format being written circa 1999, and therefore being extremely old, a lot of techniques with respect to computer graphics and optimization can be harnessed through a project like this.
 
 Current Focuses:
 
+- WebGL support
+    * This is at the top of the list, because it's much easier to show something off via the web.
 - Vertex deformation (effect shader)
 - Texcoord mod functions (effect shader)
-- Refactoring (need to do)
-
-### Disclaimer 
-
-I'm not gonna lie: this code is actually pretty bad in terms of structure and consistency. Right now, it's all hackity hack hack in the sense that I'm doing things like leaving unused code lying around and just commenting random blocks or throwing ifdefs in the source wild-west style. 
-
-Don't get me wrong: the solutions/algorithms used are fine (so far). It's just ugly as hell. I ~~plan to~~ will clean things up ~~eventually~~ soon though. 
-
-(time is currently very limited, so prioritization is on getting shit done in the realm of making things work)
 
 ##Credits
 
