@@ -68,7 +68,7 @@ gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertice
 
     gVertexBufferHandle_t handle =
     {
-        .id = ( uint32_t ) gVertexBufferMap.size()
+		( uint32_t ) gVertexBufferMap.size()
     };
 
     gVertexBufferMap.push_back( std::move( vertexBufferPointer_t( buffer ) ) );

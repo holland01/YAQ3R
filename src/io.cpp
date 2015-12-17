@@ -3,6 +3,13 @@
 #include "gldebug.h"
 #include "extern/stb_image.c"
 
+#ifdef _WIN32
+#	define OS_PATH_SEPARATOR '\\'
+#else
+#	define OS_PATH_SEPARATOR '/'
+#endif
+
+
 FILE* gDrawLog = NULL;
 FILE* gBspDataLog = NULL;
 
@@ -216,38 +223,70 @@ namespace {
 }
 #endif // __linux__
 
-void File_IterateDirTree( const std::string& directory, fileSystemTraversalFn_t callback )
+bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 {
+	size_t location = path.find_last_of(OS_PATH_SEPARATOR);
+
+	if (location == std::string::npos)
+	{
 #ifdef _WIN32
-#error "you need to do for the Win32 API what you did for the Linux API"
+		location = path.find_last_of('/');
+		if (location != std::string::npos)
+		{
+			outSlash = path[location];
+			return location != path.length() - 1;
+		}
+#endif
+		outSlash = OS_PATH_SEPARATOR;
+		return false;
+	}
+
+	outSlash = path[location];
+	return location != path.length() - 1;
+}
+
+static INLINE bool QueryCaller( const std::string& path, fileSystemTraversalFn_t callback )
+{
+	fileStat_t fs;
+	fs.filepath = path;
+	return callback( fs );
+}
+
+void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback )
+{
+	
+#ifdef _WIN32
     // Find shader files
     WIN32_FIND_DATAA findFileData;
     HANDLE file;
 
-    file = FindFirstFileA( ( shaderRootDir + "*.shader" ).c_str(), &findFileData );
+	char slash;
+	if ( NeedsTrailingSlash( directory, slash ) )
+		directory.append(1, slash);
+
+    file = FindFirstFileA( ( directory + "*" ).c_str(), &findFileData );
     int success = file != INVALID_HANDLE_VALUE;
 
     while ( success )
     {
-        ParseShader( effectShaders, loadFlags, shaderRootDir + std::string( findFileData.cFileName ) );
-        success = FindNextFileA( file, &findFileData );
+		if ( !QueryCaller( directory + std::string( findFileData.cFileName ), callback ) )
+			break;
+        
+		success = FindNextFileA( file, &findFileData );
     }
 #elif defined( __linux__ )
 
-    fileStat_t fs;
     gLinuxCallback = [ & ]( const char* fpath, const struct stat* sb, int typeFlag ) -> int
     {
         UNUSED( sb );
         UNUSED( typeFlag );
 
-        fs.filepath = std::string( fpath );
+        // Finished?
+        if ( !QueryCaller( std::string( fpath ), callback ) )
+            return 1;
 
-        // Keep going?
-        if ( callback( fs ) )
-            return 0;
-
-        // Nope, we're finished
-        return 1;
+        // Nope, keep going
+        return 0;
     };
 
 

@@ -73,7 +73,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32; _CRT_SECURE_NO_WARNINGS; NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(GL_UTIL_LIB_ROOT)/glew-msvc/include;$(GL_UTIL_LIB_ROOT)/glm/;$(GL_UTIL_LIB_ROOT)/glfw3/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(GL_UTIL_LIB_ROOT)/glew-msvc/include;$(GL_UTIL_LIB_ROOT)/glm/;$(GL_UTIL_LIB_ROOT)/glfw3/include;$(ProjectDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -116,9 +116,12 @@
     <ClCompile Include="..\..\src\q3bsp.cpp" />
     <ClCompile Include="..\..\src\bsp_data.cpp" />
     <ClCompile Include="..\..\src\renderer.cpp" />
+    <ClCompile Include="..\..\src\renderer\buffer.cpp" />
+    <ClCompile Include="..\..\src\renderer\texture.cpp" />
     <ClCompile Include="..\..\src\render_data.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
+    <ClCompile Include="..\..\src\tests\test_textures.cpp" />
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
     <None Include="..\..\src\model.frag" />
     <None Include="..\..\src\model.vert" />
@@ -144,9 +147,13 @@
     <ClInclude Include="..\..\src\q3bsp.h" />
     <ClInclude Include="..\..\src\bsp_data.h" />
     <ClInclude Include="..\..\src\renderer.h" />
+    <ClInclude Include="..\..\src\renderer\buffer.h" />
+    <ClInclude Include="..\..\src\renderer\renderer_local.h" />
+    <ClInclude Include="..\..\src\renderer\texture.h" />
     <ClInclude Include="..\..\src\render_data.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\tests\test.h" />
+    <ClInclude Include="..\..\src\tests\test_textures.h" />
     <ClInclude Include="..\..\src\tests\trenderer.h" />
   </ItemGroup>
   <ItemGroup>

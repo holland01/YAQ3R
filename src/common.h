@@ -39,7 +39,9 @@
 #include <utility>
 #include <stack>
 
-//#define GLM_FORCE_RADIANS
+#ifdef _WIN32
+#	define GLM_FORCE_RADIANS 1
+#endif
 
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>

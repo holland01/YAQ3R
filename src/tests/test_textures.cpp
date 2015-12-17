@@ -99,7 +99,7 @@ void TTextureTest::Load( void )
         { "position", "tex0" },
             false ) );
 
-    camera->SetPerspective( 45.0f, this->width, this->height, 0.01f, 10000.0f );
+    camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 0.01f, 10000.0f );
 
     prog->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 

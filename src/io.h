@@ -30,7 +30,13 @@ struct fileStat_t
 // A return value of true means "keep iterating, unless we're at the end"; false will terminate the iteration
 using fileSystemTraversalFn_t = std::function< bool( const fileStat_t& stat ) >;
 
-void File_IterateDirTree( const std::string& directory, fileSystemTraversalFn_t callback );
+void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
+
+// Returns true if a trailing slash is needed in the path, otherwise false.
+// Either way, the default OS_PATH_SEPARATOR is thrown in outSlash,
+// or an alternative separator if the string already contains it (i.e., we're on Windows and 
+// the path isn't using back slashes...)
+bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__
@@ -61,6 +67,16 @@ void File_IterateDirTree( const std::string& directory, fileSystemTraversalFn_t 
 			puts("=======================");                    \
 		}                                                       \
 		while( 0 )
+
+#	define MLOG_WARNING_SANS_FUNCNAME( title, args... )                              \
+		do                                                      \
+		{                                                       \
+			puts("======== WARNING ========");                  \
+			MyPrintf( ( title ), args );                 \
+			puts("=======================");                    \
+		}                                                       \
+		while( 0 )
+
 
 #	define MLOG_ASSERT( condition, args... )    \
 		do                                      \

@@ -17,8 +17,6 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t*
 
 #define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 
-#define MLOG_WARNING_SANS_FUNCNAME( title, message ) ( MyPrintf( "WARNING", "[%s]:\n%s", title, message ) )
-
 std::map< std::string, stageEvalFunc_t > stageReadFuncs = 
 {
 	{

@@ -125,10 +125,10 @@ gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint
             maxDims.y = img.height;
     });
 
-    maxDims.x = int32_t( glm::pow( 2, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
-    maxDims.y = int32_t( glm::pow( 2, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
+    maxDims.x = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
+    maxDims.y = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
 
-    uint32_t closeSquare = uint32_t( glm::pow( 2, glm::ceil( glm::log2( ( float )images.size() ) ) ) );
+    uint32_t closeSquare = uint32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float )images.size() ) ) ) );
     uint32_t arrayDims = 2;
 
     while ( arrayDims * arrayDims < closeSquare )
@@ -147,7 +147,7 @@ gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint
 
     gTextureHandle_t handle =
     {
-        .id = ( uint32_t ) gTextureMap.size()
+        ( uint32_t ) gTextureMap.size()
     };
 
     gTextureMap.push_back( std::move( texturePointer_t( texture ) ) );
