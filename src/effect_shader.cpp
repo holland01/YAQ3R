@@ -688,7 +688,12 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, 
         const shaderStage_t& stage, const char* discardPredicate )
 	{
-		const std::string sampleTextureExpr( "texture( sampler0, vec3( st * bias.xy, bias.z ) )" );
+		std::string sampleTextureExpr;
+		
+		if (stage.mapType == MAP_TYPE_IMAGE) 
+			sampleTextureExpr = "texture( sampler0, mod( st, vec2( 1.0 ) ) * imageTransform.zw * imageScaleRatio + imageTransform.xy )";
+		else
+			sampleTextureExpr = "texture( sampler0, vec3( st * bias.xy, bias.z ) )";
 
         // Some shader entries will incorporate specific alpha values
 		if ( stage.alphaGen != 0.0f )
@@ -766,7 +771,19 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			shaderStage_t& stage = shader.stageBuffer[ j ];
 
 			// Uniform variable names
-			std::vector< std::string > uniforms = { "sampler0", "bias" };
+			std::vector< std::string > uniforms = { "sampler0" };
+
+			if ( stage.mapType == MAP_TYPE_IMAGE )
+			{
+				uniforms.push_back( "imageTransform" );
+				uniforms.push_back( "imageScaleRatio" );
+				//uniforms.insert( uniforms.end(), { "imageTransform", "imageScaleRatio" } );
+			}
+			else
+			{
+				uniforms.push_back( "bias" );
+			}
+			
 			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
 
 			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
@@ -846,13 +863,38 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
 				"const float gamma = 1.0 / 3.0;",
-				"uniform sampler2DArray sampler0;",
-				"uniform vec3 bias;",
+				//"uniform sampler2DArray sampler0;",
+				//"uniform sampler2D sampler0;",
+				//"uniform vec4 imageTransform;",
+				//"uniform vec2 imageScaleRatio;",
+				//"uniform vec3 bias;",
 				"out vec4 fragment;",
 				"void main(void) {"
 			};
 
             const size_t fragGlobalDeclOffset = 4;
+
+			if ( stage.mapType == MAP_TYPE_IMAGE )
+			{
+				std::initializer_list<std::string> data  =
+				{
+					"uniform sampler2D sampler0;",
+					"uniform vec4 imageTransform;",
+					"uniform vec2 imageScaleRatio;" 
+				};
+
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
+			}
+			else
+			{
+				std::initializer_list<std::string> data =
+				{
+					"uniform sampler2DArray sampler0;",
+					"uniform vec3 bias;"
+				};
+
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
+			}
 
             /*if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
@@ -952,11 +994,32 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 	{
         gImageParams_t img;
 
+		// If a texture atlas is being used as a substitute for a texture array,
+		// this won't matter.
         img.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP? GL_CLAMP_TO_EDGE : GL_REPEAT;
-        img.mipmap = false; //!!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
+		//img.wrap = GL_CLAMP_TO_EDGE;
+		img.mipmap = false; //!!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
-        texFileRoot.append( std::string( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) ) );
+		std::string texRelativePath( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) );
+        texFileRoot.append( texRelativePath );
+
+		std::string targetName( texRelativePath.substr( 0, texRelativePath.find_last_of( '.' ) ) );
+
+		/*
+		// Find texture index from path; we use this to index into an atlas
+		// during the render loop
+		for ( int tex = 0; tex < map->numTextures; ++tex )
+		{
+			std::string texName( map->textures[ tex ].name );
+
+			if ( texName.find( targetName ) != std::string::npos )
+			{
+				img.key = stage.textureIndex = tex;
+				break;
+			}
+		}
+		*/
 
         // If it's a tga file and we fail, then chances are there is a jpeg duplicate
         // of it that we can fall back on

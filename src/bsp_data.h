@@ -174,7 +174,7 @@ struct bspFace_t
     glm::vec3 lightmapStVecs[ 2 ]; // world space s/t unit vectors
     glm::vec3 normal;
 
-    int     size[ 2 ];
+    int size[ 2 ];
 };
 
 struct bspLightmap_t

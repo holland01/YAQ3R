@@ -12,6 +12,8 @@ struct gSampler_t
     GLuint handle = 0;
 };
 
+using imageSlotKeyMap_t = std::unordered_map< uint32_t, gTextureImage_t* >;
+
 struct gTexture_t
 {
     bool srgb = false;
@@ -28,6 +30,8 @@ struct gTexture_t
     std::string name;
 
     std::vector< gTextureImage_t > texCoordSlots;
+
+	imageSlotKeyMap_t keyedSlots; 
 
     glm::vec2 invRowPitch;
 
@@ -98,6 +102,9 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
         tt->texCoordSlots[ slot ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
         tt->texCoordSlots[ slot ].imageScaleRatio = glm::vec2( ( float ) images[ x ].width * invSlotWidth,
                                                 ( float ) images[ x ].height * invSlotHeight );
+
+		if ( images[ x ].key != G_UNSPECIFIED )
+			tt->keyedSlots.insert( imageSlotKeyMap_t::value_type( images[ x ].key, &tt->texCoordSlots[ slot ] ) );
 
         if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
             y++;
@@ -189,6 +196,15 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
     assert( slot < t->texCoordSlots.size() );
 
     return t->texCoordSlots[ slot ];
+}
+
+const gTextureImage_t& GTextureImageByKey( const gTextureHandle_t& handle, uint32_t key )
+{
+	assert( handle.id < gTextureMap.size() );
+
+	const gTexture_t* t = gTextureMap[ handle.id ].get();
+
+	return *( t->keyedSlots.at( key ) );
 }
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )

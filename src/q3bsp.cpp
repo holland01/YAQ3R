@@ -180,8 +180,8 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
     data.models = ( bspModel_t* )( data.buffer + data.header->directories[ BSP_LUMP_MODELS ].offset );
 	data.numModels = data.header->directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
 
-    data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
 	data.numFaces = data.header->directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
+    data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
 
     data.leafFaces = ( bspLeafFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_FACES ].offset );
 	data.numLeafFaces = data.header->directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
@@ -231,7 +231,7 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
         ScaleCoords( data.nodes[ i ].boxMin, scale );
 
         SwizzleCoords( data.nodes[ i ].boxMax );
-        SwizzleCoords( data. nodes[ i ].boxMin );
+        SwizzleCoords( data.nodes[ i ].boxMin );
     }
 
     for ( int i = 0; i < data.numLeaves; ++i )
@@ -259,6 +259,23 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
         SwizzleCoords( data.vertexes[ i ].position );
         SwizzleCoords( data.vertexes[ i ].normal );
+
+
+		/*
+		glm::vec2& st = data.vertexes[ i ].texCoords[ 0 ];
+
+		if (st.x > 1.0f)
+		{
+			float dummy;
+			st.x = glm::modf(st.x, dummy);
+		}
+
+		if (st.y > 1.0f)
+		{
+			float dummy;
+			st.y = glm::modf(st.y, dummy);
+		}
+		*/
     }
 
     for ( int i = 0; i < data.numModels; ++i )
@@ -284,20 +301,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
         ScaleCoords( face.lightmapOrigin, ( float ) scale );
         ScaleCoords( face.lightmapStVecs[ 0 ], ( float ) scale );
         ScaleCoords( face.lightmapStVecs[ 1 ], ( float ) scale );
-
-        /*
-        for ( uint32_t v = 0; v < face.numMeshVertexes; ++v )
-        {
-            bspVertex_t& vertex = data.vertexes[ face.vertexOffset + data.meshVertexes[ face.meshVertexOffset + v ].offset ];
-            LOffsetLMCoords( face, vertex );
-        }
-
-        for ( uint32_t v = 0; v < face.numVertexes; ++v )
-        {
-            bspVertex_t& vertex = data.vertexes[ face.vertexOffset + v ];
-            LOffsetLMCoords( face, vertex );
-        }
-        */
 
         SwizzleCoords( face.normal );
         SwizzleCoords( face.lightmapOrigin );

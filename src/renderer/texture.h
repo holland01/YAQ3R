@@ -4,6 +4,7 @@
 #include "renderer_local.h"
 
 #define TEXNAME_CHAR_LIMIT 64
+#define G_UNSPECIFIED 0xFFFFFFFF
 
 #ifdef GL_ES
 #   define G_INTERNAL_RGBA_FORMAT GL_RGBA
@@ -29,6 +30,7 @@ struct gTextureHandle_t
 
 struct gImageParams_t
 {
+	uint32_t key = G_UNSPECIFIED; 
     bool mipmap = false;
     int32_t width = 0;
     int32_t height = 0;
@@ -61,6 +63,8 @@ void GBindTexture( const gTextureHandle_t& handle );
 void GReleaseTexture( const gTextureHandle_t& handle );
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
+
+const gTextureImage_t& GTextureImageByKey( const gTextureHandle_t& handle, uint32_t key );
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 

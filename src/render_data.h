@@ -254,7 +254,6 @@ static INLINE bool operator == ( const bspVertex_t&a, const bspVertex_t& b )
 }
 
 
-//-------------------------------------------------------------------------------
 
 
 

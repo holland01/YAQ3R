@@ -372,7 +372,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	
     GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
 
-    //GMakeTexture( shaderTextures, 0 );
+    theTexture = GMakeTexture( shaderTextures, 0 );
 
     LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
 
@@ -887,10 +887,26 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 
 		glm::vec2 texDims( 0 );
 		
-		if ( stage.mapType == MAP_TYPE_IMAGE )
+		bool usingAtlas = stage.mapType == MAP_TYPE_IMAGE;
+
+		if ( usingAtlas )
 		{
-			EffectPassTexFromArray( texDims, 
-				stage.textureIndex, *( glShaderArray.get() ), stageProg );
+			//EffectPassTexFromArray( texDims, 
+			//	stage.textureIndex, *( glShaderArray.get() ), stageProg );
+		
+			const gTextureImage_t& texParams = GTextureImage( theTexture, stage.textureIndex );
+			glm::vec2 invRowPitch( GTextureInverseRowPitch( theTexture ) );
+
+			glm::vec4 transform;
+			transform.x = texParams.stOffsetStart.s;
+			transform.y = texParams.stOffsetStart.t;
+			transform.z = invRowPitch.x;
+			transform.w = invRowPitch.y;
+
+			GBindTexture( theTexture );
+			stageProg.LoadInt( "sampler0", 0 );
+			stageProg.LoadVec4( "imageTransform", transform );
+			stageProg.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
 		}
 		else
 		{
@@ -917,6 +933,9 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 		stageProg.Bind();
         callback( std::get< 0 >( data ), stageProg, &stage );
 		stageProg.Release();
+
+		if ( usingAtlas )
+			GReleaseTexture( theTexture );
 	}
 
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
@@ -997,7 +1016,7 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 		if ( surf.shader )
 		{
             drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
-            DrawEffectPass( tuple, LEffectCallback );
+			DrawEffectPass( tuple, LEffectCallback );	
 		}
 		else
 		{

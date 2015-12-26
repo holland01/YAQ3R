@@ -3,7 +3,7 @@
 #include "math_util.h"
 
 static const float MOUSE_SENSE = 0.1f;
-static const float DEF_MOVE_STEP_SPEED = 1.0f;
+static const float DEF_MOVE_STEP_SPEED = 10.0f;
 
 enum
 {

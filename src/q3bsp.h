@@ -31,7 +31,8 @@ struct mapData_t
 	bspModel_t*         models;
  	
 	bspEffect_t*		effectShaders;
-    bspFace_t*          faces;
+    
+	bspFace_t*			faces;
 	
     bspMeshVertex_t*    meshVertexes;
 

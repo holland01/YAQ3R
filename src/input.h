@@ -79,7 +79,7 @@ public:
     const   viewParams_t& ViewData( void ) const;
 	viewParams_t& ViewDataMut( void );
 
-	static viewParams_t CalcViewData(  );
+	static viewParams_t CalcViewData( void );
 
 	friend class Test;
 };

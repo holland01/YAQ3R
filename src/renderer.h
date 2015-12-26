@@ -172,6 +172,8 @@ private:
 									  glLightmapArray,
 									  glShaderArray;
 
+	gTextureHandle_t				theTexture;
+
     gImageParams_t					glDummyTexture;
 
 	std::array< glm::vec2, GLConfig::MAX_MIP_LEVELS > glDummyBiases;
