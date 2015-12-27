@@ -169,28 +169,29 @@ struct bspVertex_t
 
 static INLINE glm::u8vec4 BlendColor( const glm::u8vec4& a, const glm::u8vec4& b )
 {
-    /*
+    
     float aaNorm = a[ 3 ] * INVERSE_255;
-    float alpha = aaNorm + b[ 3 ] * INVERSE_255 * ( 1.0f - aaNorm );
+    float alpha = aaNorm + b[ 3 ] * ( 1.0f - aaNorm );
     float inverseAlpha = 1.0f / alpha;
 
     glm::vec3 anorm( glm::vec3( a ) * INVERSE_255 );
     glm::vec3 bnorm( glm::vec3( b ) * INVERSE_255 );
 
     glm::vec3 rgb( ( anorm * aaNorm + bnorm * ( 1.0f - aaNorm ) ) * inverseAlpha );
-    */
+   
 
+	/*
     glm::vec4 x( glm::vec4( a ) * INVERSE_255 );
     glm::vec4 y( glm::vec4( b ) * INVERSE_255 );
     glm::vec4 rgb( x * y );
-
+	*/
     glm::u8vec4 ret;
 
     ret.r = ( uint8_t )( rgb.r * 255.0f );
     ret.g = ( uint8_t )( rgb.g * 255.0f );
     ret.b = ( uint8_t )( rgb.b * 255.0f );
-    ret.a = ( uint8_t )( rgb.a * 255.0f );
-
+    ret.a = ( uint8_t )( alpha * 255.0f );
+	
     return ret;
 }
 
@@ -199,7 +200,8 @@ static INLINE bspVertex_t operator +( const bspVertex_t& a, const bspVertex_t& b
     bspVertex_t vert;
 
     vert.position = a.position + b.position;
-    vert.color = BlendColor( a.color, b.color );
+	vert.color = a.color;
+   // vert.color = BlendColor( a.color, b.color );
     vert.normal = a.normal + b.normal;
     vert.texCoords[ 0 ] = a.texCoords[ 0 ] + b.texCoords[ 0 ];
     vert.texCoords[ 1 ] = a.texCoords[ 1 ] + b.texCoords[ 1 ];
@@ -212,7 +214,8 @@ static INLINE bspVertex_t operator -( const bspVertex_t& a, const bspVertex_t& b
     bspVertex_t vert;
 
     vert.position = a.position - b.position;
-    vert.color = BlendColor( b.color, a.color );
+	vert.color = a.color;
+    //vert.color = BlendColor( b.color, a.color );
     vert.normal = a.normal - b.normal;
     vert.texCoords[ 0 ] = a.texCoords[ 0 ] - b.texCoords[ 0 ];
     vert.texCoords[ 1 ] = a.texCoords[ 1 ] - b.texCoords[ 1 ];
@@ -240,6 +243,7 @@ static INLINE bspVertex_t& operator += ( bspVertex_t& a, const bspVertex_t& b )
     a.normal += b.normal;
     a.texCoords[ 0 ] += b.texCoords[ 0 ];
     a.texCoords[ 1 ] += b.texCoords[ 1 ];
+	//a.color = BlendColor(a.color, b.color);
 
     return a;
 }

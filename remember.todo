@@ -7,7 +7,10 @@
 
 	* This ties in with the environment maps; either way, you should redesign your draw surfaces to be matched by surfacenormal in addition to the other parameters
 	they employ; this will allow for more flexibility, the caching and performance benefits will be retained, and you'll have a better working environment map.
-	
+	(NOTE: bsp vertices do have normals - you should definitely stop passing in face surface normals and pass the normals in as vertex attributes.
+	You'll need to switch layouts obviously each time this is done, but if it works then it works).
+
+
 	* Break up the code in renderer.cpp into separately organized modules: the class is becoming disgustingly big, and there's a lot of "dead code"
 	in there which shouldn't be used.
 		- Be sure to take into account the fact that you'll need to sort 
@@ -35,6 +38,26 @@
 	In addition, it's clear that the faces which are rendered through bezier patches are also fairly messed up as far as their texture coordinates
 	are concerned. This may be partially due to the modding (for the patch faces which are dealt with via effect shader) as well, but it's also
 	possible there's a miscomputation being performed in one of the bspVertex_t operator overloads.
+
+		Update (1:12 PM, 12/27): Modding in the shader is the way to go for repeated textures, and clamping the coordinates at their respective
+		locations is also the way to go for clamped textures. However, there is a strange effect which is resulting from clamped textures.
+		The decals (clamped textures) themselves in the current map being tested (Railgun_Arena) *will* produce the proper
+		image, with the exception that every mapped pair of triangles will result in a white section being rendered in the upper right
+		corner (maybe other areas as well?). This is definitely not due to any tcMods: one area in which this is prevelant is in aecell_decal_spawn1,
+		which has none of these. 
+		
+		Considering that using applyTransform(vec2(1.0)) produces the correct ending coordinate within the atlas, it's clear that something
+		else is amiss. Color blending is most likely not the problem, considering that everything works fine using texture arrays.
+		
+		The source of the issue may be due to interaction with the lightmaps, or an incorrect sampler being bound at the time of the draw call.
+		The sampler simply may be improperly constructed, or it may just be the wrong one period. Verify that, when binding the sampler,
+		the correct index is used.
+		
+		Also, something which needs to be done is to rewrite GBindTexture so it has this signature:
+			void GBindTexture(handle, sampler = G_UNSPECIFIED)
+
+		in the implementation, if sampler != G_UNSPECIFIED, then it should be bound.
+
 - Models
 
 - Lightvols

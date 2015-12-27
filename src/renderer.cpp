@@ -845,7 +845,6 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
         GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
 }
 
-
 static INLINE void EffectPassTexFromArray( glm::vec2& dims, 
 	int32_t index, const textureArray_t& texArray, const Program& program )
 {
@@ -866,6 +865,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 {
     const shaderInfo_t* shader = std::get< 1 >( data );
     int lightmapIndex = std::get< 3 >( data );
+
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
 
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
@@ -894,6 +895,9 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 			//EffectPassTexFromArray( texDims, 
 			//	stage.textureIndex, *( glShaderArray.get() ), stageProg );
 		
+			if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+				__nop();
+
 			const gTextureImage_t& texParams = GTextureImage( theTexture, stage.textureIndex );
 			glm::vec2 invRowPitch( GTextureInverseRowPitch( theTexture ) );
 
@@ -907,6 +911,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 			stageProg.LoadInt( "sampler0", 0 );
 			stageProg.LoadVec4( "imageTransform", transform );
 			stageProg.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
+
+			int32_t textureIndex = std::get< 2 >( data );
+
+			GL_CHECK( glBindSampler( 0, glShaderArray->samplers[ textureIndex ] ) );
+
 		}
 		else
 		{

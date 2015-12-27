@@ -29,10 +29,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -72,10 +76,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -117,11 +125,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -163,11 +175,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -209,11 +225,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -255,11 +275,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -301,11 +325,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -347,11 +375,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -393,11 +425,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -439,11 +475,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -485,11 +525,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -531,11 +575,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -577,11 +625,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -619,10 +671,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -660,10 +716,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -743,10 +803,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -786,10 +850,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -834,10 +902,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -878,11 +950,15 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 layout( depth_unchanged ) float gl_FragDepth;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	if ( color.a < 0.5 )
 	{
 		discard;
@@ -968,11 +1044,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1012,11 +1092,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1056,11 +1140,15 @@ uniform mat2 texRotate;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1180,10 +1268,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1221,10 +1313,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1304,10 +1400,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1345,10 +1445,14 @@ const float gamma = 1.0 / 3.0;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );
@@ -1391,6 +1495,9 @@ uniform mat2 tcModScale;
 uniform sampler2D sampler0;
 uniform vec4 imageTransform;
 uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
 out vec4 fragment;
 void main(void) {
 	vec2 st = frag_Tex;
@@ -1398,7 +1505,8 @@ void main(void) {
 	st *= tcModTurb;
 	st += tcModScroll.xy * tcModScroll.zw;
 	st = mod( st, 1.0 );
-	vec4 color = texture( sampler0, mod(st, vec2(1.0)) * imageTransform.zw * imageScaleRatio + imageTransform.xy ) * frag_Color;
+	st = applyTransform( mod( st, vec2( 1.0 ) ) );
+	vec4 color = texture( sampler0, st ) * frag_Color;
 	color.r = pow( color.r, gamma );
 	color.g = pow( color.g, gamma );
 	color.b = pow( color.b, gamma );

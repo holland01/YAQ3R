@@ -680,76 +680,70 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 	gLineCount = 0;
 }
 
-static void GenShaderPrograms( shaderMap_t& effectShaders )
+static inline void AddDiscardIf( std::vector< std::string >& fragmentSrc, const std::string& discardPredicate )
 {
-	// Print the generated shaders to a text file
-	FILE* f = fopen( "log/shader_gen.txt", "w" );
+	fragmentSrc.push_back( "\tif ( " + discardPredicate + " )" );
+	fragmentSrc.push_back( "\t{" );
+	fragmentSrc.push_back( "\t\tdiscard;" );
+	fragmentSrc.push_back( "\t}" );
+}
 
-	auto LWriteTexture = []( std::vector< std::string >& fragmentSrc, 
+static inline void WriteTexture( std::vector< std::string >& fragmentSrc, 
         const shaderStage_t& stage, const char* discardPredicate )
+{
+	std::string sampleTextureExpr;
+
+	if ( stage.mapType == MAP_TYPE_IMAGE ) 
 	{
-		std::string sampleTextureExpr;
-		
-		if (stage.mapType == MAP_TYPE_IMAGE) 
-			sampleTextureExpr = "texture( sampler0, mod( st, vec2( 1.0 ) ) * imageTransform.zw * imageScaleRatio + imageTransform.xy )";
+		if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+			fragmentSrc.push_back("\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );");
 		else
-			sampleTextureExpr = "texture( sampler0, vec3( st * bias.xy, bias.z ) )";
+			fragmentSrc.push_back("\tst = applyTransform( mod( st, vec2( 1.0 ) ) );");
 
-        // Some shader entries will incorporate specific alpha values
-		if ( stage.alphaGen != 0.0f )
-		{
-			fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
-			fragmentSrc.push_back( 
-				"\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
-		}
-		else
-		{
-			fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
-		}
-
-        // Is used occasionally, for example in situations like a bad alpha value.
-		if ( discardPredicate )
-		{
-			fragmentSrc.push_back( "\tif ( " + std::string( discardPredicate ) + " )" );
-			fragmentSrc.push_back( "\t{" );
-			fragmentSrc.push_back( "\t\tdiscard;" );
-			fragmentSrc.push_back( "\t}" );
-		}
-
-        // Gamma correction
-        fragmentSrc.insert( fragmentSrc.end(),
-        {
-            "\tcolor.r = pow( color.r, gamma );",
-            "\tcolor.g = pow( color.g, gamma );",
-            "\tcolor.b = pow( color.b, gamma );"
-        } );
-
-		
-		fragmentSrc.push_back( "\tfragment = color;" );
-	};
-
-    auto LJoinLines = []( std::vector< std::string >& lines, std::vector< std::string >& attribs ) -> std::string
+		sampleTextureExpr = "texture( sampler0, st )";
+	}
+	else
 	{
-		std::stringstream shaderSrc;
+		sampleTextureExpr = "texture( sampler0, vec3( st * bias.xy, bias.z ) )";
+	}
+    // Some shader entries will incorporate specific alpha values
+	if ( stage.alphaGen != 0.0f )
+	{
+		fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+		fragmentSrc.push_back( 
+			"\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
+	}
+	else
+	{
+		fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
+	}
 
-		for ( std::string& line: lines )
-			shaderSrc << line << '\n';
+	//if ( stage.mapCmd == MAP_CMD_CLAMPMAP && stage.alphaFunc != ALPHA_FUNC_GTHAN_0 )
+		//AddDiscardIf( fragmentSrc, "color.a == 0.0" ); 
 
-		// Append the end bracket for the main function
-		shaderSrc << '}';
+    // Is used occasionally, for example in situations like a bad alpha value.
+	if ( discardPredicate )
+		AddDiscardIf( fragmentSrc, std::string( discardPredicate ) );
 
-		return shaderSrc.str();
-	};
+    // Gamma correction
+    fragmentSrc.insert( fragmentSrc.end(),
+    {
+        "\tcolor.r = pow( color.r, gamma );",
+        "\tcolor.g = pow( color.g, gamma );",
+        "\tcolor.b = pow( color.b, gamma );"
+    } );
 
-    // Quick subroutine enabling the calculation of environment map;
-    // uses a simple form of displacement mapping to achieve desired results.
-    auto LAddCalcEnvmap = []( std::vector< std::string >& destGLSL,
+	fragmentSrc.push_back( "\tfragment = color;" );
+}
+
+ // Quick subroutine enabling the calculation of environment map;
+// uses a simple form of displacement mapping to achieve desired results.
+static void AddCalcEnvMap( std::vector< std::string >& destGLSL,
                                const std::string& vertexID,
                                const std::string& normalID,
                                const std::string& eyeID )
-    {
-
-        destGLSL.insert( destGLSL.end(),
+{
+	destGLSL.insert( destGLSL.end(),
         {
             "\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
             "\tvec3 R = normalize( 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye );",
@@ -758,7 +752,25 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
             "\tst.s -= displace.x;",
             "\tst.t += displace.y;"
         } );
-    };
+}
+
+static inline std::string JoinLines( std::vector< std::string >& lines, std::vector< std::string >& attribs )
+{
+	std::stringstream shaderSrc;
+
+	for ( std::string& line: lines )
+		shaderSrc << line << '\n';
+
+	// Append the end bracket for the main function
+	shaderSrc << '}';
+
+	return shaderSrc.str();
+}
+
+static void GenShaderPrograms( shaderMap_t& effectShaders )
+{
+	// Print the generated shaders to a text file
+	FILE* f = fopen( "log/shader_gen.txt", "w" );
 
 	// Convert each effect stage to its GLSL equivalent
 	for ( auto& entry: effectShaders )
@@ -777,7 +789,6 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			{
 				uniforms.push_back( "imageTransform" );
 				uniforms.push_back( "imageScaleRatio" );
-				//uniforms.insert( uniforms.end(), { "imageTransform", "imageScaleRatio" } );
 			}
 			else
 			{
@@ -838,7 +849,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
                 */
 
-                LAddCalcEnvmap( vertexSrc, "position", "surfaceNormal", "vec3( -modelToView[ 3 ] )" );
+                AddCalcEnvMap( vertexSrc, "position", "surfaceNormal", "vec3( -modelToView[ 3 ] )" );
                 vertexSrc.push_back( "frag_Tex = st;" );
             }
             else
@@ -880,7 +891,10 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				{
 					"uniform sampler2D sampler0;",
 					"uniform vec4 imageTransform;",
-					"uniform vec2 imageScaleRatio;" 
+					"uniform vec2 imageScaleRatio;",
+					"vec2 applyTransform(in vec2 coords) {",
+					"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
+					"}"
 				};
 
 				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
@@ -958,21 +972,21 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			switch ( stage.alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-                LWriteTexture( fragmentSrc, stage, NULL );
+                WriteTexture( fragmentSrc, stage, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-                LWriteTexture( fragmentSrc, stage, "color.a < 0.5" );
+                WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-                LWriteTexture( fragmentSrc, stage, "color.a == 0" );
+                WriteTexture( fragmentSrc, stage, "color.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-                LWriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
+                WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
 				break;
 			}
 
-            const std::string& vertexString = LJoinLines( vertexSrc, attribs );
-            const std::string& fragmentString = LJoinLines( fragmentSrc, attribs );
+            const std::string& vertexString = JoinLines( vertexSrc, attribs );
+            const std::string& fragmentString = JoinLines( fragmentSrc, attribs );
 
 			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 			
