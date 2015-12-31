@@ -820,7 +820,7 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 		surf.faceType = face->type;
 
 		AddSurfaceData( surf, faceIndex, glFaces );
-		surfList.push_back( std::move( surf ) ); 
+		surfList.push_back( surf ); 
 	}
 }
 
@@ -891,11 +891,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 		bool usingAtlas = stage.mapType == MAP_TYPE_IMAGE;
 
 		if ( usingAtlas )
-		{
-			//EffectPassTexFromArray( texDims, 
-			//	stage.textureIndex, *( glShaderArray.get() ), stageProg );
-		
-			if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+		{		
+			if ( stage.textureIndex < 0 )
 				__nop();
 
 			const gTextureImage_t& texParams = GTextureImage( theTexture, stage.textureIndex );
@@ -907,15 +904,13 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 			transform.z = invRowPitch.x;
 			transform.w = invRowPitch.y;
 
+			GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+			GL_CHECK( glBindSampler( 0, glShaderArray->samplers[ stage.textureIndex ] ) );
+
 			GBindTexture( theTexture );
 			stageProg.LoadInt( "sampler0", 0 );
 			stageProg.LoadVec4( "imageTransform", transform );
 			stageProg.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
-
-			int32_t textureIndex = std::get< 2 >( data );
-
-			GL_CHECK( glBindSampler( 0, glShaderArray->samplers[ textureIndex ] ) );
-
 		}
 		else
 		{

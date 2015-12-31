@@ -64,11 +64,13 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
            canvasParams.format,
            GL_UNSIGNED_BYTE, nullptr ) );
 
+	/*
     GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
     GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
 
     GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
     GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+	*/
 
     const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
     const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );

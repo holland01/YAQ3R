@@ -327,6 +327,8 @@ textureArray_t::~textureArray_t( void )
 {
 	GL_CHECK( glDeleteTextures( 1, &handle ) );
 	GL_CHECK( glDeleteSamplers( samplers.size(), &samplers[ 0 ] ) );
+	samplers.clear();
+	handle = 0;
 }
 
 void textureArray_t::LoadSlice( GLuint sampler, const glm::ivec3& dims, const std::vector< uint8_t >& buffer, bool genMipMaps )

@@ -1010,8 +1010,8 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 
 		// If a texture atlas is being used as a substitute for a texture array,
 		// this won't matter.
-        img.wrap = stage.mapCmd == MAP_CMD_CLAMPMAP? GL_CLAMP_TO_EDGE : GL_REPEAT;
-		//img.wrap = GL_CLAMP_TO_EDGE;
+       
+		img.wrap = GL_CLAMP_TO_EDGE;
 		img.mipmap = false; //!!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
@@ -1019,21 +1019,6 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
         texFileRoot.append( texRelativePath );
 
 		std::string targetName( texRelativePath.substr( 0, texRelativePath.find_last_of( '.' ) ) );
-
-		/*
-		// Find texture index from path; we use this to index into an atlas
-		// during the render loop
-		for ( int tex = 0; tex < map->numTextures; ++tex )
-		{
-			std::string texName( map->textures[ tex ].name );
-
-			if ( texName.find( targetName ) != std::string::npos )
-			{
-				img.key = stage.textureIndex = tex;
-				break;
-			}
-		}
-		*/
 
         // If it's a tga file and we fail, then chances are there is a jpeg duplicate
         // of it that we can fall back on
@@ -1046,6 +1031,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 				texFileRoot.replace( index, 4, ".jpg" );
                 if ( !GLoadImageFromFile( texFileRoot, img ) )
 				{
+					// If we fail second try, turn it into a dummy
 					MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
                     GSetImageBuffer( img, 64, 64, 4, 255 );
 				}

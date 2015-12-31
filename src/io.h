@@ -46,6 +46,10 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 #	define _LINE_NUM_ __LINE__
 #endif
 
+// TODO: rewrite this so all log handlers call into this function; MLOG_ERROR would pass false to condition, where as
+// any other default would be "true". MLOG_ASSERT would pass strictly the condition specified by its caller, of course.
+//void MLogError( bool condition, const char* filename, int32_t line, const char* funcname, ... );
+
 #define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
 
 #ifdef __GNUC__
@@ -89,7 +93,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 		while( 0 )
 
 #elif defined( _MSC_VER )
-
 #	define MLOG_ERROR( ... )                                \
 		do                                                      \
 		{                                                       \
@@ -128,6 +131,7 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 		}                                       \
 		while( 0 )
 #endif // __GNUC__
+
 
 template < typename T >
 INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
