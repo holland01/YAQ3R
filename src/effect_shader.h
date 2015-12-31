@@ -192,9 +192,14 @@ struct shaderStage_t
 
     float						alphaGen = 0.0f; // if 0, assume an alpha value of 1
 
-    std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath = {{ 0 }}; // path to the texture image, if we have one
+    std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath; // path to the texture image, if we have one
 
     std::shared_ptr< Program >	program; // handle to our generated program
+
+    shaderStage_t( void )
+    {
+        texturePath.fill( 0 );
+    }
 };
 
 struct shaderInfo_t
@@ -219,9 +224,14 @@ struct shaderInfo_t
 
     float				surfaceLight = 0.0f; // 0 if no light
 
-    std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > name = {{ 0 }};
+    std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > name;
 	
     std::vector< shaderStage_t > stageBuffer;
+
+    shaderInfo_t( void )
+    {
+        name.fill( 0 );
+    }
 };
 
 using shaderMap_t = std::map< std::string, shaderInfo_t >;

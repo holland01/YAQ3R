@@ -58,7 +58,7 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
         MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc, glFunc, line, error, errorString );
         FlagExit();
     }
-}
+}   
 
 void LogBSPData( int type, void* data, int length )
 {

@@ -5,6 +5,7 @@
 #include "effect_shader.h"
 #include "deform.h"
 #include <glm/gtx/string_cast.hpp>
+#include <fstream>
 
 struct config_t
 {
@@ -21,6 +22,67 @@ static config_t config =
 	false,
     false
 };
+
+static uint32_t writeCount = 0;
+
+static std::unique_ptr< std::fstream > logger( new std::fstream( "log/renderer.log", std::ios_base::out | std::ios_base::trunc ) );
+
+
+static void WriteLog( std::stringstream& out )
+{
+    if ( writeCount++ < 30 )
+    {
+        *logger << out.rdbuf();
+    }
+}
+
+void drawSurface_t::WriteIndexBuffers( std::stringstream& stream,
+                                       const gTextureHandle_t& texHandle,
+                                       const gTextureImage_t& texParams,
+                                       const std::string& title,
+                                       const mapData_t& data ) const
+{
+
+
+    const glm::vec2& invRowPitch = GTextureInverseRowPitch( texHandle );
+
+    auto transform = [ &texParams, &invRowPitch ]( const glm::vec2& coords ) -> glm::vec2
+    {
+        return coords * invRowPitch * texParams.imageScaleRatio + texParams.stOffsetStart;
+    };
+
+    auto clamp = [ &transform, &texParams ]( const glm::vec2& coords, float x ) -> glm::vec2
+    {
+        return glm::clamp( transform( coords ), texParams.stOffsetStart, transform( glm::vec2( x ) ) );
+    };
+
+    stream << "[ " << title << " ] { \n";
+
+    for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
+    {
+        stream << "\t[ Index Buffer " << i << " ] {\n";
+
+        for ( uint32_t j = 0; j < indexBufferSizes[ i ]; ++j )
+        {
+            bspVertex_t* v = data.vertexes + indexBuffers[ i ][ j ];
+
+            stream  << "\t\t[ " << j << " ] {\n"
+                    << "\t\t\t[ position ] " << glm::to_string( v->position ) << "\n"
+                    << "\t\t\t[ normal ] " << glm::to_string( v->normal ) << "\n"
+                    << "\t\t\t[ texcoords: image ] " << glm::to_string( v->texCoords[ 0 ] ) << "\n"
+                    << "\t\t\t[ texcoords: clamp( image 1 ) ] " << glm::to_string( clamp( v->texCoords[ 0 ], 1.0f ) ) << "\n"
+                    << "\t\t\t[ texcoords: clamp( image 0.99 ) ] " << glm::to_string( clamp( v->texCoords[ 1 ], 0.99f ) ) << "\n"
+                    << "\t\t\t[ color ] " << glm::to_string( v->color ) << "\n"
+                    << "\t\t}\n\n";
+
+        }
+
+        stream << "\t}\n\n";
+    }
+
+    stream << " } \n";
+}
+
 
 static uint64_t frameCount = 0;
 
@@ -108,7 +170,7 @@ drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData
 
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
-	:	glEffects( {
+    :   glEffects( {
 			{ 
 				"tcModTurb", 
 				[]( const Program& p, const effect_t& e ) -> void
@@ -285,6 +347,9 @@ void BSPRenderer::Prep( void )
 
 		MakeProg( "debug", "src/debug.vert", "src/debug.frag", { "fragColor" }, { "position" }, true );
 	}
+
+    if ( !*( logger ) )
+        MLOG_ERROR( "Could not initialize renderer logger." );
 }
 
 bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
@@ -447,8 +512,8 @@ FAIL_WARN:
 	{	
         GSetImageBuffer( glLightmaps[ l ], BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 4, 255 );
 		
-        Pixels_24BitTo32Bit( &glLightmaps[ l ].data[ 0 ],
-			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
+        Pixels_To32Bit( &glLightmaps[ l ].data[ 0 ],
+            &map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
 		glLightmaps[ l ].wrap = GL_REPEAT;
         glLightmaps[ l ].minFilter = GL_LINEAR; //GL_LINEAR_MIPMAP_LINEAR;
@@ -831,6 +896,35 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
         DeformVertexes( glFaces[ i ], surf.shader );
     }
 
+    if ( stage && stage->mapCmd == MAP_CMD_CLAMPMAP )
+    {
+        const gTextureImage_t& img = GTextureImage( theTexture, stage->textureIndex );
+
+        uint32_t i = 0;
+        for ( char c: stage->texturePath )
+        {
+            i++;
+
+            if ( c == 0 )
+                break;
+        }
+
+        std::string texPath( stage->texturePath.begin(), stage->texturePath.begin() + i );
+
+        std::stringstream sstream;
+        sstream << "SURFACE INFO ENTRY BEGIN \n"
+                << "=================================================================\n"
+                << "[ MATERIAL IMAGE SLOT: " << texPath << " ] {\n"
+                << "\t[ begin ] " << glm::to_string( img.stOffsetStart ) << "\n"
+                << "\t[ end   ] " << glm::to_string( img.stOffsetEnd ) << "\n"
+                << "\t[ dims ] " << glm::to_string( img.dims ) << "\n"
+                << "}\n\n";
+
+        surf.WriteIndexBuffers( sstream, theTexture, img, "Index Buffers for Surface Using " + texPath, map->data );
+
+        WriteLog( sstream );
+    }
+
     if ( stage && stage->tcgen == TCGEN_ENVIRONMENT )
     {
         glm::vec3 n( map->data.faces[ surf.faceIndices[ 0 ] ].normal );
@@ -892,8 +986,18 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, BSPRenderer::drawCall
 
 		if ( usingAtlas )
 		{		
-			if ( stage.textureIndex < 0 )
-				__nop();
+            glm::vec4 color( 0.0f, 0.0f, 0.0f, 1.0f );
+
+            if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+                color.r = 1.0f;
+            else
+                color.b = 1.0f;
+
+            const Program& dbg = *( glPrograms["debug"] );
+            dbg.LoadVec4( "fragColor", color );
+            dbg.Bind();
+            callback( std::get< 0 >( data ), dbg, nullptr );
+            dbg.Release();
 
 			const gTextureImage_t& texParams = GTextureImage( theTexture, stage.textureIndex );
 			glm::vec2 invRowPitch( GTextureInverseRowPitch( theTexture ) );

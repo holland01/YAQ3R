@@ -106,5 +106,7 @@ SOURCES += \
     src/renderer/buffer.cpp
 
 DISTFILES += \
-    remember.todo
+    remember.todo \
+    src/debug.frag \
+    src/debug.vert
 

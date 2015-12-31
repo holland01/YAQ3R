@@ -57,20 +57,16 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
     GL_CHECK( glGenTextures( 1, &tt->handle ) );
     GL_CHECK( glBindTexture( tt->target, tt->handle ) );
 
-    GL_CHECK( glTexImage2D( tt->target, 0, canvasParams.internalFormat,
-           canvasParams.width,
-           canvasParams.height,
-           0,
-           canvasParams.format,
-           GL_UNSIGNED_BYTE, nullptr ) );
+    {
+        std::vector< uint8_t > tmp( canvasParams.width * canvasParams.height * G_INTERNAL_BPP, 0 );
 
-	/*
-    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
-    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
-
-    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-    GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
-	*/
+        GL_CHECK( glTexImage2D( tt->target, 0, canvasParams.internalFormat,
+               canvasParams.width,
+               canvasParams.height,
+               0,
+               canvasParams.format,
+               GL_UNSIGNED_BYTE, &tmp[ 0 ] ) );
+    }
 
     const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
     const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
@@ -102,8 +98,9 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
 
         tt->texCoordSlots[ slot ].stOffsetStart = glm::vec2( fxStart, fyStart );
         tt->texCoordSlots[ slot ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
-        tt->texCoordSlots[ slot ].imageScaleRatio = glm::vec2( ( float ) images[ x ].width * invSlotWidth,
-                                                ( float ) images[ x ].height * invSlotHeight );
+        tt->texCoordSlots[ slot ].imageScaleRatio =
+                glm::vec2( ( float ) images[ x ].width * invSlotWidth, ( float ) images[ x ].height * invSlotHeight );
+        tt->texCoordSlots[ slot ].dims = glm::vec2( ( float ) images[ x ].width, ( float ) images[ x ].height );
 
 		if ( images[ x ].key != G_UNSPECIFIED )
 			tt->keyedSlots.insert( imageSlotKeyMap_t::value_type( images[ x ].key, &tt->texCoordSlots[ slot ] ) );
@@ -234,11 +231,11 @@ bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
     if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
         goto error;
 
-    if ( bpp == 3 )
+    if ( bpp != G_INTERNAL_BPP )
     {
-        image.data.resize( width * height * 4, 255 );
-        Pixels_24BitTo32Bit( &image.data[ 0 ], &tmp[ 0 ], width * height );
-        bpp = 4;
+        image.data.resize( width * height * G_INTERNAL_BPP, 255 );
+        Pixels_To32Bit( &image.data[ 0 ], &tmp[ 0 ], ( uint8_t ) bpp, width * height );
+        bpp = G_INTERNAL_BPP;
     }
     else
     {

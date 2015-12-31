@@ -29,34 +29,26 @@
 	* There's a weird bug which causes strange color flashes, when the faces are rendered separately (i.e., without the draw surfaces). My guess is
 	this is likely to do with the texture arrays (are they being unbound after the draw is made?), but I'm not sure.
 
-	* On the Texture Atlas: simply modf'ing the bsp vertex texture coords doesn't appear to be the solution. It's likely
-	that there will be many different vertices which will have the same world space position, albeit with different texture coords. 
-	This may mean that the most effective means of achieving compatibility with a texture atlas will involve actually
-	using the faces themselves as a guide for achieving proper texture coordinates. This is because one vertex will likely
-	be a vertex for 2 or more adjacent faces.
+    * For the texture atlas, the issue appears to be that images with dimensions that are the same size as the actual image slot
+    can overlap into adjacent images through a clamp or a modf, with 1.0 as the denominator. In other words, one image's beginning
+    ST coordinate is another image's ending ST slot - in the diagonal sense (however, this could also refer to adjacent images on
+    a purely horizontal or vertical level). Passing in a mod value of 0.99 prevents the overlap from occurring. However, this really
+    shouldn't be done, because it's clear that this isn't the complete solution. We need to come up with a workaround for this.
 
-	In addition, it's clear that the faces which are rendered through bezier patches are also fairly messed up as far as their texture coordinates
-	are concerned. This may be partially due to the modding (for the patch faces which are dealt with via effect shader) as well, but it's also
-	possible there's a miscomputation being performed in one of the bspVertex_t operator overloads.
+    I see a few approaches:
+        * Add a small amount of padding in each slot, which prevents this from happening (maybe 1 pixel thick).
+            You'd want it so that any image (which has dimensions equal to the slot's dimensions) won't
+            be in conflict or overlap when an st coordinate of (1.0, 1.0) (from the vertex buffer, before transformation)
+            is modded against the delimiter of (1.0, 1.0) - thus obviously producing zero. The border (which will also
+            have a 0 for its alpha channel) will be landed on instead, preventing any issues.
 
-		Update (1:12 PM, 12/27): Modding in the shader is the way to go for repeated textures, and clamping the coordinates at their respective
-		locations is also the way to go for clamped textures. However, there is a strange effect which is resulting from clamped textures.
-		The decals (clamped textures) themselves in the current map being tested (Railgun_Arena) *will* produce the proper
-		image, with the exception that every mapped pair of triangles will result in a white section being rendered in the upper right
-		corner (maybe other areas as well?). This is definitely not due to any tcMods: one area in which this is prevelant is in aecell_decal_spawn1,
-		which has none of these. 
-		
-		Considering that using applyTransform(vec2(1.0)) produces the correct ending coordinate within the atlas, it's clear that something
-		else is amiss. Color blending is most likely not the problem, considering that everything works fine using texture arrays.
-		
-		The source of the issue may be due to interaction with the lightmaps, or an incorrect sampler being bound at the time of the draw call.
-		The sampler simply may be improperly constructed, or it may just be the wrong one period. Verify that, when binding the sampler,
-		the correct index is used.
-		
-		Also, something which needs to be done is to rewrite GBindTexture so it has this signature:
-			void GBindTexture(handle, sampler = G_UNSPECIFIED)
+        * Just check for max image size: images with sizes equal to the slot can be modded/clamped against vec2(0.99, 0.99) and
+        other images can be modded/clamped against vec2(1.0, 1.0)
 
-		in the implementation, if sampler != G_UNSPECIFIED, then it should be bound.
+        So far, the second one is obviously simpler, and may be OK to work with for now. However, it should be noted that
+        it's very possible using 0.99 with the max-sized images will cause us to lose significant portions of their content...
+
+        so... ¯\_(ツ)_/¯ ; the first approach is probably A) the most interesting to study, and B) the most sensible...
 
 - Models
 

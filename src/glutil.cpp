@@ -2,6 +2,7 @@
 #include "q3bsp.h"
 #include "shader.h"
 #include "aabb.h"
+#include "renderer/texture.h"
 #include <algorithm>
 
 static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions = 
@@ -188,11 +189,11 @@ bool texture_t::LoadFromFile( const char* texPath, uint32_t loadFlags )
 	std::vector< uint8_t > tmp;
 	File_GetPixels( texPath, tmp, bpp, width, height );
 
-	if ( bpp == 3 )
+    if ( bpp != G_INTERNAL_BPP )
 	{
-		pixels.resize( width * height * 4, 255 ); 
-		Pixels_24BitTo32Bit( &pixels[ 0 ], &tmp[ 0 ], width * height );
-		bpp = 4;
+        pixels.resize( width * height * G_INTERNAL_BPP, 255 );
+        Pixels_To32Bit( &pixels[ 0 ], &tmp[ 0 ], bpp, width * height );
+        bpp = G_INTERNAL_BPP;
 	}
 	else
 	{

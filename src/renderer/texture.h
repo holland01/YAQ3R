@@ -5,6 +5,7 @@
 
 #define TEXNAME_CHAR_LIMIT 64
 #define G_UNSPECIFIED 0xFFFFFFFF
+#define G_INTERNAL_BPP 4 // Just to let everyone know we only care really about RGBA... (most of the time)
 
 #ifdef GL_ES
 #   define G_INTERNAL_RGBA_FORMAT GL_RGBA
@@ -48,6 +49,7 @@ struct gTextureImage_t
     glm::vec2 stOffsetStart;
     glm::vec2 stOffsetEnd;
     glm::vec2 imageScaleRatio;
+    glm::vec2 dims;
 };
 
 gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint32_t flags );

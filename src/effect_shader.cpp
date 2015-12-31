@@ -696,22 +696,22 @@ static inline void WriteTexture( std::vector< std::string >& fragmentSrc,
 	if ( stage.mapType == MAP_TYPE_IMAGE ) 
 	{
 		if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
-			fragmentSrc.push_back("\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 1.0 ) ) );");
+            fragmentSrc.push_back("\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );");
 		else
-			fragmentSrc.push_back("\tst = applyTransform( mod( st, vec2( 1.0 ) ) );");
+            fragmentSrc.push_back("\tst = applyTransform( mod( st, vec2( 0.99 ) ) );");
 
-		sampleTextureExpr = "texture( sampler0, st )";
+        sampleTextureExpr = "texture( sampler0, st )";
 	}
 	else
 	{
-		sampleTextureExpr = "texture( sampler0, vec3( st * bias.xy, bias.z ) )";
-	}
+        sampleTextureExpr = "texture( sampler0, vec3( st * bias.xy, bias.z ) )";
+    }
+
     // Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
 	{
-		fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
-		fragmentSrc.push_back( 
-			"\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
+        fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+		fragmentSrc.push_back( "\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
 	}
 	else
 	{
@@ -893,7 +893,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 					"uniform vec4 imageTransform;",
 					"uniform vec2 imageScaleRatio;",
 					"vec2 applyTransform(in vec2 coords) {",
-					"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
+                    "\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
 					"}"
 				};
 
@@ -1017,8 +1017,6 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 		std::string texFileRoot( map->basePath );
 		std::string texRelativePath( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) );
         texFileRoot.append( texRelativePath );
-
-		std::string targetName( texRelativePath.substr( 0, texRelativePath.find_last_of( '.' ) ) );
 
         // If it's a tga file and we fail, then chances are there is a jpeg duplicate
         // of it that we can fall back on

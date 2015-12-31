@@ -38,6 +38,7 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 // the path isn't using back slashes...)
 bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
+
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__
 #	define _LINE_NUM_ __LINE__
@@ -132,7 +133,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 		while( 0 )
 #endif // __GNUC__
 
-
 template < typename T >
 INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 {
@@ -167,12 +167,26 @@ static INLINE size_t File_GetExt( std::string& outExt, const std::string& filena
 bool File_GetPixels( const std::string& filepath, 
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );
 
-INLINE void Pixels_24BitTo32Bit( uint8_t* destination, const uint8_t* source, int32_t length )
+/// Convert a buffer with an arbitrary bytes per pixel into an RGBA equivalent
+/// buffer. Any  RGB channels NOT included in the source pixel format are zerod out,
+/// while the alpha level is left untouched.
+static INLINE void Pixels_To32Bit( uint8_t* destination,
+                                   const uint8_t* source,
+                                   uint8_t sourceBPP,
+                                   int32_t numPixels )
 {
-	for ( int32_t i = 0; i < length; ++i )
+    for ( int32_t i = 0; i < numPixels; ++i )
 	{
+        for ( uint8_t k = 0; k < sourceBPP; ++k )
+            destination[ i * 4 + k ] = source[ i * sourceBPP + k ];
+
+        for ( uint8_t k = sourceBPP; k < 3; ++k )
+            destination[ i * 4 + k ] = 0;
+
+        /*
 		destination[ i * 4 + 0 ] = source[ i * 3 + 0 ];
 		destination[ i * 4 + 1 ] = source[ i * 3 + 1 ];
 		destination[ i * 4 + 2 ] = source[ i * 3 + 2 ];
-	}
+        */
+    }
 }

@@ -99,6 +99,12 @@ struct drawSurface_t
 					faceType( 0 ),
 					shader( nullptr )
 			{}
+
+    void WriteIndexBuffers( std::stringstream& stream,
+                            const gTextureHandle_t& texHandle,
+                            const gTextureImage_t& texParams,
+                            const std::string& title,
+                            const mapData_t& data ) const;
 };
 
 struct drawSurfaceList_t
