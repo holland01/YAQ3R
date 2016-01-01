@@ -122,7 +122,7 @@ void LogWriteIndexBuffers( std::stringstream& stream,
     {
         stream << "\t[ Index Buffer " << i << " ] {\n";
 
-        for ( uint32_t j = 0; j < surf.indexBufferSizes[ i ]; ++j )
+        for ( int32_t j = 0; j < surf.indexBufferSizes[ i ]; ++j )
         {
             bspVertex_t* v = data.vertexes + surf.indexBuffers[ i ][ j ];
 
@@ -132,7 +132,8 @@ void LogWriteIndexBuffers( std::stringstream& stream,
                     << "\t\t\t[ texcoords: image ] " << glm::to_string( v->texCoords[ 0 ] ) << "\n"
                     << "\t\t\t[ texcoords: clamp( image 1 ) ] " << glm::to_string( clamp( v->texCoords[ 0 ], 1.0f ) ) << "\n"
                     << "\t\t\t[ texcoords: clamp( image 0.99 ) ] " << glm::to_string( clamp( v->texCoords[ 1 ], 0.99f ) ) << "\n"
-                    << "\t\t\t[ color ] " << glm::to_string( v->color ) << "\n"
+					// Not available for version of GLM used on Windows; should probably upgrade...
+                    //<< "\t\t\t[ color ] " << glm::to_string( v->color ) << "\n"
                     << "\t\t}\n\n";
 
         }

@@ -45,7 +45,7 @@
 // (the following NDEBUG check is more or less for clarity - i.e.,
 // DON'T use NDEBUG to verify that a debug build is being used)
 
-#ifdef MSVC_VER
+#ifdef _MSC_VER
 #	define GLM_FORCE_RADIANS 1
 #   ifndef NDEBUG
 #       define DEBUG 1
