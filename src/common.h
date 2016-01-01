@@ -15,7 +15,7 @@
 #endif
 
 #ifdef __linux__
-#include <ftw.h>
+#   include <ftw.h>
 #endif
 
 #include "global.h"
@@ -39,9 +39,18 @@
 #include <utility>
 #include <stack>
 
-#ifdef _WIN32
+// If there's no native handler definition
+// which causes DEBUG to be defined for debug builds,
+// we define it through the build system directly.
+// (the following NDEBUG check is more or less for clarity - i.e.,
+// DON'T use NDEBUG to verify that a debug build is being used)
+
+#ifdef MSVC_VER
 #	define GLM_FORCE_RADIANS 1
-#endif
+#   ifndef NDEBUG
+#       define DEBUG 1
+#   endif // NDEBUG
+#endif // _WIN32
 
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>

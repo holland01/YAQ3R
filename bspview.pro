@@ -10,6 +10,7 @@ QMAKE_CXXFLAGS += \
 -Wno-sign-compare
 
 debug {
+   DEFINES += DEBUG
    QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-multi-line-comment
    QMAKE_CXXFLAGS += -O0
 }
@@ -28,7 +29,6 @@ HEADERS += \
     src/global.h \
     src/gldebug.h \
     src/tests/trenderer.h \
-    src/def.h \
     src/math_util.h \
     src/mtrand.h \
     src/input.h \

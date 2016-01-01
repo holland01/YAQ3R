@@ -78,6 +78,8 @@ struct mapModel_t
 	void								CalcBounds( int32_t faceType, const mapData_t& data );
 };
 
+using drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
+
 struct drawSurface_t
 {
 	// Every face within a given surface must
@@ -99,12 +101,6 @@ struct drawSurface_t
 					faceType( 0 ),
 					shader( nullptr )
 			{}
-
-    void WriteIndexBuffers( std::stringstream& stream,
-                            const gTextureHandle_t& texHandle,
-                            const gTextureImage_t& texParams,
-                            const std::string& title,
-                            const mapData_t& data ) const;
 };
 
 struct drawSurfaceList_t
@@ -201,8 +197,6 @@ private:
     float               deltaTime;
 
 	double				frameTime;
-
-    using               drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
 
 	void				LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
                             std::vector< gImageParams_t >& textures, int32_t width, int32_t height );

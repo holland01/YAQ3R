@@ -2,6 +2,9 @@
 #include "q3bsp.h"
 #include "gldebug.h"
 #include "extern/stb_image.c"
+#include "renderer.h"
+#include "effect_shader.h"
+#include <glm/gtx/string_cast.hpp>
 
 #ifdef _WIN32
 #	define OS_PATH_SEPARATOR '\\'
@@ -59,6 +62,86 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
         FlagExit();
     }
 }   
+
+void LogWriteAtlasTexture( std::stringstream& sstream,
+                           const drawSurface_t& surf,
+                           const gTextureHandle_t& texHandle,
+                           const shaderStage_t* stage,
+                           const mapData_t& data )
+{
+    if ( !stage || stage->textureIndex < 0 )
+        return;
+
+    const gTextureImage_t& img = GTextureImage( texHandle, stage->textureIndex );
+
+    uint32_t i = 0;
+    for ( char c: stage->texturePath )
+    {
+        i++;
+
+        if ( c == 0 )
+            break;
+    }
+
+    std::string texPath( stage->texturePath.begin(), stage->texturePath.begin() + i );
+
+    sstream << "SURFACE INFO ENTRY BEGIN \n"
+            << "=================================================================\n"
+            << "[ MATERIAL IMAGE SLOT: " << texPath << " ] {\n"
+            << "\t[ begin ] " << glm::to_string( img.stOffsetStart ) << "\n"
+            << "\t[ end   ] " << glm::to_string( img.stOffsetEnd ) << "\n"
+            << "\t[ dims ] " << glm::to_string( img.dims ) << "\n"
+            << "}\n\n";
+
+    LogWriteIndexBuffers( sstream, surf, texHandle, img, "Index Buffers for Surface Using " + texPath, data );
+
+}
+
+void LogWriteIndexBuffers( std::stringstream& stream,
+                           const drawSurface_t& surf,
+                           const gTextureHandle_t& texHandle,
+                           const gTextureImage_t& texParams,
+                           const std::string& title,
+                           const mapData_t& data )
+{
+    const glm::vec2& invRowPitch = GTextureInverseRowPitch( texHandle );
+
+    auto transform = [ &texParams, &invRowPitch ]( const glm::vec2& coords ) -> glm::vec2
+    {
+        return coords * invRowPitch * texParams.imageScaleRatio + texParams.stOffsetStart;
+    };
+
+    auto clamp = [ &transform, &texParams ]( const glm::vec2& coords, float x ) -> glm::vec2
+    {
+        return glm::clamp( transform( coords ), texParams.stOffsetStart, transform( glm::vec2( x ) ) );
+    };
+
+    stream << "[ " << title << " ] { \n";
+
+    for ( uint32_t i = 0; i < surf.indexBuffers.size(); ++i )
+    {
+        stream << "\t[ Index Buffer " << i << " ] {\n";
+
+        for ( uint32_t j = 0; j < surf.indexBufferSizes[ i ]; ++j )
+        {
+            bspVertex_t* v = data.vertexes + surf.indexBuffers[ i ][ j ];
+
+            stream  << "\t\t[ " << j << " ] {\n"
+                    << "\t\t\t[ position ] " << glm::to_string( v->position ) << "\n"
+                    << "\t\t\t[ normal ] " << glm::to_string( v->normal ) << "\n"
+                    << "\t\t\t[ texcoords: image ] " << glm::to_string( v->texCoords[ 0 ] ) << "\n"
+                    << "\t\t\t[ texcoords: clamp( image 1 ) ] " << glm::to_string( clamp( v->texCoords[ 0 ], 1.0f ) ) << "\n"
+                    << "\t\t\t[ texcoords: clamp( image 0.99 ) ] " << glm::to_string( clamp( v->texCoords[ 1 ], 0.99f ) ) << "\n"
+                    << "\t\t\t[ color ] " << glm::to_string( v->color ) << "\n"
+                    << "\t\t}\n\n";
+
+        }
+
+        stream << "\t}\n\n";
+    }
+
+    stream << " } \n";
+}
 
 void LogBSPData( int type, void* data, int length )
 {

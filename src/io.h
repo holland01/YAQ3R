@@ -7,6 +7,25 @@ struct bspFace_t;
 struct bspMeshVertex_t;
 class Q3BspMap;
 
+struct drawSurface_t;
+struct gTextureHandle_t;
+struct gTextureImage_t;
+struct mapData_t;
+struct shaderStage_t;
+
+void LogWriteAtlasTexture( std::stringstream& sstream,
+                           const drawSurface_t& surf,
+                           const gTextureHandle_t& texHandle,
+                           const shaderStage_t* stage,
+                           const mapData_t& data );
+
+void LogWriteIndexBuffers( std::stringstream& stream,
+                           const drawSurface_t& surf,
+                           const gTextureHandle_t& texHandle,
+                           const gTextureImage_t& texParams,
+                           const std::string& title,
+                           const mapData_t& data );
+
 void LogBSPData( int bspDataType, void* data, int length );
 
 void MyPrintf( const char* header, const char* fmt, ... );
