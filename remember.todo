@@ -10,6 +10,10 @@
 	(NOTE: bsp vertices do have normals - you should definitely stop passing in face surface normals and pass the normals in as vertex attributes.
 	You'll need to switch layouts obviously each time this is done, but if it works then it works).
 
+    On the environment map: it appears that the st coords which are generated using the displacement on the reflected vector's XZ plane
+    are actually producing the right values. HOWEVER, what also seems true is that something is rendering over it...which is either a) rendering
+    out of order, b) using a bad material, or c) a poor color blending value. Any of these might be possible...
+
 
 	* Break up the code in renderer.cpp into separately organized modules: the class is becoming disgustingly big, and there's a lot of "dead code"
 	in there which shouldn't be used.
