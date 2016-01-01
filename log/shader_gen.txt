@@ -878,13 +878,13 @@ layout( std140 ) uniform Transforms {
 	mat4 viewToClip;
 	mat4 modelToView;
 };
-uniform vec3 surfaceNormal;
+layout( location = 3 ) in vec3 normal;
 out vec2 frag_Tex;
 out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	vec3 dirToEye = normalize( vec3( -modelToView[ 3 ] ) - position );
-	vec3 R = normalize( 2.0 * surfaceNormal * dot( dirToEye, surfaceNormal ) - dirToEye );
+	vec3 R = normalize( 2.0 * normal * dot( dirToEye, normal ) - dirToEye );
 	vec2 displace = ( R.xz ) * 0.5;
 	vec2 st = vec2( 0.5 );
 	st.s -= displace.x;

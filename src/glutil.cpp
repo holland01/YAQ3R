@@ -535,16 +535,14 @@ void Program::LoadAttribLayout( void ) const
 	{
 		if ( attrib.second != -1 )
 		{
-			if ( !disableAttribs.empty() )
-			{
-                auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
 
-				if ( it != disableAttribs.end() )
-				{
-					GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
-					continue;
-				}
-			}
+            auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
+
+            if ( it != disableAttribs.end() )
+            {
+                GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
+                continue;
+            }
 			
 			attribLoadFunctions[ attrib.first ]( *this ); 
 		}

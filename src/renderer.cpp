@@ -892,12 +892,6 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
         WriteLog( sstream );
     }
 
-    if ( stage && stage->tcgen == TCGEN_ENVIRONMENT )
-    {
-        glm::vec3 n( map->data.faces[ surf.faceIndices[ 0 ] ].normal );
-        program.LoadVec3( "surfaceNormal", n );
-    }
-
     program.LoadAttribLayout();
 
     GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
@@ -1096,10 +1090,12 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 
 void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const
 {
+    /*
     if ( stage && stage->tcgen == TCGEN_ENVIRONMENT )
     {
         program.LoadVec3( "surfaceNormal", pass.face->normal );
     }
+    */
 
 	const mapModel_t& m = glFaces[ pass.faceIndex ];
 

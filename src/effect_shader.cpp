@@ -814,16 +814,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
             if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, "uniform vec3 surfaceNormal;" );
-
-                /*
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_WorldNormal;" );
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_WorldVertex;" );
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset + 2, "out vec3 frag_ViewOrigin;" );
-                */
-
-
-                uniforms.push_back( "surfaceNormal" );
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, "layout( location = 3 ) in vec3 normal;" );
+                attribs.push_back( "normal" );
             }
 
             vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset,
@@ -849,7 +841,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
                 */
 
-                AddCalcEnvMap( vertexSrc, "position", "surfaceNormal", "vec3( -modelToView[ 3 ] )" );
+                AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
                 vertexSrc.push_back( "frag_Tex = st;" );
             }
             else

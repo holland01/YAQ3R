@@ -33,6 +33,8 @@ glm::vec4 Frustum::CalcPlaneFromOrigin( const glm::vec4& position, const glm::ve
 #define F_CalcNormal( a, b ) ( glm::cross( a, b ) )
 void Frustum::Update( const viewParams_t& view, bool normalizeDistance )
 {
+    UNUSED( normalizeDistance );
+
 	float tanHalfFovy = glm::tan( view.fovy * 0.5f );
 	
 	// We compute the reference angle since we want to base the sin/cosine on the angle from the x-axis;
