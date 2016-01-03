@@ -376,8 +376,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
                 */
 
 				op.data.scale2D[ 0 ][ 0 ] = s;
-				op.data.scale2D[ 0 ][ 1 ] = s;
-				op.data.scale2D[ 1 ][ 0 ] = t;
+                op.data.scale2D[ 0 ][ 1 ] = 0.0f;
+
+                op.data.scale2D[ 1 ][ 0 ] = 0.0f;
 				op.data.scale2D[ 1 ][ 1 ] = t;
 
                 theStage.effects.push_back( op );
@@ -414,10 +415,11 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					
 				float angRad = glm::radians( ReadFloat( buffer ) );
 
-				op.data.rotation2D.transform[ 0 ][ 0 ] = glm::cos( angRad );
-				op.data.rotation2D.transform[ 0 ][ 1 ] =-glm::sin( angRad );
-				op.data.rotation2D.transform[ 1 ][ 0 ] = glm::sin( angRad );
-				op.data.rotation2D.transform[ 1 ][ 1 ] = glm::cos( angRad );
+                op.data.rotation2D.transform[ 0 ][ 0 ] =  glm::cos( angRad );
+                op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
+
+                op.data.rotation2D.transform[ 1 ][ 0 ] =  glm::sin( angRad );
+                op.data.rotation2D.transform[ 1 ][ 1 ] =  glm::cos( angRad );
 
                 theStage.effects.push_back( op );
 			}
@@ -746,11 +748,9 @@ static void AddCalcEnvMap( std::vector< std::string >& destGLSL,
 	destGLSL.insert( destGLSL.end(),
         {
             "\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
-            "\tvec3 R = normalize( 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye );",
-            "\tvec2 displace = ( R.xz ) * 0.5;",
-            "\tvec2 st = vec2( 0.5 );",
-            "\tst.s -= displace.x;",
-            "\tst.t += displace.y;"
+            "\tvec3 R = 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye;",
+            "\tvec2 displace = R.yz * 0.5;",
+            "\tvec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );"
         } );
 }
 
@@ -849,14 +849,18 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
                 vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
             }
 
-            if ( stage.rgbGen == RGBGEN_IDENTITY || stage.rgbGen == RGBGEN_IDENTITY_LIGHTING )
-			{ 
-				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
-			}
-			else
-			{
-				vertexSrc.push_back( "\tfrag_Color = color;" );
-			}
+            vertexSrc.push_back( "\tvec4 vColor;" );
+
+            if ( stage.rgbGen == RGBGEN_VERTEX )
+                vertexSrc.push_back( "\tvColor = color;" );
+            else
+                vertexSrc.push_back( "\tvColor = vec4( 1.0 );" );
+
+            if ( !!( shader.surfaceParms & SURFPARM_TRANS ) )
+                vertexSrc.push_back( "\tvColor.a = 0.1;" );
+
+            vertexSrc.push_back( "\tfrag_Color = vColor;" );
+
 
 			// Load fragment header;
 			// Unspecified alphaGen implies a default 1.0 alpha channel
@@ -865,7 +869,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				"#version 450",
 				"in vec2 frag_Tex;",
 				"in vec4 frag_Color;",
-				"const float gamma = 1.0 / 3.0;",
+                "const float gamma = 1.0 / 3.0;",
 				//"uniform sampler2DArray sampler0;",
 				//"uniform sampler2D sampler0;",
 				//"uniform vec4 imageTransform;",
@@ -1067,4 +1071,19 @@ glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& t
 	}
 
 	return maxDims;
+}
+
+bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1, const char* str2 )
+{
+    size_t min = glm::min( strlen( str2 ), str1.size() );
+
+    // str1 should have zeros if its char characters are less than SHADER_MAX_TOKEN_CHAR_LENGTH
+    if ( min != str1.size() && str1[ min ] != 0 )
+        return false;
+
+    for ( uint32_t i = 0; i < min; ++i )
+        if ( str2[ i ] != str1[ i ] )
+            return false;
+
+    return true;
 }

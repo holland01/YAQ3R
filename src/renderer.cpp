@@ -94,7 +94,7 @@ static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vect
 	}
 
 	if ( surf.shader 
-    && ( !!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) || surf.shader->deform ) )
+    && ( /*!!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) ||*/ surf.shader->deform ) )
 	{
 		surf.faceIndices.push_back( faceIndex );
 	}
@@ -269,8 +269,7 @@ void BSPRenderer::Prep( void )
 	
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
-
-	// Gen transforms UBO
+    // Gen transforms UBO
 	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferData( GL_UNIFORM_BUFFER, transformBlockSize, NULL, GL_STREAM_DRAW ) );
@@ -934,7 +933,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
     }
 
     for ( int32_t i = 0; i < shader->stageCount; ++i )
-	{	
+    {
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
 		const Program& stageProg = *( stage.program.get() );
 
@@ -1137,6 +1136,11 @@ void BSPRenderer::DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) 
 	ImDrawAxes( 100.0f );
 	
 	ImDrawBounds( glFaces[ faceIndex ].bounds, color );
+}
+
+void BSPRenderer::SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent )
+{
+
 }
 
 void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const

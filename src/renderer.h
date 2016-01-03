@@ -203,6 +203,8 @@ private:
 
 	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
 
+    void                SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent );
+
 	void				DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const;
 
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,

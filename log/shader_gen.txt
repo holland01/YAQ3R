@@ -17,7 +17,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -64,7 +67,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -111,7 +117,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -161,7 +170,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -211,7 +223,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -261,7 +276,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -311,7 +329,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -361,7 +382,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -411,7 +435,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -461,7 +488,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -511,7 +541,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -561,7 +594,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = color;
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -611,7 +647,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -659,7 +697,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -704,7 +744,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -749,7 +791,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = lightmap;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -791,7 +835,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -838,7 +884,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -884,13 +933,14 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	vec3 dirToEye = normalize( vec3( -modelToView[ 3 ] ) - position );
-	vec3 R = normalize( 2.0 * normal * dot( dirToEye, normal ) - dirToEye );
-	vec2 displace = ( R.xz ) * 0.5;
-	vec2 st = vec2( 0.5 );
-	st.s -= displace.x;
-	st.t += displace.y;
+	vec3 R = 2.0 * normal * dot( dirToEye, normal ) - dirToEye;
+	vec2 displace = R.yz * 0.5;
+	vec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );
 frag_Tex = st;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -937,7 +987,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -988,7 +1040,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = lightmap;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1030,7 +1084,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1078,7 +1135,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1126,7 +1186,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1174,7 +1237,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = lightmap;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1216,7 +1282,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = lightmap;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1256,7 +1324,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1301,7 +1371,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1348,7 +1420,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = lightmap;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1388,7 +1462,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = vec4( 1.0 );
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1433,7 +1509,9 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	frag_Color = vColor;
 } 
 
  Fragment 
@@ -1480,7 +1558,10 @@ out vec4 frag_Color;
 void main(void) {
 	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
 	frag_Tex = tex0;
-	frag_Color = color;
+	vec4 vColor;
+	vColor = vec4( 1.0 );
+	vColor.a = 0.1;
+	frag_Color = vColor;
 } 
 
  Fragment 

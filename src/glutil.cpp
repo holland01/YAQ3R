@@ -561,6 +561,61 @@ std::vector< std::string > Program::ArrayLocationNames( const std::string& name,
 	return names;
 }
 
+#ifdef GLES
+
+#define __LOAD_VEC( f, name ) for ( const auto& v: ( name ) ) GL_CHECK( ( f )( v.first, 1, glm::value_ptr( v.second ) ) )
+#define __LOAD_MAT( f, name ) for ( const auto& m: ( name ) ) GL_CHECK( ( f )( m.first, 1, GL_FALSE, glm::value_ptr( m.second ) ) )
+#define __LOAD_VEC_ARRAY( f, name ) for ( const auto& v: ( name ) ) GL_CHECK( ( f )( v.first, v.second.size(), &v.second[ 0 ][ 0 ] ) )
+#define __LOAD_SCALAR( f, name ) for ( auto i: ( name ) ) GL_CHECK( ( f )( i.first, i.second ) )
+
+void Program::Bind( void ) const
+{
+    GL_CHECK( glUseProgram( program ) );
+
+    __LOAD_VEC( glUniform2fv, vec2s );
+    __LOAD_VEC( glUniform3fv, vec3s );
+    __LOAD_VEC( glUniform4fv, vec4s );
+
+    __LOAD_MAT( glUniformMatrix2fv, mat2s );
+    __LOAD_MAT( glUniformMatrix3fv, mat3s );
+    __LOAD_MAT( glUniformMatrix4fv, mat4s );
+
+    __LOAD_VEC_ARRAY( glUniform2fv, vec2Array );
+    __LOAD_VEC_ARRAY( glUniform3fv, vec3Array );
+    __LOAD_VEC_ARRAY( glUniform4fv, vec4Array );
+
+    __LOAD_SCALAR( glUniform1i, ints );
+    __LOAD_SCALAR( glUniform1f, floats );
+}
+
+#undef __LOAD_VEC
+#undef __LOAD_MAT
+#undef __LOAD_VEC_ARRAY
+#undef __LOAD_SCALAR
+
+void Program::Release( void ) const
+{
+    GL_CHECK( glUseProgram( 0 ) );
+
+    vec2s.clear();
+    vec3s.clear();
+    vec4s.clear();
+
+    mat2s.clear();
+    mat3s.clear();
+    mat4s.clear();
+
+    vec2Array.clear();
+    vec3Array.clear();
+    vec4Array.clear();
+
+    ints.clear();
+    floats.clear();
+}
+
+
+#endif // GLES
+
 //-------------------------------------------------------------------------------------------------
 
 loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )

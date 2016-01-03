@@ -6,6 +6,7 @@
 #include "io.h"
 #include <array>
 #include <tuple>
+#include <unordered_map>
 
 #define UBO_TRANSFORMS_BLOCK_BINDING 0
 #define ATTRIB_OFFSET( type, member )( ( void* ) offsetof( type, member ) ) 
@@ -302,10 +303,37 @@ struct textureArray_t
 };
 
 //-------------------------------------------------------------------------------------------------
+
+
+
 class Program
 {
 private:
 	GLuint program;
+
+#ifdef GLES
+#   define DECL_SHADER_STORE( Type, name )\
+        using t_##name = std::unordered_map< GLint, Type >;\
+        mutable t_##name name
+
+
+    DECL_SHADER_STORE( glm::mat4, mat4s );
+    DECL_SHADER_STORE( glm::mat3, mat3s );
+    DECL_SHADER_STORE( glm::mat2, mat2s );
+
+    DECL_SHADER_STORE( glm::vec4, vec4s );
+    DECL_SHADER_STORE( glm::vec3, vec3s );
+    DECL_SHADER_STORE( glm::vec2, vec2s );
+
+    DECL_SHADER_STORE( std::vector< glm::vec2 >, vec2Array );
+    DECL_SHADER_STORE( std::vector< glm::vec3 >, vec3Array );
+    DECL_SHADER_STORE( std::vector< glm::vec4 >, vec4Array );
+
+    DECL_SHADER_STORE( float, floats );
+    DECL_SHADER_STORE( int, ints );
+
+#undef DECL_SHADER_STORE
+#endif
 
 	void GenData( const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
@@ -352,7 +380,8 @@ public:
 	void LoadVec4Array( const std::string& name, const float* v, int32_t num ) const;
 
 	void LoadInt( const std::string& name, int v ) const;
-	void LoadFloat( const std::string& name, float v ) const;
+
+    void LoadFloat( const std::string& name, float v ) const;
 
 	void Bind( void ) const;
 	void Release( void ) const;
@@ -369,6 +398,100 @@ INLINE void Program::AddAttrib( const std::string& name )
 {
 	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
 }
+
+#ifdef GLES
+
+template < typename vecType_t, uint32_t tupleSize >
+static INLINE typename std::vector< vecType_t > MakeVectorArray( const float* v, int32_t num )
+{
+    int32_t cnum = num;
+
+    std::vector< vecType_t > buf;
+    buf.resize( cnum );
+
+    // A memcpy is probably not very trustworthy, here...
+    for ( uint32_t i = 0; i < cnum; ++i )
+    {
+        for ( uint32_t k = 0; k < tupleSize; ++k )
+            buf[ i ][ k ] = v[ i * tupleSize + k ];
+    }
+
+    return std::move( buf );
+}
+
+INLINE void Program::LoadMat4( const std::string& name, const glm::mat4& t ) const
+{
+    mat4s.insert( t_mat4s::value_type( uniforms.at( name ), t ) );
+}
+
+INLINE void Program::LoadMat2( const std::string& name, const glm::mat2& t ) const
+{
+    mat2s.insert( t_mat2s::value_type( uniforms.at( name ), t ) );
+}
+
+INLINE void Program::LoadMat2( const std::string& name, const float* t ) const
+{
+    glm::mat2 m( t[ 0 ], t[ 1 ],
+                 t[ 2 ], t[ 3 ] );
+
+    mat2s.insert( t_mat2s::value_type( uniforms.at( name ), m ) );
+}
+
+INLINE void Program::LoadVec2( const std::string& name, const glm::vec2& v ) const
+{
+    vec2s.insert( t_vec2s::value_type( uniforms.at( name ), v ) );;
+}
+
+INLINE void Program::LoadVec2( const std::string& name, const float* v ) const
+{
+    glm::vec2 v0( v[ 0 ], v[ 1 ] );
+
+    vec2s.insert( t_vec2s::value_type( uniforms.at( name ), v0 ) );
+}
+
+INLINE void Program::LoadVec2Array( const std::string& name, const float* v, int32_t num ) const
+{
+    vec2Array.insert( t_vec2Array::value_type( uniforms.at( name ), std::move( MakeVectorArray< glm::vec2, 2 >( v, num ) ) ) );
+}
+
+INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const
+{
+    vec3s.insert( t_vec3s::value_type( uniforms.at( name ), v ) );
+}
+
+INLINE void Program::LoadVec3Array( const std::string& name, const float* v, int32_t num ) const
+{
+    vec3Array.insert( t_vec3Array::value_type( uniforms.at( name ), std::move( MakeVectorArray< glm::vec3, 3 >( v, num ) ) ) );
+}
+
+INLINE void Program::LoadVec4( const std::string& name, const glm::vec4& v ) const
+{
+    vec4s.insert( t_vec4s::value_type( uniforms.at( name ), v ) );
+}
+
+INLINE void Program::LoadVec4( const std::string& name, const float* v ) const
+{
+    glm::vec4 v0( v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
+
+    vec4s.insert( t_vec4s::value_type( uniforms.at( name ), v0 ) );
+}
+
+INLINE void Program::LoadVec4Array( const std::string& name, const float* v, int32_t num ) const
+{
+    vec4Array.insert( t_vec4Array::value_type( uniforms.at( name ), std::move( MakeVectorArray< glm::vec4, 4 >( v, num ) ) ) );
+}
+
+INLINE void Program::LoadInt( const std::string& name, int v ) const
+{
+    ints.insert( t_ints::value_type( uniforms.at( name ), v ) );
+}
+
+INLINE void Program::LoadFloat( const std::string& name, float f ) const
+{
+    floats.insert( t_floats::value_type( uniforms.at( name ), f ) );
+}
+
+#else
 
 INLINE void Program::LoadMat4( const std::string& name, const glm::mat4& t ) const
 {
@@ -445,6 +568,9 @@ INLINE void Program::Release( void ) const
 {
 	GL_CHECK( glUseProgram( 0 ) );
 }
+
+#endif // GLES
+
 //-------------------------------------------------------------------------------------------------
 struct loadBlend_t
 {

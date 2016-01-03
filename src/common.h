@@ -89,6 +89,8 @@ static void __nop( void )
 
 #define UNUSED( p ) ( void )p
 
+#define GLES
+
 typedef unsigned int uint;
 typedef unsigned char byte;
 

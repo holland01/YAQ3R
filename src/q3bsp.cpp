@@ -307,6 +307,9 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
         SwizzleCoords( face.lightmapStVecs[ 0 ] );
         SwizzleCoords( face.lightmapStVecs[ 1 ] );
     }
+
+    LogBSPData( BSP_LUMP_EFFECTS, ( void* ) ( data.effectShaders ), data.numEffectShaders );
+    LogBSPData( BSP_LUMP_ENTITIES, ( void *) ( data.entities.infoString ), -1 );
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

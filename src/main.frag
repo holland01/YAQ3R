@@ -8,7 +8,7 @@ uniform sampler2DArray fragSampler;
 uniform sampler2DArray fragLightmapSampler;
 uniform vec3 fragBiases[ 2 ];
 
-const float gamma = 1.0 / 2.2;
+const float gamma = 1.0 / 3.0;
 
 out vec4 fragment;
 
