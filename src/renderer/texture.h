@@ -60,9 +60,9 @@ bool GDetermineImageFormat( gImageParams_t& image );
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, int32_t bpp, uint8_t fillValue );
 
-void GBindTexture( const gTextureHandle_t& handle );
+void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
-void GReleaseTexture( const gTextureHandle_t& handle );
+void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
 

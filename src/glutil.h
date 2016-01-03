@@ -304,7 +304,17 @@ struct textureArray_t
 
 //-------------------------------------------------------------------------------------------------
 
+struct attribProfile_t
+{
+    std::string id;
 
+    GLuint location;
+    GLint tupleSize;
+    GLenum apiType;
+    GLboolean normalized = GL_FALSE;
+    GLsizei stride;
+    uintptr_t offset;
+};
 
 class Program
 {
@@ -337,13 +347,15 @@ private:
 
 	void GenData( const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
 
+    std::vector< attribProfile_t > altAttribProfiles;
+
 public:
 	std::map< std::string, GLint > uniforms; 
 	std::map< std::string, GLint > attribs;
 
 	std::vector< std::string > disableAttribs; // Cleared on each invocation of LoadAttribLayout
 
-	Program( const std::string& vertexShader, const std::string& fragmentShader );
+    Program( const std::string& vertexShader, const std::string& fragmentShader, const std::vector< std::string >& bindAttribs = std::vector< std::string >() );
 	
 	Program( const std::string& vertexShader, const std::string& fragmentShader, 
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo = true );
@@ -356,9 +368,14 @@ public:
 	~Program( void );
 
 	void AddUnif( const std::string& name );
-	void AddAttrib( const std::string& name );
 
-	void LoadAttribLayout( void ) const;
+    void AddAttrib( const std::string& name );
+
+    void AddAltAttribProfile( const attribProfile_t& profile );
+
+    void LoadDefaultAttribProfiles( void ) const;
+
+    void LoadAltAttribProfiles( void ) const;
 
 	void LoadMat4( const std::string& name, const glm::mat4& t ) const;
 	
@@ -397,6 +414,11 @@ INLINE void Program::AddUnif( const std::string& name )
 INLINE void Program::AddAttrib( const std::string& name )
 {
 	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
+}
+
+INLINE void Program::AddAltAttribProfile( const attribProfile_t& profile )
+{
+    altAttribProfiles.push_back( profile );
 }
 
 #ifdef GLES

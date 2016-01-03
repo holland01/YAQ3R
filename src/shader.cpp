@@ -2,25 +2,29 @@
 #include "io.h"
 #include "glutil.h"
 
-GLuint LinkProgram( GLuint shaders[], int len )
+GLuint LinkProgram( GLuint shaders[], int len, const std::vector< std::string >& bindAttribs )
 {
-    GLuint program = glCreateProgram();
+    GLuint program;
+    GL_CHECK( program = glCreateProgram() );
 
     for ( int i = 0; i < len; ++i )
-        glAttachShader( program, shaders[ i ] );
+        GL_CHECK( glAttachShader( program, shaders[ i ] ) );
 
-    glLinkProgram( program );
+    for ( uint32_t i = 0; i < bindAttribs.size(); ++i )
+        GL_CHECK( glBindAttribLocation( program, i, bindAttribs[ i ].c_str() ) );
+
+    GL_CHECK( glLinkProgram( program ) );
 
     GLint linkSuccess;
-    glGetProgramiv( program, GL_LINK_STATUS, &linkSuccess );
+    GL_CHECK( glGetProgramiv( program, GL_LINK_STATUS, &linkSuccess ) );
 
     if ( !linkSuccess )
     {
         GLint logLen;
-        glGetProgramiv( program, GL_INFO_LOG_LENGTH, &logLen );
+        GL_CHECK( glGetProgramiv( program, GL_INFO_LOG_LENGTH, &logLen ) );
 
         char* infoLog = new char[ logLen ]();
-        glGetProgramInfoLog( program, logLen, NULL, infoLog );
+        GL_CHECK( glGetProgramInfoLog( program, logLen, NULL, infoLog ) );
 
         MLOG_ERROR( "GLSL LINK MLOG_ERROR: %s", infoLog );
 
@@ -29,8 +33,8 @@ GLuint LinkProgram( GLuint shaders[], int len )
 
     for ( int i = 0; i < len; ++i )
     {
-        glDetachShader( program, shaders[ i ] );
-        glDeleteShader( shaders[ i ] );
+        GL_CHECK( glDetachShader( program, shaders[ i ] ) );
+        GL_CHECK( glDeleteShader( shaders[ i ] ) );
     }
 
     return program;

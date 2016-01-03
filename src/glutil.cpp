@@ -461,7 +461,13 @@ void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
 
 //-------------------------------------------------------------------------------------------------
 
-Program::Program( const std::string& vertexShader, const std::string& fragmentShader )
+static INLINE void DisableAllAttribs( void )
+{
+    for ( int i = 0; i < 5; ++i )
+        GL_CHECK( glDisableVertexAttribArray( i ) );
+}
+
+Program::Program( const std::string& vertexShader, const std::string& fragmentShader, const std::vector< std::string >& bindAttribs )
 	: program( 0 )
 {
 	GLuint shaders[] = 
@@ -470,12 +476,12 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 		CompileShaderSource( fragmentShader.c_str(), fragmentShader.size(), GL_FRAGMENT_SHADER )
 	};
 
-	program = LinkProgram( shaders, 2 );
+    program = LinkProgram( shaders, 2, bindAttribs );
 }
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, 
 	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
-	: Program( vertexShader, fragmentShader )
+    : Program( vertexShader, fragmentShader, bindTransformsUbo? std::vector< std::string >(): attribs )
 {
 	GenData( uniforms, attribs, bindTransformsUbo );
 }
@@ -483,9 +489,9 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
 		: Program( std::string( &vertexShader[ 0 ], vertexShader.size() ), 
-				std::string( &fragmentShader[ 0 ], fragmentShader.size() ) )
+                std::string( &fragmentShader[ 0 ], fragmentShader.size() ), bindTransformsUbo? std::vector< std::string >(): attribs )
 {
-	GenData( uniforms, attribs, bindTransformsUbo );
+    GenData( uniforms, attribs, bindTransformsUbo );
 }
 
 Program::Program( const Program& copy )
@@ -524,12 +530,9 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 	}
 }
 
-void Program::LoadAttribLayout( void ) const
+void Program::LoadDefaultAttribProfiles( void ) const
 {
-	for ( int i = 0; i < 5; ++i )
-	{
-		GL_CHECK( glDisableVertexAttribArray( i ) );
-	}
+    DisableAllAttribs();
 
     for ( const auto& attrib: attribs )
 	{
@@ -547,6 +550,19 @@ void Program::LoadAttribLayout( void ) const
 			attribLoadFunctions[ attrib.first ]( *this ); 
 		}
 	}
+}
+
+void Program::LoadAltAttribProfiles( void ) const
+{
+    DisableAllAttribs();
+
+    for ( const attribProfile_t& profile: altAttribProfiles )
+    {
+        GL_CHECK( glEnableVertexAttribArray( profile.location ) );
+        GL_CHECK( glVertexAttribPointer( profile.location, profile.tupleSize, profile.apiType,
+                    profile.normalized, profile.stride, ( const GLvoid* )profile.offset ) );
+
+    }
 }
 
 std::vector< std::string > Program::ArrayLocationNames( const std::string& name, int32_t length )

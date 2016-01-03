@@ -171,20 +171,21 @@ void GFreeTexture( gTextureHandle_t& handle )
     handle.id = G_HANDLE_INVALID;
 }
 
-void GBindTexture( const gTextureHandle_t& handle )
+void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
     const gTexture_t* t = gTextureMap[ handle.id ].get();
 
-    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+    GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
     GL_CHECK( glBindTexture( t->target, t->handle ) );
 }
 
-void GReleaseTexture( const gTextureHandle_t& handle )
+void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
     const gTexture_t* t = gTextureMap[ handle.id ].get();
 
-    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+    GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
     GL_CHECK( glBindTexture( t->target, 0 ) );
+    GL_CHECK( glBindSampler( offset, 0 ) );
 }
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )

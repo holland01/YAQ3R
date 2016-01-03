@@ -259,23 +259,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
         SwizzleCoords( data.vertexes[ i ].position );
         SwizzleCoords( data.vertexes[ i ].normal );
-
-
-		/*
-		glm::vec2& st = data.vertexes[ i ].texCoords[ 0 ];
-
-		if (st.x > 1.0f)
-		{
-			float dummy;
-			st.x = glm::modf(st.x, dummy);
-		}
-
-		if (st.y > 1.0f)
-		{
-			float dummy;
-			st.y = glm::modf(st.y, dummy);
-		}
-		*/
     }
 
     for ( int i = 0; i < data.numModels; ++i )

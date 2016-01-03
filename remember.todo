@@ -30,8 +30,11 @@
 
     [Notes]:
 
+    * 1/2/2016 - Incorporated the ES shader; however, for some reason the results are incorrect: the texture loads appear to produce only
+    null data. The offsets for the lightmaps and the actual images appear to be correct, however what else...
+
 	* There's a weird bug which causes strange color flashes, when the faces are rendered separately (i.e., without the draw surfaces). My guess is
-	this is likely to do with the texture arrays (are they being unbound after the draw is made?), but I'm not sure.
+    this is likely to do with the texture arrays (are they being unbound after the draw is made?), but I'm not sure.
 
     * For the texture atlas, the issue appears to be that images with dimensions that are the same size as the actual image slot
     can overlap into adjacent images through a clamp or a modf, with 1.0 as the denominator. In other words, one image's beginning

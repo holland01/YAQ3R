@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-GLuint LinkProgram( GLuint shaders[], int len );
+GLuint LinkProgram( GLuint shaders[], int len, const std::vector< std::string >& bindAttribs = std::vector< std::string >() );
 
 GLuint CompileShader( const char* filepath, GLenum type );
 

@@ -6,8 +6,7 @@
 #include "frustum.h"
 #include "aabb.h"
 #include "glutil.h"
-#include "renderer/texture.h"
-#include <set>
+#include "renderer/util.h"
 #include <array>
 #include <functional>
 #include <cfloat>
@@ -174,7 +173,7 @@ private:
 									  glLightmapArray,
 									  glShaderArray;
 
-	gTextureHandle_t				theTexture;
+    gTextureHandle_t				shaderTexHandle, lightmapTexHandle, mainTexHandle;
 
     gImageParams_t					glDummyTexture;
 
@@ -285,9 +284,6 @@ INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4&
 {
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( projection ) ) );
-
-	//glm::mat4 viewMod( view );
-	//viewMod[ 3 ].z -= 200.0f;
 
     GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );

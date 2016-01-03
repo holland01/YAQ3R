@@ -259,7 +259,6 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glBlendEquationSeparate( GL_FUNC_ADD, GL_FUNC_ADD ) );
 	
 	GL_CHECK( glPointSize( 20.0f ) );
-	//GL_CHECK( glPolygonOffset( 5.0f, 1.0f ) );
 
 	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
 	GL_CHECK( glClearDepth( 1.0f ) );
@@ -285,57 +284,27 @@ void BSPRenderer::Prep( void )
 		{
 			"position",
 			"color",
-			"lightmap",
-			"tex0"
+            "tex0",
+            "lightmap"
 		};
 
 		std::vector< std::string > uniforms = 
 		{
-			"fragSampler",
-			"fragLightmapSampler",
-			"fragBiases"
-		};
+            "modelToView",
+            "viewToClip",
 
-		/*
-		{
-			std::vector< std::string > fragTexBiasNames = Program::ArrayLocationNames( "fragTexBiases", GLConfig::MAX_MIP_LEVELS );
-			uniforms.insert( uniforms.end(), fragTexBiasNames.begin(), fragTexBiasNames.end() );
+            "mainImage.sampler0",
+            "mainImage.imageTransform",
+            "mainImage.imageScaleRatio",
+            "mainImage.active",
 
-			std::vector< std::string > fragLightmapBiasNames = Program::ArrayLocationNames( "fragLightmapBiases", GLConfig::MAX_MIP_LEVELS );
-			uniforms.insert( uniforms.end(), fragLightmapBiasNames.begin(), fragLightmapBiasNames.end() );
-		}
-		*/
+            "lightmap.sampler0",
+            "lightmap.imageTransform",
+            "lightmap.imageScaleRatio",
+            "lightmap.active"
+        };
 
-		MakeProg( "main", "src/main.vert", "src/main.frag", uniforms, attribs, true );
-
-		/*
-		uniforms.insert( uniforms.end(), {
-			"fragAmbient",
-			"fragDirectional",
-			"fragDirToLight"
-		} );
-
-		attribs.push_back( "normal" );
-
-		MakeProg( "model", "src/model.vert", "src/model.frag", uniforms, attribs, true );
-		*/
-
-		uniforms = 
-		{
-			"fragRadianceSampler",
-			"fragTargetPlane",
-			"fragMin",
-			"fragMax"
-		};
-
-		attribs = 
-		{
-			"position",
-			"normal"
-		};
-
-		MakeProg( "irradiate", "src/irradiate.vert", "src/irradiate.frag", uniforms, attribs, true );
-
+        MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs, false );
 		MakeProg( "debug", "src/debug.vert", "src/debug.frag", { "fragColor" }, { "position" }, true );
 	}
 }
@@ -386,14 +355,6 @@ void BSPRenderer::LoadTextureArray( std::unique_ptr< textureArray_t >& texArray,
         const gImageParams_t& img = images[ i ];
         if ( !img.data.empty() )
 		{
-            /*
-            GLuint sampler = img.sampler;
-			if ( !sampler )
-			{
-                sampler = GenSampler( img.mipmap, img.wrap );
-			}
-            */
-
             GLuint sampler = GenSampler( img.mipmap, img.wrap );
 
             glm::ivec3 dims( img.width, img.height, i );
@@ -425,7 +386,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	
     GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
 
-    theTexture = GMakeTexture( shaderTextures, 0 );
+    shaderTexHandle = GMakeTexture( shaderTextures, 0 );
 
     LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
 
@@ -457,7 +418,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 		
 		// If we don't have a file extension appended in the name,
 		// try to find one for it which is valid
-		if ( fname.find_last_of( '.' ) == std::string::npos )
+        //if ( fname.find_last_of( '.' ) == std::string::npos )
 		{
 			glTextures[ t ].wrap = GL_REPEAT;
 
@@ -472,7 +433,6 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 					success = true;
 					
 					glTextures[ t ].wrap = GL_REPEAT;
-                    glTextures[ t ].minFilter = GL_LINEAR;
                     //glTextures[ t ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
 					
 					break;
@@ -490,12 +450,16 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 
 FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-	}
+    }
 
 	LoadTextureArray( glTextureArray, glTextures, width, height );
 
+    mainTexHandle = GMakeTexture( glTextures, 0 );
+
 	// And then generate all of the lightmaps
-	glLightmaps.resize( map->data.numLightmaps );
+
+
+    glLightmaps.resize( map->data.numLightmaps );
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
 	{	
         GSetImageBuffer( glLightmaps[ l ], BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 4, 255 );
@@ -503,10 +467,14 @@ FAIL_WARN:
         Pixels_To32Bit( &glLightmaps[ l ].data[ 0 ],
             &map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
-		glLightmaps[ l ].wrap = GL_REPEAT;
-        glLightmaps[ l ].minFilter = GL_LINEAR; //GL_LINEAR_MIPMAP_LINEAR;
+        glLightmaps[ l ].wrap = GL_CLAMP_TO_EDGE;
+        glLightmaps[ l ].minFilter = GL_LINEAR;
+        glLightmaps[ l ].magFilter = GL_LINEAR;
 	}
+
 	LoadTextureArray( glLightmapArray, glLightmaps, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT );
+
+    lightmapTexHandle = GMakeTexture( glLightmaps, 0 );
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
@@ -592,7 +560,7 @@ FAIL_WARN:
 	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
 	// and "model" should both have the same attribute location values though
 
-	glPrograms[ "main" ]->LoadAttribLayout();
+    //glPrograms[ "main" ]->LoadAttribLayout();
 }
 
 void BSPRenderer::Render( void )
@@ -788,50 +756,21 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
     }
 }
 
-static std::array< glm::vec3, 6 > faceNormals = 
-{
-	glm::vec3( 1.0f, 0.0f, 0.0f ),
-	glm::vec3( -1.0f, 0.0f, 0.0f ),
-	glm::vec3( 0.0f, 1.0f, 0.0f ),
-	glm::vec3( 0.0f, -1.0f, 0.0f ),
-	glm::vec3( 0.0f, 0.0f, 1.0f ),
-	glm::vec3( 0.0f, 0.0f, -1.0f ),
-};
-
 void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& mainRef ) > callback )
 {
     const Program& main = *( glPrograms.at( "main" ) );
 
-    glTextureArray->Bind( 0, "fragSampler", main );
-    glLightmapArray->Bind( 1, "fragLightmapSampler", main );
-    GL_CHECK( glBindSampler( 1, glLightmapArray->samplers[ 0 ] ) );
-
-    GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+    GL_CHECK( glDisable( GL_CULL_FACE ) );
+    GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 
-    std::array< glm::vec3, 2 > fragBiases;
+    main.LoadDefaultAttribProfiles();
 
-    if ( textureIndex >= 0 )
-    {
-        fragBiases[ 0 ] = glTextureArray->biases[ textureIndex ];
-        GL_CHECK( glBindSampler( 0, glTextureArray->samplers[ textureIndex ] ) );
-    }
-    else
-    {
-        fragBiases[ 0 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
-        GL_CHECK( glBindSampler( 0, glTextureArray->samplers[ 0 ] ) );
-    }
+    GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, glTextureArray->samplers[ glm::max( textureIndex, 0 ) ], 0 );
+    GU_SetupTexParams( main, "lightmap", lightmapTexHandle, lightmapIndex, glLightmapArray->samplers[ glm::max( lightmapIndex, 0 ) ], 1 );
 
-    if ( lightmapIndex >= 0 )
-    {
-        fragBiases[ 1 ] = glLightmapArray->biases[ lightmapIndex ];
-    }
-    else
-    {
-        fragBiases[ 1 ] = glm::vec3( 0.0f, 0.0f, -1.0f );
-    }
-
-    main.LoadVec3Array( "fragBiases", &fragBiases[ 0 ][ 0 ], 2 );
+    main.LoadMat4( "modelToView", camera->ViewData().transform );
+    main.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
     main.Bind();
 
@@ -839,11 +778,8 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
     main.Release();
 
-    glTextureArray->Release( 0 );
-    GL_CHECK( glBindSampler( 0, 0 ) );
-
-    glLightmapArray->Release( 1 );
-    GL_CHECK( glBindSampler( 1, 0 ) );
+    GReleaseTexture( mainTexHandle, 0 );
+    GReleaseTexture( lightmapTexHandle, 0 );
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
@@ -887,11 +823,11 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
     if ( stage && gConfig.logStageTexCoordData )
     {
         std::stringstream sstream;
-        LogWriteAtlasTexture( sstream, surf, theTexture, stage, map->data );
+        LogWriteAtlasTexture( sstream, surf, shaderTexHandle, stage, map->data );
         WriteLog( sstream );
     }
 
-    program.LoadAttribLayout();
+    //program.LoadDefaultAttribProfiles();
 
     GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
@@ -948,22 +884,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
         {
             CheckDrawAtlasBoxes( std::get< 0 >( data ), stage, *( glPrograms[ "debug" ] ), callback );
 
-			const gTextureImage_t& texParams = GTextureImage( theTexture, stage.textureIndex );
-			glm::vec2 invRowPitch( GTextureInverseRowPitch( theTexture ) );
-
-			glm::vec4 transform;
-			transform.x = texParams.stOffsetStart.s;
-			transform.y = texParams.stOffsetStart.t;
-			transform.z = invRowPitch.x;
-			transform.w = invRowPitch.y;
-
-			GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-			GL_CHECK( glBindSampler( 0, glShaderArray->samplers[ stage.textureIndex ] ) );
-
-			GBindTexture( theTexture );
-			stageProg.LoadInt( "sampler0", 0 );
-			stageProg.LoadVec4( "imageTransform", transform );
-			stageProg.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
+            GU_SetupTexParams( stageProg, nullptr, shaderTexHandle, stage.textureIndex,
+                glShaderArray->samplers[ stage.textureIndex ], 0 );
 		}
 		else
 		{
@@ -992,7 +914,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		stageProg.Release();
 
 		if ( usingAtlas )
-			GReleaseTexture( theTexture );
+            GReleaseTexture( shaderTexHandle );
 	}
 
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
@@ -1055,6 +977,8 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
     {
         const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
 
+        prog.LoadDefaultAttribProfiles();
+
         DrawSurface( surf, stage, prog );
 
         /*
@@ -1109,7 +1033,7 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 			DeformVertexes( m, pass.shader );
 		}
 		
-		program.LoadAttribLayout();
+        program.LoadDefaultAttribProfiles();
 
 		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
 			&m.trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &m.rowIndices[ 0 ], m.trisPerRow.size() ) );

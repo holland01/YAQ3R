@@ -128,7 +128,7 @@ void TTextureTest::Load( void )
     GL_CHECK( glDisable( GL_CULL_FACE ) );
 
     GBindVertexBuffer( vbo );
-    prog->LoadAttribLayout();
+    prog->LoadDefaultAttribProfiles();
     GReleaseVertexBuffer();
 
     GEnableDepthBuffer();
