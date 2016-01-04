@@ -393,15 +393,8 @@ bool File_GetPixels( const std::string& filepath,
 		return false;
 	}
 	
-	outBuffer.resize( outWidth * outHeight * outBpp );
+    outBuffer.resize( outWidth * outHeight * outBpp, 0 );
 	memcpy( &outBuffer[ 0 ], imagePixels, outBuffer.size() ); 
-
-	/*
-	for ( int32_t i = 0; i < outWidth * outHeight * outBpp; ++i )
-	{
-		outBuffer[ i ] = imagePixels[ i ];
-	}
-	*/
 
 	stbi_image_free( imagePixels );
 

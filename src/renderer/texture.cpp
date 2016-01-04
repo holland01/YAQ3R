@@ -7,11 +7,6 @@
 
 namespace {
 
-struct gSampler_t
-{
-    GLuint handle = 0;
-};
-
 using imageSlotKeyMap_t = std::unordered_map< uint32_t, gTextureImage_t* >;
 
 struct gTexture_t
@@ -19,7 +14,9 @@ struct gTexture_t
     bool srgb = false;
     bool mipmap = false;
 
-    int32_t id = 0;
+    uint32_t id = 0;
+    uint32_t samplerID = 0;
+
     GLuint handle = 0;
     GLuint maxMip = 0;
     GLsizei width = 0;
@@ -46,7 +43,7 @@ using texturePointer_t = std::unique_ptr< gTexture_t >;
 
 std::vector< texturePointer_t > gTextureMap;
 
-INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
+INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
                          const gImageParams_t& slotParams,
                          const std::vector< gImageParams_t >& images )
 {
@@ -55,7 +52,13 @@ INLINE gTexture_t* MakeTexture_GL( const gImageParams_t& canvasParams,
     tt->target = GL_TEXTURE_2D;
 
     GL_CHECK( glGenTextures( 1, &tt->handle ) );
+    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
     GL_CHECK( glBindTexture( tt->target, tt->handle ) );
+
+    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
+    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
+    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
 
     {
         std::vector< uint8_t > tmp( canvasParams.width * canvasParams.height * G_INTERNAL_BPP, 0 );
@@ -149,7 +152,7 @@ gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint
     slotParams.width = maxDims.x;
     slotParams.height = maxDims.y;
 
-    gTexture_t* texture = MakeTexture_GL( canvasParams, slotParams, images );
+    gTexture_t* texture = MakeTexture_GLES( canvasParams, slotParams, images );
 
     gTextureHandle_t handle =
     {
@@ -185,7 +188,6 @@ void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
 
     GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
     GL_CHECK( glBindTexture( t->target, 0 ) );
-    GL_CHECK( glBindSampler( offset, 0 ) );
 }
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )

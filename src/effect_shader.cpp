@@ -682,7 +682,7 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
 	gLineCount = 0;
 }
 
-static inline void AddDiscardIf( std::vector< std::string >& fragmentSrc, const std::string& discardPredicate )
+static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const std::string& discardPredicate )
 {
 	fragmentSrc.push_back( "\tif ( " + discardPredicate + " )" );
 	fragmentSrc.push_back( "\t{" );
@@ -690,24 +690,90 @@ static inline void AddDiscardIf( std::vector< std::string >& fragmentSrc, const 
 	fragmentSrc.push_back( "\t}" );
 }
 
-static inline void WriteTexture( std::vector< std::string >& fragmentSrc, 
+static INLINE std::string SampleTexture2D( const std::string& samplerName, const std::string& coords )
+{
+    std::string fname( "texture" );
+#ifdef GLES
+    fname.append( "2D" );
+#endif
+    return fname + "( " + samplerName + ", " + coords + " )";
+}
+
+static INLINE std::string WriteFragment( const std::string& value )
+{
+#ifdef GLES
+    return "gl_FragColor = " + value + ";";
+#else
+    return "fragment = " + value + ";";
+#endif
+}
+
+static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type, uint32_t location )
+{
+#ifdef GLES
+    return "attribute " + type + " " + name + ";";
+#else
+    return "layout( location = " + location + " ) in " type + " " + name + ";";
+#endif
+}
+
+static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type, const std::string& qualifier = "smooth" )
+{
+#ifdef GLES
+    UNUSED( qualifier );
+    return "varying " + type + " " + name + ";";
+#else
+    return qualifier + " out " + type + " " + name + ";";
+#endif
+}
+
+static INLINE std::string GetHeader( void )
+{
+#ifdef GLES
+    return "#version 100";
+#else
+    return "#version 450";
+#endif
+}
+
+static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destShaderSrc,
+                                             std::vector< std::string >& uniforms,
+                                             size_t offset )
+{
+#ifdef GLES
+    uniforms.push_back( "modelToView" );
+    uniforms.push_back( "viewToClip" );
+#else
+    UNUSED( uniforms );
+#endif
+
+    destShaderSrc.insert( destShaderSrc.begin() + offset,
+#ifdef GLES
+        { "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
+#else
+        {
+            "layout( std140 ) uniform Transforms {",
+            "\tmat4 viewToClip;",
+            "\tmat4 modelToView;",
+            "};"
+        }
+#endif
+    );
+}
+
+
+static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
         const shaderStage_t& stage, const char* discardPredicate )
 {
 	std::string sampleTextureExpr;
 
-	if ( stage.mapType == MAP_TYPE_IMAGE ) 
-	{
-		if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
-            fragmentSrc.push_back("\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );");
-		else
-            fragmentSrc.push_back("\tst = applyTransform( mod( st, vec2( 0.99 ) ) );");
+    if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+        fragmentSrc.push_back( "\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
+    else
+        fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
 
-        sampleTextureExpr = "texture( sampler0, st )";
-	}
-	else
-	{
-        sampleTextureExpr = "texture( sampler0, vec3( st * bias.xy, bias.z ) )";
-    }
+    sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
+
 
     // Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
@@ -719,9 +785,6 @@ static inline void WriteTexture( std::vector< std::string >& fragmentSrc,
 	{
 		fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
 	}
-
-	//if ( stage.mapCmd == MAP_CMD_CLAMPMAP && stage.alphaFunc != ALPHA_FUNC_GTHAN_0 )
-		//AddDiscardIf( fragmentSrc, "color.a == 0.0" ); 
 
     // Is used occasionally, for example in situations like a bad alpha value.
 	if ( discardPredicate )
@@ -735,7 +798,7 @@ static inline void WriteTexture( std::vector< std::string >& fragmentSrc,
         "\tcolor.b = pow( color.b, gamma );"
     } );
 
-	fragmentSrc.push_back( "\tfragment = color;" );
+    fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
 }
 
  // Quick subroutine enabling the calculation of environment map;
@@ -746,15 +809,15 @@ static void AddCalcEnvMap( std::vector< std::string >& destGLSL,
                                const std::string& eyeID )
 {
 	destGLSL.insert( destGLSL.end(),
-        {
-            "\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
-            "\tvec3 R = 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye;",
-            "\tvec2 displace = R.yz * 0.5;",
-            "\tvec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );"
-        } );
+    {
+        "\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
+        "\tvec3 R = 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye;",
+        "\tvec2 displace = R.yz * 0.5;",
+        "\tvec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );"
+    } );
 }
 
-static inline std::string JoinLines( std::vector< std::string >& lines, std::vector< std::string >& attribs )
+static INLINE std::string JoinLines( std::vector< std::string >& lines, std::vector< std::string >& attribs )
 {
 	std::stringstream shaderSrc;
 
@@ -766,6 +829,7 @@ static inline std::string JoinLines( std::vector< std::string >& lines, std::vec
 
 	return shaderSrc.str();
 }
+
 
 static void GenShaderPrograms( shaderMap_t& effectShaders )
 {
@@ -783,146 +847,93 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			shaderStage_t& stage = shader.stageBuffer[ j ];
 
 			// Uniform variable names
-			std::vector< std::string > uniforms = { "sampler0" };
+            std::vector< std::string > uniforms = {
+                "sampler0",
+                "imageTransform",
+                "imageScaleRatio"
+            };
 
-			if ( stage.mapType == MAP_TYPE_IMAGE )
-			{
-				uniforms.push_back( "imageTransform" );
-				uniforms.push_back( "imageScaleRatio" );
-			}
-			else
-			{
-				uniforms.push_back( "bias" );
-			}
-			
-			std::vector< std::string > attribs = { "position", "color", "tex0" }; 
+            const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
 
-			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
+            std::vector< std::string > attribs = { "position", "color", texCoordName };
+
             const size_t vertGlobalVarInsertOffset = 4;
 
-			// Load vertex header;
+            // Vertex shader...
 			std::vector< std::string > vertexSrc = 
 			{	
-				"#version 450", 
-				"layout( location = 0 ) in vec3 position;", 
-				"layout( location = 1 ) in vec4 color;", 
-				"layout( location = 2 ) in vec2 " + texCoordName + ";",
-				"out vec2 frag_Tex;",
-				"out vec4 frag_Color;",
+
+                GetHeader(),
+                DeclAttributeVar( "position", "vec3", 0 ),
+                DeclAttributeVar( "color", "vec4", 1 ),
+                DeclAttributeVar( texCoordName, "vec2", 2 ),
+                DeclTransferVar( "frag_Color", "vec4" ),
+                DeclTransferVar( "frag_Tex", "vec2" ),
 				"void main(void) {",
 			};
 
             if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, "layout( location = 3 ) in vec3 normal;" );
+                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3", 3 ) );
                 attribs.push_back( "normal" );
             }
 
-            vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset,
-            {
-                "layout( std140 ) uniform Transforms {",
-                "\tmat4 viewToClip;",
-                "\tmat4 modelToView;",
-                "};"
-            } );
+            InsertCoreTransformsDecl( vertexSrc, uniforms, vertGlobalVarInsertOffset );
 
             vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
 
             if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
-                /*
-                vertexSrc.insert( vertexSrc.end(),
-                {
-                    "mat4 T = mat4( 1.0 );",
-                    "frag_WorldNormal = mat3( T ) * surfaceNormal;",
-                    "frag_WorldVertex = vec3( T * vec4( position, 1.0 ) ); // position is already calculated relative to the world, so there is no need to apply an offset",
-                    "frag_ViewOrigin = -vec3( modelToView[ 3 ] );"
-                } );
-
-                */
-
                 AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
-                vertexSrc.push_back( "frag_Tex = st;" );
+                vertexSrc.push_back( "\tfrag_Tex = st;" );
             }
             else
             {
                 vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
             }
 
-            vertexSrc.push_back( "\tvec4 vColor;" );
-
             if ( stage.rgbGen == RGBGEN_VERTEX )
-                vertexSrc.push_back( "\tvColor = color;" );
+                vertexSrc.push_back( "\tfrag_Color = color;" );
             else
-                vertexSrc.push_back( "\tvColor = vec4( 1.0 );" );
+                vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 
-            if ( !!( shader.surfaceParms & SURFPARM_TRANS ) )
-                vertexSrc.push_back( "\tvColor.a = 0.1;" );
-
-            vertexSrc.push_back( "\tfrag_Color = vColor;" );
-
-
-			// Load fragment header;
+            // Fragment shader....
 			// Unspecified alphaGen implies a default 1.0 alpha channel
 			std::vector< std::string > fragmentSrc =
 			{
-				"#version 450",
-				"in vec2 frag_Tex;",
-				"in vec4 frag_Color;",
+                GetHeader(),
+    #ifdef GLES
+                "precision highp float;",
+    #endif // GLES
+                DeclTransferVar( "frag_Color", "vec4" ),
+                DeclTransferVar( "frag_Tex", "vec2" ),
                 "const float gamma = 1.0 / 3.0;",
-				//"uniform sampler2DArray sampler0;",
-				//"uniform sampler2D sampler0;",
-				//"uniform vec4 imageTransform;",
-				//"uniform vec2 imageScaleRatio;",
-				//"uniform vec3 bias;",
-				"out vec4 fragment;",
-				"void main(void) {"
+    #ifndef GLES
+                DeclTransferVar( "fragment", "vec4" ),
+    #endif // GLES
+                "void main(void) {"
 			};
+
+#ifndef GLES
+#   error "Code path here doesn't incorporate texture arrays for Desktop Core GL, as it should"
+#endif // GLES
 
             const size_t fragGlobalDeclOffset = 4;
 
-			if ( stage.mapType == MAP_TYPE_IMAGE )
-			{
-				std::initializer_list<std::string> data  =
-				{
-					"uniform sampler2D sampler0;",
-					"uniform vec4 imageTransform;",
-					"uniform vec2 imageScaleRatio;",
-					"vec2 applyTransform(in vec2 coords) {",
-                    "\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
-					"}"
-				};
-
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
-			}
-			else
-			{
-				std::initializer_list<std::string> data =
-				{
-					"uniform sampler2DArray sampler0;",
-					"uniform vec3 bias;"
-				};
-
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
-			}
-
-            /*if ( stage.tcgen == TCGEN_ENVIRONMENT )
+            std::initializer_list<std::string> data  =
             {
+                "uniform sampler2D sampler0;",
+                "uniform vec4 imageTransform;",
+                "uniform vec2 imageScaleRatio;",
+                "vec2 applyTransform(in vec2 coords) {",
+                "\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
+                "}"
+            };
 
-                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_WorldNormal;" );
-                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_WorldVertex;" );
-                fragmentSrc.insert( fragmentSrc.begin() + 1, "in vec3 frag_ViewOrigin;" );
+            fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
 
-                LAddCalcEnvmap( fragmentSrc, "frag_WorldVertex", "frag_WorldNormal", "frag_ViewOrigin" );
+            fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
 
-                //fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
-
-			}
-            else
-            */
-            {
-                fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
-            }
 			for ( const effect_t& op: shader.stageBuffer[ j ].effects )
 			{
 				// Modify the texture coordinate as necessary before we write to the texture
@@ -956,6 +967,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				}
 			}
 
+            // ( We can only check for conservative depth in GLSL 4.0 )
+#ifndef GLES
 			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
 			// given the potential for fragment discard if an alpha function is defined
 			if ( stage.alphaFunc != ALPHA_FUNC_UNDEFINED )
@@ -964,6 +977,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				fragmentSrc.insert( fragmentSrc.begin() + 1, "#extension GL_ARB_conservative_depth: enable" );
 				fragmentSrc.push_back( "layout( depth_unchanged ) float gl_FragDepth;" );
 			}
+#endif // GLES
 
 			switch ( stage.alphaFunc )
 			{
@@ -984,7 +998,12 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
             const std::string& vertexString = JoinLines( vertexSrc, attribs );
             const std::string& fragmentString = JoinLines( fragmentSrc, attribs );
 
-			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
+#ifdef GLES
+            bool useUBO = false;
+#else
+            bool useUBO = true;
+#endif
+            stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs, useUBO );
 			
 			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, 

@@ -69,8 +69,6 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 	if ( face->texture != -1 )
 	{
-		//std::string texture( data.textures[ face->texture ].name );
-
 		auto it = effectShaders.find( data.textures[ face->texture ].name );
 	
 		if ( it != effectShaders.end() )
@@ -88,7 +86,7 @@ void Q3BspMap::DestroyMap( void )
     {
 		delete[] data.visdata->bitsets;
         delete[] data.buffer;	
-		memset( &data, 0, sizeof( mapData_t ) );
+        //memset( &data, 0, sizeof( mapData_t ) );
 
 		mapAllocated = false;
     }

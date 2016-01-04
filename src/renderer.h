@@ -90,8 +90,8 @@ struct drawSurface_t
 	const shaderInfo_t*			shader;
 	
 
-	std::vector< const int32_t*		>	indexBuffers;
-	std::vector< int32_t			>	indexBufferSizes;
+    indexBufferList_t       indexBuffers;
+    indexBufferSizeList_t	indexBufferSizes;
 	std::vector< int32_t			>	faceIndices;			
 
 			drawSurface_t( void )
@@ -169,15 +169,9 @@ private:
     // last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
     using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
 
-	std::unique_ptr< textureArray_t > glTextureArray, 
-									  glLightmapArray,
-									  glShaderArray;
-
     gTextureHandle_t				shaderTexHandle, lightmapTexHandle, mainTexHandle;
 
     gImageParams_t					glDummyTexture;
-
-	std::array< glm::vec2, GLConfig::MAX_MIP_LEVELS > glDummyBiases;
 	
     std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture indices
 	
@@ -197,9 +191,6 @@ private:
 
 	double				frameTime;
 
-	void				LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
-                            std::vector< gImageParams_t >& textures, int32_t width, int32_t height );
-
 	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
 
     void                SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent );
@@ -208,8 +199,6 @@ private:
 
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
 							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
-
-	void				LoadTransforms( const glm::mat4& view, const glm::mat4& projection ) const;
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
@@ -280,11 +269,3 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t
 	}
 }
 
-INLINE void BSPRenderer::LoadTransforms( const glm::mat4& view, const glm::mat4& projection ) const
-{
-	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
-	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( projection ) ) );
-
-    GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, sizeof( glm::mat4 ), sizeof( glm::mat4 ), glm::value_ptr( view ) ) );
-	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
-}

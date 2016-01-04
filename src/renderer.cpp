@@ -256,17 +256,19 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
 
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-	GL_CHECK( glBlendEquationSeparate( GL_FUNC_ADD, GL_FUNC_ADD ) );
 	
 	GL_CHECK( glPointSize( 20.0f ) );
 
-	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
-	GL_CHECK( glClearDepth( 1.0f ) );
+    GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
 
-    GL_CHECK( glGenVertexArrays( 1, &vao ) );
+    GU_ClearDepth( 1.0f );
+
     GL_CHECK( glGenBuffers( 1, &vbo ) );
 	
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
+
+#ifndef GLES
+    GL_CHECK( glGenVertexArrays( 1, &vao ) );
 
     // Gen transforms UBO
 	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
@@ -275,8 +277,7 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().clipTransform ) ) );
 	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, UBO_TRANSFORMS_BLOCK_BINDING, transformBlockObj, 0, transformBlockSize ) );
 	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
-
-	glDummyBiases.fill( glm::vec2( 1.0f ) );
+#endif // GLES
 
 	// Load main shader glPrograms
 	{
@@ -293,15 +294,15 @@ void BSPRenderer::Prep( void )
             "modelToView",
             "viewToClip",
 
-            "mainImage.sampler0",
-            "mainImage.imageTransform",
-            "mainImage.imageScaleRatio",
-            "mainImage.active",
+            "mainImageSampler",
+            "mainImageImageTransform",
+            "mainImageImageScaleRatio",
+            "mainImageActive",
 
-            "lightmap.sampler0",
-            "lightmap.imageTransform",
-            "lightmap.imageScaleRatio",
-            "lightmap.active"
+            "lightmapSampler",
+            "lightmapImageTransform",
+            "lightmapImageScaleRatio",
+            "lightmapActive"
         };
 
         MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs, false );
@@ -344,25 +345,6 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 	}
 }
 
-void BSPRenderer::LoadTextureArray( std::unique_ptr< textureArray_t >& texArray, 
-    std::vector< gImageParams_t >& images, int32_t width, int32_t height )
-{
-    images.push_back( glDummyTexture );
-
-    texArray.reset( new textureArray_t( width, height, images.size(), false ) );
-    for ( uint32_t i = 0; i < images.size(); ++i )
-	{
-        const gImageParams_t& img = images[ i ];
-        if ( !img.data.empty() )
-		{
-            GLuint sampler = GenSampler( img.mipmap, img.wrap );
-
-            glm::ivec3 dims( img.width, img.height, i );
-            texArray->LoadSlice( sampler, dims, img.data, false );
-		}
-	}
-}
-
 static glm::vec3 CalcUpVector( const glm::vec3& forward, const glm::vec3& desired )
 {
 	float cosAng = glm::abs( glm::dot( glm::normalize( forward ), desired ) );
@@ -382,13 +364,11 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
     std::vector< gImageParams_t > shaderTextures;
-    glm::ivec2 shaderMegaDims = S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
+    S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
 	
     GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
 
     shaderTexHandle = GMakeTexture( shaderTextures, 0 );
-
-    LoadTextureArray( glShaderArray, shaderTextures, shaderMegaDims.x, shaderMegaDims.y );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
@@ -406,8 +386,6 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
 
-	GLsizei width = 0, height = 0;
-
 	for ( int32_t t = 0; t < map->data.numTextures; t++ )
 	{
 		bool success = false;
@@ -418,7 +396,6 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 		
 		// If we don't have a file extension appended in the name,
 		// try to find one for it which is valid
-        //if ( fname.find_last_of( '.' ) == std::string::npos )
 		{
 			glTextures[ t ].wrap = GL_REPEAT;
 
@@ -428,21 +405,16 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 
                 if ( GLoadImageFromFile( str, glTextures[ t ] ) )
 				{
-					width = glm::max( width, glTextures[ t ].width );
-					height = glm::max( height, glTextures[ t ].height );
-					success = true;
-					
-					glTextures[ t ].wrap = GL_REPEAT;
-                    //glTextures[ t ].minFilter = GL_LINEAR_MIPMAP_LINEAR;
-					
+					success = true;					
 					break;
 				}
 			}
 		}
 		
-		// Stub out the texture for this iteration by continue; warn user
+        // We stub the buffer with a simple dummy fill - otherwise, bad things will happen in the texture fetches.
 		if ( !success )
 		{
+            GSetImageBuffer( glTextures[ t ], 128, 128, 4, 0 );
 			goto FAIL_WARN;
 		}
 
@@ -450,14 +422,10 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 
 FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-    }
-
-	LoadTextureArray( glTextureArray, glTextures, width, height );
-
+    }	
     mainTexHandle = GMakeTexture( glTextures, 0 );
 
 	// And then generate all of the lightmaps
-
 
     glLightmaps.resize( map->data.numLightmaps );
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
@@ -471,9 +439,6 @@ FAIL_WARN:
         glLightmaps[ l ].minFilter = GL_LINEAR;
         glLightmaps[ l ].magFilter = GL_LINEAR;
 	}
-
-	LoadTextureArray( glLightmapArray, glLightmaps, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT );
-
     lightmapTexHandle = GMakeTexture( glLightmaps, 0 );
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
@@ -553,8 +518,12 @@ FAIL_WARN:
 	//---------------------------------------------------------------------
 
 	// Allocate vertex data from map and store it all in a single vbo
+
+#ifndef GLES
 	GL_CHECK( glBindVertexArray( vao ) );
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
+#endif // GLES
+
+    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
     GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
 
 	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
@@ -577,7 +546,7 @@ void BSPRenderer::Render( void )
 void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
-	GL_CHECK( glClearDepth( 1.0f ) );
+    GU_ClearDepth( 1.0f );
     GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
@@ -608,9 +577,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
     drawPass_t pass( map, view );
 	pass.envmap = envmap;
 	pass.leaf = map->FindClosestLeaf( pass.view.origin );
-	
+
 	// Draw Models and Leaf Faces
-	LoadTransforms( pass.view.transform, pass.view.clipTransform );
 
 	frustum->Update( pass.view, true );
 
@@ -761,13 +729,13 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
     const Program& main = *( glPrograms.at( "main" ) );
 
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-    GL_CHECK( glDisable( GL_CULL_FACE ) );
-    GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
+    GL_CHECK( glEnable( GL_BLEND ) );
+    GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
 
     main.LoadDefaultAttribProfiles();
 
-    GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, glTextureArray->samplers[ glm::max( textureIndex, 0 ) ], 0 );
-    GU_SetupTexParams( main, "lightmap", lightmapTexHandle, lightmapIndex, glLightmapArray->samplers[ glm::max( lightmapIndex, 0 ) ], 1 );
+    GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
+    GU_SetupTexParams( main, "lightmap", lightmapTexHandle, lightmapIndex, 1 );
 
     main.LoadMat4( "modelToView", camera->ViewData().transform );
     main.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
@@ -779,7 +747,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
     main.Release();
 
     GReleaseTexture( mainTexHandle, 0 );
-    GReleaseTexture( lightmapTexHandle, 0 );
+    GReleaseTexture( lightmapTexHandle, 1 );
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
@@ -827,12 +795,9 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
         WriteLog( sstream );
     }
 
-    //program.LoadDefaultAttribProfiles();
-
     GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
-    GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ],
-        GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
+    GU_MultiDrawElements( mode, surf.indexBuffers, surf.indexBufferSizes );
 }
 
 static INLINE void EffectPassTexFromArray( glm::vec2& dims, 
@@ -873,25 +838,18 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
 		const Program& stageProg = *( stage.program.get() );
 
+        stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
+        stageProg.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+
         GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );	
 
-		glm::vec2 texDims( 0 );
-		
-		bool usingAtlas = stage.mapType == MAP_TYPE_IMAGE;
+        glm::vec2 texDims( 0 );
 
-		if ( usingAtlas )
-        {
-            CheckDrawAtlasBoxes( std::get< 0 >( data ), stage, *( glPrograms[ "debug" ] ), callback );
+        const gTextureHandle_t& handle = stage.mapType == MAP_TYPE_IMAGE? shaderTexHandle: lightmapTexHandle;
+        const int32_t texIndex = ( stage.mapType == MAP_TYPE_IMAGE )? stage.textureIndex: lightmapIndex;
 
-            GU_SetupTexParams( stageProg, nullptr, shaderTexHandle, stage.textureIndex,
-                glShaderArray->samplers[ stage.textureIndex ], 0 );
-		}
-		else
-		{
-			EffectPassTexFromArray( texDims, 
-				lightmapIndex, *( glLightmapArray.get() ), stageProg );
-		}
+        GU_SetupTexParams( stageProg, nullptr, handle, texIndex, 0 );
 
 		for ( effect_t e: stage.effects )
 		{
@@ -909,26 +867,18 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
             glEffects.at( e.name )( stageProg, e );
 		}	
 
+        stageProg.LoadDefaultAttribProfiles();
+
 		stageProg.Bind();
         callback( std::get< 0 >( data ), stageProg, &stage );
 		stageProg.Release();
 
-		if ( usingAtlas )
-            GReleaseTexture( shaderTexHandle );
+        GReleaseTexture( handle );
 	}
 
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
-	GL_CHECK( glBindSampler( 0, 0 ) );
-
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + 1 ) );
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
-	GL_CHECK( glBindSampler( 1, 0 ) );
-
     GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
-
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 }
 
@@ -980,16 +930,6 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
         prog.LoadDefaultAttribProfiles();
 
         DrawSurface( surf, stage, prog );
-
-        /*
-        if ( config.drawFaceBounds )
-        {
-            for ( int32_t i: surf.faceIndices )
-            {
-                DrawFaceBounds( pass.view, i );
-            }
-        }
-        */
     };
 
 	for ( const drawSurface_t& surf: list )
@@ -1007,19 +947,10 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
             });  
 		}
 	}
-
-	glTextureArray->Release( 0 );
 }
 
 void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const
 {
-    /*
-    if ( stage && stage->tcgen == TCGEN_ENVIRONMENT )
-    {
-        program.LoadVec3( "surfaceNormal", pass.face->normal );
-    }
-    */
-
 	const mapModel_t& m = glFaces[ pass.faceIndex ];
 
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
@@ -1060,11 +991,6 @@ void BSPRenderer::DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) 
 	ImDrawAxes( 100.0f );
 	
 	ImDrawBounds( glFaces[ faceIndex ].bounds, color );
-}
-
-void BSPRenderer::SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent )
-{
-
 }
 
 void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const

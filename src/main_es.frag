@@ -1,6 +1,7 @@
-#version 100
+//#version 100
 
 precision mediump float;
+precision mediump sampler2D;
 
 varying vec4 frag_Color;
 varying vec2 frag_Tex;
@@ -8,34 +9,38 @@ varying vec2 frag_Lightmap;
 
 struct ImageParams
 {
-    sampler2D sampler0;
     vec2 imageScaleRatio;
     vec4 imageTransform;
-    bool active;
+    int active;
 };
 
-uniform ImageParams mainImage;
-uniform ImageParams lightmap;
+uniform sampler2D mainImageSampler;
+uniform vec2 mainImageImageScaleRatio;
+uniform vec4 mainImageImageTransform;
+int mainImageActive;
+
+uniform sampler2D lightmapSampler;
+uniform vec2 lightmapImageScaleRatio;
+uniform vec4 lightmapImageTransform;
+int lightmapActive;
 
 const float gamma = 1.0 / 3.0;
-
-vec4 FetchTexture( in ImageParams params, vec2 originalCoords )
-{
-    if ( params.active )
-    {
-        vec2 texCoords = mod( originalCoords, 0.99 ) * params.imageScaleRatio * params.imageTransform.zw + params.imageTransform.xy;
-        return texture2D( params.sampler0, texCoords );
-    }
-
-    return vec4( 1.0 );
-}
 
 void main()
 {
     vec4 col = frag_Color;
 
-    col *= FetchTexture( mainImage, frag_Tex );
-    col *= FetchTexture( lightmap, frag_Lightmap );
+    if (mainImageActive == 1)
+    {
+        vec2 texCoords = mod( frag_Tex, vec2( 1.0 ) ) * mainImageImageScaleRatio * mainImageImageTransform.zw + mainImageImageTransform.xy;
+        col *= texture2D( mainImageSampler, texCoords );
+    }
+
+    if (lightmapActive == 1)
+    {
+        vec2 texCoords = mod( frag_Lightmap, vec2( 1.0 ) ) * lightmapImageScaleRatio * lightmapImageTransform.zw + lightmapImageTransform.xy;
+        col *= texture2D( lightmapSampler, texCoords );
+    }
 
     col.r = pow( col.r, gamma );
     col.g = pow( col.g, gamma );
