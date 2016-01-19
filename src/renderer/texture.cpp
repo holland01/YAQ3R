@@ -52,11 +52,11 @@ INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
     tt->target = GL_TEXTURE_2D;
 
     GL_CHECK( glGenTextures( 1, &tt->handle ) );
-    GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
+   // GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
     GL_CHECK( glBindTexture( tt->target, tt->handle ) );
 
-    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
-    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
+	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
+	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
     GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
     GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
 

@@ -1,6 +1,6 @@
-#version 450
+#version 100
 
-layout( location = 0 ) in vec3 position;
+attribute vec3 position;
 
 layout( std140 ) uniform Transforms
 {

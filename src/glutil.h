@@ -143,10 +143,10 @@ static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset,
 
 static INLINE void DeleteVertexArray( GLuint vao )
 {
-    if ( vao )
-    {
-        GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
-    }
+	if ( vao )
+	{
+		GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
+	}
 }
 
 static INLINE void DeleteBufferObject( GLenum target, GLuint obj )

@@ -253,7 +253,7 @@ void BSPRenderer::Prep( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
 	GL_CHECK( glEnable( GL_BLEND ) );
-	GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
+	//GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
 
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	
@@ -267,8 +267,11 @@ void BSPRenderer::Prep( void )
 	
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
+	GL_CHECK( glGenVertexArrays( 1, &vao ) );
+	GL_CHECK( glBindVertexArray( vao ) );
+
 #ifndef GLES
-    GL_CHECK( glGenVertexArrays( 1, &vao ) );
+
 
     // Gen transforms UBO
 	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
@@ -306,7 +309,7 @@ void BSPRenderer::Prep( void )
         };
 
         MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs, false );
-		MakeProg( "debug", "src/debug.vert", "src/debug.frag", { "fragColor" }, { "position" }, true );
+		//MakeProg( "debug", "src/debug.vert", "src/debug.frag", { "fragColor" }, { "position" }, true );
 	}
 }
 
@@ -728,14 +731,10 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 {
     const Program& main = *( glPrograms.at( "main" ) );
 
-    GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-    GL_CHECK( glEnable( GL_BLEND ) );
-    GL_CHECK( glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) );
-
     main.LoadDefaultAttribProfiles();
 
     GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
-    GU_SetupTexParams( main, "lightmap", lightmapTexHandle, lightmapIndex, 1 );
+	GU_SetupTexParams( main, "lightmap", lightmapTexHandle, lightmapIndex, 1 );
 
     main.LoadMat4( "modelToView", camera->ViewData().transform );
     main.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
@@ -747,7 +746,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
     main.Release();
 
     GReleaseTexture( mainTexHandle, 0 );
-    GReleaseTexture( lightmapTexHandle, 1 );
+	GReleaseTexture( lightmapTexHandle, 1 );
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
@@ -800,31 +799,15 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
     GU_MultiDrawElements( mode, surf.indexBuffers, surf.indexBufferSizes );
 }
 
-static INLINE void EffectPassTexFromArray( glm::vec2& dims, 
-	int32_t index, const textureArray_t& texArray, const Program& program )
-{
-	if ( index < 0 )
-	{
-		index = ( int32_t ) texArray.biases.size() - 1;
-	}
-
-	const glm::vec3& bias = texArray.biases[ index ]; 
-	texArray.Bind( 0, "sampler0", program ); 
-	program.LoadVec3( "bias", bias );
-	GL_CHECK( glBindSampler( 0, texArray.samplers[ index ] ) );
-	dims.x = bias.x;
-	dims.y = bias.y;
-}
-
 void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 {
     const shaderInfo_t* shader = std::get< 1 >( data );
     int lightmapIndex = std::get< 3 >( data );
 
-	GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
+	///GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
 
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
-	GL_CHECK( glDisableVertexAttribArray( 3 ) );
+	///GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
     if  ( shader->cullFace )
     {
@@ -880,6 +863,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
     GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
+	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 }
 
 void BSPRenderer::DrawFace( drawPass_t& pass )
@@ -936,8 +920,8 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 	{
 		if ( surf.shader )
 		{
-            drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
-			DrawEffectPass( tuple, LEffectCallback );	
+			drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
+			DrawEffectPass( tuple, LEffectCallback );
 		}
 		else
 		{

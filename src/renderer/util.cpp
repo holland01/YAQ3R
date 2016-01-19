@@ -25,7 +25,7 @@ void GU_SetupTexParams( const Program& program,
     transform.z = invRowPitch.x;
     transform.w = invRowPitch.y;
 
-    GBindTexture( texHandle );
+	GBindTexture( texHandle, offset );
 
     // If true, we're using the main program
     if ( uniformPrefix )
@@ -33,7 +33,7 @@ void GU_SetupTexParams( const Program& program,
         std::string prefix( uniformPrefix );
 
         program.LoadInt( prefix + "Sampler", offset );
-        program.LoadInt( prefix + "Active", 1 );
+		//program.LoadInt( prefix + "Active", 1 );
         program.LoadVec4( prefix + "ImageTransform", transform );
         program.LoadVec2( prefix + "ImageScaleRatio", texParams.imageScaleRatio );
     }
