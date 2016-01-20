@@ -1,4 +1,5 @@
 * 1/19/16:
     * Replace all GLFW functionality with SDL2
+        - Figure out Gamma correction and input issues.
     * Get this running with Emscripten; replace input as necessary
     * Pick 2 things you can refactor and then test.
