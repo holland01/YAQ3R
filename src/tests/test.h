@@ -2,6 +2,8 @@
 
 #include "../common.h"
 #include "../input.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_main.h>
 
 class Test
 {
@@ -19,7 +21,11 @@ protected:
 
     InputCamera*    camPtr;
 
-    GLFWwindow*     winPtr;
+	SDL_Window*		sdlWindow;
+
+	SDL_Renderer*	sdlRenderer;
+
+	SDL_GLContext	sdlContext;
 
     bool            Load( const char* winTitle );
 
@@ -41,10 +47,7 @@ public:
 
     virtual void Run( void ) = 0;
 
-    virtual void OnKeyPress( int key, int scancode, int action, int mods );
-
-    virtual void OnMouseMove( double x, double y );
-
+	virtual void OnInputEvent( SDL_Event* e );
 };
 
 extern Test* gAppTest;

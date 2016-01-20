@@ -23,6 +23,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"surfaceparm",
 		STAGE_READ_FUNC
 		{
+			UNUSED( theStage );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 				
@@ -58,6 +60,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"deformvertexes",
 		STAGE_READ_FUNC
 		{
+			UNUSED( theStage );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
@@ -136,6 +140,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"cull",
 		STAGE_READ_FUNC
 		{
+			UNUSED( theStage );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
@@ -164,6 +170,10 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"nopicmip",
 		STAGE_READ_FUNC
 		{
+			UNUSED( token );
+			UNUSED( buffer );
+			UNUSED( theStage );
+
             outInfo->localLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
 			return true;
 		}
@@ -172,6 +182,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"tesssize",
 		STAGE_READ_FUNC
 		{
+			UNUSED( token );
+			UNUSED( theStage );
+
 			outInfo->tessSize = ReadFloat( buffer );
 			return true;
 		}
@@ -180,6 +193,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"q3map_tesssize",
 		STAGE_READ_FUNC
 		{
+			UNUSED( token );
+			UNUSED( theStage );
+
 			outInfo->tessSize = ReadFloat( buffer );
 			return true;
 		}
@@ -188,6 +204,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"clampmap",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+			UNUSED( token );
+
             buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
             theStage.mapCmd = MAP_CMD_CLAMPMAP;
             theStage.mapType = MAP_TYPE_IMAGE;
@@ -198,6 +217,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"map",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+			UNUSED( token );
+
             buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
             theStage.mapCmd = MAP_CMD_MAP;
 
@@ -223,6 +245,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"blendfunc",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
@@ -271,6 +294,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"alphafunc",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 				
@@ -298,6 +323,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"rgbgen",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 					
@@ -353,6 +380,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"tcmod",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
@@ -435,6 +464,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"depthfunc",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
@@ -453,6 +484,10 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"depthwrite",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
+			UNUSED( token );
+			UNUSED( buffer );
+
             theStage.depthPass = true;
 			return true;
 		}
@@ -708,23 +743,14 @@ static INLINE std::string WriteFragment( const std::string& value )
 #endif
 }
 
-static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type, uint32_t location )
+static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type )
 {
-#ifdef GLES
     return "attribute " + type + " " + name + ";";
-#else
-    return "layout( location = " + location + " ) in " type + " " + name + ";";
-#endif
 }
 
-static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type, const std::string& qualifier = "smooth" )
+static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type )
 {
-#ifdef GLES
-    UNUSED( qualifier );
     return "varying " + type + " " + name + ";";
-#else
-    return qualifier + " out " + type + " " + name + ";";
-#endif
 }
 
 static INLINE std::string GetHeader( void )
@@ -817,7 +843,7 @@ static void AddCalcEnvMap( std::vector< std::string >& destGLSL,
     } );
 }
 
-static INLINE std::string JoinLines( std::vector< std::string >& lines, std::vector< std::string >& attribs )
+static INLINE std::string JoinLines( std::vector< std::string >& lines )
 {
 	std::stringstream shaderSrc;
 
@@ -864,9 +890,9 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			{	
 
                 GetHeader(),
-                DeclAttributeVar( "position", "vec3", 0 ),
-                DeclAttributeVar( "color", "vec4", 1 ),
-                DeclAttributeVar( texCoordName, "vec2", 2 ),
+				DeclAttributeVar( "position", "vec3" ),
+				DeclAttributeVar( "color", "vec4" ),
+				DeclAttributeVar( texCoordName, "vec2" ),
                 DeclTransferVar( "frag_Color", "vec4" ),
                 DeclTransferVar( "frag_Tex", "vec2" ),
 				"void main(void) {",
@@ -874,7 +900,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 
             if ( stage.tcgen == TCGEN_ENVIRONMENT )
             {
-                vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3", 3 ) );
+				vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3" ) );
                 attribs.push_back( "normal" );
             }
 
@@ -995,15 +1021,10 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				break;
 			}
 
-            const std::string& vertexString = JoinLines( vertexSrc, attribs );
-            const std::string& fragmentString = JoinLines( fragmentSrc, attribs );
+			const std::string& vertexString = JoinLines( vertexSrc );
+			const std::string& fragmentString = JoinLines( fragmentSrc );
 
-#ifdef GLES
-            bool useUBO = false;
-#else
-            bool useUBO = true;
-#endif
-            stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs, useUBO );
+			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 			
 			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
 				j, 

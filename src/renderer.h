@@ -58,7 +58,6 @@ struct mapModel_t
 	bool						deform: 1;
 	GLuint						vboOffset;
 	int32_t						subdivLevel;
-	std::shared_ptr< rtt_t >	envmap;
 
 	// used if face type == mesh or polygon
 	std::vector< int32_t >				indices;
@@ -66,7 +65,7 @@ struct mapModel_t
 	// used if face type == patch  
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
     std::vector< bspVertex_t >			patchVertices;
-	std::vector< int32_t* >				rowIndices;
+	std::vector< const int32_t* >				rowIndices;
 	std::vector< int32_t  >				trisPerRow;
 	
 	AABB								bounds;
@@ -135,35 +134,12 @@ struct drawPass_t
 	drawPass_t( const Q3BspMap* const & map, const viewParams_t& viewData );
 };
 
-struct lightSampler_t {
-	static const int32_t NUM_BUFFERS = 2;
-	
-	InputCamera								camera;
-	glm::vec4								targetPlane;
-	glm::vec2								boundsMin, boundsMax;
-
-	std::array< GLuint, NUM_BUFFERS >		fbos;
-	std::array< texture_t, NUM_BUFFERS >	attachments;
-
-	lightSampler_t( void );
-	
-	~lightSampler_t( void );
-
-	void				Bind( int32_t which ) const;
-	
-	void				Release( void ) const;
-	
-	void				Elevate( const glm::vec3& min, const glm::vec3& max );
-};
-
 struct effect_t;
 struct shaderStage_t;
 
 class BSPRenderer
 {
 private:
-	friend struct transformStash_t< BSPRenderer >;
-
 	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
     // last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
@@ -198,7 +174,7 @@ private:
 	void				DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const;
 
 	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo );
+							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
@@ -212,7 +188,7 @@ private:
 
 	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
-    void				DrawSurface( const drawSurface_t& surface, const shaderStage_t* stage, const Program& program ) const;
+	void				DrawSurface( const drawSurface_t& surface, const shaderStage_t* stage ) const;
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
@@ -226,16 +202,10 @@ private:
 
     void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const;
 
-	void				DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) const;
-
 public:
 	Q3BspMap*       map;
     InputCamera*	camera;
     Frustum*		frustum;
-
-	GLuint			transformBlockIndex;
-	GLuint			transformBlockObj;
-	size_t			transformBlockSize;
 
 	viewMode_t		curView;	
 

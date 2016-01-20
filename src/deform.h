@@ -12,6 +12,10 @@
 #define DEFORM_TABLE_SIZE_LOG_2 10
 #define DEFORM_TABLE_MASK ( DEFORM_TABLE_SIZE - 1 )
 
+// TODO: think about t param and its interaction
+// with the deform cache: its passed as a float which
+// represents seconds; we may want milliseconds as an integer instead,
+// for example
 #define DEFORM_CALC_TABLE( table, base, offset, t, f, a ) \
 	( ( base ) + ( table )[ int ( ( offset ) + ( t ) * ( f ) * DEFORM_TABLE_SIZE ) & DEFORM_TABLE_MASK ] * ( a ) )
 

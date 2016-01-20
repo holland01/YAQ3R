@@ -1,5 +1,6 @@
 #pragma once
 
+/*
 #if defined( _WIN32 )
 #	include <Windows.h> // This needs to be before GLFW includes to prevent APIENTRY macro redef error
 #	define GL_PROC APIENTRY
@@ -8,20 +9,30 @@
 #else
 #	define GL_PROC __attribute__( ( __cdecl ) ) // default to cdecl calling convention on 32-bit non-MSVC compilers
 #endif
-#ifdef __GNUC__
-#	include <stdint-gcc.h>
+*/
+
+#if defined(_WIN32)
+#	include <Windows.h>
+#	define GL_PROC APIENTRY
 #else
-#	include <stdint.h>
+#	define GL_PROC
 #endif
+
+#ifdef GLDESKTOP
+#	include <GL/glew.h>
+#else
+#	include <GLES2/gl2.h>
+#	include <GLES2/gl2ext.h>
+#	include <EGL/egl.h>
+#endif
+
+#include <stdint.h>
 
 #ifdef __linux__
 #   include <ftw.h>
 #endif
 
 #include "global.h"
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,9 +77,6 @@
 #ifndef _WIN32
 #	define TRUE 1 
 #	define FALSE 0
-
-static void __nop( void )
-{}
 #endif
 
 #define INDEX_UNDEFINED -1

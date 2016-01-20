@@ -55,13 +55,6 @@ static INLINE void PlaneFrom3( plane_t* const outp, const glm::vec3& p, const gl
     outp->points[ 2 ] = p2;
 }
 
-static INLINE float PointToPlaneDistance( const plane_t* const plane, const glm::vec3& v )
-{
-    const glm::vec3& p = v - glm::vec3( plane->points[ 0 ] );
-
-    return 0;
-}
-
 
 
 

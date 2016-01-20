@@ -93,7 +93,7 @@ public:
 
 	mapData_t					data;
 
-    void						Read( const std::string& filepath, const int scale, uint32_t loadFlags );
+	void						Read( const std::string& filepath, const int scale );
 
 	void						WriteLumpToFile( uint32_t lump );
 

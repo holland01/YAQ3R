@@ -131,7 +131,7 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
                     float offset =
                             shader->deformParms.data.wave.phase + ( position.x + position.y + position.z ) * shader->deformParms.data.wave.spread;
 
-                    return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.data.wave.base, offset, glfwGetTime(), shader->deformParms.data.wave.frequency,
+					return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.data.wave.base, offset, GetTimeSeconds(), shader->deformParms.data.wave.frequency,
                         shader->deformParms.data.wave.amplitude );
 				}
 				break;

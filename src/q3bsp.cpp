@@ -92,7 +92,7 @@ void Q3BspMap::DestroyMap( void )
     }
 }
 
-void Q3BspMap::Read( const std::string& filepath, const int scale, uint32_t loadFlags )
+void Q3BspMap::Read( const std::string& filepath, const int scale )
 {   
 	if ( IsAllocated() )
 		DestroyMap();
@@ -267,12 +267,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
         SwizzleCoords( data.models[ i ].boxMax );
         SwizzleCoords( data.models[ i ].boxMin );
     }
-
-    auto LOffsetLMCoords = []( bspFace_t& face, bspVertex_t& v )
-    {
-        v.texCoords[ 1 ].x = ( v.texCoords[ 1 ].x * face.lightmapSize[ 0 ] ) + face.lightmapStartCorner[ 0 ];
-        v.texCoords[ 1 ].y = ( v.texCoords[ 1 ].y * face.lightmapSize[ 1 ] ) + face.lightmapStartCorner[ 1 ];
-    };
 
     for ( int i = 0; i < data.numFaces; ++i )
     {

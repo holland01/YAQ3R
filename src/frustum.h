@@ -30,7 +30,7 @@ class Frustum
 
 	glm::mat4 mvp;
 
-	glm::vec4 CalcPlaneFromOrigin( const glm::vec4& position, const glm::vec4& origin, bool normalizeDistance );
+	glm::vec4 CalcPlaneFromOrigin( const glm::vec4& position, const glm::vec4& origin );
 
 public:
 

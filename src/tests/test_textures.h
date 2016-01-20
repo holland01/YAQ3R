@@ -11,8 +11,6 @@ class TTextureTest : public Test
 {
 private:
 
-    GLuint vao;
-
     std::unique_ptr< Program > prog;
 
     std::unique_ptr< InputCamera > camera;
@@ -34,7 +32,5 @@ public:
     ~TTextureTest( void );
 
     void Load( void );
-
-    void OnKeyPress( int key, int scancode, int action, int mods );
 };
 

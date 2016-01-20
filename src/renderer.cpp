@@ -49,33 +49,6 @@ static inline void WriteLog( std::stringstream& out )
 #endif
 }
 
-static inline void CheckDrawAtlasBoxes( const void* param,
-                                        const shaderStage_t& stage,
-                                        const Program& debugProgram,
-                                        drawCall_t callback )
-{
-#ifdef DEBUG
-    if ( !gConfig.drawAtlasTextureBoxes )
-        return;
-
-    glm::vec4 color( 0.0f, 0.0f, 0.0f, 1.0f );
-    if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
-        color.r = 1.0f;
-    else
-        color.b = 1.0f;
-
-    debugProgram.LoadVec4( "fragColor", color );
-    debugProgram.Bind();
-    callback( param, debugProgram, nullptr );
-    debugProgram.Release();
-#else
-    UNUSED( param );
-    UNUSED( stage );
-    UNUSED( debugProgram );
-    UNUSED( callback );
-#endif
-}
-
 static uint64_t frameCount = 0;
 
 static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vector< mapModel_t >& glFaces )
@@ -104,8 +77,7 @@ static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vect
 mapModel_t::mapModel_t( void )
 	: deform( false ),
 	  vboOffset( 0 ),
-	  subdivLevel( 0 ),
-	  envmap( nullptr )
+	  subdivLevel( 0 )
 {
 }
 
@@ -171,7 +143,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 					deformCache.sinTable, 
 					0,
 					e.data.wave.phase,
-					glfwGetTime(),
+					GetTimeSeconds(),
 					e.data.wave.frequency,
 					e.data.wave.amplitude );
 					p.LoadFloat( "tcModTurb", turb );					
@@ -208,9 +180,6 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
         map ( new Q3BspMap() ),
         camera( nullptr ),
         frustum( new Frustum() ),
-		transformBlockIndex( 0 ),
-		transformBlockObj( 0 ),
-		transformBlockSize( sizeof( glm::mat4 ) * 2 ),
 		curView( VIEW_MAIN )
 {
 	viewParams_t view;
@@ -222,7 +191,6 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 
 BSPRenderer::~BSPRenderer( void )
 {
-    GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
 	DeleteBufferObject( GL_ARRAY_BUFFER, vbo );
 
     delete map;
@@ -231,7 +199,7 @@ BSPRenderer::~BSPRenderer( void )
 }
 
 void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
 {
 	std::vector< char > vertex, fragment;
 	if ( !File_GetBuf( vertex, vertPath ) )
@@ -246,18 +214,15 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath
 		return;
 	}
 
-	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertex, fragment, uniforms, attribs, bindTransformsUbo ) );
+	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertex, fragment, uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
 	GL_CHECK( glEnable( GL_BLEND ) );
-	//GL_CHECK( glEnable( GL_FRAMEBUFFER_SRGB ) );
 
     GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-	
-	GL_CHECK( glPointSize( 20.0f ) );
 
     GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
 
@@ -266,21 +231,6 @@ void BSPRenderer::Prep( void )
     GL_CHECK( glGenBuffers( 1, &vbo ) );
 	
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
-
-	GL_CHECK( glGenVertexArrays( 1, &vao ) );
-	GL_CHECK( glBindVertexArray( vao ) );
-
-#ifndef GLES
-
-
-    // Gen transforms UBO
-	GL_CHECK( glGenBuffers( 1, &transformBlockObj ) );
-	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, transformBlockObj ) );
-	GL_CHECK( glBufferData( GL_UNIFORM_BUFFER, transformBlockSize, NULL, GL_STREAM_DRAW ) );
-	GL_CHECK( glBufferSubData( GL_UNIFORM_BUFFER, 0, sizeof( glm::mat4 ), glm::value_ptr( camera->ViewData().clipTransform ) ) );
-	GL_CHECK( glBindBufferRange( GL_UNIFORM_BUFFER, UBO_TRANSFORMS_BLOCK_BINDING, transformBlockObj, 0, transformBlockSize ) );
-	GL_CHECK( glBindBuffer( GL_UNIFORM_BUFFER, 0 ) );
-#endif // GLES
 
 	// Load main shader glPrograms
 	{
@@ -308,8 +258,7 @@ void BSPRenderer::Prep( void )
             "lightmapActive"
         };
 
-        MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs, false );
-		//MakeProg( "debug", "src/debug.vert", "src/debug.frag", { "fragColor" }, { "position" }, true );
+		MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs );
 	}
 }
 
@@ -348,22 +297,9 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 	}
 }
 
-static glm::vec3 CalcUpVector( const glm::vec3& forward, const glm::vec3& desired )
-{
-	float cosAng = glm::abs( glm::dot( glm::normalize( forward ), desired ) );
-	if ( cosAng == 1.0f )
-	{
-		return glm::normalize( glm::cross( glm::vec3( 1.0f, 0.0f, 0.0f ), forward ) ); 
-	}
-	else
-	{
-		return desired;
-	}
-}
-
 void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 {
-    map->Read( filepath, 1, mapLoadFlags );
+	map->Read( filepath, 1 );
 	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
     std::vector< gImageParams_t > shaderTextures;
@@ -537,11 +473,11 @@ FAIL_WARN:
 
 void BSPRenderer::Render( void )
 { 
-	double startTime = glfwGetTime();
+	float startTime = GetTimeSeconds();
 
     RenderPass( camera->ViewData(), false );
 	
-	frameTime = glfwGetTime() - startTime;
+	frameTime = GetTimeSeconds() - startTime;
 
 	frameCount++;
 }
@@ -780,7 +716,7 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
-void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* stage, const Program& program ) const
+void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* stage ) const
 {
     for ( int32_t i: surf.faceIndices )
     {
@@ -913,7 +849,7 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 
         prog.LoadDefaultAttribProfiles();
 
-        DrawSurface( surf, stage, prog );
+		DrawSurface( surf, stage );
     };
 
 	for ( const drawSurface_t& surf: list )
@@ -927,7 +863,8 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 		{
             DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
             {
-                DrawSurface( surf, nullptr, main );
+				UNUSED( main );
+				DrawSurface( surf, nullptr );
             });  
 		}
 	}
@@ -935,6 +872,8 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 
 void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const
 {
+	UNUSED( stage );
+
 	const mapModel_t& m = glFaces[ pass.faceIndex ];
 
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
@@ -950,31 +889,8 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 		
         program.LoadDefaultAttribProfiles();
 
-		GL_CHECK( glMultiDrawElements( GL_TRIANGLE_STRIP, 
-			&m.trisPerRow[ 0 ], GL_UNSIGNED_INT, ( const GLvoid** ) &m.rowIndices[ 0 ], m.trisPerRow.size() ) );
+		GU_MultiDrawElements( GL_TRIANGLE_STRIP, m.rowIndices, m.trisPerRow );
 	}
-}
-
-void BSPRenderer::DrawFaceBounds( const viewParams_t& view, int32_t faceIndex ) const
-{
-	ImPrep( view.transform, view.clipTransform );
-
-	glm::vec4 color;
-	
-	float t = glFaces[ faceIndex ].bounds.CalcIntersection( glm::normalize( view.forward ), view.origin );
-	
-	if ( t != FLT_MAX )
-	{
-		color = glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f );
-	}
-	else
-	{
-		color = glm::vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-	}
-
-	ImDrawAxes( 100.0f );
-	
-	ImDrawBounds( glFaces[ faceIndex ].bounds, color );
 }
 
 void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const

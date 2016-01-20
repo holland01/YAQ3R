@@ -17,18 +17,6 @@ Frustum::~Frustum( void )
 {
 }
 
-glm::vec4 Frustum::CalcPlaneFromOrigin( const glm::vec4& position, const glm::vec4& origin, bool normalizeDistance )
-{
-	glm::vec4 plane( 0.0f );
-	plane.x = position.x;
-	plane.y = position.y;
-	plane.z = position.z;
-	plane	= glm::normalize( plane );
-	plane.w = glm::dot( glm::vec3( origin ), glm::vec3( position ) ); 
-
-	return plane;
-}
-
 #define F_CalcDist( plane ) ( ( plane ).d / glm::length( ( plane ).normal ) )
 #define F_CalcNormal( a, b ) ( glm::cross( a, b ) )
 void Frustum::Update( const viewParams_t& view, bool normalizeDistance )
@@ -91,7 +79,7 @@ bool Frustum::IntersectsBox( const AABB& box ) const
 #define C(v) ( glm::vec3( ( v ) ) )
 
 	std::array< glm::vec3, 8 > clipBounds = 
-	{
+	{{
 		C( box.Corner4( 0 ) ),
 		C( box.Corner4( 1 ) ),
 		C( box.Corner4( 2 ) ),
@@ -100,7 +88,7 @@ bool Frustum::IntersectsBox( const AABB& box ) const
 		C( box.Corner4( 5 ) ),
 		C( box.Corner4( 6 ) ),
 		C( box.Corner4( 7 ) )
-	};
+	}};
 #undef C
 
 	// Test each corner against every plane normal

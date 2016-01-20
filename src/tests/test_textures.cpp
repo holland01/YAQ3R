@@ -11,10 +11,6 @@ TTextureTest::TTextureTest( void )
 
 TTextureTest::~TTextureTest( void )
 {
-    if ( vao )
-    {
-        GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
-    }
 }
 
 void TTextureTest::Run( void )
@@ -56,9 +52,6 @@ void TTextureTest::Load( void )
         return;
     }
 
-    GL_CHECK( glGenVertexArrays( 1, &vao ) );
-    GL_CHECK( glBindVertexArray( vao ) );
-
     const std::string vertex = R"(
         #version 450
         layout(location = 0) in vec3 position;
@@ -96,8 +89,7 @@ void TTextureTest::Load( void )
 
     prog.reset( new Program( vertex, fragment,
         { "modelToView", "viewToClip", "imageTransform", "imageScaleRatio", "sampler" },
-        { "position", "tex0" },
-            false ) );
+		{ "position", "tex0" } ) );
 
     camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 0.01f, 10000.0f );
 
@@ -156,9 +148,4 @@ void TTextureTest::Load( void )
     texture = GMakeTexture( imageInfo, 0 );
     currImage = GTextureImage( texture, 3 );
     invRowPitch = GTextureInverseRowPitch( texture );
-}
-
-void TTextureTest::OnKeyPress( int key, int scancode, int action, int mods )
-{
-    Test::OnKeyPress( key, scancode, action, mods );
 }

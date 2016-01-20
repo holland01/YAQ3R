@@ -42,11 +42,6 @@ using indexBufferSizeList_t = std::vector< int32_t >;
 static INLINE void GU_MultiDrawElements( GLenum mode, const indexBufferList_t& indexBuffers,
                                          const indexBufferSizeList_t& indexBufferSizes )
 {
-#ifdef GLES
     for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
         GL_CHECK( glDrawElements( mode, indexBufferSizes[ i ], GL_UNSIGNED_INT, indexBuffers[ i ] ) );
-#else
-    GL_CHECK( glMultiDrawElements( mode, &surf.indexBufferSizes[ 0 ],
-        GL_UNSIGNED_INT, ( const GLvoid** ) &surf.indexBuffers[ 0 ], surf.indexBuffers.size() ) );
-#endif // GLES
 }

@@ -1,6 +1,7 @@
 #include "input.h"
 #include "io.h"
 #include "math_util.h"
+#include <SDL2/SDL.h>
 
 static const float MOUSE_SENSE = 0.1f;
 static const float DEF_MOVE_STEP_SPEED = 10.0f;
@@ -64,33 +65,35 @@ void InputCamera::EvalKeyPress( int key )
 {
     switch( key )
     {
-        case GLFW_KEY_W:
+		case SDLK_w:
             keysPressed[ KEY_FORWARD ] = KEY_PRESSED;
             break;
 
-        case GLFW_KEY_S:
+		case SDLK_s:
             keysPressed[ KEY_BACKWARD ] = KEY_PRESSED;
             break;
 
-        case GLFW_KEY_A:
+		case SDLK_a:
             keysPressed[ KEY_LEFT ] = KEY_PRESSED;
             break;
 
-        case GLFW_KEY_D:
+		case SDLK_d:
             keysPressed[ KEY_RIGHT ] = KEY_PRESSED;
             break;
 
-        case GLFW_KEY_LEFT_SHIFT:
+		case SDLK_LSHIFT:
             keysPressed[ KEY_DOWN ] = KEY_PRESSED;
             break;
 
-        case GLFW_KEY_SPACE:
+		case SDLK_SPACE:
             keysPressed[ KEY_UP ] = KEY_PRESSED;
             break;
-        case GLFW_KEY_E:
+
+		case SDLK_e:
             keysPressed[ KEY_IN ] = KEY_PRESSED;
             break;
-        case GLFW_KEY_Q:
+
+		case SDLK_q:
             keysPressed[ KEY_OUT ] = KEY_PRESSED;
             break;
     }
@@ -98,34 +101,40 @@ void InputCamera::EvalKeyPress( int key )
 
 void InputCamera::EvalKeyRelease( int key )
 {
-    switch( key )
-    {
-        case GLFW_KEY_W:
-            keysPressed[ KEY_FORWARD ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_S:
-            keysPressed[ KEY_BACKWARD ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_A:
-            keysPressed[ KEY_LEFT ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_D:
-            keysPressed[ KEY_RIGHT ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_LEFT_SHIFT:
-            keysPressed[ KEY_DOWN ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_SPACE:
-            keysPressed[ KEY_UP ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_E:
-            keysPressed[ KEY_IN ] = KEY_NOT_PRESSED;
-            break;
-        case GLFW_KEY_Q:
-            keysPressed[ KEY_OUT ] = KEY_NOT_PRESSED;
-            break;
+	switch( key )
+	{
+		case SDLK_w:
+			keysPressed[ KEY_FORWARD ] = KEY_NOT_PRESSED;
+			break;
 
-    }
+		case SDLK_s:
+			keysPressed[ KEY_BACKWARD ] = KEY_NOT_PRESSED;
+			break;
+
+		case SDLK_a:
+			keysPressed[ KEY_LEFT ] = KEY_NOT_PRESSED;
+			break;
+
+		case SDLK_d:
+			keysPressed[ KEY_RIGHT ] = KEY_NOT_PRESSED;
+			break;
+
+		case SDLK_LSHIFT:
+			keysPressed[ KEY_DOWN ] = KEY_NOT_PRESSED;
+			break;
+
+		case SDLK_SPACE:
+			keysPressed[ KEY_UP ] = KEY_NOT_PRESSED;
+			break;
+
+		case SDLK_e:
+			keysPressed[ KEY_IN ] = KEY_NOT_PRESSED;
+			break;
+
+		case SDLK_q:
+			keysPressed[ KEY_OUT ] = KEY_NOT_PRESSED;
+			break;
+	}
 }
 
 void InputCamera::Update( void )

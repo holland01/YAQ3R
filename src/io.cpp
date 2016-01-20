@@ -1,10 +1,11 @@
 #include "io.h"
 #include "q3bsp.h"
 #include "gldebug.h"
-#include "extern/stb_image.c"
+#include "extern/stb_image.h"
 #include "renderer.h"
 #include "effect_shader.h"
 #include <glm/gtx/string_cast.hpp>
+#include <SDL2/SDL.h>
 
 #ifdef _WIN32
 #	define OS_PATH_SEPARATOR '\\'
@@ -50,13 +51,53 @@ void MyDateTime( const char* format, char* outBuffer, int length )
     strftime( outBuffer, length, format, info );
 }
 
+static const float TO_SECONDS = 1.0f / 1000.0f;
+
+float GetTimeSeconds( void )
+{
+	return TO_SECONDS * ( float )SDL_GetTicks();
+}
+
+// Shamelessly stolen from:
+// https://code.google.com/p/glues/source/browse/trunk/glues/source/glues_error.c
+
+namespace {
+	struct tokenString_t
+	{
+	   GLenum token;
+	   const char* message;
+	};
+}
+
+
 void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 {
     GLenum error = glGetError();
 
     if ( GL_NO_ERROR != error )
     {
-        const char* errorString = ( const char* ) gluErrorString( error );
+		// No use in statically allocating it for this use case...
+		const tokenString_t errors[]=
+		{
+		   /* GL */
+		   {GL_NO_ERROR, "no error"},
+		   {GL_INVALID_ENUM, "invalid enumerant"},
+		   {GL_INVALID_VALUE, "invalid value"},
+		   {GL_INVALID_OPERATION, "invalid operation"},
+		   {GL_OUT_OF_MEMORY, "out of memory"},
+		   { ~(0u), NULL } /* end of list indicator */
+		};
+
+		const char* errorString = "unlisted error message.";
+
+		for ( int i = 0; errors[i].message; ++i )
+		{
+			if ( error == errors[i].token )
+			{
+				errorString = errors[i].message;
+				break;
+			}
+		}
 
         MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc, glFunc, line, error, errorString );
         FlagExit();
@@ -276,8 +317,6 @@ void InitSysLog( void )
         MLOG_ERROR( "could not open gBspDataLog" );
         return;
     }
-
-    glDebugInit();
 }
 
 void KillSysLog( void )
@@ -287,8 +326,6 @@ void KillSysLog( void )
 
     if ( gBspDataLog )
         fclose( gBspDataLog );
-
-    glDebugKill();
 }
 
 #ifdef __linux__
@@ -376,7 +413,11 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
     ftw( directory.c_str(), invoke, 3 );
 #else
-#error "Unsupported OS"
+	UNUSED( directory );
+	UNUSED( callback );
+	UNUSED( QueryCaller );
+
+	MLOG_ERROR( "This needs Emscripten support..." );
 #endif
 }
 

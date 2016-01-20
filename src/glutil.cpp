@@ -12,7 +12,6 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		[]( const Program& program ) -> void
 		{
 			MapVec3( program.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
-			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "position" ), 0 ), "attribLoadFunctions" ); 
 		}
 	},
 	{
@@ -20,7 +19,6 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		[]( const Program& program ) -> void
 		{
 			MapVec3( program.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
-			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "normal" ), 0 ), "attribLoadFunctions" ); 
 		}
 	},
 	{
@@ -30,7 +28,6 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 			GL_CHECK_WITH_NAME( glEnableVertexAttribArray( program.attribs.at( "color" ) ), "attribLoadFunctions" ); 
 			GL_CHECK_WITH_NAME( glVertexAttribPointer( program.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE, 
 				GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ), "attribLoadFunctions" );
-			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "color" ), 0 ), "attribLoadFunctions" ); 
 		}
 	},
 	{
@@ -38,7 +35,6 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		[]( const Program& program ) -> void
 		{
 			MapVec3( program.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
-			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "tex0" ), 0 ), "attribLoadFunctions" ); 
 		}
 	},
 	{
@@ -46,37 +42,9 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		[]( const Program& program ) -> void
 		{
 			MapVec3( program.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
-			GL_CHECK_WITH_NAME( glVertexAttribDivisor( program.attribs.at( "lightmap" ), 0 ), "attribLoadFunctions" ); 
 		}
 	}
 };
-
-GLuint GenSampler( bool mipmap, GLenum wrap )
-{
-	GLuint sampler;
-	GL_CHECK( glGenSamplers( 1, &sampler ) );
-
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MIN_FILTER, mipmap? GL_LINEAR_MIPMAP_LINEAR: GL_LINEAR ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_S, wrap ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_T, wrap ) );
-	GL_CHECK( glSamplerParameteri( sampler, GL_TEXTURE_WRAP_R, wrap ) );
-
-	GLfloat maxSamples;
-	GL_CHECK( glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSamples ) );
-	GL_CHECK( glSamplerParameterf( sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxSamples ) );
-
-	return sampler;
-}
-
-void BindTexture( GLenum target, GLuint handle, int32_t offset,  
-	int32_t sampler, const std::string& uniform, const Program& program )
-{
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	GL_CHECK( glBindTexture( target, handle ) );
-	GL_CHECK( glBindSampler( offset, sampler ) );
-	program.LoadInt( uniform, offset );
-}
 
 /*
 static INLINE void SetPixel( byte* dest, const byte* src, int width, int height, int bpp, int srcX, int srcY, int destX, int destY )
@@ -102,104 +70,6 @@ static INLINE void FlipBytes( byte* out, const byte* src, int width, int height,
 
 //-------------------------------------------------------------------------------------------------
 
-void ImPrep( const glm::mat4& viewTransform, const glm::mat4& clipTransform )
-{
-	GL_CHECK( glUseProgram( 0 ) );
-	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
-	GL_CHECK( glLoadIdentity() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( clipTransform ) ) );
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glLoadIdentity() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( viewTransform ) ) );
-}
-
-void ImDrawAxes( const float size ) 
-{
-	std::array< glm::vec3, 6 > axes = 
-	{
-		glm::vec3( size, 0.0f, 0.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ),
-		glm::vec3( 0.0f, size, 0.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ),
-		glm::vec3( 0.0f, 0.0f, -size ), glm::vec3( 0.0f, 0.0f, 1.0f )
-	};
-	
-	glBegin( GL_LINES );
-	for ( int i = 0; i < 6; i += 2 )
-	{
-		glColor3fv( glm::value_ptr( axes[ i + 1 ] ) );
-		glVertex3f( 0.0f, 0.0f, 0.0f );
-		glVertex3fv( glm::value_ptr( axes[ i ] ) ); 
-	}
-	glEnd();
-}
-
-void ImDrawBounds( const AABB& bounds, const glm::vec4& color )
-{
-	const glm::vec3 center( bounds.Center() );
-
-	const std::array< const glm::vec3, 8 > points = 
-	{
-		bounds.maxPoint - center, 
-		glm::vec3( bounds.maxPoint.x, bounds.maxPoint.y, bounds.minPoint.z ) - center,
-		glm::vec3( bounds.maxPoint.x, bounds.minPoint.y, bounds.minPoint.z ) - center, 
-		glm::vec3( bounds.maxPoint.x, bounds.minPoint.y, bounds.maxPoint.z ) - center,
-		
-		bounds.minPoint - center,
-		glm::vec3( bounds.minPoint.x, bounds.maxPoint.y, bounds.minPoint.z ) - center,
-		glm::vec3( bounds.minPoint.x, bounds.minPoint.y, bounds.minPoint.z ) - center, 
-		glm::vec3( bounds.minPoint.x, bounds.minPoint.y, bounds.maxPoint.z ) - center,
-	};
-	
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glPushMatrix() );
-	GL_CHECK( glTranslatef( center.x, center.y, center.z ) );
-	
-	glBegin( GL_LINE_STRIP );
-	glColor4fv( glm::value_ptr( color ) );
-
-	for ( int i = 0; i < 8; ++i )
-	{
-		glVertex3fv( glm::value_ptr( points[ i ] ) );
-	}
-
-	glEnd();
-	GL_CHECK( glPopMatrix() );
-}
-
-void ImDrawPoint( const glm::vec3& point, const glm::vec4& color, float size )
-{
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glPushMatrix() );
-	GL_CHECK( glTranslatef( point.x, point.y, point.z ) );
-	GL_CHECK( glPushAttrib( GL_POINT_BIT ) );
-	GL_CHECK( glPointSize( size ) );
-
-	glBegin( GL_POINTS );
-	glColor4fv( glm::value_ptr( color ) );
-	glVertex3f( 0.0f, 0.0f, 0.0f );
-	glEnd();
-
-	GL_CHECK( glPopAttrib() );
-	GL_CHECK( glPopMatrix() );
-}
-
-void SetPolygonOffsetState( bool enable, uint32_t polyFlags )
-{
-	if ( enable )
-	{
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_FILL ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_LINE ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glEnable( GL_POLYGON_OFFSET_POINT ) );
-	}
-	else
-	{
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_FILL ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_FILL ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_LINE ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_LINE ) );
-		if ( polyFlags & GLUTIL_POLYGON_OFFSET_POINT ) GL_CHECK( glDisable( GL_POLYGON_OFFSET_POINT ) );
-	}
-}
-
-//-------------------------------------------------------------------------------------------------
-
 static INLINE void DisableAllAttribs( void )
 {
     for ( int i = 0; i < 5; ++i )
@@ -219,18 +89,18 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 }
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, 
-	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
-    : Program( vertexShader, fragmentShader, bindTransformsUbo? std::vector< std::string >(): attribs )
+	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
+	: Program( vertexShader, fragmentShader, attribs )
 {
-	GenData( uniforms, attribs, bindTransformsUbo );
+	GenData( uniforms, attribs );
 }
 
-Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader, 
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs, bool bindTransformsUbo )
+Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader,
+		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
 		: Program( std::string( &vertexShader[ 0 ], vertexShader.size() ), 
-                std::string( &fragmentShader[ 0 ], fragmentShader.size() ), bindTransformsUbo? std::vector< std::string >(): attribs )
+				std::string( &fragmentShader[ 0 ], fragmentShader.size() ), attribs )
 {
-    GenData( uniforms, attribs, bindTransformsUbo );
+	GenData( uniforms, attribs );
 }
 
 Program::Program( const Program& copy )
@@ -247,7 +117,7 @@ Program::~Program( void )
 }
 
 void Program::GenData( const std::vector< std::string >& uniforms, 
-	const std::vector< std::string >& attribs, bool bindTransformsUbo )
+	const std::vector< std::string >& attribs )
 {
 	uint32_t max = glm::max( attribs.size(), uniforms.size() );
 	for ( uint32_t i = 0; i < max; ++i )
@@ -261,11 +131,6 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 		{
 			AddUnif( uniforms[ i ] );
 		}
-	}
-
-	if ( bindTransformsUbo )
-	{
-		MapProgramToUBO( program, "Transforms" );
 	}
 }
 

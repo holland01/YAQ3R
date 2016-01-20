@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "gldebug.h"
 
 struct bspFace_t;
 struct bspMeshVertex_t;
@@ -31,6 +30,9 @@ void LogBSPData( int bspDataType, void* data, int length );
 void MyPrintf( const char* header, const char* fmt, ... );
 void MyFprintf( FILE* f, const char* header, const char* fmt, ... );
 void MyDateTime( const char* format, char* outBuffer, int length );
+
+float GetTimeSeconds( void );
+
 
 void ExitOnGLError( int line, const char* glFunc, const char* callerFunc );
 
