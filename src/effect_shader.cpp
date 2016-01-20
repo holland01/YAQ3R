@@ -727,20 +727,13 @@ static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const 
 
 static INLINE std::string SampleTexture2D( const std::string& samplerName, const std::string& coords )
 {
-    std::string fname( "texture" );
-#ifdef GLES
-    fname.append( "2D" );
-#endif
+	std::string fname( "texture2D" );
     return fname + "( " + samplerName + ", " + coords + " )";
 }
 
 static INLINE std::string WriteFragment( const std::string& value )
 {
-#ifdef GLES
     return "gl_FragColor = " + value + ";";
-#else
-    return "fragment = " + value + ";";
-#endif
 }
 
 static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type )
@@ -755,35 +748,18 @@ static INLINE std::string DeclTransferVar( const std::string& name, const std::s
 
 static INLINE std::string GetHeader( void )
 {
-#ifdef GLES
-    return "#version 100";
-#else
-    return "#version 450";
-#endif
+	return "#version 100";
 }
 
 static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destShaderSrc,
                                              std::vector< std::string >& uniforms,
                                              size_t offset )
 {
-#ifdef GLES
     uniforms.push_back( "modelToView" );
     uniforms.push_back( "viewToClip" );
-#else
-    UNUSED( uniforms );
-#endif
 
     destShaderSrc.insert( destShaderSrc.begin() + offset,
-#ifdef GLES
         { "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
-#else
-        {
-            "layout( std140 ) uniform Transforms {",
-            "\tmat4 viewToClip;",
-            "\tmat4 modelToView;",
-            "};"
-        }
-#endif
     );
 }
 
@@ -799,7 +775,6 @@ static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
         fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
 
     sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
-
 
     // Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
@@ -928,21 +903,12 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			std::vector< std::string > fragmentSrc =
 			{
                 GetHeader(),
-    #ifdef GLES
                 "precision highp float;",
-    #endif // GLES
                 DeclTransferVar( "frag_Color", "vec4" ),
                 DeclTransferVar( "frag_Tex", "vec2" ),
                 "const float gamma = 1.0 / 3.0;",
-    #ifndef GLES
-                DeclTransferVar( "fragment", "vec4" ),
-    #endif // GLES
                 "void main(void) {"
 			};
-
-#ifndef GLES
-#   error "Code path here doesn't incorporate texture arrays for Desktop Core GL, as it should"
-#endif // GLES
 
             const size_t fragGlobalDeclOffset = 4;
 
@@ -992,18 +958,6 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 					uniforms.push_back( "tcModScale" );
 				}
 			}
-
-            // ( We can only check for conservative depth in GLSL 4.0 )
-#ifndef GLES
-			// We assess whether or not we need to add conservative depth to aid in OpenGL optimization,
-			// given the potential for fragment discard if an alpha function is defined
-			if ( stage.alphaFunc != ALPHA_FUNC_UNDEFINED )
-			{
-				// Enable extensions directly below the version decl to aid in readability
-				fragmentSrc.insert( fragmentSrc.begin() + 1, "#extension GL_ARB_conservative_depth: enable" );
-				fragmentSrc.push_back( "layout( depth_unchanged ) float gl_FragDepth;" );
-			}
-#endif // GLES
 
 			switch ( stage.alphaFunc )
 			{

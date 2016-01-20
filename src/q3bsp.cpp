@@ -106,8 +106,9 @@ void Q3BspMap::WriteLumpToFile( uint32_t lump )
 {
 	FILE* f = nullptr;
 	byte* mem = nullptr;
-	size_t numBytes = 0;
 	std::string filepath;
+	size_t numBytes = 0;
+	(void)numBytes;
 
 	switch ( lump )
 	{

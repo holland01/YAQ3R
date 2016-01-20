@@ -248,8 +248,6 @@ INLINE void Program::AddAltAttribProfile( const attribProfile_t& profile )
     altAttribProfiles.push_back( profile );
 }
 
-#ifdef GLES
-
 template < typename vecType_t, uint32_t tupleSize >
 static INLINE typename std::vector< vecType_t > MakeVectorArray( const float* v, int32_t num )
 {
@@ -339,86 +337,6 @@ INLINE void Program::LoadFloat( const std::string& name, float f ) const
 {
     floats.insert( t_floats::value_type( uniforms.at( name ), f ) );
 }
-
-#else
-
-INLINE void Program::LoadMat4( const std::string& name, const glm::mat4& t ) const
-{
-	GL_CHECK( glProgramUniformMatrix4fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
-}
-
-INLINE void Program::LoadMat2( const std::string& name, const glm::mat2& t ) const
-{
-	GL_CHECK( glProgramUniformMatrix2fv( program, uniforms.at( name ), 1, GL_FALSE, glm::value_ptr( t ) ) );
-}
-
-INLINE void Program::LoadMat2( const std::string& name, const float* t ) const
-{
-	GL_CHECK( glProgramUniformMatrix2fv( program, uniforms.at( name ), 1, GL_FALSE, t ) );
-}
-
-INLINE void Program::LoadVec2( const std::string& name, const glm::vec2& v ) const
-{
-	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
-}
-
-INLINE void Program::LoadVec2( const std::string& name, const float* v ) const
-{
-	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), 1, v ) );
-}
-
-INLINE void Program::LoadVec2Array( const std::string& name, const float* v, int32_t num ) const
-{
-	GL_CHECK( glProgramUniform2fv( program, uniforms.at( name ), num, v ) );
-}
-
-INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const
-{
-	GL_CHECK( glProgramUniform3fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
-}
-
-INLINE void Program::LoadVec3Array( const std::string& name, const float* v, int32_t num ) const
-{
-	GL_CHECK( glProgramUniform3fv( program, uniforms.at( name ), num, v ) );
-}
-
-INLINE void Program::LoadVec4( const std::string& name, const glm::vec4& v ) const
-{
-	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), 1, glm::value_ptr( v ) ) );
-}
-
-INLINE void Program::LoadVec4( const std::string& name, const float* v ) const
-{
-	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), 1, v ) );
-}
-
-INLINE void Program::LoadVec4Array( const std::string& name, const float* v, int32_t num ) const
-{
-	GL_CHECK( glProgramUniform4fv( program, uniforms.at( name ), num, v ) );
-}
-
-
-INLINE void Program::LoadInt( const std::string& name, int v ) const
-{
-	GL_CHECK( glProgramUniform1i( program, uniforms.at( name ), v ) );
-}
-
-INLINE void Program::LoadFloat( const std::string& name, float f ) const 
-{
-	GL_CHECK( glProgramUniform1f( program, uniforms.at( name ), f ) );
-}
-
-INLINE void Program::Bind( void ) const
-{
-	GL_CHECK( glUseProgram( program ) );
-}
-
-INLINE void Program::Release( void ) const
-{
-	GL_CHECK( glUseProgram( 0 ) );
-}
-
-#endif // GLES
 
 //-------------------------------------------------------------------------------------------------
 struct loadBlend_t

@@ -181,8 +181,6 @@ std::vector< std::string > Program::ArrayLocationNames( const std::string& name,
 	return names;
 }
 
-#ifdef GLES
-
 #define __LOAD_VEC( f, name ) for ( const auto& v: ( name ) ) GL_CHECK( ( f )( v.first, 1, glm::value_ptr( v.second ) ) )
 #define __LOAD_MAT( f, name ) for ( const auto& m: ( name ) ) GL_CHECK( ( f )( m.first, 1, GL_FALSE, glm::value_ptr( m.second ) ) )
 #define __LOAD_VEC_ARRAY( f, name ) for ( const auto& v: ( name ) ) GL_CHECK( ( f )( v.first, v.second.size(), &v.second[ 0 ][ 0 ] ) )
@@ -232,9 +230,6 @@ void Program::Release( void ) const
     ints.clear();
     floats.clear();
 }
-
-
-#endif // GLES
 
 //-------------------------------------------------------------------------------------------------
 

@@ -51,6 +51,16 @@ bool Test::Load( const char* winName )
 		return false;
 	}
 
+#ifndef EMSCRIPTEN
+	glewExperimental = true;
+	GLenum glewErr = glewInit();
+	if ( glewErr != GLEW_OK )
+	{
+		MLOG_ERROR( "Could not initialize GLEW: %s", glewGetErrorString( glewErr ) );
+		return false;
+	}
+#endif
+
 	SDL_RenderPresent( sdlRenderer );
 
     running = true;
@@ -74,6 +84,10 @@ int Test::Exec( void )
         Run();
 
 		SDL_GL_SwapWindow( sdlWindow );
+
+		SDL_Event e;
+		while ( SDL_PollEvent( &e ) )
+			OnInputEvent( &e );
 
 		deltaTime = ( float )( GetTimeSeconds() - lastTime );
 		lastTime = GetTimeSeconds();
@@ -123,8 +137,8 @@ void Test::OnInputEvent( SDL_Event* e )
 				camPtr->lastMouse.x = mouseX;
 				camPtr->lastMouse.y = mouseY;
 
-				mouseX = ( float ) e->motion.xrel;
-				mouseY = ( float ) e->motion.yrel;
+				mouseX = ( float ) e->motion.x;
+				mouseY = ( float ) e->motion.y;
 
 				if ( !cursorVisible )
 					camPtr->EvalMouseMove( mouseX, mouseY );

@@ -2692,6 +2692,7 @@ static stbi_uc *bmp_load(stbi *s, int *x, int *y, int *comp, int req_comp)
 {
    uint8 *out;
    unsigned int mr=0,mg=0,mb=0,ma=0, fake_a=0;
+   (void)fake_a;
    stbi_uc pal[256][4];
    int psize=0,i,j,compress=0,width;
    int bpp, flip_vertically, pad, target, offset, hsz;
@@ -2849,7 +2850,7 @@ static stbi_uc *bmp_load(stbi *s, int *x, int *y, int *comp, int req_comp)
             }
          } else {
             for (i=0; i < (int) s->img_x; ++i) {
-               uint32 v = (bpp == 16 ? get16le(s) : get32le(s));
+			   uint32 v = (bpp == 16 ? (uint32)get16le(s) : (uint32)get32le(s));
                int a;
                out[z++] = (uint8) shiftsigned(v & mr, rshift, rcount);
                out[z++] = (uint8) shiftsigned(v & mg, gshift, gcount);

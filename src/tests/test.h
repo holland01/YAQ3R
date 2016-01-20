@@ -2,12 +2,12 @@
 
 #include "../common.h"
 #include "../input.h"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_main.h>
 
 class Test
 {
-
 protected:
 
     int             width, height;

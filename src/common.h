@@ -18,19 +18,19 @@
 #	define GL_PROC
 #endif
 
-#ifdef GLDESKTOP
-#	include <GL/glew.h>
-#else
+#ifdef EMSCRIPTEN
 #	include <GLES2/gl2.h>
 #	include <GLES2/gl2ext.h>
 #	include <EGL/egl.h>
+#else
+#	include <GL/glew.h>
 #endif
-
-#include <stdint.h>
 
 #ifdef __linux__
 #   include <ftw.h>
 #endif
+
+#include <stdint.h>
 
 #include "global.h"
 
@@ -96,8 +96,6 @@
 #define Mem_Free( ptr ) ( free( ( ptr ) ) )
 
 #define UNUSED( p ) ( void )p
-
-#define GLES
 
 typedef unsigned int uint;
 typedef unsigned char byte;
