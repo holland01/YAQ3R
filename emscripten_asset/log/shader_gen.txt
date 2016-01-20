@@ -1,0 +1,1474 @@
+------------------------------------------
+textures/aedm7/aecell_decal_logo1
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_decal_spawn1
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_gl
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_lg
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_mh
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_pg
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_quad
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_ra
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_rg
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_rl
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_sg
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/aedm7/aecell_pads_ya
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = color;
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/bata3dm1/bata3dm1_floor6
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 1 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 2 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 3 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 lightmap;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = lightmap;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/force/clwhite
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/marsbase/glass
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 1 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+attribute vec3 normal;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	vec3 dirToEye = normalize( vec3( -modelToView[ 3 ] ) - position );
+	vec3 R = 2.0 * normal * dot( dirToEye, normal ) - dirToEye;
+	vec2 displace = R.yz * 0.5;
+	vec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );
+	frag_Tex = st;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/marsbase/grate
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	if ( color.a < 0.5 )
+	{
+		discard;
+	}
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 1 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 lightmap;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = lightmap;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/marsbase/teleprtr_fx1
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 1 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 2 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec2 texCenter;
+uniform mat2 texRotate;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st += texRotate * ( frag_Tex - texCenter );
+	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 3 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 lightmap;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = lightmap;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/moon/light15k
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 lightmap;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = lightmap;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 1 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 2 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/moon/light2013
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 lightmap;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = lightmap;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 1 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+[ 2 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
+------------------------------------------
+textures/water/waterfall
+[ 0 ] [
+
+ Vertex 
+
+#version 100
+attribute vec3 position;
+attribute vec4 color;
+attribute vec2 tex0;
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+void main(void) {
+	gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	frag_Tex = tex0;
+	frag_Color = vec4( 1.0 );
+} 
+
+ Fragment 
+
+#version 100
+precision highp float;
+varying vec4 frag_Color;
+varying vec2 frag_Tex;
+uniform vec4 tcModScroll;
+uniform float tcModTurb;
+uniform mat2 tcModScale;
+uniform sampler2D sampler0;
+uniform vec4 imageTransform;
+uniform vec2 imageScaleRatio;
+vec2 applyTransform(in vec2 coords) {
+	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+}
+const float gamma = 1.0 / 2.2;
+void main(void) {
+	vec2 st = frag_Tex;
+	st = tcModScale * st;
+	st *= tcModTurb;
+	st += tcModScroll.xy * tcModScroll.zw;
+	st = mod( st, 1.0 );
+	st = applyTransform( mod( st, vec2( 0.99 ) ) );
+	vec4 color = texture2D( sampler0, st ) * frag_Color;
+	color.r = pow( color.r, gamma );
+	color.g = pow( color.g, gamma );
+	color.b = pow( color.b, gamma );
+	gl_FragColor = color;
+} 
+
+ ]
+
