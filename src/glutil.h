@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "bsp_data.h"
-#include "gldebug.h"
 #include "io.h"
 #include <array>
 #include <tuple>

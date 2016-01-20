@@ -906,7 +906,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
                 "precision highp float;",
                 DeclTransferVar( "frag_Color", "vec4" ),
                 DeclTransferVar( "frag_Tex", "vec2" ),
-                "const float gamma = 1.0 / 3.0;",
+				"const float gamma = 1.0 / 2.2;",
                 "void main(void) {"
 			};
 

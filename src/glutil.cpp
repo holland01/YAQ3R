@@ -34,14 +34,14 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"tex0",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "tex0" ), offsetof( bspVertex_t, texCoords[ 0 ] ) );
+			MapVec3( program.attribs.at( "tex0" ), sizeof( float ) * 3 );
 		}
 	},
 	{
 		"lightmap",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "lightmap" ), offsetof( bspVertex_t, texCoords[ 1 ] ) );
+			MapVec3( program.attribs.at( "lightmap" ), sizeof( float ) * 5 );
 		}
 	}
 };

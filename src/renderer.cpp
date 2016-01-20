@@ -458,10 +458,6 @@ FAIL_WARN:
 
 	// Allocate vertex data from map and store it all in a single vbo
 
-#ifndef GLES
-	GL_CHECK( glBindVertexArray( vao ) );
-#endif // GLES
-
     GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
     GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
 

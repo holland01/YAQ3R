@@ -137,8 +137,8 @@ void Test::OnInputEvent( SDL_Event* e )
 				camPtr->lastMouse.x = mouseX;
 				camPtr->lastMouse.y = mouseY;
 
-				mouseX = ( float ) e->motion.x;
-				mouseY = ( float ) e->motion.y;
+				mouseX += ( float )( e->motion.xrel );
+				mouseY += ( float )( e->motion.yrel );
 
 				if ( !cursorVisible )
 					camPtr->EvalMouseMove( mouseX, mouseY );

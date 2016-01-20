@@ -1,6 +1,5 @@
 #include "io.h"
 #include "q3bsp.h"
-#include "gldebug.h"
 #include "extern/stb_image.h"
 #include "renderer.h"
 #include "effect_shader.h"

@@ -1,6 +1,4 @@
 ------------------------------------------
-
-------------------------------------------
 textures/aedm7/aecell_decal_logo1
 [ 0 ] [
 
@@ -32,7 +30,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
@@ -77,7 +75,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
@@ -124,7 +122,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -172,7 +170,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -220,7 +218,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -268,7 +266,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -316,7 +314,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -364,7 +362,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -412,7 +410,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -460,7 +458,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -508,7 +506,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -556,7 +554,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -604,7 +602,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -648,7 +646,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );
@@ -691,7 +689,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -734,7 +732,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -779,7 +777,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -824,7 +822,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -872,7 +870,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -917,7 +915,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -964,7 +962,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1011,7 +1009,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -1057,7 +1055,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -1103,7 +1101,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st += texRotate * ( frag_Tex - texCenter );
@@ -1147,7 +1145,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1192,7 +1190,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1235,7 +1233,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1278,7 +1276,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1323,7 +1321,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1366,7 +1364,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1409,7 +1407,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = applyTransform( mod( st, vec2( 0.99 ) ) );
@@ -1457,7 +1455,7 @@ uniform vec2 imageScaleRatio;
 vec2 applyTransform(in vec2 coords) {
 	return coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 }
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 void main(void) {
 	vec2 st = frag_Tex;
 	st = tcModScale * st;

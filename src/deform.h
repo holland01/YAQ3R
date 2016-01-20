@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "vec.h"
 #include "bsp_data.h"
 #include <array>
 

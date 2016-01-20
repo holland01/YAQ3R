@@ -74,85 +74,44 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
 #define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
 
-#ifdef __GNUC__
-#	define MLOG_ERROR( args... )                                \
-		do                                                      \
-		{                                                       \
-			puts("======== ERROR ========");                    \
-			MyPrintf( ( _FUNC_NAME_ ), args );                   \
-			puts("=======================");                    \
-			FlagExit();                                         \
-		}                                                       \
-		while( 0 )
 
-#	define MLOG_WARNING( args... )                              \
-		do                                                      \
-		{                                                       \
-			puts("======== WARNING ========");                  \
-			MyPrintf( ( _FUNC_NAME_ ), args );                   \
-			puts("=======================");                    \
-		}                                                       \
-		while( 0 )
+#define MLOG_ERROR( ... )                                \
+	do                                                      \
+	{                                                       \
+		puts("======== ERROR ========");                    \
+		MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ );                   \
+		puts("=======================");                    \
+		FlagExit();                                         \
+	}                                                       \
+	while( 0 )
 
-#	define MLOG_WARNING_SANS_FUNCNAME( title, args... )                              \
-		do                                                      \
-		{                                                       \
-			puts("======== WARNING ========");                  \
-			MyPrintf( ( title ), args );                 \
-			puts("=======================");                    \
-		}                                                       \
-		while( 0 )
+#define MLOG_WARNING( ... )                              \
+	do                                                      \
+	{                                                       \
+		puts("======== WARNING ========");                  \
+		MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ );                   \
+		puts("=======================");                    \
+	}                                                       \
+	while( 0 )
 
+#define MLOG_WARNING_SANS_FUNCNAME( title, ... )                              \
+	do                                                      \
+	{                                                       \
+		puts("======== WARNING ========");                  \
+		MyPrintf( ( title ), __VA_ARGS__ );                 \
+		puts("=======================");                    \
+	}                                                       \
+	while( 0 )
 
-#	define MLOG_ASSERT( condition, args... )    \
-		do                                      \
-		{                                       \
-			if ( !( condition ) )               \
-			{                                   \
-				MLOG_ERROR( args );                  \
-			}                                   \
-		}                                       \
-		while( 0 )
-
-#elif defined( _MSC_VER )
-#	define MLOG_ERROR( ... )                                \
-		do                                                      \
-		{                                                       \
-			puts("======== ERROR ========");                    \
-			MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ );                   \
-			puts("=======================");                    \
-			FlagExit();                                         \
-		}                                                       \
-		while( 0 )
-
-#	define MLOG_WARNING( ... )                              \
-		do                                                      \
-		{                                                       \
-			puts("======== WARNING ========");                  \
-			MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ );                   \
-			puts("=======================");                    \
-		}                                                       \
-		while( 0 )
-
-#	define MLOG_WARNING_SANS_FUNCNAME( title, ... )                              \
-		do                                                      \
-		{                                                       \
-			puts("======== WARNING ========");                  \
-			MyPrintf( ( title ), __VA_ARGS__ );                 \
-			puts("=======================");                    \
-		}                                                       \
-		while( 0 )
-
-#	define MLOG_ASSERT( condition, ... )    \
-		do                                      \
-		{                                       \
-			if ( !( condition ) )               \
-			{                                   \
-				MLOG_ERROR( __VA_ARGS__ );           \
-			}                                   \
-		}                                       \
-		while( 0 )
-#endif // __GNUC__
+#define MLOG_ASSERT( condition, ... )    \
+	do                                      \
+	{                                       \
+		if ( !( condition ) )               \
+		{                                   \
+			MLOG_ERROR( __VA_ARGS__ );           \
+		}                                   \
+	}                                       \
+	while( 0 )
 
 template < typename T >
 INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
