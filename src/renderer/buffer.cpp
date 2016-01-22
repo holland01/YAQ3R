@@ -37,7 +37,7 @@ INLINE std::vector< bspVertex_t > ConvertToDrawVertex( const std::vector< glm::v
         bufferData.push_back( vt );
     }
 
-    return std::move( bufferData );
+    return bufferData;
 }
 
 INLINE gVertexBuffer_t* MakeVertexBuffer_GL( const std::vector< bspVertex_t >& bufferData )
@@ -71,7 +71,7 @@ gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertice
 		( uint32_t ) gVertexBufferMap.size()
     };
 
-    gVertexBufferMap.push_back( std::move( vertexBufferPointer_t( buffer ) ) );
+    gVertexBufferMap.push_back( vertexBufferPointer_t( buffer ) );
 
     return handle;
 }

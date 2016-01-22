@@ -6,6 +6,10 @@
 #include <glm/gtx/string_cast.hpp>
 #include <SDL2/SDL.h>
 
+#ifdef EMSCRIPTEN
+#	include "em_api.h"
+#endif
+
 #ifdef _WIN32
 #	define OS_PATH_SEPARATOR '\\'
 #else
@@ -394,6 +398,7 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
         
 		success = FindNextFileA( file, &findFileData );
     }
+
 #elif defined( __linux__ )
 
     gLinuxCallback = [ & ]( const char* fpath, const struct stat* sb, int typeFlag ) -> int
@@ -411,7 +416,8 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
 
     ftw( directory.c_str(), invoke, 3 );
-#else
+
+#elif defined(EMSCRIPTEN)
 	UNUSED( directory );
 	UNUSED( callback );
 	UNUSED( QueryCaller );

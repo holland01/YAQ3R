@@ -19,7 +19,7 @@ Product {
             inc.push(devlibRoot + includePath);
         });
 
-        var emroot = qbs.getEnv("EMSDK_ROOT") + "/emscripten/tag-1.34.1/system";
+        var emroot = qbs.getEnv("EMSDK_ROOT") + "/emscripten/tag-1.35.22/system";
 
         var eminc = [
             "/include",
@@ -95,6 +95,8 @@ Product {
         "../src/deform.h",
         "../src/effect_shader.cpp",
         "../src/effect_shader.h",
+        "../src/em_api.cpp",
+        "../src/em_api.h",
         "../src/eu_ang.cpp",
         "../src/eu_ang.h",
         "../src/extern/stb_image.c",
@@ -108,6 +110,7 @@ Product {
         "../src/input.h",
         "../src/io.cpp",
         "../src/io.h",
+        "../src/js/em_api.js",
         "../src/lightmodel.h",
         "../src/lightsample.frag",
         "../src/main.cpp",
@@ -133,7 +136,6 @@ Product {
         "../src/renderer/util.h",
         "../src/shader.cpp",
         "../src/shader.h",
-        "../src/strutil.h",
         "../src/tests/test.cpp",
         "../src/tests/test.h",
         "../src/tests/test_textures.cpp",
@@ -141,7 +143,6 @@ Product {
         "../src/tests/test_util.h",
         "../src/tests/trenderer.cpp",
         "../src/tests/trenderer.h",
-        "../src/vec.h",
     ]
 
     Group {
@@ -160,7 +161,7 @@ Product {
         qbs.install: true
     }
 
-    Properties {
+    Group {
         condition: cpp.compilerName == "emcc_gcc"
         cpp.defines: outer.concat(["EMSCRIPTEN"])
     }

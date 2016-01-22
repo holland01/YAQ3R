@@ -2,7 +2,29 @@
 #include "../io.h"
 #include "../glutil.h"
 
-Test* gAppTest = NULL;
+#ifdef EMSCRIPTEN
+#	include <emscripten.h>
+#	include "em_api.h"
+#endif
+
+Test* gAppTest = nullptr;
+
+static void FrameIteration( void )
+{
+	if ( !gAppTest )
+		return;
+
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+	gAppTest->Run();
+
+	SDL_GL_SwapWindow( gAppTest->sdlWindow );
+
+	SDL_Event e;
+	while ( SDL_PollEvent( &e ) )
+		gAppTest->OnInputEvent( &e );
+}
+
 
 Test::Test( int w, int h, bool fullscreen_ )
     : width( w ), height( h ),
@@ -11,14 +33,14 @@ Test::Test( int w, int h, bool fullscreen_ )
       cursorVisible( true ), 
 	  running( false ), 
 	  useSRGBFramebuffer( true ),
-      camPtr( nullptr ),
-	  sdlWindow( nullptr ),
+	  camPtr( nullptr ),
 	  sdlRenderer( nullptr ),
 	  sdlContext( nullptr ),
 	  mouseX( 0.0f ),
 	  mouseY( 0.0f ),
 	  lastMouseX( 0.0f ),
-	  lastMouseY( 0.0f )
+	  lastMouseY( 0.0f ),
+	  sdlWindow( nullptr )
 {
 }
 
@@ -75,23 +97,21 @@ int Test::Exec( void )
 	if ( !sdlWindow )
         return 1;
 
+#ifdef EMSCRIPTEN
+	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
+    EM_Init();
+	emscripten_set_main_loop( FrameIteration, 0, 1 );
+#else
 	float lastTime = 0.0f;
 
 	while( running )
     {
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-        Run();
-
-		SDL_GL_SwapWindow( sdlWindow );
-
-		SDL_Event e;
-		while ( SDL_PollEvent( &e ) )
-			OnInputEvent( &e );
+		FrameIteration();
 
 		deltaTime = ( float )( GetTimeSeconds() - lastTime );
 		lastTime = GetTimeSeconds();
     }
+#endif
 
     return 0;
 }

@@ -28,6 +28,7 @@ TRenderer::~TRenderer( void )
 
 void TRenderer::Run( void )
 {
+#ifndef EMSCRIPTEN
     renderer->Update( deltaTime );
     renderer->Render();
 
@@ -36,15 +37,23 @@ void TRenderer::Run( void )
 	windowTitle << gTitle << ": " << glm::min( renderer->CalcFPS(), 1000.0f );
 
 	SDL_SetWindowTitle( sdlWindow, windowTitle.str().c_str() );
+#endif
+
 }
 
 void TRenderer::Load( void )
 {
 	if ( !Test::Load( gTitle ) )
         return;
-
+#ifdef EMSCRIPTEN
+    UNUSED( renderer );
+    UNUSED( mapFilepath );
+    UNUSED( mapLoadFlags );
+    UNUSED( camPtr );
+#else
     renderer = new BSPRenderer( ( float ) width, ( float ) height );
     renderer->Prep();
-	renderer->Load( mapFilepath, mapLoadFlags );
+    renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;
+#endif
 }

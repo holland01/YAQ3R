@@ -89,6 +89,10 @@
         height: 200px;
         margin: 0 auto;
         margin-top: 10px;
+        border-left: 0px;
+        border-right: 0px;
+        padding-left: 0px;
+        padding-right: 0px;
         display: block;
         background-color: black;
         color: white;
@@ -1292,5 +1296,11 @@
       };
     </script>
     <script async type="text/javascript" src="testbin.js"></script>
+    <script async type="text/javascript">
+        setTimeout(function(){
+            var x = FS.lookupPath("asset/quake");
+            console.log(x);
+        }, 10);
+    </script>
   </body>
 </html>

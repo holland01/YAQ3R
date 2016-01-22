@@ -21,8 +21,6 @@ protected:
 
     InputCamera*    camPtr;
 
-	SDL_Window*		sdlWindow;
-
 	SDL_Renderer*	sdlRenderer;
 
 	SDL_GLContext	sdlContext;
@@ -36,6 +34,8 @@ protected:
 	float			lastMouseY;
 
 public:
+
+	SDL_Window*		sdlWindow;
 
     Test( int width, int height, bool fullscreen );
 

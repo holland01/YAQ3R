@@ -297,7 +297,7 @@ INLINE void Program::LoadVec2( const std::string& name, const float* v ) const
 
 INLINE void Program::LoadVec2Array( const std::string& name, const float* v, int32_t num ) const
 {
-    vec2Array.insert( t_vec2Array::value_type( uniforms.at( name ), std::move( MakeVectorArray< glm::vec2, 2 >( v, num ) ) ) );
+    vec2Array.insert( t_vec2Array::value_type( uniforms.at( name ), MakeVectorArray< glm::vec2, 2 >( v, num ) ) );
 }
 
 INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) const
@@ -307,7 +307,7 @@ INLINE void Program::LoadVec3( const std::string& name, const glm::vec3& v ) con
 
 INLINE void Program::LoadVec3Array( const std::string& name, const float* v, int32_t num ) const
 {
-    vec3Array.insert( t_vec3Array::value_type( uniforms.at( name ), std::move( MakeVectorArray< glm::vec3, 3 >( v, num ) ) ) );
+    vec3Array.insert( t_vec3Array::value_type( uniforms.at( name ), MakeVectorArray< glm::vec3, 3 >( v, num ) ) );
 }
 
 INLINE void Program::LoadVec4( const std::string& name, const glm::vec4& v ) const
@@ -324,7 +324,7 @@ INLINE void Program::LoadVec4( const std::string& name, const float* v ) const
 
 INLINE void Program::LoadVec4Array( const std::string& name, const float* v, int32_t num ) const
 {
-    vec4Array.insert( t_vec4Array::value_type( uniforms.at( name ), std::move( MakeVectorArray< glm::vec4, 4 >( v, num ) ) ) );
+    vec4Array.insert( t_vec4Array::value_type( uniforms.at( name ), MakeVectorArray< glm::vec4, 4 >( v, num ) ) );
 }
 
 INLINE void Program::LoadInt( const std::string& name, int v ) const

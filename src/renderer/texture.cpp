@@ -159,7 +159,7 @@ gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint
         ( uint32_t ) gTextureMap.size()
     };
 
-    gTextureMap.push_back( std::move( texturePointer_t( texture ) ) );
+    gTextureMap.push_back( texturePointer_t( texture ) );
 
     return handle;
 }
