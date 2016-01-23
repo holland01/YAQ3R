@@ -3,6 +3,7 @@ asset/stockmaps/*
 
 testbin*
 obj/*
+build-bspviewer_*
 
 # C++ objects and libs
 
