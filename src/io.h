@@ -40,22 +40,15 @@ void InitSysLog( void );
 void InitLogBSPData( Q3BspMap* map );
 
 void KillSysLog( void );
-
-struct fileStat_t
-{
-    std::string filepath;
-
-    uint32_t flags; // TODO: is directory, hidden, etc etc.
-};
-
 // A return value of true means "keep iterating, unless we're at the end"; false will terminate the iteration
-using fileSystemTraversalFn_t = std::function< bool( const fileStat_t& stat ) >;
 
+using filedata_t = uint8_t*;
+typedef int( *fileSystemTraversalFn_t )( const filedata_t data );
 void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
 
 // Returns true if a trailing slash is needed in the path, otherwise false.
 // Either way, the default OS_PATH_SEPARATOR is thrown in outSlash,
-// or an alternative separator if the string already contains it (i.e., we're on Windows and 
+// or an alternative separator if the string already contains it (i.e., we're on Windows and
 // the path isn't using back slashes...)
 bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
@@ -139,12 +132,12 @@ static INLINE size_t File_GetExt( std::string& outExt, const std::string& filena
     size_t index = filename.find_last_of( '.' );
     if ( index != std::string::npos && index != filename.size() - 1 )
 		outExt = filename.substr( index + 1 );
-    
+
 	return index;
 }
 
 
-bool File_GetPixels( const std::string& filepath, 
+bool File_GetPixels( const std::string& filepath,
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );
 
 /// Convert a buffer with an arbitrary bytes per pixel into an RGBA equivalent

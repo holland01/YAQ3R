@@ -45,15 +45,9 @@ void TRenderer::Load( void )
 {
 	if ( !Test::Load( gTitle ) )
         return;
-#ifdef EMSCRIPTEN
-    UNUSED( renderer );
-    UNUSED( mapFilepath );
-    UNUSED( mapLoadFlags );
-    UNUSED( camPtr );
-#else
+        
     renderer = new BSPRenderer( ( float ) width, ( float ) height );
     renderer->Prep();
     renderer->Load( mapFilepath, mapLoadFlags );
     camPtr = renderer->camera;
-#endif
 }

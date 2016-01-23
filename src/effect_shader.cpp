@@ -17,7 +17,7 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t*
 
 #define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 
-std::map< std::string, stageEvalFunc_t > stageReadFuncs = 
+std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 {
 	{
 		"surfaceparm",
@@ -27,16 +27,16 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
-				
-			if ( strcmp( token, "nodamage" ) == 0 ) 
+
+			if ( strcmp( token, "nodamage" ) == 0 )
 			{
-				outInfo->surfaceParms |= SURFPARM_NO_DMG;	
+				outInfo->surfaceParms |= SURFPARM_NO_DMG;
 			}
-			else if ( strcmp( token, "nolightmap" ) == 0 ) 
+			else if ( strcmp( token, "nolightmap" ) == 0 )
 			{
 				outInfo->surfaceParms |= SURFPARM_NO_LIGHTMAP;
 			}
-			else if ( strcmp( token, "nonsolid" ) == 0 ) 
+			else if ( strcmp( token, "nonsolid" ) == 0 )
 			{
 				outInfo->surfaceParms |= SURFPARM_NON_SOLID;
 			}
@@ -44,7 +44,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				outInfo->surfaceParms |= SURFPARM_NO_MARKS;
 			}
-			else if ( strcmp( token, "trans" ) == 0 ) 
+			else if ( strcmp( token, "trans" ) == 0 )
 			{
 				outInfo->surfaceParms |= SURFPARM_TRANS;
 			}
@@ -87,7 +87,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 			case VERTEXDEFORM_CMD_WAVE:
                 outInfo->deformParms.data.wave.spread = ReadFloat( buffer );
-			
+
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
 
@@ -114,7 +114,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
                 outInfo->deformParms.data.wave.base = ReadFloat( buffer );
                 outInfo->deformParms.data.wave.amplitude = ReadFloat( buffer );
-				
+
 				// Normal command has no phase translation
 				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
 				{
@@ -273,7 +273,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				}
 
                 theStage.blendSrc = ( GLenum ) blendFactor;
-						
+
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
 
@@ -298,7 +298,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
-				
+
 			if ( strcmp( token, "ge128" ) == 0 )
 			{
                 theStage.alphaFunc = ALPHA_FUNC_GEQUAL_128;
@@ -327,7 +327,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
-					
+
 			if ( strcmp( token, "vertex" ) == 0 )
 			{
                 theStage.rgbGen = RGBGEN_VERTEX;
@@ -374,7 +374,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			}
 
 			return true;
-		} 
+		}
 	},
 	{
 		"tcmod",
@@ -417,7 +417,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				effect_t op;
 
 				op.name = "tcModTurb";
-	
+
 				op.data.wave.base = ReadFloat( buffer );
 				op.data.wave.amplitude = ReadFloat( buffer );
 				op.data.wave.phase = ReadFloat( buffer );
@@ -440,8 +440,8 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				effect_t op;
 
-				op.name = "tcModRotate";					
-					
+				op.name = "tcModRotate";
+
 				float angRad = glm::radians( ReadFloat( buffer ) );
 
                 op.data.rotation2D.transform[ 0 ][ 0 ] =  glm::cos( angRad );
@@ -541,7 +541,7 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str )
 
 static INLINE tokType_t Token( const char* c )
 {
-	static const char syms[] = 
+	static const char syms[] =
 	{
 		'\t', ' ', '\n', '\r',
 		'*', '[', ']', '(', ')'
@@ -622,8 +622,8 @@ static float ReadFloat( const char*& buffer )
 static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, int level )
 {
 	char token[ 64 ];
-	
-	char first = 0; 
+
+	char first = 0;
 
     shaderStage_t stage;
 
@@ -662,7 +662,7 @@ evaluate_tok:
                 stage = shaderStage_t();
 				outInfo->stageCount += 1;
 				level -= 1;
-				continue;	
+				continue;
 			}
 		}
 
@@ -705,7 +705,7 @@ static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::st
     const char* pChar = ( const char* ) &fileBuffer[ 0 ];
 
 	while ( *pChar )
-	{	
+	{
 		shaderInfo_t entry;
 
         entry.localLoadFlags = loadFlags;
@@ -844,7 +844,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
         fprintf( f, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
 
 		for ( int j = 0; j < shader.stageCount; ++j )
-		{	
+		{
 			shaderStage_t& stage = shader.stageBuffer[ j ];
 
 			// Uniform variable names
@@ -861,8 +861,8 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
             const size_t vertGlobalVarInsertOffset = 4;
 
             // Vertex shader...
-			std::vector< std::string > vertexSrc = 
-			{	
+			std::vector< std::string > vertexSrc =
+			{
 
                 GetHeader(),
 				DeclAttributeVar( "position", "vec3" ),
@@ -979,10 +979,10 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			const std::string& fragmentString = JoinLines( fragmentSrc );
 
 			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
-			
-			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n", 
-				j, 
-				vertexString.c_str(), 
+
+			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n",
+				j,
+				vertexString.c_str(),
 				fragmentString.c_str() );
 		}
 	}
@@ -1000,7 +1000,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 
 		// If a texture atlas is being used as a substitute for a texture array,
 		// this won't matter.
-       
+
 		img.wrap = GL_CLAMP_TO_EDGE;
 		img.mipmap = false; //!!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
@@ -1042,13 +1042,17 @@ glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& t
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
 
-    File_IterateDirTree( shaderRootDir, [ & ]( const fileStat_t& f ) -> bool
+    File_IterateDirTree( shaderRootDir, [ & ]( const filedata_t data ) -> int
     {
+		/*
         std::string ext;
         File_GetExt( ext, f.filepath );
-
         if ( ext == "shader" )
-            ParseShader( effectShaders, loadFlags, f.filepath );
+		*/
+
+		printf( "Received: %s\n", ( const char* )s );
+
+        //ParseShader( effectShaders, loadFlags, f.filepath );
 
         return true;
     } );

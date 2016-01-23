@@ -7,7 +7,7 @@
 #include <SDL2/SDL.h>
 
 #ifdef EMSCRIPTEN
-#	include "em_api.h"
+#	include <emscripten.h>
 #endif
 
 #ifdef _WIN32
@@ -105,7 +105,7 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
         MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc, glFunc, line, error, errorString );
         FlagExit();
     }
-}   
+}
 
 void LogWriteAtlasTexture( std::stringstream& sstream,
                            const drawSurface_t& surf,
@@ -378,7 +378,7 @@ static INLINE bool QueryCaller( const std::string& path, fileSystemTraversalFn_t
 
 void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback )
 {
-	
+
 #ifdef _WIN32
     // Find shader files
     WIN32_FIND_DATAA findFileData;
@@ -395,7 +395,7 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
     {
 		if ( !QueryCaller( directory + std::string( findFileData.cFileName ), callback ) )
 			break;
-        
+
 		success = FindNextFileA( file, &findFileData );
     }
 
@@ -418,29 +418,62 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
     ftw( directory.c_str(), invoke, 3 );
 
 #elif defined(EMSCRIPTEN)
-	UNUSED( directory );
-	UNUSED( callback );
 	UNUSED( QueryCaller );
 
-	MLOG_ERROR( "This needs Emscripten support..." );
+	char errorMsg[128];
+	memset(errorMsg, 0, sizeof(errorMsg));
+
+	int ret = EM_ASM_ARGS( {
+		var path = Module.AsciiToString($0);
+		var lookup = FS.lookupPath(path);
+		if (!lookup) {
+			Module.stringToAscii("Path given \'" + path + "\' could not be found.");
+            return 0;
+		}
+
+        var root = lookup.node;
+        var iterate = true;
+
+        function traverse(node) {
+            if (!iterate)
+                return;
+
+            for (var n in node.contents) {
+                traverse(node.contents[n]);
+                var p = FS.getPath(node.contents[n]);
+                var stack = Runtime.stackSave();
+                iterate = !!Runtime.dynCall('ii', $1, [intArrayFromString(p)]);
+                Runtime.stackRestore(stack);
+            }
+        }
+
+        traverse(root);
+
+        return 1;
+	}, directory.c_str(), callback );
+
+    if ( !ret )
+        MLOG_ERROR( "%s", errorMsg );
+
+	//MLOG_ERROR( "This needs Emscripten support..." );
 #endif
 }
 
-bool File_GetPixels( const std::string& filepath, 
+bool File_GetPixels( const std::string& filepath,
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight )
 {
 	// Load image
 	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
-	byte* imagePixels = stbi_load( filepath.c_str(), &outWidth, &outHeight, &outBpp, STBI_default );
+	uint8_t* imagePixels = stbi_load( filepath.c_str(), &outWidth, &outHeight, &outBpp, STBI_default );
 
 	if ( !imagePixels )
 	{
 		MLOG_WARNING( "No file found for \'%s\'", filepath.c_str() );
 		return false;
 	}
-	
+
     outBuffer.resize( outWidth * outHeight * outBpp, 0 );
-	memcpy( &outBuffer[ 0 ], imagePixels, outBuffer.size() ); 
+	memcpy( &outBuffer[ 0 ], imagePixels, outBuffer.size() );
 
 	stbi_image_free( imagePixels );
 

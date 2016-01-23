@@ -40,6 +40,7 @@ void EM_Init( void )
     EM_ASM(
         FS.mkdir('/working');
         FS.mount(MEMFS, {}, '/working');
+		console.log(FS.stat("asset/quake/railgun_arena/levelshots"));
     );
 
     /*
