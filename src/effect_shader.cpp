@@ -1037,25 +1037,21 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 	}
 }
 
+static int ShaderVerify( const filedata_t data )
+{
+	printf( "Received: %s\n", ( const char* )data );
+
+	return true;
+}
+
 glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
 
-    File_IterateDirTree( shaderRootDir, [ & ]( const filedata_t data ) -> int
-    {
-		/*
-        std::string ext;
-        File_GetExt( ext, f.filepath );
-        if ( ext == "shader" )
-		*/
+	printf("Traversing Directory: %s\n", shaderRootDir.c_str());
 
-		printf( "Received: %s\n", ( const char* )s );
-
-        //ParseShader( effectShaders, loadFlags, f.filepath );
-
-        return true;
-    } );
+    File_IterateDirTree( shaderRootDir, ShaderVerify );
 
     GenShaderPrograms( effectShaders );
 

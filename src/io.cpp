@@ -306,7 +306,7 @@ void LogBSPData( int type, void* data, int length )
 
 void InitSysLog( void )
 {
-    gDrawLog = fopen( "log/drawLog.log", "w" );
+	gDrawLog = fopen( "log/drawLog.log", "r" );
     gBspDataLog = fopen( "log/bspData.log", "w" );
 
     if ( !gDrawLog )
@@ -369,13 +369,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 	return location != path.length() - 1;
 }
 
-static INLINE bool QueryCaller( const std::string& path, fileSystemTraversalFn_t callback )
-{
-	fileStat_t fs;
-	fs.filepath = path;
-	return callback( fs );
-}
-
 void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback )
 {
 
@@ -418,16 +411,15 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
     ftw( directory.c_str(), invoke, 3 );
 
 #elif defined(EMSCRIPTEN)
-	UNUSED( QueryCaller );
-
 	char errorMsg[128];
 	memset(errorMsg, 0, sizeof(errorMsg));
 
 	int ret = EM_ASM_ARGS( {
-		var path = Module.AsciiToString($0);
+
+		var path = UTF8ToString($0);
 		var lookup = FS.lookupPath(path);
 		if (!lookup) {
-			Module.stringToAscii("Path given \'" + path + "\' could not be found.");
+			stringToUTF8('Path given ' + path + ' could not be found.', $2, 128);
             return 0;
 		}
 
@@ -435,11 +427,16 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
         var iterate = true;
 
         function traverse(node) {
-            if (!iterate)
-                return;
+			if (!iterate) return;
+
+			var path = FS.getPath(node);
+			var stat = FS.stat(path);
+			if (FS.isFile(stat.mode)) {
+				return;
+			}
 
             for (var n in node.contents) {
-                traverse(node.contents[n]);
+				traverse(node.contents[n]);
                 var p = FS.getPath(node.contents[n]);
                 var stack = Runtime.stackSave();
                 iterate = !!Runtime.dynCall('ii', $1, [intArrayFromString(p)]);
@@ -448,9 +445,8 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
         }
 
         traverse(root);
-
         return 1;
-	}, directory.c_str(), callback );
+	}, directory.c_str(), callback, errorMsg );
 
     if ( !ret )
         MLOG_ERROR( "%s", errorMsg );
