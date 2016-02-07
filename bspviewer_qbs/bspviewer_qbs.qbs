@@ -18,8 +18,9 @@ Product {
         librootInc.forEach(function(includePath) {
             inc.push(devlibRoot + includePath);
         });
-
+ /*
         var emroot = qbs.getEnv("EMSDK_ROOT") + "/emscripten/tag-1.35.22/system";
+
 
         var eminc = [
             "/include",
@@ -30,6 +31,7 @@ Product {
         eminc.forEach(function(includePath) {
             inc.push(emroot + includePath);
         });
+        */
 
         return inc;
     }

@@ -297,14 +297,14 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 	}
 }
 
-void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
+void BSPRenderer::Load( const std::string& filepath )
 {
 	MLOG_INFO( "Loading file %s....\n", filepath.c_str() );
 
 	map->Read( filepath, 1 );
 
     std::vector< gImageParams_t > shaderTextures;
-	S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
+    S_LoadShaders( &map->data, shaderTextures, map->effectShaders );
 
     GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
 

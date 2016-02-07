@@ -18,8 +18,8 @@ void LogWriteAtlasTexture( std::stringstream& sstream,
 
 void LogBSPData( int bspDataType, void* data, int length );
 
-void MyPrintf( const char* header, const char* fmt, ... );
-void MyFprintf( FILE* f, const char* header, const char* fmt, ... );
+void O_Log( const char* header, const char* priority, const char* fmt, ... );
+void O_LogF( FILE* f, const char* header, const char* fmt, ... );
 void MyDateTime( const char* format, char* outBuffer, int length );
 
 float GetTimeSeconds( void );
@@ -31,10 +31,18 @@ void InitSysLog( void );
 void InitLogBSPData( Q3BspMap* map );
 
 void KillSysLog( void );
-// A return value of true means "keep iterating, unless we're at the end"; false will terminate the iteration
+
+enum fileCommand_t
+{
+    FILE_CONTINUE_TRAVERSAL = 0,
+    FILE_STOP_TRAVERSAL = 1
+};
 
 using filedata_t = uint8_t*;
-typedef int( *fileSystemTraversalFn_t )( const filedata_t data );
+
+// A return value of true (1) means "keep iterating, unless we're at the end"; false will terminate the iteration
+typedef int ( *fileSystemTraversalFn_t )( const filedata_t data );
+
 void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
 
 // Returns true if a trailing slash is needed in the path, otherwise false.
@@ -56,37 +64,19 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 // any other default would be "true". MLOG_ASSERT would pass strictly the condition specified by its caller, of course.
 //void MLogError( bool condition, const char* filename, int32_t line, const char* funcname, ... );
 
-#define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
-
-#define MLOG_INFO( ... ) ( MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ ) )
+#define MLOG_INFO( ... ) ( O_Log( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
 #define MLOG_ERROR( ... )                                \
 	do                                                      \
 	{                                                       \
-		puts("======== ERROR ========");                    \
-		MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ );                   \
-		puts("=======================");                    \
+        O_Log( ( _FUNC_NAME_ ), "ERROR", __VA_ARGS__ );           \
 		FlagExit();                                         \
 	}                                                       \
 	while( 0 )
 
-#define MLOG_WARNING( ... )                              \
-	do                                                      \
-	{                                                       \
-		puts("======== WARNING ========");                  \
-		MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ );                   \
-		puts("=======================");                    \
-	}                                                       \
-	while( 0 )
+#define MLOG_WARNING( ... ) ( O_Log( ( _FUNC_NAME_ ), "WARNING", __VA_ARGS__ ) )
 
-#define MLOG_WARNING_SANS_FUNCNAME( title, ... )                              \
-	do                                                      \
-	{                                                       \
-		puts("======== WARNING ========");                  \
-		MyPrintf( ( title ), __VA_ARGS__ );                 \
-		puts("=======================");                    \
-	}                                                       \
-	while( 0 )
+#define MLOG_WARNING_SANS_FUNCNAME( title, ... ) ( O_Log( ( title ), "WARNING", __VA_ARGS__ )  )
 
 #define MLOG_ASSERT( condition, ... )    \
 	do                                      \
@@ -118,14 +108,24 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 	return true;
 }
 
-static INLINE size_t File_GetExt( std::string& outExt, const std::string& filename  )
+/*!
+    Provides the file extension of a file, without the period.
+    A return of true indicates we have an extension; we also allow for the index to be returned
+    for the rare case that we want to do something specific in the same
+    location. It's totally optional though
+*/
+static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std::string& filename  )
 {
 	// Second condition is to ensure we actually have a file extension we can use
     size_t index = filename.find_last_of( '.' );
     if ( index != std::string::npos && index != filename.size() - 1 )
+    {
 		outExt = filename.substr( index + 1 );
+        if ( outIndex )
+            *outIndex = index;
+    }
 
-	return index;
+    return false;
 }
 
 

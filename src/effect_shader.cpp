@@ -693,30 +693,6 @@ evaluate_tok:
 	return buffer;
 }
 
-static void ParseShader( shaderMap_t& entries, uint32_t loadFlags, const std::string& filepath )
-{
-    std::vector< uint8_t > fileBuffer;
-    if ( !File_GetBuf( fileBuffer, filepath ) )
-    {
-        MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
-        return;
-    }
-
-    const char* pChar = ( const char* ) &fileBuffer[ 0 ];
-
-	while ( *pChar )
-	{
-		shaderInfo_t entry;
-
-        entry.localLoadFlags = loadFlags;
-		pChar = ParseEntry( &entry, pChar, 0 );
-
-        entries.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
-	}
-
-	gLineCount = 0;
-}
-
 static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const std::string& discardPredicate )
 {
 	fragmentSrc.push_back( "\tif ( " + discardPredicate + " )" );
@@ -1013,14 +989,14 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
         if ( !GLoadImageFromFile( texFileRoot.c_str(), img ) )
 		{
 			std::string ext;
-			size_t index = File_GetExt( ext, texFileRoot );
-			if ( index != std::string::npos && ext == "tga" )
+            size_t index;
+            if ( File_GetExt( ext, &index, texFileRoot ) && ext == "tga" )
 			{
 				texFileRoot.replace( index, 4, ".jpg" );
                 if ( !GLoadImageFromFile( texFileRoot, img ) )
 				{
 					// If we fail second try, turn it into a dummy
-					MLOG_WARNING( "Could not load texture file \"%s\"", texFileRoot.c_str() );
+                    MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
                     GSetImageBuffer( img, 64, 64, 4, 255 );
 				}
 			}
@@ -1037,21 +1013,87 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 	}
 }
 
-static int ShaderVerify( const filedata_t data )
-{
-	printf( "Received: %s\n", ( const char* )data );
+/*!
+    We unfortunately can't use lambdas with the File_IterateDirTree API at the moment,
+    primarily due to emscripten complications.
 
-	return true;
+    Considering that the result would compile down to something like this, anyway, though
+    we're probably not losing much overhead.
+*/
+namespace {
+
+struct parseArgs_t
+{
+    static shaderMap_t* effectShaders;
+
+    static int EvaluateEntry( const filedata_t data )
+    {
+        // Something's probably wrong if there's no data,
+        // so let's just end it.
+        if ( !data )
+        {
+            return FILE_CONTINUE_TRAVERSAL;
+        }
+
+        if ( !effectShaders )
+        {
+            MLOG_WARNING(  "No reference to effect shader map given; leaving" );
+            return FILE_STOP_TRAVERSAL;
+        }
+
+        std::vector< uint8_t > fileBuffer;
+
+        {
+            std::string filepath( ( const char* ) data, strlen( ( const char* )data ) );
+
+            std::string ext;
+            if ( !File_GetExt( ext, nullptr, filepath ) || ext != "shader" )
+                return FILE_CONTINUE_TRAVERSAL;
+
+            if ( !File_GetBuf( fileBuffer, filepath ) )
+            {
+                MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
+                return FILE_CONTINUE_TRAVERSAL;
+            }
+        }
+
+        const char* pChar = ( const char* ) &fileBuffer[ 0 ];
+
+        while ( *pChar )
+        {
+            shaderInfo_t entry;
+
+            entry.localLoadFlags = 0;
+            pChar = ParseEntry( &entry, pChar, 0 );
+
+            effectShaders->insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
+        }
+
+        gLineCount = 0;
+
+        return FILE_CONTINUE_TRAVERSAL;
+    }
+};
+
+shaderMap_t* parseArgs_t::effectShaders = nullptr;
+
 }
 
-glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders, uint32_t loadFlags )
+/*!
+   Main API for the effect shaders. In theory, the user should only have to call this function.
+*/
+glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
 
 	printf("Traversing Directory: %s\n", shaderRootDir.c_str());
 
-    File_IterateDirTree( shaderRootDir, ShaderVerify );
+    {
+        parseArgs_t::effectShaders = &effectShaders;
+        File_IterateDirTree( shaderRootDir, parseArgs_t::EvaluateEntry );
+        parseArgs_t::effectShaders = nullptr;
+    }
 
     GenShaderPrograms( effectShaders );
 

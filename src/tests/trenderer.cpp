@@ -42,6 +42,6 @@ void TRenderer::Load( void )
 
     renderer = new BSPRenderer( ( float ) width, ( float ) height );
     renderer->Prep();
-    renderer->Load( mapFilepath, mapLoadFlags );
+    renderer->Load( mapFilepath );
     camPtr = renderer->camera;
 }

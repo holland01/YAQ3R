@@ -219,7 +219,7 @@ public:
 
     void		Prep( void );
     
-	void		Load( const std::string& filepath, uint32_t loadFlags );
+    void		Load( const std::string& filepath );
 
 	void		Sample( void );
     

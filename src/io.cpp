@@ -20,18 +20,17 @@
 FILE* gDrawLog = NULL;
 FILE* gBspDataLog = NULL;
 
-void MyPrintf( const char* header, const char* fmt, ... )
+void O_Log( const char* header, const char* priority, const char* fmt, ... )
 {
     va_list arg;
 
     va_start( arg, fmt );
-    fprintf( stdout, "\n[ %s ]: {\n\n", header );
+    fprintf( stdout, "\n[ %s | %s ]: ", header, priority );
     vfprintf( stdout, fmt, arg );
-    fprintf( stdout, "\n\n}\n\n" );
     va_end( arg );
 }
 
-void MyFprintf( FILE* f, const char* header, const char* fmt, ... )
+void O_LogF( FILE* f, const char* header, const char* fmt, ... )
 {
     va_list arg;
 
@@ -102,8 +101,7 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 			}
 		}
 
-        MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc,
-            glFunc, line, error, errorString );
+        O_Log( _FUNC_NAME_, "DRAW ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc, glFunc, line, error, errorString );
         FlagExit();
     }
 }
@@ -250,7 +248,7 @@ void LogBSPData( int type, void* data, int length )
 
     }
 
-    MyFprintf( gBspDataLog, header.c_str(), ss.str().c_str() );
+    O_LogF( gBspDataLog, header.c_str(), ss.str().c_str() );
 }
 
 void InitSysLog( void )
@@ -280,7 +278,7 @@ void KillSysLog( void )
         fclose( gBspDataLog );
 }
 
-#ifdef __linux__
+#if defined( __linux__ ) && !defined( EMSCRIPTEN )
 namespace {
     using ftwFunction_t = std::function< int( const char*, const struct stat*, int ) >;
 
@@ -288,7 +286,7 @@ namespace {
 
     extern "C" int invoke( const char* path, const struct stat* sb, int typeFlag )
     {
-        //if ( gLinuxCallback )
+        if ( gLinuxCallback )
             return gLinuxCallback( path, sb, typeFlag );
 
         return 1;
@@ -347,12 +345,10 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
         UNUSED( sb );
         UNUSED( typeFlag );
 
-        // Finished?
-        if ( !QueryCaller( std::string( fpath ), callback ) )
-            return 1;
+        std::string path( fpath );
 
-        // Nope, keep going
-        return 0;
+        // 1 means "finished"; 0 tells us to keep searching
+        return callback( ( const filedata_t )path.c_str() );
     };
 
 
