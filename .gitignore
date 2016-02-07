@@ -1,6 +1,9 @@
 # Specific files
 asset/stockmaps/*
 
+bspviewer.js
+bspviewer.data
+bspviewer.html
 testbin*
 obj/*
 build-bspviewer_*
