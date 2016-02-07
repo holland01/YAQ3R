@@ -750,10 +750,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
     const shaderInfo_t* shader = std::get< 1 >( data );
     int lightmapIndex = std::get< 3 >( data );
 
-	///GL_CHECK( glBindTexture( GL_TEXTURE_2D_ARRAY, 0 ) );
-
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
-	///GL_CHECK( glDisableVertexAttribArray( 3 ) );
+	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
     if  ( shader->cullFace )
     {
@@ -768,7 +766,6 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		const Program& stageProg = *( stage.program.get() );
 
         stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
-        stageProg.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
         GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
