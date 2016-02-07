@@ -13,17 +13,8 @@ struct mapData_t;
 struct shaderStage_t;
 
 void LogWriteAtlasTexture( std::stringstream& sstream,
-                           const drawSurface_t& surf,
                            const gTextureHandle_t& texHandle,
-                           const shaderStage_t* stage,
-                           const mapData_t& data );
-
-void LogWriteIndexBuffers( std::stringstream& stream,
-                           const drawSurface_t& surf,
-                           const gTextureHandle_t& texHandle,
-                           const gTextureImage_t& texParams,
-                           const std::string& title,
-                           const mapData_t& data );
+						   const shaderStage_t* stage );
 
 void LogBSPData( int bspDataType, void* data, int length );
 
@@ -67,6 +58,7 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
 #define ERROR_INFO_STR "Call made from file %s, in function %s, on line %iu"
 
+#define MLOG_INFO( ... ) ( MyPrintf( ( _FUNC_NAME_ ), __VA_ARGS__ ) )
 
 #define MLOG_ERROR( ... )                                \
 	do                                                      \

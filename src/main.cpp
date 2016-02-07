@@ -4,13 +4,21 @@
 #include "tests/trenderer.h"
 #include "tests/test_textures.h"
 
+#ifdef EMSCRIPTEN
+#	include <emscripten.h>
+#endif
+
 // Is global
 void FlagExit( void )
 {
     delete gAppTest;
     gAppTest = NULL;
 	system( "pause" );
+#ifdef EMSCRIPTEN
+	emscripten_force_exit( 0 );
+#else
 	exit( 0 );
+#endif
 }
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
@@ -29,8 +37,4 @@ int main( void )
     FlagExit();
 
     return code;
-	
-	return 0;
 }
-
-

@@ -5,7 +5,7 @@
 #include "renderer/texture.h"
 #include <algorithm>
 
-static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions = 
+static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions =
 {
 	{
 		"position",
@@ -25,8 +25,8 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"color",
 		[]( const Program& program ) -> void
 		{
-			GL_CHECK_WITH_NAME( glEnableVertexAttribArray( program.attribs.at( "color" ) ), "attribLoadFunctions" ); 
-			GL_CHECK_WITH_NAME( glVertexAttribPointer( program.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE, 
+			GL_CHECK_WITH_NAME( glEnableVertexAttribArray( program.attribs.at( "color" ) ), "attribLoadFunctions" );
+			GL_CHECK_WITH_NAME( glVertexAttribPointer( program.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE,
 				GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ), "attribLoadFunctions" );
 		}
 	},
@@ -79,7 +79,7 @@ static INLINE void DisableAllAttribs( void )
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, const std::vector< std::string >& bindAttribs )
 	: program( 0 )
 {
-	GLuint shaders[] = 
+	GLuint shaders[] =
 	{
 		CompileShaderSource( vertexShader.c_str(), vertexShader.size(), GL_VERTEX_SHADER ),
 		CompileShaderSource( fragmentShader.c_str(), fragmentShader.size(), GL_FRAGMENT_SHADER )
@@ -88,7 +88,7 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
     program = LinkProgram( shaders, 2, bindAttribs );
 }
 
-Program::Program( const std::string& vertexShader, const std::string& fragmentShader, 
+Program::Program( const std::string& vertexShader, const std::string& fragmentShader,
 	const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
 	: Program( vertexShader, fragmentShader, attribs )
 {
@@ -97,7 +97,7 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 
 Program::Program( const std::vector< char >& vertexShader, const std::vector< char >& fragmentShader,
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
-		: Program( std::string( &vertexShader[ 0 ], vertexShader.size() ), 
+		: Program( std::string( &vertexShader[ 0 ], vertexShader.size() ),
 				std::string( &fragmentShader[ 0 ], fragmentShader.size() ), attribs )
 {
 	GenData( uniforms, attribs );
@@ -116,7 +116,7 @@ Program::~Program( void )
 	GL_CHECK( glDeleteProgram( program ) );
 }
 
-void Program::GenData( const std::vector< std::string >& uniforms, 
+void Program::GenData( const std::vector< std::string >& uniforms,
 	const std::vector< std::string >& attribs )
 {
 	uint32_t max = glm::max( attribs.size(), uniforms.size() );
@@ -150,8 +150,8 @@ void Program::LoadDefaultAttribProfiles( void ) const
                 GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
                 continue;
             }
-			
-			attribLoadFunctions[ attrib.first ]( *this ); 
+
+			attribLoadFunctions[ attrib.first ]( *this );
 		}
 	}
 }
@@ -247,5 +247,3 @@ loadBlend_t::~loadBlend_t( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-
-

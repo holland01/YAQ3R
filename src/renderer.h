@@ -57,23 +57,28 @@ struct mapModel_t
 {
 	bool						deform: 1;
 	GLuint						vboOffset;
+	intptr_t					iboOffset;
+	GLsizei						iboRange; // num indices being drawn
 	int32_t						subdivLevel;
 
 	// used if face type == mesh or polygon
-	std::vector< int32_t >				indices;
+	//std::vector< int32_t >				indices;
+
+
 
 	// used if face type == patch  
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
     std::vector< bspVertex_t >			patchVertices;
-	std::vector< const int32_t* >				rowIndices;
-	std::vector< int32_t  >				trisPerRow;
+	std::vector< guOffset_t   >			rowIndices;
+	std::vector< int32_t	>			trisPerRow;
+	//std::vector< int32_t	>
 	
 	AABB								bounds;
 
 	mapModel_t( void );
 	~mapModel_t( void );
 
-	void								CalcBounds( int32_t faceType, const mapData_t& data );
+	void								CalcBounds( const std::vector< int32_t >& indices, int32_t faceType, const mapData_t& data );
 };
 
 using drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
@@ -82,16 +87,15 @@ struct drawSurface_t
 {
 	// Every face within a given surface must
 	// have the same following 4 values
-	
+
 	int32_t						textureIndex;
 	int32_t						lightmapIndex;
 	int32_t						faceType;
 	const shaderInfo_t*			shader;
 	
-
-    indexBufferList_t       indexBuffers;
-    indexBufferSizeList_t	indexBufferSizes;
-	std::vector< int32_t			>	faceIndices;			
+	guBufferOffsetList_t		bufferOffsets;
+	guBufferRangeList_t	bufferRanges;
+	std::vector< int32_t >	faceIndices;
 
 			drawSurface_t( void )
 				:	textureIndex( 0 ),
@@ -161,7 +165,7 @@ private:
 
 	const bspLeaf_t*    currLeaf;
 
-    GLuint              vao, vbo;
+	std::array< GLuint, 2 >	apiHandles;
 
     float               deltaTime;
 

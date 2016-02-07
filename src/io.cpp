@@ -102,16 +102,15 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 			}
 		}
 
-        MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc, glFunc, line, error, errorString );
+        MyPrintf( "GL ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc,
+            glFunc, line, error, errorString );
         FlagExit();
     }
 }
 
 void LogWriteAtlasTexture( std::stringstream& sstream,
-                           const drawSurface_t& surf,
                            const gTextureHandle_t& texHandle,
-                           const shaderStage_t* stage,
-                           const mapData_t& data )
+						   const shaderStage_t* stage )
 {
     if ( !stage || stage->textureIndex < 0 )
         return;
@@ -136,56 +135,6 @@ void LogWriteAtlasTexture( std::stringstream& sstream,
             << "\t[ end   ] " << glm::to_string( img.stOffsetEnd ) << "\n"
             << "\t[ dims ] " << glm::to_string( img.dims ) << "\n"
             << "}\n\n";
-
-    LogWriteIndexBuffers( sstream, surf, texHandle, img, "Index Buffers for Surface Using " + texPath, data );
-
-}
-
-void LogWriteIndexBuffers( std::stringstream& stream,
-                           const drawSurface_t& surf,
-                           const gTextureHandle_t& texHandle,
-                           const gTextureImage_t& texParams,
-                           const std::string& title,
-                           const mapData_t& data )
-{
-    const glm::vec2& invRowPitch = GTextureInverseRowPitch( texHandle );
-
-    auto transform = [ &texParams, &invRowPitch ]( const glm::vec2& coords ) -> glm::vec2
-    {
-        return coords * invRowPitch * texParams.imageScaleRatio + texParams.stOffsetStart;
-    };
-
-    auto clamp = [ &transform, &texParams ]( const glm::vec2& coords, float x ) -> glm::vec2
-    {
-        return glm::clamp( transform( coords ), texParams.stOffsetStart, transform( glm::vec2( x ) ) );
-    };
-
-    stream << "[ " << title << " ] { \n";
-
-    for ( uint32_t i = 0; i < surf.indexBuffers.size(); ++i )
-    {
-        stream << "\t[ Index Buffer " << i << " ] {\n";
-
-        for ( int32_t j = 0; j < surf.indexBufferSizes[ i ]; ++j )
-        {
-            bspVertex_t* v = data.vertexes + surf.indexBuffers[ i ][ j ];
-
-            stream  << "\t\t[ " << j << " ] {\n"
-                    << "\t\t\t[ position ] " << glm::to_string( v->position ) << "\n"
-                    << "\t\t\t[ normal ] " << glm::to_string( v->normal ) << "\n"
-                    << "\t\t\t[ texcoords: image ] " << glm::to_string( v->texCoords[ 0 ] ) << "\n"
-                    << "\t\t\t[ texcoords: clamp( image 1 ) ] " << glm::to_string( clamp( v->texCoords[ 0 ], 1.0f ) ) << "\n"
-                    << "\t\t\t[ texcoords: clamp( image 0.99 ) ] " << glm::to_string( clamp( v->texCoords[ 1 ], 0.99f ) ) << "\n"
-					// Not available for version of GLM used on Windows; should probably upgrade...
-                    //<< "\t\t\t[ color ] " << glm::to_string( v->color ) << "\n"
-                    << "\t\t}\n\n";
-
-        }
-
-        stream << "\t}\n\n";
-    }
-
-    stream << " } \n";
 }
 
 void LogBSPData( int type, void* data, int length )
@@ -373,7 +322,6 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 {
 
 #ifdef _WIN32
-    // Find shader files
     WIN32_FIND_DATAA findFileData;
     HANDLE file;
 
@@ -464,7 +412,6 @@ bool File_GetPixels( const std::string& filepath,
 
 	if ( !imagePixels )
 	{
-		MLOG_WARNING( "No file found for \'%s\'", filepath.c_str() );
 		return false;
 	}
 

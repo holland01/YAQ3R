@@ -151,7 +151,7 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 
 //----------------------------------------------------------
 
-void GenPatch( mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset )
+void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset )
 {
 	if ( !model->subdivLevel )
 	{
@@ -212,15 +212,15 @@ void GenPatch( mapModel_t* model, const shaderInfo_t* shader, int controlPointSt
  	}
 
 	// Compute the indices, which are designed to be used for a tri strip.
-	const size_t indexStart = model->indices.size();
-	model->indices.resize( indexStart + model->subdivLevel * L1 * 2 );
+	const size_t indexStart = outIndices.size();
+	outIndices.resize( indexStart + model->subdivLevel * L1 * 2 );
 
 	for ( int row = 0; row < model->subdivLevel; ++row )
 	{
 		for ( int col = 0; col <= model->subdivLevel; ++col )
 		{
-			model->indices[ indexStart + ( row * L1 + col ) * 2 + 0 ] = indexOffset + vertexStart + ( row + 1 ) * L1 + col;
-			model->indices[ indexStart + ( row * L1 + col ) * 2 + 1 ] = indexOffset + vertexStart + row * L1 + col;
+			outIndices[ indexStart + ( row * L1 + col ) * 2 + 0 ] = indexOffset + vertexStart + ( row + 1 ) * L1 + col;
+			outIndices[ indexStart + ( row * L1 + col ) * 2 + 1 ] = indexOffset + vertexStart + row * L1 + col;
 		}
 	}
 }

@@ -232,7 +232,7 @@ bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
 
     std::vector< uint8_t > tmp;
     if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
-        goto error;
+		return false;
 
     if ( bpp != G_INTERNAL_BPP )
     {
@@ -250,13 +250,9 @@ bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
     image.bpp = bpp;
 
     if ( !GDetermineImageFormat( image ) )
-        goto error;
+		throw "Could not determine image format";
 
     return true;
-
-error:
-    MLOG_WARNING( "Image file attempted to load was \"%s\"", imagePath.c_str() );
-    return false;
 }
 
 bool GDetermineImageFormat( gImageParams_t& image )

@@ -57,13 +57,13 @@ static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vect
 
 	if ( surf.faceType == BSP_FACE_TYPE_PATCH )
 	{
-		surf.indexBuffers.insert( surf.indexBuffers.end(), model.rowIndices.begin(), model.rowIndices.end() );
-		surf.indexBufferSizes.insert( surf.indexBufferSizes.end(), model.trisPerRow.begin(), model.trisPerRow.end() );
+		surf.bufferOffsets.insert( surf.bufferOffsets.end(), model.rowIndices.begin(), model.rowIndices.end() );
+		surf.bufferRanges.insert( surf.bufferRanges.end(), model.trisPerRow.begin(), model.trisPerRow.end() );
 	}
 	else
 	{
-		surf.indexBuffers.push_back( &model.indices[ 0 ] );
-		surf.indexBufferSizes.push_back( model.indices.size() );
+		surf.bufferOffsets.push_back( model.iboOffset );
+		surf.bufferRanges.push_back( model.iboRange );
 	}
 
 	if ( surf.shader
@@ -85,7 +85,7 @@ mapModel_t::~mapModel_t( void )
 {
 }
 
-void mapModel_t::CalcBounds( int32_t faceType, const mapData_t& data )
+void mapModel_t::CalcBounds( const std::vector< int32_t >& indices, int32_t faceType, const mapData_t& data )
 {
 	bounds.Empty();
 
@@ -173,8 +173,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 			}
 		} ),
         currLeaf( nullptr ),
-        vao( 0 ),
-        vbo( 0 ),
+		apiHandles( {{ 0, 0 }} ),
         deltaTime( 0.0f ),
         frameTime( 0.0f ),
         map ( new Q3BspMap() ),
@@ -191,7 +190,8 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 
 BSPRenderer::~BSPRenderer( void )
 {
-	DeleteBufferObject( GL_ARRAY_BUFFER, vbo );
+	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
+	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
 
     delete map;
     delete frustum;
@@ -228,7 +228,7 @@ void BSPRenderer::Prep( void )
 
     GU_ClearDepth( 1.0f );
 
-    GL_CHECK( glGenBuffers( 1, &vbo ) );
+	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
@@ -299,13 +299,12 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 
 void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
 {
+	MLOG_INFO( "Loading file %s....\n", filepath.c_str() );
+
 	map->Read( filepath, 1 );
-	map->WriteLumpToFile( BSP_LUMP_ENTITIES );
 
     std::vector< gImageParams_t > shaderTextures;
-    S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
-
-	return;
+	S_LoadShaders( &map->data, shaderTextures, map->effectShaders, mapLoadFlags );
 
     GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
 
@@ -355,7 +354,7 @@ void BSPRenderer::Load( const std::string& filepath, uint32_t mapLoadFlags )
         // We stub the buffer with a simple dummy fill - otherwise, bad things will happen in the texture fetches.
 		if ( !success )
 		{
-            GSetImageBuffer( glTextures[ t ], 128, 128, 4, 0 );
+			GSetImageBuffer( glTextures[ t ], 128, 128, 4, 255 );
 			goto FAIL_WARN;
 		}
 
@@ -391,10 +390,13 @@ FAIL_WARN:
 	glFaces.resize( map->data.numFaces );
 	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
 
+	std::vector< uint32_t > indexData;
+
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
 	for ( int32_t i = 0; i < map->data.numFaces; ++i )
 	{
+		std::vector< int32_t > modIndices;
 		const shaderInfo_t* shader = map->GetShaderInfo( i );
 		mapModel_t* mod = &glFaces[ i ];
 
@@ -402,15 +404,17 @@ FAIL_WARN:
 
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
-			mod->indices.resize( face->numMeshVertexes, 0 );
+			mod->iboRange = face->numMeshVertexes;
+			mod->iboOffset = indexData.size();
 			for ( int32_t j = 0; j < face->numMeshVertexes; ++j )
 			{
-				mod->indices[ j ] = face->vertexOffset + map->data.meshVertexes[ face->meshVertexOffset + j ].offset;
+				modIndices.push_back( face->vertexOffset + map->data.meshVertexes[ face->meshVertexOffset + j ].offset );
 			}
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
 			mod->vboOffset = ( GLuint ) vertexData.size();
+
 			int width = ( face->size[ 0 ] - 1 ) / 2;
 			int height = ( face->size[ 1 ] - 1 ) / 2;
 
@@ -434,7 +438,7 @@ FAIL_WARN:
 						mod->controlPoints[ baseDest + c * 3 + 2 ] = &map->data.vertexes[ baseSource + c * face->size[ 0 ] + 2 ];
 					}
 
-					GenPatch( mod, shader, baseDest, ( int32_t ) vertexData.size() );
+					GenPatch( modIndices, mod, shader, baseDest, ( int32_t ) vertexData.size() );
 				}
 			}
 
@@ -444,29 +448,38 @@ FAIL_WARN:
 
 			for ( size_t row = 0; row < glFaces[ i ].rowIndices.size(); ++row )
 			{
+
 				mod->trisPerRow[ row ] = 2 * L1;
-				mod->rowIndices[ row ] = &mod->indices[ row * 2 * L1 ];
+				mod->rowIndices[ row ] = modIndices[ row * 2 * L1 ];
+
+				//indexData[ row ] = 2 * L1;
+
+
+				/*for ( uint32_t i = 0; i < mod->trisPerRow; ++i )
+				{
+					indexData.push_back( mod->indices[ row * 2 * L1 ] )
+				}*/
+
+				//mod->rowIndices[ row ] = indexData.size();
+				 //mod->rowIndices[ row ] = &mod->indices[ row * 2 * L1 ];
 			}
 
-            vertexData.insert( vertexData.end(), mod->patchVertices.begin(), mod->patchVertices.end() );
+			vertexData.insert( vertexData.end(), mod->patchVertices.begin(), mod->patchVertices.end() );
 		}
 
-		mod->CalcBounds( face->type, map->data );
+		indexData.insert( indexData.end(), modIndices.begin(), modIndices.end() );
+		mod->CalcBounds( modIndices, face->type, map->data );
 	}
-
-	//---------------------------------------------------------------------
-	// Generate the index and draw indirect buffers
-	//---------------------------------------------------------------------
 
 	// Allocate vertex data from map and store it all in a single vbo
 
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
-    GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( bspVertex_t ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
+	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData[ 0 ] ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
 
-	// NOTE: this vertex layout may not persist when the model program is used; so be wary of that. "main"
-	// and "model" should both have the same attribute location values though
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
+	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( indexData[ 0 ] ) * indexData.size(), &indexData[ 0 ], GL_STATIC_DRAW ) );
 
-    //glPrograms[ "main" ]->LoadAttribLayout();
+    glPrograms[ "main" ]->LoadDefaultAttribProfiles();
 }
 
 void BSPRenderer::Render( void )
@@ -688,7 +701,6 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
 
 	bool add = true;
-
 	for ( drawSurface_t& surf: surfList )
 	{
 		if ( shader == surf.shader && face->texture == surf.textureIndex
@@ -724,13 +736,13 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* s
     if ( stage && gConfig.logStageTexCoordData )
     {
         std::stringstream sstream;
-        LogWriteAtlasTexture( sstream, surf, shaderTexHandle, stage, map->data );
+		LogWriteAtlasTexture( sstream, shaderTexHandle, stage );
         WriteLog( sstream );
     }
 
     GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
-    GU_MultiDrawElements( mode, surf.indexBuffers, surf.indexBufferSizes );
+	GU_MultiDrawElements( mode, surf.bufferOffsets, surf.bufferRanges );
 }
 
 void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
@@ -876,7 +888,7 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
 	{
-		GL_CHECK( glDrawElements( GL_TRIANGLES, m.indices.size(), GL_UNSIGNED_INT, &m.indices[ 0 ] ) );
+		GL_CHECK( glDrawElements( GL_TRIANGLES, m.iboRange, GL_UNSIGNED_INT, ( const GLvoid* ) m.iboOffset ) );
 	}
 	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
 	{
@@ -905,7 +917,7 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
         verts[ i ].position += n;
 	}
 
-	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, vbo, m.vboOffset, verts, false );
+	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, apiHandles[ 0 ], m.vboOffset, verts, false );
 }
 
 void BSPRenderer::LoadLightVol( const drawPass_t& pass, const Program& prog ) const

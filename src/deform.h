@@ -34,7 +34,7 @@ extern deformGlobal_t deformCache;
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
 
-void GenPatch( mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset = 0 );
+void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset = 0 );
 
 void TessellateTri( 
 	std::vector< bspVertex_t >& outVerts, 

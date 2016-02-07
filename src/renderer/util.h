@@ -20,12 +20,15 @@ static INLINE void GU_ClearDepth( float d )
 #endif
 }
 
-using indexBufferList_t = std::vector< const int32_t* >;
-using indexBufferSizeList_t = std::vector< int32_t >;
+using guOffset_t = intptr_t;
+using guBufferOffsetList_t = std::vector< guOffset_t >;
+using guBufferRangeList_t = std::vector< GLsizei >;
 
-static INLINE void GU_MultiDrawElements( GLenum mode, const indexBufferList_t& indexBuffers,
-                                         const indexBufferSizeList_t& indexBufferSizes )
+static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t& indexBuffers, const guBufferRangeList_t& indexBufferSizes )
 {
     for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
-        GL_CHECK( glDrawElements( mode, indexBufferSizes[ i ], GL_UNSIGNED_INT, indexBuffers[ i ] ) );
+	{
+		//MLOG_INFO( "i: %i, size: %i, start address: %p, start value: %iu", i, indexBufferSizes[ i ], indexBuffers[ i ], indexBuffers[ i ] );
+		GL_CHECK( glDrawElements( mode, indexBufferSizes[ i ], GL_UNSIGNED_INT, ( const GLvoid* )( indexBuffers[ i ] * 4 ) ) );
+	}
 }

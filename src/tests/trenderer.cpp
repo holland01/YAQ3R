@@ -28,24 +28,18 @@ TRenderer::~TRenderer( void )
 
 void TRenderer::Run( void )
 {
-#ifndef EMSCRIPTEN
     renderer->Update( deltaTime );
-    renderer->Render();
-
-	std::stringstream windowTitle;
-	// Cap our FPS output at 1000.0f, because anything above that is pretty irrelevant
-	windowTitle << gTitle << ": " << glm::min( renderer->CalcFPS(), 1000.0f );
-
-	SDL_SetWindowTitle( sdlWindow, windowTitle.str().c_str() );
-#endif
-
+	renderer->Render();
 }
 
 void TRenderer::Load( void )
 {
 	if ( !Test::Load( gTitle ) )
+    {
+        MLOG_ERROR( "Could not initialize the necessary rendering prerequisites." );
         return;
-        
+    }
+
     renderer = new BSPRenderer( ( float ) width, ( float ) height );
     renderer->Prep();
     renderer->Load( mapFilepath, mapLoadFlags );
