@@ -123,6 +123,8 @@ static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std
 		outExt = filename.substr( index + 1 );
         if ( outIndex )
             *outIndex = index;
+
+        return true;
     }
 
     return false;

@@ -15,8 +15,7 @@ static const char* tourney = "asset/stockmaps/maps/q3tourney2.bsp";
 TRenderer::TRenderer( void )
     : Test( 1920, 1080, false ),
       renderer( nullptr ),
-	  mapFilepath( railgunArena ),
-	  mapLoadFlags( Q3LOAD_ALL )
+      mapFilepath( railgunArena )
 {
 }
 

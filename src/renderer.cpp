@@ -503,7 +503,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
     static auto LDrawList = [ this ]( drawSurfaceList_t& list ) -> void
 	{
         DrawSurfaceList( list.surfaces );
-        DrawSurfaceList( list.effectSurfaces );
+	  //  DrawSurfaceList( list.effectSurfaces );
 
 		list.surfaces.clear();
 		list.effectSurfaces.clear();
@@ -824,13 +824,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
             {
                 UNUSED( param );
                 DrawFaceVerts( pass, stage, prog );
-
-                /*
-                if ( config.drawFaceBounds )
-                {
-                    DrawFaceBounds( pass.view, pass.faceIndex );
-                }
-                */
             });
         }
             break;

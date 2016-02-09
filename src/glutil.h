@@ -13,33 +13,39 @@
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 
-#if defined( _DEBUG_USE_GL_ASYNC_CALLBACK )
-#	define GL_CHECK( expr )\
-		do\
-		{\
-			( expr );\
-			glDebugSetCallInfo( std::string( #expr ), _FUNC_NAME_ );\
-		}\
-		while ( 0 )
-#elif defined( _DEBUG_USE_GL_GET_ERR )
-#	define GL_CHECK( expr )\
-		do\
-		{\
-			( expr );\
-			ExitOnGLError( _LINE_NUM_, #expr, _FUNC_NAME_ );\
-		}\
-		while ( 0 )
+#if defined( _DEBUG_USE_GL_ASYNC_CALLBACK ) || defined( _DEBUG_USE_GL_GET_ERR )
+
+#   define GL_CHECK_WITH_NAME( expr, funcname )\
+        do\
+        {\
+            ( expr );\
+            ExitOnGLError( _LINE_NUM_, #expr, funcname );\
+        }\
+        while ( 0 )
+
+#   if defined( _DEBUG_USE_GL_ASYNC_CALLBACK )
+#       define GL_CHECK( expr )\
+            do\
+            {\
+                ( expr );\
+                glDebugSetCallInfo( std::string( #expr ), _FUNC_NAME_ );\
+            }\
+            while ( 0 )
+#   elif defined( _DEBUG_USE_GL_GET_ERR )
+#       define GL_CHECK( expr )\
+            do\
+            {\
+                ( expr );\
+                ExitOnGLError( _LINE_NUM_, #expr, _FUNC_NAME_ );\
+            }\
+            while ( 0 )
+#   endif
 #else
 #	define GL_CHECK( expr ) ( expr )
+#   define GL_CHECK_WITH_NAME( expr, funcname ) ( expr )
 #endif // _DEBUG_USE_GL_ASYNC_CALLBACK
 
-#define GL_CHECK_WITH_NAME( expr, funcname )\
-	do\
-	{\
-		( expr );\
-		ExitOnGLError( _LINE_NUM_, #expr, funcname );\
-	}\
-	while ( 0 )
+
 
 #ifdef GLES
 #	define glClearDepth glClearDepthf

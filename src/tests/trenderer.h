@@ -12,8 +12,6 @@ private:
 
 	std::string mapFilepath;
 
-	uint32_t mapLoadFlags;
-
 	glm::vec3 lightSamplerPos;
 
     void Run( void );
