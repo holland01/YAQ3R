@@ -5,6 +5,12 @@
 #include "renderer/texture.h"
 #include <algorithm>
 
+static inline void MapTexCoord( GLint location, intptr_t offset )
+{
+	GL_CHECK( glEnableVertexAttribArray( location ) );
+	GL_CHECK( glVertexAttribPointer( location, 2, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
+}
+
 static std::map< std::string, std::function< void( const Program& program ) > > attribLoadFunctions =
 {
 	{
@@ -34,14 +40,14 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"tex0",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "tex0" ), sizeof( float ) * 3 );
+			MapTexCoord( program.attribs.at( "tex0" ), sizeof( float ) * 3 );
 		}
 	},
 	{
 		"lightmap",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "lightmap" ), sizeof( float ) * 5 );
+			MapTexCoord( program.attribs.at( "lightmap" ), sizeof( float ) * 5 );
 		}
 	}
 };
@@ -72,8 +78,8 @@ static INLINE void FlipBytes( byte* out, const byte* src, int width, int height,
 
 static INLINE void DisableAllAttribs( void )
 {
-    for ( int i = 0; i < 5; ++i )
-        GL_CHECK( glDisableVertexAttribArray( i ) );
+	for ( int i = 0; i < 5; ++i )
+		GL_CHECK( glDisableVertexAttribArray( i ) );
 }
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, const std::vector< std::string >& bindAttribs )
@@ -85,7 +91,7 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 		CompileShaderSource( fragmentShader.c_str(), fragmentShader.size(), GL_FRAGMENT_SHADER )
 	};
 
-    program = LinkProgram( shaders, 2, bindAttribs );
+	program = LinkProgram( shaders, 2, bindAttribs );
 }
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader,
@@ -136,20 +142,20 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 
 void Program::LoadDefaultAttribProfiles( void ) const
 {
-    DisableAllAttribs();
+	DisableAllAttribs();
 
-    for ( const auto& attrib: attribs )
+	for ( const auto& attrib: attribs )
 	{
 		if ( attrib.second != -1 )
 		{
 
-            auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
+			auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
 
-            if ( it != disableAttribs.end() )
-            {
-                GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
-                continue;
-            }
+			if ( it != disableAttribs.end() )
+			{
+				GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
+				continue;
+			}
 
 			attribLoadFunctions[ attrib.first ]( *this );
 		}
@@ -158,15 +164,15 @@ void Program::LoadDefaultAttribProfiles( void ) const
 
 void Program::LoadAltAttribProfiles( void ) const
 {
-    DisableAllAttribs();
+	DisableAllAttribs();
 
-    for ( const attribProfile_t& profile: altAttribProfiles )
-    {
-        GL_CHECK( glEnableVertexAttribArray( profile.location ) );
-        GL_CHECK( glVertexAttribPointer( profile.location, profile.tupleSize, profile.apiType,
-                    profile.normalized, profile.stride, ( const GLvoid* )profile.offset ) );
+	for ( const attribProfile_t& profile: altAttribProfiles )
+	{
+		GL_CHECK( glEnableVertexAttribArray( profile.location ) );
+		GL_CHECK( glVertexAttribPointer( profile.location, profile.tupleSize, profile.apiType,
+					profile.normalized, profile.stride, ( const GLvoid* )profile.offset ) );
 
-    }
+	}
 }
 
 std::vector< std::string > Program::ArrayLocationNames( const std::string& name, int32_t length )
@@ -188,22 +194,22 @@ std::vector< std::string > Program::ArrayLocationNames( const std::string& name,
 
 void Program::Bind( void ) const
 {
-    GL_CHECK( glUseProgram( program ) );
+	GL_CHECK( glUseProgram( program ) );
 
-    __LOAD_VEC( glUniform2fv, vec2s );
-    __LOAD_VEC( glUniform3fv, vec3s );
-    __LOAD_VEC( glUniform4fv, vec4s );
+	__LOAD_VEC( glUniform2fv, vec2s );
+	__LOAD_VEC( glUniform3fv, vec3s );
+	__LOAD_VEC( glUniform4fv, vec4s );
 
-    __LOAD_MAT( glUniformMatrix2fv, mat2s );
-    __LOAD_MAT( glUniformMatrix3fv, mat3s );
-    __LOAD_MAT( glUniformMatrix4fv, mat4s );
+	__LOAD_MAT( glUniformMatrix2fv, mat2s );
+	__LOAD_MAT( glUniformMatrix3fv, mat3s );
+	__LOAD_MAT( glUniformMatrix4fv, mat4s );
 
-    __LOAD_VEC_ARRAY( glUniform2fv, vec2Array );
-    __LOAD_VEC_ARRAY( glUniform3fv, vec3Array );
-    __LOAD_VEC_ARRAY( glUniform4fv, vec4Array );
+	__LOAD_VEC_ARRAY( glUniform2fv, vec2Array );
+	__LOAD_VEC_ARRAY( glUniform3fv, vec3Array );
+	__LOAD_VEC_ARRAY( glUniform4fv, vec4Array );
 
-    __LOAD_SCALAR( glUniform1i, ints );
-    __LOAD_SCALAR( glUniform1f, floats );
+	__LOAD_SCALAR( glUniform1i, ints );
+	__LOAD_SCALAR( glUniform1f, floats );
 }
 
 #undef __LOAD_VEC
@@ -213,22 +219,22 @@ void Program::Bind( void ) const
 
 void Program::Release( void ) const
 {
-    GL_CHECK( glUseProgram( 0 ) );
+	GL_CHECK( glUseProgram( 0 ) );
 
-    vec2s.clear();
-    vec3s.clear();
-    vec4s.clear();
+	vec2s.clear();
+	vec3s.clear();
+	vec4s.clear();
 
-    mat2s.clear();
-    mat3s.clear();
-    mat4s.clear();
+	mat2s.clear();
+	mat3s.clear();
+	mat4s.clear();
 
-    vec2Array.clear();
-    vec3Array.clear();
-    vec4Array.clear();
+	vec2Array.clear();
+	vec3Array.clear();
+	vec4Array.clear();
 
-    ints.clear();
-    floats.clear();
+	ints.clear();
+	floats.clear();
 }
 
 //-------------------------------------------------------------------------------------------------

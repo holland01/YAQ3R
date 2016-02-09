@@ -12,7 +12,7 @@
 #include <cfloat>
 
 // Draw flags
-enum 
+enum
 {
 	RENDER_BSP_LIGHTMAP_INFO = 1 << 0,
 	RENDER_BSP_EFFECT = 1 << 1,
@@ -47,10 +47,10 @@ enum viewMode_t
 struct drawIndirect_t
 {
 	uint32_t count;
-    uint32_t instanceCount;
-    uint32_t firstIndex;
-    uint32_t baseVertex;
-    uint32_t baseInstance;
+	uint32_t instanceCount;
+	uint32_t firstIndex;
+	uint32_t baseVertex;
+	uint32_t baseInstance;
 };
 
 struct mapModel_t
@@ -66,13 +66,13 @@ struct mapModel_t
 
 
 
-	// used if face type == patch  
+	// used if face type == patch
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
-    std::vector< bspVertex_t >			patchVertices;
-	std::vector< guOffset_t   >			rowIndices;
-	std::vector< int32_t	>			trisPerRow;
+	std::vector< bspVertex_t >			patchVertices;
+	guBufferOffsetList_t				rowIndices;
+	guBufferRangeList_t					trisPerRow;
 	//std::vector< int32_t	>
-	
+
 	AABB								bounds;
 
 	mapModel_t( void );
@@ -92,7 +92,7 @@ struct drawSurface_t
 	int32_t						lightmapIndex;
 	int32_t						faceType;
 	const shaderInfo_t*			shader;
-	
+
 	guBufferOffsetList_t		bufferOffsets;
 	guBufferRangeList_t	bufferRanges;
 	std::vector< int32_t >	faceIndices;
@@ -129,7 +129,7 @@ struct drawPass_t
 
 	const viewParams_t& view;
 
-    std::vector< uint8_t > facesVisited;
+	std::vector< uint8_t > facesVisited;
 	std::vector< int32_t > transparent, opaque;
 
 	drawSurfaceList_t patches;
@@ -146,34 +146,34 @@ class BSPRenderer
 private:
 	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
-    // last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
-    using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
+	// last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
+	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
 
-    gTextureHandle_t				shaderTexHandle, lightmapTexHandle, mainTexHandle;
+	gTextureHandle_t				shaderTexHandle, lightmapTexHandle, mainTexHandle;
 
-    gImageParams_t					glDummyTexture;
-	
-    std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture indices
-	
-    std::vector< gImageParams_t >	glLightmaps;		// has one->one mapping with lightmap indices
-	
+	gImageParams_t					glDummyTexture;
+
+	std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture indices
+
+	std::vector< gImageParams_t >	glLightmaps;		// has one->one mapping with lightmap indices
+
 	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
 
 	std::map< std::string, std::unique_ptr< Program > >		glPrograms;
-	
+
 	std::map< std::string, std::function< effectFnSig_t > >	glEffects;
 
 	const bspLeaf_t*    currLeaf;
 
 	std::array< GLuint, 2 >	apiHandles;
 
-    float               deltaTime;
+	float               deltaTime;
 
 	double				frameTime;
 
 	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
 
-    void                SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent );
+	void                SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent );
 
 	void				DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const;
 
@@ -186,7 +186,7 @@ private:
 
 	void				LoadPassParams( drawPass_t& pass, int32_t face, passDrawType_t defaultPass ) const;
 
-    void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& )> callback );
+	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& )> callback );
 
 	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList );
 
@@ -196,40 +196,40 @@ private:
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
-    void				DrawSurfaceList( const std::vector< drawSurface_t >& list );
+	void				DrawSurfaceList( const std::vector< drawSurface_t >& list );
 
-    void				DrawEffectPass( const drawTuple_t& data, drawCall_t callback );
+	void				DrawEffectPass( const drawTuple_t& data, drawCall_t callback );
 
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 
-    void				DrawFace( drawPass_t& pass );
+	void				DrawFace( drawPass_t& pass );
 
-    void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const;
+	void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const;
 
 public:
 	Q3BspMap*       map;
-    InputCamera*	camera;
-    Frustum*		frustum;
+	InputCamera*	camera;
+	Frustum*		frustum;
 
-	viewMode_t		curView;	
+	viewMode_t		curView;
 
 				BSPRenderer( float viewWidth, float viewHeight );
-				
+
 				~BSPRenderer( void );
 
-    void		Prep( void );
-    
-    void		Load( const std::string& filepath );
+	void		Prep( void );
+
+	void		Load( const std::string& filepath );
 
 	void		Sample( void );
-    
+
 	void		Render( void );
-	
-    void		RenderPass( const viewParams_t& view, bool envmap );
+
+	void		RenderPass( const viewParams_t& view, bool envmap );
 
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
-    void		Update( float dt );
+	void		Update( float dt );
 };
 
 INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list )

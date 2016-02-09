@@ -5,18 +5,18 @@
 #include "glutil.h"
 
 void GU_SetupTexParams( const Program& program,
-                        const char* uniformPrefix,
-                        gTextureHandle_t texHandle,
-                        int32_t textureIndex,
-                        uint32_t offset = 0 );
+						const char* uniformPrefix,
+						gTextureHandle_t texHandle,
+						int32_t textureIndex,
+						uint32_t offset = 0 );
 
 
 static INLINE void GU_ClearDepth( float d )
 {
 #ifdef GLES
-    GL_CHECK( glClearDepthf( d ) );
+	GL_CHECK( glClearDepthf( d ) );
 #else
-    GL_CHECK( glClearDepth( d ) );
+	GL_CHECK( glClearDepth( d ) );
 #endif
 }
 
@@ -26,9 +26,8 @@ using guBufferRangeList_t = std::vector< GLsizei >;
 
 static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t& indexBuffers, const guBufferRangeList_t& indexBufferSizes )
 {
-    for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
+	for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
 	{
-		//MLOG_INFO( "i: %i, size: %i, start address: %p, start value: %iu", i, indexBufferSizes[ i ], indexBuffers[ i ], indexBuffers[ i ] );
 		GL_CHECK( glDrawElements( mode, indexBufferSizes[ i ], GL_UNSIGNED_INT, ( const GLvoid* )( indexBuffers[ i ] * 4 ) ) );
 	}
 }

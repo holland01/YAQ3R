@@ -17,7 +17,7 @@ struct baryCoordSystem_t
 
 	glm::vec3 v0;
 	glm::vec3 v1;
-	
+
 	float d00;
 	float d01;
 	float d11;
@@ -31,7 +31,7 @@ struct baryCoordSystem_t
 		  d01( glm::dot( v0, v1 ) ),
 		  d11( glm::dot( v1, v1 ) ),
 		  D( 1.0f / ( d00 * d11 - d01 * d01 ) )
-	{	
+	{
 	}
 
 	~baryCoordSystem_t( void )
@@ -41,7 +41,7 @@ struct baryCoordSystem_t
 	glm::vec3 ToBaryCoords( const glm::vec3& p ) const
 	{
 		glm::vec3 v2( p - a );
-		
+
 		float d20 = glm::dot( v2, v0 );
 		float d21 = glm::dot( v2, v1 );
 
@@ -57,21 +57,21 @@ struct baryCoordSystem_t
 	{
 		glm::vec3 bp( ToBaryCoords( p ) );
 
-		return ( 0.0f <= bp.x && bp.x <= 1.0f ) 
+		return ( 0.0f <= bp.x && bp.x <= 1.0f )
 			&& ( 0.0f <= bp.y && bp.y <= 1.0f )
 			&& ( 0.0f <= bp.z && bp.z <= 1.0f );
 	}
 };
 
 // Algorithm behind table generation is taken from here: https://github.com/id-Software/Quake-III-Arena/blob/master/code/renderer/tr_init.c#L1042
-// 
+//
 // On the triangle wave:
 // The first half of the table is laid out in the following format:
 // [0.0, 0.01, 0.02, ..., 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, ..., 0.02, 0.01, 0.0]
 // where all of the numbers are in the range [0, 1], and distributed as a segment of 256.
 // The second half is literally just the negatives of these same values.
-deformGlobal_t deformCache = 
-{ 
+deformGlobal_t deformCache =
+{
 	// sine wave table
 	[]( void )-> std::array< float, DEFORM_TABLE_SIZE >
 	{
@@ -86,7 +86,7 @@ deformGlobal_t deformCache =
 	}(),
 
 	// triangle wave table
-	[]( void )-> std::array< float, DEFORM_TABLE_SIZE > 
+	[]( void )-> std::array< float, DEFORM_TABLE_SIZE >
 	{
 		std::array< float, DEFORM_TABLE_SIZE > ret;
 
@@ -110,7 +110,7 @@ deformGlobal_t deformCache =
 		}
 
 		return ret;
-	}() 
+	}()
 };
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
@@ -128,15 +128,15 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 			case VERTEXDEFORM_FUNC_TRIANGLE:
 				{
 					// Distribute the "weight" of the tessellation spread across the length of the vertex position vector, where the vertex's tail is located at the world origin.
-                    float offset =
-                            shader->deformParms.data.wave.phase + ( position.x + position.y + position.z ) * shader->deformParms.data.wave.spread;
+					float offset =
+							shader->deformParms.data.wave.phase + ( position.x + position.y + position.z ) * shader->deformParms.data.wave.spread;
 
 					return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.data.wave.base, offset, GetTimeSeconds(), shader->deformParms.data.wave.frequency,
-                        shader->deformParms.data.wave.amplitude );
+						shader->deformParms.data.wave.amplitude );
 				}
 				break;
-            default:
-                break;
+			default:
+				break;
 			}
 		}
 		break;
@@ -161,26 +161,26 @@ void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shad
 			model->subdivLevel = 10;
 	}
 
-    const size_t vertexStart = model->patchVertices.size();
+	const size_t vertexStart = model->patchVertices.size();
 
 	// Vertex count along a side is 1 + number of edges
-    const int L1 = model->subdivLevel + 1;
-    model->patchVertices.resize( vertexStart + L1 * L1 );
+	const int L1 = model->subdivLevel + 1;
+	model->patchVertices.resize( vertexStart + L1 * L1 );
 
 	// Compute the first spline along the edge
-	for ( int i = 0; i <= model->subdivLevel; ++i )
+	for ( int i = 0; i < L1; ++i )
 	{
 		float a = ( float )i / ( float )model->subdivLevel;
 		float b = 1.0f - a;
 
-        model->patchVertices[ vertexStart + i ] =
+		model->patchVertices[ vertexStart + i ] =
 			*( model->controlPoints[ controlPointStart + 0 ] ) * ( b * b ) +
-		 	*( model->controlPoints[ controlPointStart + 3 ] ) * ( 2 * b * a ) + 
+			*( model->controlPoints[ controlPointStart + 3 ] ) * ( 2 * b * a ) +
 			*( model->controlPoints[ controlPointStart + 6 ] ) * ( a * a );
 	}
 
 	// Go deep and fill in the gaps; outer loop is the first layer of curves
-	for ( int i = 1; i <= model->subdivLevel; ++i )
+	for ( int i = 1; i < L1; ++i )
 	{
 		float a = ( float )i / ( float )model->subdivLevel;
 		float b = 1.0f - a;
@@ -191,49 +191,49 @@ void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shad
 		for ( int j = 0; j < 3; ++j )
 		{
 			int k = j * 3;
-			tmp[ j ] = 
-				*( model->controlPoints[ controlPointStart + k + 0 ] ) * ( b * b ) + 
+			tmp[ j ] =
+				*( model->controlPoints[ controlPointStart + k + 0 ] ) * ( b * b ) +
 				*( model->controlPoints[ controlPointStart + k + 1 ] ) * ( 2 * b * a ) +
 				*( model->controlPoints[ controlPointStart + k + 2 ] ) * ( a * a );
 		}
 
 		// Compute the inner layer of the bezier spline
-		for ( int j = 0; j <= model->subdivLevel; ++j )
+		for ( int j = 0; j < L1; ++j )
 		{
 			float a1 = ( float )j / ( float )model->subdivLevel;
 			float b1 = 1.0f - a1;
 
-            bspVertex_t& v = model->patchVertices[ vertexStart + i * L1 + j ];
+			bspVertex_t& v = model->patchVertices[ vertexStart + i * L1 + j ];
 
-			v = tmp[ 0 ] * ( b1 * b1 ) + 
+			v = tmp[ 0 ] * ( b1 * b1 ) +
 				tmp[ 1 ] * ( 2 * b1 * a1 ) +
 				tmp[ 2 ] * ( a1 * a1 );
 		}
- 	}
+	}
 
 	// Compute the indices, which are designed to be used for a tri strip.
 	const size_t indexStart = outIndices.size();
 	outIndices.resize( indexStart + model->subdivLevel * L1 * 2 );
 
-	for ( int row = 0; row < model->subdivLevel; ++row )
+	for ( int y = 0; y < model->subdivLevel; ++y )
 	{
-		for ( int col = 0; col <= model->subdivLevel; ++col )
+		for ( int x = 0; x < L1; ++x )
 		{
-			outIndices[ indexStart + ( row * L1 + col ) * 2 + 0 ] = indexOffset + vertexStart + ( row + 1 ) * L1 + col;
-			outIndices[ indexStart + ( row * L1 + col ) * 2 + 1 ] = indexOffset + vertexStart + row * L1 + col;
+			outIndices[ indexStart + ( y * L1 + x ) * 2 + 0 ] = indexOffset + vertexStart + ( y + 1 ) * L1 + x;
+			outIndices[ indexStart + ( y * L1 + x ) * 2 + 1 ] = indexOffset + vertexStart + ( y + 0 ) * L1 + x;
 		}
 	}
 }
 
 //----------------------------------------------------------
 
-void TessellateTri( 
-	std::vector< bspVertex_t >& outVerts, 
+void TessellateTri(
+	std::vector< bspVertex_t >& outVerts,
 	std::vector< triangle_t >& outIndices,
 	float amount,
 	float normalOffsetScale,
-	const bspVertex_t& a, 
-	const bspVertex_t& b, 
+	const bspVertex_t& a,
+	const bspVertex_t& b,
 	const bspVertex_t& c
 )
 {
@@ -247,7 +247,7 @@ void TessellateTri(
 	// Use these as a basis for when either the a or b traversal vectors
 	// have passed vertex c
 	glm::vec3 aSig = glm::sign( c.position - a.position );
-	glm::vec3 bSig = glm::sign( c.position - b.position ); 
+	glm::vec3 bSig = glm::sign( c.position - b.position );
 
 	std::unique_ptr< baryCoordSystem_t > triCoordSys( new baryCoordSystem_t( a.position, b.position, c.position ) );
 
@@ -273,7 +273,7 @@ void TessellateTri(
 
 		if ( a2.position == c.position || b2.position == c.position )
 			break;
-		 
+
 		// Path trace the edges of our triangle defined by vertices a2 and b2
 		bspVertex_t aToB( b2 - a2 );
 
@@ -284,7 +284,7 @@ void TessellateTri(
 
 		while ( walkLength < endLength )
 		{
-			bspVertex_t gv1( a2 + aToB * walk ); 
+			bspVertex_t gv1( a2 + aToB * walk );
 			bspVertex_t gv2( gv1 + aToBStep );
 			bspVertex_t gv3( gv1 + aToC );
 			bspVertex_t gv4( gv3 + aToBStep );
@@ -294,22 +294,22 @@ void TessellateTri(
 			gv3.position += gv3.normal * normalOffsetScale;
 			gv4.position += gv4.normal * normalOffsetScale;
 
-            size_t numVertices;
-            triangle_t t1;
-			
+			size_t numVertices;
+			triangle_t t1;
+
 			// There should be a reasonable workaround for this; maybe scale
 			// the vertices or something like that.
 			if ( !triCoordSys->IsInTri( gv3.position ) || !triCoordSys->IsInTri( gv2.position ) )
 				goto end_iteration;
 
-            numVertices = outVerts.size();
+			numVertices = outVerts.size();
 
 			gv1.color = glm::u8vec4( 255 );
 			gv2.color = glm::u8vec4( 255 );
 			gv3.color = glm::u8vec4( 255 );
 
 			{
-                auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
+				auto v1Iter = std::find( outVerts.begin(), outVerts.end(), gv1 );
 				if ( v1Iter == outVerts.end() )
 				{
 					outVerts.push_back( gv1 );
@@ -317,7 +317,7 @@ void TessellateTri(
 				}
 				else
 				{
-					t1.indices[ 0 ] = v1Iter - outVerts.begin(); 
+					t1.indices[ 0 ] = v1Iter - outVerts.begin();
 				}
 
 				auto v2Iter = std::find( outVerts.begin(), outVerts.end(), gv2 );
@@ -328,7 +328,7 @@ void TessellateTri(
 				}
 				else
 				{
-					t1.indices[ 1 ] = v2Iter - outVerts.begin(); 
+					t1.indices[ 1 ] = v2Iter - outVerts.begin();
 				}
 
 				auto v3Iter = std::find( outVerts.begin(), outVerts.end(), gv3 );
@@ -339,7 +339,7 @@ void TessellateTri(
 				}
 				else
 				{
-					t1.indices[ 2 ] = v3Iter - outVerts.begin(); 
+					t1.indices[ 2 ] = v3Iter - outVerts.begin();
 				}
 			}
 
@@ -353,7 +353,7 @@ void TessellateTri(
 			{
 				auto v4Iter = std::find( outVerts.begin(), outVerts.end(), gv4 );
 
-				triangle_t t2 = 
+				triangle_t t2 =
 				{
 					{
 						t1.indices[ 2 ],
@@ -361,7 +361,7 @@ void TessellateTri(
 						0
 					}
 				};
-			
+
 				if ( v4Iter == outVerts.end() )
 				{
 					outVerts.push_back( gv4 );
@@ -373,13 +373,13 @@ void TessellateTri(
 				}
 
 				curStrip.push_back( t2 );
-			}	
+			}
 
 end_iteration:
 			walk += walkStep;
 			walkLength = glm::length( aToB.position * walk );
 		}
-		
+
 		outIndices.insert( outIndices.end(), curStrip.begin(), curStrip.end() );
 		curStrip.clear();
 
