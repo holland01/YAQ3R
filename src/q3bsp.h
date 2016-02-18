@@ -3,7 +3,9 @@
 #include "common.h"
 #include "deform.h"
 #include "bsp_data.h"
+#include "circle_buffer.h"
 #include <memory>
+#include <unordered_map>
 
 struct shaderInfo_t;
 
@@ -15,60 +17,60 @@ struct mapData_t
 
 	bspEntity_t         entities;
 
-    bspNode_t*          nodes;
+	bspNode_t*          nodes;
 
-    bspLeaf_t*          leaves;
+	bspLeaf_t*          leaves;
 	bspLeafBrush_t*		leafBrushes;
 	bspLeafFace_t*      leafFaces;
 
-    bspPlane_t*         planes;
+	bspPlane_t*         planes;
 	bspVertex_t*        vertexes;
 
 	bspBrush_t*			brushes;
 	bspBrushSide_t*		brushSides;
 
-    bspTexture_t*       textures;
+	bspTexture_t*       textures;
 	bspModel_t*         models;
- 	
+
 	bspEffect_t*		effectShaders;
-    
+
 	bspFace_t*			faces;
-	
-    bspMeshVertex_t*    meshVertexes;
+
+	bspMeshVertex_t*    meshVertexes;
 
 	bspLightmap_t*		lightmaps;
 	bspLightvol_t*		lightvols;
 
-    bspVisdata_t*       visdata;
+	bspVisdata_t*       visdata;
 
 	int                 entityStringLen;
-    int                 numEffectShaders;
+	int                 numEffectShaders;
 
-    int                 numNodes;
+	int                 numNodes;
 
-    int                 numLeaves;
+	int                 numLeaves;
 	int                 numLeafFaces;
 	int					numLeafBrushes;
 
-    int                 numPlanes;
+	int                 numPlanes;
 
-    int                 numVertexes;
+	int                 numVertexes;
 
 	int					numBrushes;
 	int					numBrushSides;
 
-    int                 numTextures;
-    int                 numModels;
+	int                 numTextures;
+	int                 numModels;
 
 	int					numEffects;
-    int                 numFaces;
+	int                 numFaces;
 
-    int                 numMeshVertexes;
+	int                 numMeshVertexes;
 
 	int					numLightmaps;
 	int					numLightvols;
 
-    int                 numVisdataVecs;
+	int                 numVisdataVecs;
 
 	std::string			basePath; // root directory of the map
 };
@@ -77,19 +79,19 @@ class Q3BspMap
 {
 private:
 
-    Q3BspMap( const Q3BspMap& ) = delete;
-    Q3BspMap& operator=( Q3BspMap ) = delete;
+	Q3BspMap( const Q3BspMap& ) = delete;
+	Q3BspMap& operator=( Q3BspMap ) = delete;
 
-    bool							mapAllocated;
+	bool							mapAllocated;
 
 	void							ReadFile( const std::string& filepath, const int scale );
 
 public:
 
-	std::map< std::string, shaderInfo_t > effectShaders;
+	std::unordered_map< std::string, shaderInfo_t > effectShaders;
 
-    Q3BspMap( void );
-    ~Q3BspMap( void );
+	Q3BspMap( void );
+	~Q3BspMap( void );
 
 	mapData_t					data;
 
@@ -97,13 +99,13 @@ public:
 
 	void						WriteLumpToFile( uint32_t lump );
 
-    bspLeaf_t*					FindClosestLeaf( const glm::vec3& camPos );
+	bspLeaf_t*					FindClosestLeaf( const glm::vec3& camPos );
 
-    bool						IsClusterVisible( int sourceCluster, int testCluster );
+	bool						IsClusterVisible( int sourceCluster, int testCluster );
 
-    bool						IsAllocated( void ) const { return mapAllocated; }
+	bool						IsAllocated( void ) const { return mapAllocated; }
 
 	const shaderInfo_t*			GetShaderInfo( int faceIndex ) const;
 
-    void						DestroyMap( void );
+	void						DestroyMap( void );
 };

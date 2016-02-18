@@ -141,10 +141,13 @@ struct drawPass_t
 struct effect_t;
 struct shaderStage_t;
 
+using effectFnSig_t = void( const Program& p, const effect_t& e );
+using programMap_t = std::unordered_map< std::string, std::unique_ptr< Program > >;
+using effectMap_t = std::unordered_map< std::string, std::function< effectFnSig_t > >;
+
 class BSPRenderer
 {
 private:
-	using effectFnSig_t = void( const Program& p, const effect_t& e );
 
 	// last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
 	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
@@ -159,9 +162,9 @@ private:
 
 	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
 
-	std::map< std::string, std::unique_ptr< Program > >		glPrograms;
+	programMap_t glPrograms;
 
-	std::map< std::string, std::function< effectFnSig_t > >	glEffects;
+	effectMap_t	glEffects;
 
 	const bspLeaf_t*    currLeaf;
 

@@ -86,7 +86,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			switch ( outInfo->deformCmd )
 			{
 			case VERTEXDEFORM_CMD_WAVE:
-                outInfo->deformParms.data.wave.spread = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.spread = ReadFloat( buffer );
 
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
@@ -112,23 +112,23 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
 				}
 
-                outInfo->deformParms.data.wave.base = ReadFloat( buffer );
-                outInfo->deformParms.data.wave.amplitude = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.base = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.amplitude = ReadFloat( buffer );
 
 				// Normal command has no phase translation
 				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
 				{
-                    outInfo->deformParms.data.wave.phase = ReadFloat( buffer );
+					outInfo->deformParms.data.wave.phase = ReadFloat( buffer );
 				}
 
-                outInfo->deformParms.data.wave.frequency = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.frequency = ReadFloat( buffer );
 
-                outInfo->deform = true;
-                break;
+				outInfo->deform = true;
+				break;
 
 			default:
 				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes", "Unsupported vertex deform found!" );
-                outInfo->deform = false;
+				outInfo->deform = false;
 				return false;
 				break;
 			}
@@ -174,7 +174,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( buffer );
 			UNUSED( theStage );
 
-            outInfo->localLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
+			outInfo->localLoadFlags ^= Q3LOAD_TEXTURE_MIPMAP;
 			return true;
 		}
 	},
@@ -207,9 +207,9 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-            buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
-            theStage.mapCmd = MAP_CMD_CLAMPMAP;
-            theStage.mapType = MAP_TYPE_IMAGE;
+			buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
+			theStage.mapCmd = MAP_CMD_CLAMPMAP;
+			theStage.mapType = MAP_TYPE_IMAGE;
 			return true;
 		}
 	},
@@ -220,22 +220,22 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-            buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
-            theStage.mapCmd = MAP_CMD_MAP;
+			buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
+			theStage.mapCmd = MAP_CMD_MAP;
 
 			// TODO: add support for this
-            if ( strcmp( &theStage.texturePath[ 0 ], "$whiteimage" ) == 0 )
+			if ( strcmp( &theStage.texturePath[ 0 ], "$whiteimage" ) == 0 )
 			{
 				return true;
 			}
 
-            if ( strcmp( &theStage.texturePath[ 0 ], "$lightmap" ) == 0 )
+			if ( strcmp( &theStage.texturePath[ 0 ], "$lightmap" ) == 0 )
 			{
-                theStage.mapType = MAP_TYPE_LIGHT_MAP;
+				theStage.mapType = MAP_TYPE_LIGHT_MAP;
 			}
 			else
 			{
-                theStage.mapType = MAP_TYPE_IMAGE;
+				theStage.mapType = MAP_TYPE_IMAGE;
 			}
 
 			return true;
@@ -251,18 +251,18 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "add" ) == 0 )
 			{
-                theStage.blendSrc = GL_ONE;
-                theStage.blendDest = GL_ONE;
+				theStage.blendSrc = GL_ONE;
+				theStage.blendDest = GL_ONE;
 			}
 			else if ( strcmp( token, "blend" ) == 0 )
 			{
-                theStage.blendSrc = GL_SRC_ALPHA;
-                theStage.blendDest = GL_ONE_MINUS_SRC_ALPHA;
+				theStage.blendSrc = GL_SRC_ALPHA;
+				theStage.blendDest = GL_ONE_MINUS_SRC_ALPHA;
 			}
 			else if ( strcmp( token, "filter" ) == 0 )
 			{
-                theStage.blendSrc = GL_DST_COLOR;
-                theStage.blendDest = GL_ZERO;
+				theStage.blendSrc = GL_DST_COLOR;
+				theStage.blendDest = GL_ZERO;
 			}
 			else
 			{
@@ -272,7 +272,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 					return false;
 				}
 
-                theStage.blendSrc = ( GLenum ) blendFactor;
+				theStage.blendSrc = ( GLenum ) blendFactor;
 
 				ZEROTOK( token );
 				buffer = ReadToken( token, buffer );
@@ -280,11 +280,11 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				blendFactor = GL_EnumFromStr( token );
 				if ( blendFactor == -1 )
 				{
-                    theStage.blendDest = theStage.blendSrc;
+					theStage.blendDest = theStage.blendSrc;
 					return false;
 				}
 
-                theStage.blendDest = ( GLenum ) blendFactor;
+				theStage.blendDest = ( GLenum ) blendFactor;
 			}
 
 			return true;
@@ -301,15 +301,15 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "ge128" ) == 0 )
 			{
-                theStage.alphaFunc = ALPHA_FUNC_GEQUAL_128;
+				theStage.alphaFunc = ALPHA_FUNC_GEQUAL_128;
 			}
 			else if ( strcmp( token, "gT0" ) == 0 )
 			{
-                theStage.alphaFunc = ALPHA_FUNC_GTHAN_0;
+				theStage.alphaFunc = ALPHA_FUNC_GTHAN_0;
 			}
 			else if ( strcmp( token, "lt128" ) == 0 )
 			{
-                theStage.alphaFunc = ALPHA_FUNC_LTHAN_128;
+				theStage.alphaFunc = ALPHA_FUNC_LTHAN_128;
 			}
 			else
 			{
@@ -330,15 +330,15 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "vertex" ) == 0 )
 			{
-                theStage.rgbGen = RGBGEN_VERTEX;
+				theStage.rgbGen = RGBGEN_VERTEX;
 			}
 			else if ( strcmp( token, "identity" ) == 0 )
 			{
-                theStage.rgbGen = RGBGEN_IDENTITY;
+				theStage.rgbGen = RGBGEN_IDENTITY;
 			}
 			else if ( strcmp( token, "identitylighting" ) == 0 )
 			{
-                theStage.rgbGen = RGBGEN_IDENTITY_LIGHTING;
+				theStage.rgbGen = RGBGEN_IDENTITY_LIGHTING;
 			}
 			else
 			{
@@ -357,16 +357,16 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			if ( strcmp( token, "environment" ) == 0 )
 			{
-                theStage.tcgen = TCGEN_ENVIRONMENT;
+				theStage.tcgen = TCGEN_ENVIRONMENT;
 				outInfo->surfaceParms |= SURFPARM_ENVMAP;
 			}
 			else if ( strcmp( token, "base" ) == 0 )
 			{
-                theStage.tcgen = TCGEN_BASE;
+				theStage.tcgen = TCGEN_BASE;
 			}
 			else if ( strcmp( token, "lightmap" ) == 0 )
 			{
-                theStage.tcgen = TCGEN_LIGHTMAP;
+				theStage.tcgen = TCGEN_LIGHTMAP;
 			}
 			else
 			{
@@ -394,23 +394,23 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				float s = ReadFloat( buffer );
 				float t = ReadFloat( buffer );
 
-                /*
-                NOTE: a scale may imply a division by the value, versus a multiplication. I'm not sure...
+				/*
+				NOTE: a scale may imply a division by the value, versus a multiplication. I'm not sure...
 
-                if ( s != 0.0f )
-                    s = 1.0f / s;
+				if ( s != 0.0f )
+					s = 1.0f / s;
 
-                if ( t != 0.0f )
-                    t = 1.0f / t;
-                */
+				if ( t != 0.0f )
+					t = 1.0f / t;
+				*/
 
 				op.data.scale2D[ 0 ][ 0 ] = s;
-                op.data.scale2D[ 0 ][ 1 ] = 0.0f;
+				op.data.scale2D[ 0 ][ 1 ] = 0.0f;
 
-                op.data.scale2D[ 1 ][ 0 ] = 0.0f;
+				op.data.scale2D[ 1 ][ 0 ] = 0.0f;
 				op.data.scale2D[ 1 ][ 1 ] = t;
 
-                theStage.effects.push_back( op );
+				theStage.effects.push_back( op );
 			}
 			else if ( strcmp( token, "turb" ) == 0 )
 			{
@@ -423,7 +423,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				op.data.wave.phase = ReadFloat( buffer );
 				op.data.wave.frequency = ReadFloat( buffer );
 
-                theStage.effects.push_back( op );
+				theStage.effects.push_back( op );
 			}
 			else if ( strcmp( token, "scroll" ) == 0 )
 			{
@@ -434,7 +434,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				op.data.xyzw[ 0 ] = ReadFloat( buffer );
 				op.data.xyzw[ 1 ] = ReadFloat( buffer );
 
-                theStage.effects.push_back( op );
+				theStage.effects.push_back( op );
 			}
 			else if ( strcmp( token, "rotate" ) == 0 )
 			{
@@ -444,13 +444,13 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 				float angRad = glm::radians( ReadFloat( buffer ) );
 
-                op.data.rotation2D.transform[ 0 ][ 0 ] =  glm::cos( angRad );
-                op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
+				op.data.rotation2D.transform[ 0 ][ 0 ] =  glm::cos( angRad );
+				op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
 
-                op.data.rotation2D.transform[ 1 ][ 0 ] =  glm::sin( angRad );
-                op.data.rotation2D.transform[ 1 ][ 1 ] =  glm::cos( angRad );
+				op.data.rotation2D.transform[ 1 ][ 0 ] =  glm::sin( angRad );
+				op.data.rotation2D.transform[ 1 ][ 1 ] =  glm::cos( angRad );
 
-                theStage.effects.push_back( op );
+				theStage.effects.push_back( op );
 			}
 			else
 			{
@@ -476,7 +476,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 				return false;
 			}
 
-            theStage.depthFunc = ( GLenum ) depthf;
+			theStage.depthFunc = ( GLenum ) depthf;
 			return true;
 		}
 	},
@@ -488,7 +488,7 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( token );
 			UNUSED( buffer );
 
-            theStage.depthPass = true;
+			theStage.depthPass = true;
 			return true;
 		}
 	}
@@ -625,7 +625,7 @@ static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, int le
 
 	char first = 0;
 
-    shaderStage_t stage;
+	shaderStage_t stage;
 
 	while ( true )
 	{
@@ -657,9 +657,9 @@ evaluate_tok:
 			// We're not in the main level, but we're leaving this stage, so decrease our level by 1 and add on to our stageCount
 			else
 			{
-                //outInfo->stageBuffer.insert( outInfo->stageBuffer.begin(), stage );
-                outInfo->stageBuffer.push_back( stage );
-                stage = shaderStage_t();
+				//outInfo->stageBuffer.insert( outInfo->stageBuffer.begin(), stage );
+				outInfo->stageBuffer.push_back( stage );
+				stage = shaderStage_t();
 				outInfo->stageCount += 1;
 				level -= 1;
 				continue;
@@ -669,7 +669,7 @@ evaluate_tok:
 		// No invalid tokens ( e.g., spaces, indents, comments, etc. ); so, this must be a header
 		if ( level == 0 )
 		{
-            strcpy( &outInfo->name[ 0 ], token );
+			strcpy( &outInfo->name[ 0 ], token );
 			continue;
 		}
 
@@ -679,7 +679,7 @@ evaluate_tok:
 			continue;
 		}
 
-        if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
+		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
 		{
 			goto evaluate_tok;
 		}
@@ -704,22 +704,22 @@ static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const 
 static INLINE std::string SampleTexture2D( const std::string& samplerName, const std::string& coords )
 {
 	std::string fname( "texture2D" );
-    return fname + "( " + samplerName + ", " + coords + " )";
+	return fname + "( " + samplerName + ", " + coords + " )";
 }
 
 static INLINE std::string WriteFragment( const std::string& value )
 {
-    return "gl_FragColor = " + value + ";";
+	return "gl_FragColor = " + value + ";";
 }
 
 static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type )
 {
-    return "attribute " + type + " " + name + ";";
+	return "attribute " + type + " " + name + ";";
 }
 
 static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type )
 {
-    return "varying " + type + " " + name + ";";
+	return "varying " + type + " " + name + ";";
 }
 
 static INLINE std::string GetHeader( void )
@@ -728,34 +728,34 @@ static INLINE std::string GetHeader( void )
 }
 
 static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destShaderSrc,
-                                             std::vector< std::string >& uniforms,
-                                             size_t offset )
+											 std::vector< std::string >& uniforms,
+											 size_t offset )
 {
-    uniforms.push_back( "modelToView" );
-    uniforms.push_back( "viewToClip" );
+	uniforms.push_back( "modelToView" );
+	uniforms.push_back( "viewToClip" );
 
-    destShaderSrc.insert( destShaderSrc.begin() + offset,
-        { "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
-    );
+	destShaderSrc.insert( destShaderSrc.begin() + offset,
+		{ "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
+	);
 }
 
 
 static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
-        const shaderStage_t& stage, const char* discardPredicate )
+		const shaderStage_t& stage, const char* discardPredicate )
 {
 	std::string sampleTextureExpr;
 
-    if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
-        fragmentSrc.push_back( "\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
-    else
-        fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
+	if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+		fragmentSrc.push_back( "\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
+	else
+		fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
 
-    sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
+	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
 
-    // Some shader entries will incorporate specific alpha values
+	// Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
 	{
-        fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+		fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
 		fragmentSrc.push_back( "\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
 	}
 	else
@@ -763,35 +763,35 @@ static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
 		fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
 	}
 
-    // Is used occasionally, for example in situations like a bad alpha value.
+	// Is used occasionally, for example in situations like a bad alpha value.
 	if ( discardPredicate )
 		AddDiscardIf( fragmentSrc, std::string( discardPredicate ) );
 
-    // Gamma correction
-    fragmentSrc.insert( fragmentSrc.end(),
-    {
-        "\tcolor.r = pow( color.r, gamma );",
-        "\tcolor.g = pow( color.g, gamma );",
-        "\tcolor.b = pow( color.b, gamma );"
-    } );
+	// Gamma correction
+	fragmentSrc.insert( fragmentSrc.end(),
+	{
+		"\tcolor.r = pow( color.r, gamma );",
+		"\tcolor.g = pow( color.g, gamma );",
+		"\tcolor.b = pow( color.b, gamma );"
+	} );
 
-    fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
+	fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
 }
 
  // Quick subroutine enabling the calculation of environment map;
 // uses a simple form of displacement mapping to achieve desired results.
 static void AddCalcEnvMap( std::vector< std::string >& destGLSL,
-                               const std::string& vertexID,
-                               const std::string& normalID,
-                               const std::string& eyeID )
+							   const std::string& vertexID,
+							   const std::string& normalID,
+							   const std::string& eyeID )
 {
 	destGLSL.insert( destGLSL.end(),
-    {
-        "\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
-        "\tvec3 R = 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye;",
-        "\tvec2 displace = R.yz * 0.5;",
-        "\tvec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );"
-    } );
+	{
+		"\tvec3 dirToEye = normalize( " + eyeID + " - " + vertexID + " );",
+		"\tvec3 R = 2.0 * " + normalID + " * dot( dirToEye, " + normalID + " ) - dirToEye;",
+		"\tvec2 displace = R.yz * 0.5;",
+		"\tvec2 st = vec2( 0.5 ) + vec2( displace.x, -displace.y );"
+	} );
 }
 
 static INLINE std::string JoinLines( std::vector< std::string >& lines )
@@ -817,111 +817,110 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	for ( auto& entry: effectShaders )
 	{
 		shaderInfo_t& shader = entry.second;
-        fprintf( f, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
+		fprintf( f, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
 
 		for ( int j = 0; j < shader.stageCount; ++j )
 		{
 			shaderStage_t& stage = shader.stageBuffer[ j ];
 
 			// Uniform variable names
-            std::vector< std::string > uniforms = {
-                "sampler0",
-                "imageTransform",
-                "imageScaleRatio"
-            };
+			std::vector< std::string > uniforms = {
+				"sampler0",
+				"imageTransform",
+				"imageScaleRatio"
+			};
 
-            const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
+			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
 
-            std::vector< std::string > attribs = { "position", "color", texCoordName };
+			std::vector< std::string > attribs = { "position", "color", texCoordName };
 
-            const size_t vertGlobalVarInsertOffset = 4;
+			const size_t vertGlobalVarInsertOffset = 4;
 
-            // Vertex shader...
+			// Vertex shader...
 			std::vector< std::string > vertexSrc =
 			{
 
-                GetHeader(),
+				GetHeader(),
 				DeclAttributeVar( "position", "vec3" ),
 				DeclAttributeVar( "color", "vec4" ),
 				DeclAttributeVar( texCoordName, "vec2" ),
-                DeclTransferVar( "frag_Color", "vec4" ),
-                DeclTransferVar( "frag_Tex", "vec2" ),
+				DeclTransferVar( "frag_Color", "vec4" ),
+				DeclTransferVar( "frag_Tex", "vec2" ),
 				"void main(void) {",
 			};
 
-            if ( stage.tcgen == TCGEN_ENVIRONMENT )
-            {
+			if ( stage.tcgen == TCGEN_ENVIRONMENT )
+			{
 				vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3" ) );
-                attribs.push_back( "normal" );
-            }
+				attribs.push_back( "normal" );
+			}
 
-            InsertCoreTransformsDecl( vertexSrc, uniforms, vertGlobalVarInsertOffset );
+			InsertCoreTransformsDecl( vertexSrc, uniforms, vertGlobalVarInsertOffset );
 
-            vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
+			vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
 
-            if ( stage.tcgen == TCGEN_ENVIRONMENT )
-            {
-                AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
-                vertexSrc.push_back( "\tfrag_Tex = st;" );
-            }
-            else
-            {
-                vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
-            }
+			if ( stage.tcgen == TCGEN_ENVIRONMENT )
+			{
+				AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
+				vertexSrc.push_back( "\tfrag_Tex = st;" );
+			}
+			else
+			{
+				vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
+			}
 
-            if ( stage.rgbGen == RGBGEN_VERTEX )
-                vertexSrc.push_back( "\tfrag_Color = color;" );
-            else
-                vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
+			if ( stage.rgbGen == RGBGEN_VERTEX )
+				vertexSrc.push_back( "\tfrag_Color = color;" );
+			else
+				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
 
-            // Fragment shader....
+			// Fragment shader....
 			// Unspecified alphaGen implies a default 1.0 alpha channel
 			std::vector< std::string > fragmentSrc =
 			{
-                GetHeader(),
-                "precision highp float;",
-                DeclTransferVar( "frag_Color", "vec4" ),
-                DeclTransferVar( "frag_Tex", "vec2" ),
+				GetHeader(),
+				"precision highp float;",
+				DeclTransferVar( "frag_Color", "vec4" ),
+				DeclTransferVar( "frag_Tex", "vec2" ),
 				"const float gamma = 1.0 / 2.2;",
-                "void main(void) {"
+				"void main(void) {"
 			};
 
-            const size_t fragGlobalDeclOffset = 4;
+			const size_t fragGlobalDeclOffset = 4;
 
-            std::initializer_list<std::string> data  =
-            {
-                "uniform sampler2D sampler0;",
-                "uniform vec4 imageTransform;",
-                "uniform vec2 imageScaleRatio;",
-                "vec2 applyTransform(in vec2 coords) {",
-                "\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
-                "}"
-            };
+			std::initializer_list<std::string> data  =
+			{
+				"uniform sampler2D sampler0;",
+				"uniform vec4 imageTransform;",
+				"uniform vec2 imageScaleRatio;",
+				"vec2 applyTransform(in vec2 coords) {",
+				"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
+				"}"
+			};
 
-            fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
+			fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
 
-            fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+			fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
 
 			for ( const effect_t& op: shader.stageBuffer[ j ].effects )
 			{
 				// Modify the texture coordinate as necessary before we write to the texture
 				if ( op.name == "tcModTurb" )
 				{
-                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform float tcModTurb;" );
+					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform float tcModTurb;" );
 					fragmentSrc.push_back( "\tst *= tcModTurb;" );
 					uniforms.push_back( "tcModTurb" );
 				}
 				else if ( op.name == "tcModScroll" )
 				{
-                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec4 tcModScroll;" );
+					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec4 tcModScroll;" );
 					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
-					fragmentSrc.push_back( "\tst = mod( st, 1.0 );" );
 					uniforms.push_back( "tcModScroll" );
 				}
 				else if ( op.name == "tcModRotate" )
 				{
-                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 texRotate;" );
-                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec2 texCenter;" );
+					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 texRotate;" );
+					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec2 texCenter;" );
 					fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
 
 					uniforms.push_back( "texRotate" );
@@ -929,7 +928,7 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 				}
 				else if ( op.name == "tcModScale" )
 				{
-                    fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 tcModScale;" );
+					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 tcModScale;" );
 					fragmentSrc.push_back( "\tst = tcModScale * st;" );
 					uniforms.push_back( "tcModScale" );
 				}
@@ -938,16 +937,16 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 			switch ( stage.alphaFunc )
 			{
 			case ALPHA_FUNC_UNDEFINED:
-                WriteTexture( fragmentSrc, stage, NULL );
+				WriteTexture( fragmentSrc, stage, NULL );
 				break;
 			case ALPHA_FUNC_GEQUAL_128:
-                WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
+				WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
 				break;
 			case ALPHA_FUNC_GTHAN_0:
-                WriteTexture( fragmentSrc, stage, "color.a == 0" );
+				WriteTexture( fragmentSrc, stage, "color.a == 0" );
 				break;
 			case ALPHA_FUNC_LTHAN_128:
-                WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
+				WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
 				break;
 			}
 
@@ -972,7 +971,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 
 	if ( stage.mapType == MAP_TYPE_IMAGE )
 	{
-        gImageParams_t img;
+		gImageParams_t img;
 
 		// If a texture atlas is being used as a substitute for a texture array,
 		// this won't matter.
@@ -982,97 +981,97 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 
 		std::string texFileRoot( map->basePath );
 		std::string texRelativePath( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) );
-        texFileRoot.append( texRelativePath );
+		texFileRoot.append( texRelativePath );
 
-        // If it's a tga file and we fail, then chances are there is a jpeg duplicate
-        // of it that we can fall back on
-        if ( !GLoadImageFromFile( texFileRoot.c_str(), img ) )
+		// If it's a tga file and we fail, then chances are there is a jpeg duplicate
+		// of it that we can fall back on
+		if ( !GLoadImageFromFile( texFileRoot.c_str(), img ) )
 		{
 			std::string ext;
-            size_t index;
-            if ( File_GetExt( ext, &index, texFileRoot ) && ext == "tga" )
+			size_t index;
+			if ( File_GetExt( ext, &index, texFileRoot ) && ext == "tga" )
 			{
 				texFileRoot.replace( index, 4, ".jpg" );
-                if ( !GLoadImageFromFile( texFileRoot, img ) )
+				if ( !GLoadImageFromFile( texFileRoot, img ) )
 				{
 					// If we fail second try, turn it into a dummy
-                    MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
-                    GSetImageBuffer( img, 64, 64, 4, 255 );
+					MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
+					GSetImageBuffer( img, 64, 64, 4, 255 );
 				}
 			}
 		}
 
-        // We need the highest dimensions out of all images for the texture array
-        maxDims.x = glm::max( img.width, maxDims.x );
-        maxDims.y = glm::max( img.height, maxDims.y );
+		// We need the highest dimensions out of all images for the texture array
+		maxDims.x = glm::max( img.width, maxDims.x );
+		maxDims.y = glm::max( img.height, maxDims.y );
 
-        // This index will persist in the texture array it's going into
-        stage.textureIndex = images.size();
+		// This index will persist in the texture array it's going into
+		stage.textureIndex = images.size();
 
-        images.push_back( img );
+		images.push_back( img );
 	}
 }
 
 /*!
-    We unfortunately can't use lambdas with the File_IterateDirTree API at the moment,
-    primarily due to emscripten complications.
+	We unfortunately can't use lambdas with the File_IterateDirTree API at the moment,
+	primarily due to emscripten complications.
 
-    Considering that the result would compile down to something like this, anyway, though
-    we're probably not losing much overhead.
+	Considering that the result would compile down to something like this, anyway, though
+	we're probably not losing much overhead.
 */
 namespace {
 
 struct parseArgs_t
 {
-    static shaderMap_t* effectShaders;
+	static shaderMap_t* effectShaders;
 
-    static int EvaluateEntry( const filedata_t data )
-    {
-        // Something's probably wrong if there's no data,
-        // so let's just end it.
-        if ( !data )
-        {
-            return FILE_CONTINUE_TRAVERSAL;
-        }
+	static int EvaluateEntry( const filedata_t data )
+	{
+		// Something's probably wrong if there's no data,
+		// so let's just end it.
+		if ( !data )
+		{
+			return FILE_CONTINUE_TRAVERSAL;
+		}
 
-        if ( !effectShaders )
-        {
-            MLOG_WARNING(  "No reference to effect shader map given; leaving" );
-            return FILE_STOP_TRAVERSAL;
-        }
+		if ( !effectShaders )
+		{
+			MLOG_WARNING(  "No reference to effect shader map given; leaving" );
+			return FILE_STOP_TRAVERSAL;
+		}
 
-        std::vector< uint8_t > fileBuffer;
+		std::vector< uint8_t > fileBuffer;
 
-        {
-            std::string filepath( ( const char* ) data, strlen( ( const char* )data ) );
+		{
+			std::string filepath( ( const char* ) data, strlen( ( const char* )data ) );
 
-            std::string ext;
-            if ( !File_GetExt( ext, nullptr, filepath ) || ext != "shader" )
-                return FILE_CONTINUE_TRAVERSAL;
+			std::string ext;
+			if ( !File_GetExt( ext, nullptr, filepath ) || ext != "shader" )
+				return FILE_CONTINUE_TRAVERSAL;
 
-            if ( !File_GetBuf( fileBuffer, filepath ) )
-            {
-                MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
-                return FILE_CONTINUE_TRAVERSAL;
-            }
-        }
+			if ( !File_GetBuf( fileBuffer, filepath ) )
+			{
+				MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
+				return FILE_CONTINUE_TRAVERSAL;
+			}
+		}
 
-        const char* pChar = ( const char* ) &fileBuffer[ 0 ];
+		const char* pChar = ( const char* ) &fileBuffer[ 0 ];
 
-        while ( *pChar )
-        {
-            shaderInfo_t entry;
+		while ( *pChar )
+		{
+			shaderInfo_t entry;
 
-            entry.localLoadFlags = 0;
-            pChar = ParseEntry( &entry, pChar, 0 );
+			entry.localLoadFlags = 0;
+			pChar = ParseEntry( &entry, pChar, 0 );
 
-            effectShaders->insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
-        }
+			effectShaders->insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
+		}
 
-        gLineCount = 0;
+		gLineCount = 0;
 
-        return FILE_CONTINUE_TRAVERSAL;
-    }
+		return FILE_CONTINUE_TRAVERSAL;
+	}
 };
 
 shaderMap_t* parseArgs_t::effectShaders = nullptr;
@@ -1089,13 +1088,13 @@ glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& t
 
 	printf("Traversing Directory: %s\n", shaderRootDir.c_str());
 
-    {
-        parseArgs_t::effectShaders = &effectShaders;
-        File_IterateDirTree( shaderRootDir, parseArgs_t::EvaluateEntry );
-        parseArgs_t::effectShaders = nullptr;
-    }
+	{
+		parseArgs_t::effectShaders = &effectShaders;
+		File_IterateDirTree( shaderRootDir, parseArgs_t::EvaluateEntry );
+		parseArgs_t::effectShaders = nullptr;
+	}
 
-    GenShaderPrograms( effectShaders );
+	GenShaderPrograms( effectShaders );
 
 	glm::ivec2 maxDims( 0 );
 	for ( auto& entry: effectShaders )
@@ -1111,15 +1110,15 @@ glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& t
 
 bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1, const char* str2 )
 {
-    size_t min = glm::min( strlen( str2 ), str1.size() );
+	size_t min = glm::min( strlen( str2 ), str1.size() );
 
-    // str1 should have zeros if its char characters are less than SHADER_MAX_TOKEN_CHAR_LENGTH
-    if ( min != str1.size() && str1[ min ] != 0 )
-        return false;
+	// str1 should have zeros if its char characters are less than SHADER_MAX_TOKEN_CHAR_LENGTH
+	if ( min != str1.size() && str1[ min ] != 0 )
+		return false;
 
-    for ( uint32_t i = 0; i < min; ++i )
-        if ( str2[ i ] != str1[ i ] )
-            return false;
+	for ( uint32_t i = 0; i < min; ++i )
+		if ( str2[ i ] != str1[ i ] )
+			return false;
 
-    return true;
+	return true;
 }

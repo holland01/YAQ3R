@@ -306,7 +306,7 @@ void BSPRenderer::Load( const std::string& filepath )
 	std::vector< gImageParams_t > shaderTextures;
 	S_LoadShaders( &map->data, shaderTextures, map->effectShaders );
 
-	GSetImageBuffer( glDummyTexture, 64, 64, 4, 255 );
+	GSetImageBuffer( glDummyTexture, 16, 16, 4, 255 );
 
 	shaderTexHandle = GMakeTexture( shaderTextures, 0 );
 
@@ -755,7 +755,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
 
-		glm::vec2 texDims( 0 );
+		// TODO: use correct dimensions for texture
+		glm::vec2 texDims( 1.0f );
 
 		const gTextureHandle_t& handle = stage.mapType == MAP_TYPE_IMAGE? shaderTexHandle: lightmapTexHandle;
 		const int32_t texIndex = ( stage.mapType == MAP_TYPE_IMAGE )? stage.textureIndex: lightmapIndex;

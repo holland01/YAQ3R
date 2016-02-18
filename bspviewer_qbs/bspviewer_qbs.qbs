@@ -18,20 +18,6 @@ Product {
         librootInc.forEach(function(includePath) {
             inc.push(devlibRoot + includePath);
         });
- /*
-        var emroot = qbs.getEnv("EMSDK_ROOT") + "/emscripten/tag-1.35.22/system";
-
-
-        var eminc = [
-            "/include",
-            "/include/libc",
-            "/include/libcxx"
-        ];
-
-        eminc.forEach(function(includePath) {
-            inc.push(emroot + includePath);
-        });
-        */
 
         return inc;
     }
@@ -42,6 +28,7 @@ Product {
         "-Wno-missing-field-initializers",
        // "-Wno-unused-but-set-variable",
         "-Wno-unused-result",
+        "-Wno-unused-function",
         "-Wno-strict-aliasing",
         "-std=c++1y",
         "-Wno-warn-absolute-paths"
@@ -85,10 +72,12 @@ Product {
     }
     files: [
         "../Makefile",
+        "../bspviewer.js",
         "../src/aabb.cpp",
         "../src/aabb.h",
         "../src/bsp_data.cpp",
         "../src/bsp_data.h",
+        "../src/circle_buffer.h",
         "../src/common.h",
         "../src/debug.frag",
         "../src/debug.vert",

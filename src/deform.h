@@ -19,7 +19,6 @@
 	( ( base ) + ( table )[ int ( ( offset ) + ( t ) * ( f ) * DEFORM_TABLE_SIZE ) & DEFORM_TABLE_MASK ] * ( a ) )
 
 struct bspFace_t;
-struct shaderInfo_t;
 struct deformModel_t;
 struct mapModel_t;
 struct mapData_t;
@@ -36,12 +35,12 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
 
 void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset = 0 );
 
-void TessellateTri( 
-	std::vector< bspVertex_t >& outVerts, 
+void TessellateTri(
+	std::vector< bspVertex_t >& outVerts,
 	std::vector< triangle_t >& triIndices,
 	float amount,
 	float normalOffsetScale,	// where vertex = vertex + ( normal * normalOffsetScale )
-	const bspVertex_t& a, 
-	const bspVertex_t& b, 
+	const bspVertex_t& a,
+	const bspVertex_t& b,
 	const bspVertex_t& c
 );

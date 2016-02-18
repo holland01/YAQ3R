@@ -75,8 +75,10 @@
 
 // Windows.h defines these for us already
 #ifndef _WIN32
-#	define TRUE 1 
+#	define TRUE 1
 #	define FALSE 0
+
+static void __nop(void) {}
 #endif
 
 #define INDEX_UNDEFINED -1
