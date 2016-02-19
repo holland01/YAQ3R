@@ -354,9 +354,9 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
     ftw( directory.c_str(), invoke, 3 );
 
-#elif defined(EMSCRIPTEN)
-	char errorMsg[128];
-	memset(errorMsg, 0, sizeof(errorMsg));
+#elif defined( EMSCRIPTEN )
+	char errorMsg[ 128 ];
+	memset( errorMsg, 0, sizeof( errorMsg ) );
 
 	int ret = EM_ASM_ARGS( {
 
@@ -382,9 +382,13 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
             for (var n in node.contents) {
 				traverse(node.contents[n]);
                 var p = FS.getPath(node.contents[n]);
+                var u8buf = intArrayFromString(p);
+                var pbuf = Module._malloc(u8buf.length);
+                Module.writeArrayToMemory(u8buf, pbuf);
                 var stack = Runtime.stackSave();
-                iterate = !!Runtime.dynCall('ii', $1, [intArrayFromString(p)]);
+                iterate = !!Runtime.dynCall('ii', $1, [pbuf]);
                 Runtime.stackRestore(stack);
+                Module._free(pbuf);
             }
         }
 

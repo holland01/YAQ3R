@@ -1,5 +1,6 @@
 VERBOSE=1
 DEBUG=1
+EM_ASSERTIONS=1
 
 ifdef VERBOSE
 	Q =
@@ -23,7 +24,7 @@ OFILES := $(OBJFILES:%=obj/%.$(LFORMAT))
 BINFILE = bspviewer.html
 
 COMMONFLAGS = -O2 -Wall -Wextra -pedantic -Werror \
- -Isrc -Isrc/extern \
+ -Isrc -Isrc/extern -s SAFE_HEAP=1 \
 
 DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
@@ -34,7 +35,7 @@ LDFLAGS = --emrun
 LDO = -O0
 
 ifdef DEBUG
-  COMMONFLAGS := $(COMMONFLAGS) -g4
+  COMMONFLAGS := $(COMMONFLAGS) -g4 -s DEMANGLE_SUPPORT=1
   COMMONFLAGS := $(COMMONFLAGS) $(DEBUGFLAGS)
 else
   LDO = -O2
@@ -54,14 +55,14 @@ ifneq ($(filter-out clean, $(MAKECMDGOALS)),)
 -include Makefile.dep
 endif
 
-CC = emcc -v
-CXX = em++ -v
+CC = EMCC_DEBUG=1 emcc -v
+CXX = EMCC_DEBUG=1 em++ -v
 CXXO = -O2
 
-DEPFLAGS= -s DEMANGLE_SUPPORT=1 -s USE_SDL=2
+DEPFLAGS= -s USE_SDL=2
 
 ifdef EM_ASSERTIONS
-  DEPFLAGS := $(DEPFLAGS) -s ASSERTIONS=1
+  COMMONFLAGS := $(COMMONFLAGS) -s ASSERTIONS=2
 endif
 
 -include Makefile.local

@@ -748,15 +748,16 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
-		const Program& stageProg = *( stage.program.get() );
+		const Program& stageProg = *( stage.program );
 
 		stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
+		stageProg.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
 		GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
 
 		// TODO: use correct dimensions for texture
-		glm::vec2 texDims( 1.0f );
+		glm::vec2 texDims( 64.0f );
 
 		const gTextureHandle_t& handle = stage.mapType == MAP_TYPE_IMAGE? shaderTexHandle: lightmapTexHandle;
 		const int32_t texIndex = ( stage.mapType == MAP_TYPE_IMAGE )? stage.textureIndex: lightmapIndex;
