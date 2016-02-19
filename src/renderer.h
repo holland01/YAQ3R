@@ -88,13 +88,13 @@ struct drawSurface_t
 	// Every face within a given surface must
 	// have the same following 4 values
 
-	int32_t						textureIndex;
-	int32_t						lightmapIndex;
-	int32_t						faceType;
-	const shaderInfo_t*			shader;
+	int32_t					textureIndex;
+	int32_t					lightmapIndex;
+	int32_t					faceType;
+	const shaderInfo_t*		shader;
 
-	guBufferOffsetList_t		bufferOffsets;
-	guBufferRangeList_t	bufferRanges;
+	guBufferOffsetList_t	bufferOffsets;
+	guBufferRangeList_t		bufferRanges;
 	std::vector< int32_t >	faceIndices;
 
 			drawSurface_t( void )
@@ -152,19 +152,17 @@ private:
 	// last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
 	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
 
-	gTextureHandle_t				shaderTexHandle, lightmapTexHandle, mainTexHandle;
+	gSamplerHandle_t				mainSampler; // also used by lightmaps
 
-	gImageParams_t					glDummyTexture;
+	gTextureHandle_t				shaderTexHandle, mainTexHandle, lightmapHandle;
 
-	std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture indices
+	std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture and lightmap indices
 
-	std::vector< gImageParams_t >	glLightmaps;		// has one->one mapping with lightmap indices
+	std::vector< mapModel_t >		glFaces;			// has one->one mapping with face indices
 
-	std::vector< mapModel_t >	glFaces;			// has one->one mapping with face indices
+	programMap_t		glPrograms;
 
-	programMap_t glPrograms;
-
-	effectMap_t	glEffects;
+	effectMap_t			glEffects;
 
 	const bspLeaf_t*    currLeaf;
 
@@ -208,6 +206,12 @@ private:
 	void				DrawFace( drawPass_t& pass );
 
 	void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const;
+
+	void				LoadVertexData( void );
+
+	void				LoadMainImages( void );
+
+	void				LoadLightmaps( void );
 
 public:
 	Q3BspMap*       map;

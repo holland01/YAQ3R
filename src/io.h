@@ -13,7 +13,7 @@ struct mapData_t;
 struct shaderStage_t;
 
 void LogWriteAtlasTexture( std::stringstream& sstream,
-                           const gTextureHandle_t& texHandle,
+						   const gTextureHandle_t& texHandle,
 						   const shaderStage_t* stage );
 
 void LogBSPData( int bspDataType, void* data, int length );
@@ -34,8 +34,8 @@ void KillSysLog( void );
 
 enum fileCommand_t
 {
-    FILE_CONTINUE_TRAVERSAL = 0,
-    FILE_STOP_TRAVERSAL = 1
+	FILE_CONTINUE_TRAVERSAL = 1,
+	FILE_STOP_TRAVERSAL = 0
 };
 
 using filedata_t = uint8_t*;
@@ -69,7 +69,7 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 #define MLOG_ERROR( ... )                                \
 	do                                                      \
 	{                                                       \
-        O_Log( ( _FUNC_NAME_ ), "ERROR", __VA_ARGS__ );           \
+		O_Log( ( _FUNC_NAME_ ), "ERROR", __VA_ARGS__ );           \
 		FlagExit();                                         \
 	}                                                       \
 	while( 0 )
@@ -109,25 +109,25 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 }
 
 /*!
-    Provides the file extension of a file, without the period.
-    A return of true indicates we have an extension; we also allow for the index to be returned
-    for the rare case that we want to do something specific in the same
-    location. It's totally optional though
+	Provides the file extension of a file, without the period.
+	A return of true indicates we have an extension; we also allow for the index to be returned
+	for the rare case that we want to do something specific in the same
+	location. It's totally optional though
 */
 static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std::string& filename  )
 {
 	// Second condition is to ensure we actually have a file extension we can use
-    size_t index = filename.find_last_of( '.' );
-    if ( index != std::string::npos && index != filename.size() - 1 )
-    {
+	size_t index = filename.find_last_of( '.' );
+	if ( index != std::string::npos && index != filename.size() - 1 )
+	{
 		outExt = filename.substr( index + 1 );
-        if ( outIndex )
-            *outIndex = index;
+		if ( outIndex )
+			*outIndex = index;
 
-        return true;
-    }
+		return true;
+	}
 
-    return false;
+	return false;
 }
 
 
@@ -138,22 +138,22 @@ bool File_GetPixels( const std::string& filepath,
 /// buffer. Any  RGB channels NOT included in the source pixel format are zerod out,
 /// while the alpha level is left untouched.
 static INLINE void Pixels_To32Bit( uint8_t* destination,
-                                   const uint8_t* source,
-                                   uint8_t sourceBPP,
-                                   int32_t numPixels )
+								   const uint8_t* source,
+								   uint8_t sourceBPP,
+								   int32_t numPixels )
 {
-    for ( int32_t i = 0; i < numPixels; ++i )
+	for ( int32_t i = 0; i < numPixels; ++i )
 	{
-        for ( uint8_t k = 0; k < sourceBPP; ++k )
-            destination[ i * 4 + k ] = source[ i * sourceBPP + k ];
+		for ( uint8_t k = 0; k < sourceBPP; ++k )
+			destination[ i * 4 + k ] = source[ i * sourceBPP + k ];
 
-        for ( uint8_t k = sourceBPP; k < 3; ++k )
-            destination[ i * 4 + k ] = 0;
+		for ( uint8_t k = sourceBPP; k < 3; ++k )
+			destination[ i * 4 + k ] = 0;
 
-        /*
+		/*
 		destination[ i * 4 + 0 ] = source[ i * 3 + 0 ];
 		destination[ i * 4 + 1 ] = source[ i * 3 + 1 ];
 		destination[ i * 4 + 2 ] = source[ i * 3 + 2 ];
-        */
-    }
+		*/
+	}
 }

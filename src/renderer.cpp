@@ -49,6 +49,8 @@ static inline void WriteLog( std::stringstream& out )
 #endif
 }
 
+#define CALC_LIGHTMAP_INDEX( index ) ( map->data.numTextures + ( index ) )
+
 static uint64_t frameCount = 0;
 
 static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vector< mapModel_t >& glFaces )
@@ -134,7 +136,8 @@ drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData
 
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
-	:   glEffects( {
+	:   mainSampler( { G_UNSPECIFIED } ),
+		glEffects( {
 			{
 				"tcModTurb",
 				[]( const Program& p, const effect_t& e ) -> void
@@ -266,16 +269,13 @@ bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) c
 {
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
 
-	if ( face->texture != -1 )
+	if ( face && face->texture != -1 )
 	{
 		if ( shader )
 		{
 			return ( shader->surfaceParms & SURFPARM_TRANS ) != 0;
 		}
-		else
-		{
-			return glTextures[ face->texture ].bpp == 4;
-		}
+		MLOG_WARNING( "BSPRenderer::IsTransFace was changed - results involving alpha channel usage may be different!" );
 	}
 
 	return false;
@@ -303,31 +303,53 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	map->Read( filepath, 1 );
 
-	std::vector< gImageParams_t > shaderTextures;
-	S_LoadShaders( &map->data, shaderTextures, map->effectShaders );
+	if ( mainSampler.id == G_UNSPECIFIED )
+		mainSampler = GMakeSampler();
 
-	GSetImageBuffer( glDummyTexture, 16, 16, 4, 255 );
+	GLint oldAlign;
+	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	shaderTexHandle = GMakeTexture( shaderTextures, 0 );
+	{
+		gImageParamList_t shaderTextures;
+		S_LoadShaders( &map->data, mainSampler, shaderTextures, map->effectShaders );
+		gTextureMakeParams_t makeParams( shaderTextures, mainSampler );
+		shaderTexHandle = GMakeTexture( makeParams, 0 );
+	}
 
+	LoadMainImages();
+	LoadLightmaps();
+
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
+
+	LoadVertexData();
+
+	// Basic program setup
+	for ( const auto& iShader: map->effectShaders )
+		for ( const shaderStage_t& stage: iShader.second.stageBuffer )
+			stage.program->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+
+	glPrograms[ "main" ]->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+}
+
+void BSPRenderer::LoadMainImages( void )
+{
 	//---------------------------------------------------------------------
 	// Load Textures:
 	// This is just a temporary hack to brute force load assets without taking into account the effect shader files.
 	// Now, we find and generate the textures. We first start with the image files.
 	//---------------------------------------------------------------------
 
-	GLint oldAlign;
-	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
-	glTextures.resize( map->data.numTextures );
-	static const char* validImgExt[] =
+	const char* validImgExt[] =
 	{
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
 
+	glTextures.resize( map->data.numTextures );
+
 	for ( int32_t t = 0; t < map->data.numTextures; t++ )
 	{
+		glTextures[ t ].sampler = mainSampler;
 		bool success = false;
 
 		std::string fname( map->data.textures[ t ].name );
@@ -337,8 +359,6 @@ void BSPRenderer::Load( const std::string& filepath )
 		// If we don't have a file extension appended in the name,
 		// try to find one for it which is valid
 		{
-			glTextures[ t ].wrap = GL_REPEAT;
-
 			for ( int32_t i = 0; i < SIGNED_LEN( validImgExt ); ++i )
 			{
 				const std::string& str = texPath + std::string( validImgExt[ i ] );
@@ -354,7 +374,7 @@ void BSPRenderer::Load( const std::string& filepath )
 		// We stub the buffer with a simple dummy fill - otherwise, bad things will happen in the texture fetches.
 		if ( !success )
 		{
-			GSetImageBuffer( glTextures[ t ], 128, 128, 4, 255 );
+			GSetImageBuffer( glTextures[ t ], 32, 32, 255 );
 			goto FAIL_WARN;
 		}
 
@@ -363,30 +383,39 @@ void BSPRenderer::Load( const std::string& filepath )
 FAIL_WARN:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 	}
-	mainTexHandle = GMakeTexture( glTextures, 0 );
+
+	{
+		gTextureMakeParams_t makeParams( glTextures, mainSampler );
+		mainTexHandle = GMakeTexture( makeParams, 0 );
+	}
+}
+
+void BSPRenderer::LoadLightmaps( void )
+{
+	gImageParamList_t lightmaps;
 
 	// And then generate all of the lightmaps
-
-	glLightmaps.resize( map->data.numLightmaps );
 	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
 	{
-		GSetImageBuffer( glLightmaps[ l ], BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 4, 255 );
+		gImageParams_t image;
+		image.sampler = mainSampler;
+		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
 
-		Pixels_To32Bit( &glLightmaps[ l ].data[ 0 ],
+		Pixels_To32Bit( &image.data[ 0 ],
 			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
 
-		glLightmaps[ l ].wrap = GL_CLAMP_TO_EDGE;
-		glLightmaps[ l ].minFilter = GL_LINEAR;
-		glLightmaps[ l ].magFilter = GL_LINEAR;
+		lightmaps.push_back( image );
 	}
-	lightmapTexHandle = GMakeTexture( glLightmaps, 0 );
 
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
+	gTextureMakeParams_t makeParams( lightmaps, mainSampler );
+	lightmapHandle = GMakeTexture( makeParams, 0 );
+}
 
-	//---------------------------------------------------------------------
-	// Generate our face/render data
-	//---------------------------------------------------------------------
-
+//---------------------------------------------------------------------
+// Generate our face/render data
+//---------------------------------------------------------------------
+void BSPRenderer::LoadVertexData( void )
+{
 	glFaces.resize( map->data.numFaces );
 	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
 
@@ -458,14 +487,12 @@ FAIL_WARN:
 	}
 
 	// Allocate vertex data from map and store it all in a single vbo
-
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
 	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData[ 0 ] ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
 	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( indexData[ 0 ] ) * indexData.size(), &indexData[ 0 ], GL_STATIC_DRAW ) );
 
-	glPrograms[ "main" ]->LoadDefaultAttribProfiles();
 }
 
 void BSPRenderer::Render( void )
@@ -604,7 +631,9 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 			// evaluations, we'll pick it up on the next pass as it will meet
 			// the necessary criteria then.
 			if ( pass.facesVisited[ faceIndex ] )
+			{
 				continue;
+			}
 
 			LoadPassParams( pass, faceIndex, PASS_DRAW_MAIN );
 
@@ -666,10 +695,9 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 	main.LoadDefaultAttribProfiles();
 
 	GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
-	GU_SetupTexParams( main, "lightmap", lightmapTexHandle, lightmapIndex, 1 );
+	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
 	main.LoadMat4( "modelToView", camera->ViewData().transform );
-	main.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
 	main.Bind();
 
@@ -678,7 +706,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 	main.Release();
 
 	GReleaseTexture( mainTexHandle, 0 );
-	GReleaseTexture( lightmapTexHandle, 1 );
+	GReleaseTexture( lightmapHandle, 1 );
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
@@ -751,7 +779,6 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		const Program& stageProg = *( stage.program );
 
 		stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
-		stageProg.LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
 		GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
@@ -759,7 +786,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		// TODO: use correct dimensions for texture
 		glm::vec2 texDims( 64.0f );
 
-		const gTextureHandle_t& handle = stage.mapType == MAP_TYPE_IMAGE? shaderTexHandle: lightmapTexHandle;
+		const gTextureHandle_t& handle = stage.mapType == MAP_TYPE_IMAGE? shaderTexHandle: lightmapHandle;
 		const int32_t texIndex = ( stage.mapType == MAP_TYPE_IMAGE )? stage.textureIndex: lightmapIndex;
 
 		GU_SetupTexParams( stageProg, nullptr, handle, texIndex, 0 );
@@ -838,6 +865,8 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 
 		DrawSurface( surf, stage );
 	};
+
+	UNUSED( LEffectCallback );
 
 	for ( const drawSurface_t& surf: list )
 	{

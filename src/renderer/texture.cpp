@@ -11,193 +11,274 @@ using imageSlotKeyMap_t = std::unordered_map< uint32_t, gTextureImage_t* >;
 
 struct gTexture_t
 {
-    bool srgb = false;
-    bool mipmap = false;
+	bool srgb = false;
+	bool mipmap = false;
 
-    uint32_t id = 0;
-    uint32_t samplerID = 0;
+	uint32_t id = 0;
+	uint32_t samplerID = 0;
 
-    GLuint handle = 0;
-    GLuint maxMip = 0;
-    GLsizei width = 0;
-    GLsizei height = 0;
-    GLsizei bpp = 0; // bpp is in bytes
-    GLenum target;
+	GLuint handle = 0;
+	GLuint maxMip = 0;
+	GLsizei width = 0;
+	GLsizei height = 0;
+	GLsizei bpp = 0; // bpp is in bytes
+	GLenum target;
 
-    std::string name;
+	std::string name;
 
-    std::vector< gTextureImage_t > texCoordSlots;
+	std::vector< gTextureImage_t > texCoordSlots;
 
-	imageSlotKeyMap_t keyedSlots; 
+	imageSlotKeyMap_t keyedSlots;
 
-    glm::vec2 invRowPitch;
+	glm::vec2 invRowPitch;
 
-    ~gTexture_t( void )
-    {
-        if ( handle )
-            GL_CHECK( glDeleteTextures( 1, &handle ) );
-    }
+	~gTexture_t( void )
+	{
+		if ( handle )
+			GL_CHECK( glDeleteTextures( 1, &handle ) );
+	}
 };
 
 using texturePointer_t = std::unique_ptr< gTexture_t >;
 
 std::vector< texturePointer_t > gTextureMap;
 
-INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
-                         const gImageParams_t& slotParams,
-                         const std::vector< gImageParams_t >& images )
+
+struct gTexConfig_t
 {
-    gTexture_t* tt = new gTexture_t();
+	bool mipmap;
+	int8_t bpp;
+	uint32_t wrap;
+	uint32_t minFilter;
+	uint32_t magFilter;
+	uint32_t format;
+	uint32_t internalFormat;
+};
 
-    tt->target = GL_TEXTURE_2D;
+std::vector< gTexConfig_t > gSamplers;
 
-    GL_CHECK( glGenTextures( 1, &tt->handle ) );
-   // GL_CHECK( glActiveTexture( GL_TEXTURE0 ) );
-    GL_CHECK( glBindTexture( tt->target, tt->handle ) );
 
-	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
-	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
-    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
-    GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
+						 const gImageParams_t& slotParams,
+						 gTextureMakeParams_t& makeParams )
+{
+	gTexture_t* tt = new gTexture_t();
 
-    {
-        std::vector< uint8_t > tmp( canvasParams.width * canvasParams.height * G_INTERNAL_BPP, 0 );
+	const gTexConfig_t& sampler = gSamplers[ makeParams.sampler.id ];
 
-        GL_CHECK( glTexImage2D( tt->target, 0, canvasParams.internalFormat,
-               canvasParams.width,
-               canvasParams.height,
-               0,
-               canvasParams.format,
-               GL_UNSIGNED_BYTE, &tmp[ 0 ] ) );
-    }
+	tt->target = GL_TEXTURE_2D;
 
-    const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
-    const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
+	GL_CHECK( glGenTextures( 1, &tt->handle ) );
+	GL_CHECK( glBindTexture( tt->target, tt->handle ) );
 
-    tt->texCoordSlots.resize( rows * stride );
+	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
+	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
+	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
+	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
 
-    float invSlotWidth = 1.0f / ( float ) slotParams.width;
-    float invSlotHeight = 1.0f / ( float ) slotParams.height;
+	{
+		GL_CHECK( glTexImage2D( tt->target, 0, sampler.format,
+			   canvasParams.width,
+			   canvasParams.height,
+			   0,
+			   sampler.internalFormat,
+			   GL_UNSIGNED_BYTE, NULL ) );
+	}
 
-    tt->invRowPitch.x = 1.0f / ( float ) stride;
-    tt->invRowPitch.y = 1.0f / ( float ) rows;
+	const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
+	const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
 
-    uint32_t y = 0;
-    for ( uint32_t x = 0; x < images.size(); ++x )
-    {
-        uint32_t yb = y * slotParams.height;
-        uint32_t xb = ( x % stride ) * slotParams.width;
+	tt->texCoordSlots.resize( rows * stride );
 
-        GL_CHECK( glTexSubImage2D( GL_TEXTURE_2D, 0, xb, yb, images[ x ].width,
-            images[ x ].height, images[ x ].format, GL_UNSIGNED_BYTE, &images[ x ].data[ 0 ] ) );
+	float invSlotWidth = 1.0f / ( float ) slotParams.width;
+	float invSlotHeight = 1.0f / ( float ) slotParams.height;
 
-        float fxStart = ( float )xb * invSlotWidth * tt->invRowPitch.x;
-        float fyStart = ( float )yb * invSlotHeight * tt->invRowPitch.y;
+	tt->invRowPitch.x = 1.0f / ( float ) stride;
+	tt->invRowPitch.y = 1.0f / ( float ) rows;
 
-        float fxEnd = fxStart + ( float )images[ x ].width * invSlotWidth * tt->invRowPitch.x;
-        float fyEnd = fyStart + ( float )images[ x ].height * invSlotHeight * tt->invRowPitch.y;
+	uint32_t y = 0, x = 0;
+	for ( auto iImage = makeParams.start; iImage != makeParams.end; ++iImage )
+	{
+		gImageParams_t& image = *iImage;
 
-        uint32_t slot = y * stride + ( x % stride );
+		uint32_t yb = y * slotParams.height;
+		uint32_t xb = ( x % stride ) * slotParams.width;
 
-        tt->texCoordSlots[ slot ].stOffsetStart = glm::vec2( fxStart, fyStart );
-        tt->texCoordSlots[ slot ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
-        tt->texCoordSlots[ slot ].imageScaleRatio =
-                glm::vec2( ( float ) images[ x ].width * invSlotWidth, ( float ) images[ x ].height * invSlotHeight );
-        tt->texCoordSlots[ slot ].dims = glm::vec2( ( float ) images[ x ].width, ( float ) images[ x ].height );
+		GL_CHECK( glTexSubImage2D( GL_TEXTURE_2D, 0, xb, yb, image.width,
+			image.height, sampler.format, GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
 
-		if ( images[ x ].key != G_UNSPECIFIED )
-			tt->keyedSlots.insert( imageSlotKeyMap_t::value_type( images[ x ].key, &tt->texCoordSlots[ slot ] ) );
+		// !FIXME?: invSlotWidth may be able to be removed from these computations - it would be good
+		// to double check these on paper
+		float fxStart = ( float )xb * invSlotWidth * tt->invRowPitch.x;
+		float fyStart = ( float )yb * invSlotHeight * tt->invRowPitch.y;
 
-        if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
-            y++;
-    }
+		float fxEnd = fxStart + ( float )image.width * invSlotWidth * tt->invRowPitch.x;
+		float fyEnd = fyStart + ( float )image.height * invSlotHeight * tt->invRowPitch.y;
 
-    GL_CHECK( glBindTexture( tt->target, 0 ) );
+		uint32_t slot = y * stride + ( x % stride );
 
-    return tt;
+		tt->texCoordSlots[ slot ].stOffsetStart = glm::vec2( fxStart, fyStart );
+		tt->texCoordSlots[ slot ].stOffsetEnd = glm::vec2( fxEnd, fyEnd );
+		tt->texCoordSlots[ slot ].imageScaleRatio =
+				glm::vec2( ( float ) image.width * invSlotWidth, ( float ) image.height * invSlotHeight );
+		tt->texCoordSlots[ slot ].dims = glm::vec2( ( float ) image.width, ( float ) image.height );
+
+		if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
+			y++;
+
+		image.data.clear();
+		x++;
+	}
+
+	GL_CHECK( glBindTexture( tt->target, 0 ) );
+
+	return tt;
+}
+
+bool DetermineImageFormats( int8_t bpp, uint32_t& format, uint32_t& internalFormat )
+{
+	switch( bpp )
+	{
+	case 1:
+		format = G_BYTE_FORMAT;
+		internalFormat = G_INTERNAL_BYTE_FORMAT;
+		break;
+
+	case 4:
+		format = G_RGBA_FORMAT;
+		internalFormat = G_INTERNAL_RGBA_FORMAT;
+		break;
+	default:
+		MLOG_WARNING( "Unsupported image format of %i.", bpp );
+		return false;
+		break;
+	}
+
+	return true;
 }
 
 } // end namespace
 
-gTextureHandle_t GMakeTexture( const std::vector< gImageParams_t >& images, uint32_t flags )
+
+gSamplerHandle_t GMakeSampler(
+	int8_t bpp,
+	bool mipmapped,
+	uint32_t wrap
+)
 {
-    UNUSED( flags );
+	gSamplerHandle_t sampler;
 
-    glm::ivec2 maxDims( 0 );
+	uint32_t format, internalFormat;
+	if ( !DetermineImageFormats( bpp, format, internalFormat ) )
+	{
+		sampler.id = G_UNSPECIFIED;
+		return sampler;
+	}
 
-    std::for_each( images.begin(), images.end(), [ &maxDims ]( const gImageParams_t& img )
-    {
-        if ( img.width > maxDims.x )
-            maxDims.x = img.width;
+	uint32_t minFilter;
+	if ( mipmapped )
+		minFilter = GL_LINEAR_MIPMAP_LINEAR;
+	else
+		minFilter = G_MAG_FILTER;
 
-        if ( img.height > maxDims.y )
-            maxDims.y = img.height;
-    });
+	gTexConfig_t conf =
+	{
+		mipmapped,
+		bpp,
+		wrap,
+		minFilter,
+		G_MAG_FILTER,
+		format,
+		internalFormat
+	};
 
-    maxDims.x = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
-    maxDims.y = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
+	sampler.id = gSamplers.size();
+	gSamplers.push_back( conf );
 
-    uint32_t closeSquare = uint32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float )images.size() ) ) ) );
-    uint32_t arrayDims = 2;
+	return sampler;
+}
 
-    while ( arrayDims * arrayDims < closeSquare )
-        arrayDims += 2;
+gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags )
+{
+	UNUSED( flags );
 
-    // TODO: just make these extra imageParams ivec2 when passing to the make texture function...
-    gImageParams_t canvasParams;
-    canvasParams.width = maxDims.x * arrayDims;
-    canvasParams.height = maxDims.y * arrayDims;
+	glm::ivec2 maxDims( 0 );
 
-    gImageParams_t slotParams;
-    slotParams.width = maxDims.x;
-    slotParams.height = maxDims.y;
+	std::for_each( makeParams.start, makeParams.end, [ &maxDims ]( const gImageParams_t& img )
+	{
+		if ( img.width > maxDims.x )
+			maxDims.x = img.width;
 
-    gTexture_t* texture = MakeTexture_GLES( canvasParams, slotParams, images );
+		if ( img.height > maxDims.y )
+			maxDims.y = img.height;
+	});
 
-    gTextureHandle_t handle =
-    {
-        ( uint32_t ) gTextureMap.size()
-    };
+	maxDims.x = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
+	maxDims.y = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
 
-    gTextureMap.push_back( texturePointer_t( texture ) );
+	size_t numImages = ( size_t )( makeParams.end - makeParams.start );
 
-    return handle;
+	uint32_t closeSquare = ( uint32_t )( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) numImages ) ) ) );
+	uint32_t arrayDims = 2;
+
+	while ( arrayDims * arrayDims < closeSquare )
+		arrayDims += 2;
+
+	// TODO: just make these extra imageParams ivec2 when passing to the make texture function...
+	gImageParams_t canvasParams;
+	canvasParams.width = maxDims.x * arrayDims;
+	canvasParams.height = maxDims.y * arrayDims;
+
+	gImageParams_t slotParams;
+	slotParams.width = maxDims.x;
+	slotParams.height = maxDims.y;
+
+	gTexture_t* texture = MakeTexture_GLES( canvasParams, slotParams, makeParams );
+
+	gTextureHandle_t handle =
+	{
+		( uint32_t ) gTextureMap.size()
+	};
+
+	gTextureMap.push_back( texturePointer_t( texture ) );
+
+	return handle;
 }
 
 void GFreeTexture( gTextureHandle_t& handle )
 {
-    if ( handle.id < gTextureMap.size() )
-    {
-        gTextureMap.erase( gTextureMap.begin() + handle.id );
-    }
+	if ( handle.id < gTextureMap.size() )
+	{
+		gTextureMap.erase( gTextureMap.begin() + handle.id );
+	}
 
-    handle.id = G_HANDLE_INVALID;
+	handle.id = G_UNSPECIFIED;
 }
 
 void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
-    const gTexture_t* t = gTextureMap[ handle.id ].get();
+	const gTexture_t* t = gTextureMap[ handle.id ].get();
 
-    GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-    GL_CHECK( glBindTexture( t->target, t->handle ) );
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+	GL_CHECK( glBindTexture( t->target, t->handle ) );
 }
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
-    const gTexture_t* t = gTextureMap[ handle.id ].get();
+	const gTexture_t* t = gTextureMap[ handle.id ].get();
 
-    GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-    GL_CHECK( glBindTexture( t->target, 0 ) );
+	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+	GL_CHECK( glBindTexture( t->target, 0 ) );
 }
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )
 {
-    assert( handle.id < gTextureMap.size() );
+	assert( handle.id < gTextureMap.size() );
 
-    const gTexture_t* t = gTextureMap[ handle.id ].get();
-    assert( slot < t->texCoordSlots.size() );
+	const gTexture_t* t = gTextureMap[ handle.id ].get();
+	assert( slot < t->texCoordSlots.size() );
 
-    return t->texCoordSlots[ slot ];
+	return t->texCoordSlots[ slot ];
 }
 
 const gTextureImage_t& GTextureImageByKey( const gTextureHandle_t& handle, uint32_t key )
@@ -211,68 +292,58 @@ const gTextureImage_t& GTextureImageByKey( const gTextureHandle_t& handle, uint3
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 {
-    assert( handle.id < gTextureMap.size() );
+	assert( handle.id < gTextureMap.size() );
 
-    return gTextureMap[ handle.id ]->invRowPitch;
+	return gTextureMap[ handle.id ]->invRowPitch;
 }
 
-bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, int32_t bpp, uint8_t fillValue )
+bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )
 {
-    image.width = width;
-    image.height = height;
-    image.bpp = bpp;
-    image.data.resize( width * height * bpp, fillValue );
+	if ( image.sampler.id == G_UNSPECIFIED ) return false;
+	if ( width < 0 ) return false;
+	if ( height < 0 ) return false;
 
-    return GDetermineImageFormat( image );
+	image.width = width;
+	image.height = height;
+	image.data.resize( width * height * gSamplers[ image.sampler.id ].bpp, fillValue );
+
+	return true;
 }
 
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
 {
-    int32_t width, height, bpp;
+	int32_t width, height, bpp;
 
-    std::vector< uint8_t > tmp;
-    if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
+	if ( image.sampler.id == G_UNSPECIFIED )
+	{
+		MLOG_WARNING( "image passed that\'s missing a sampler" );
+		return false;
+	}
+
+	std::vector< uint8_t > tmp;
+	if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
 		return false;
 
-    if ( bpp != G_INTERNAL_BPP )
-    {
-        image.data.resize( width * height * G_INTERNAL_BPP, 255 );
-        Pixels_To32Bit( &image.data[ 0 ], &tmp[ 0 ], ( uint8_t ) bpp, width * height );
-        bpp = G_INTERNAL_BPP;
-    }
-    else
-    {
-        image.data = std::move( tmp );
-    }
+	if ( bpp != G_INTERNAL_BPP )
+	{
+		image.data.resize( width * height * G_INTERNAL_BPP, 255 );
+		Pixels_To32Bit( &image.data[ 0 ], &tmp[ 0 ], ( uint8_t ) bpp, width * height );
+		bpp = G_INTERNAL_BPP;
+	}
+	else
+	{
+		image.data = std::move( tmp );
+	}
 
-    image.width = width;
-    image.height = height;
-    image.bpp = bpp;
+	image.width = width;
+	image.height = height;
 
-    if ( !GDetermineImageFormat( image ) )
-		throw "Could not determine image format";
+	if ( bpp != gSamplers[ image.sampler.id ].bpp )
+	{
+		image.sampler = GMakeSampler( bpp,
+			gSamplers[ image.sampler.id ].mipmap,
+			gSamplers[ image.sampler.id ].wrap );
+	}
 
-    return true;
-}
-
-bool GDetermineImageFormat( gImageParams_t& image )
-{
-    switch( image.bpp )
-    {
-    case 1:
-        image.format = G_BYTE_FORMAT;
-        image.internalFormat = G_INTERNAL_BYTE_FORMAT;
-        break;
-
-    case 4:
-        image.format = G_RGBA_FORMAT;
-        image.internalFormat = G_INTERNAL_RGBA_FORMAT;
-        break;
-    default:
-        MLOG_WARNING( "Unsupported image format of %i.", image.bpp );
-        return false;
-        break;
-    }
-
-    return true;
+	return true;
 }

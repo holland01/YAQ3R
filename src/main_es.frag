@@ -19,17 +19,17 @@ const float gamma = 1.0 / 3.0;
 
 void main()
 {
-    vec4 col = frag_Color;
+	vec4 col = frag_Color;
 
-    vec2 texCoords = mod( frag_Tex, vec2( 0.99 ) ) * mainImageImageScaleRatio * mainImageImageTransform.zw + mainImageImageTransform.xy;
-    col *= texture2D( mainImageSampler, texCoords );
+	vec2 texCoords = mod( frag_Tex, vec2( 0.99 ) ) * mainImageImageScaleRatio * mainImageImageTransform.zw + mainImageImageTransform.xy;
+	col *= texture2D( mainImageSampler, texCoords );
 
-    texCoords = mod( frag_Lightmap, vec2( 0.99 ) ) * lightmapImageScaleRatio * lightmapImageTransform.zw + lightmapImageTransform.xy;
-    col *= texture2D( lightmapSampler, texCoords );
+	texCoords = mod( frag_Lightmap, vec2( 0.99 ) ) * lightmapImageScaleRatio * lightmapImageTransform.zw + lightmapImageTransform.xy;
+	col *= texture2D( lightmapSampler, texCoords );
 
-    col.r = pow( col.r, gamma );
-    col.g = pow( col.g, gamma );
-    col.b = pow( col.b, gamma );
+	col.r = pow( col.r, gamma );
+	col.g = pow( col.g, gamma );
+	col.b = pow( col.b, gamma );
 
-    gl_FragColor = col;
+	gl_FragColor = col;
 }

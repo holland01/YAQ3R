@@ -8,7 +8,7 @@ void GU_SetupTexParams( const Program& program,
 						const char* uniformPrefix,
 						gTextureHandle_t texHandle,
 						int32_t textureIndex,
-						uint32_t offset = 0 );
+						int32_t offset );
 
 
 static INLINE void GU_ClearDepth( float d )

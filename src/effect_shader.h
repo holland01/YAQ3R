@@ -6,8 +6,9 @@
 
 
 struct gImageParams_t;
+struct gSamplerHandle_t;
 
-glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders );
+glm::ivec2 S_LoadShaders( const mapData_t* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders );
 
 bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1, const char* str2 );
 

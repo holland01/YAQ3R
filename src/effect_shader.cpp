@@ -965,19 +965,18 @@ static void GenShaderPrograms( shaderMap_t& effectShaders )
 	fclose( f );
 }
 
-static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i, const mapData_t* map )
+static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i,
+							  const gSamplerHandle_t& sampler, const mapData_t* map )
 {
 	shaderStage_t& stage = info.stageBuffer[ i ];
 
 	if ( stage.mapType == MAP_TYPE_IMAGE )
 	{
 		gImageParams_t img;
+		img.sampler = sampler;
 
 		// If a texture atlas is being used as a substitute for a texture array,
 		// this won't matter.
-
-		img.wrap = GL_CLAMP_TO_EDGE;
-		img.mipmap = false; //!!( info.localLoadFlags & Q3LOAD_TEXTURE_MIPMAP );
 
 		std::string texFileRoot( map->basePath );
 		std::string texRelativePath( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) );
@@ -996,7 +995,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 				{
 					// If we fail second try, turn it into a dummy
 					MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
-					GSetImageBuffer( img, 64, 64, 4, 255 );
+					GSetImageBuffer( img, 64, 64, 255 );
 				}
 			}
 		}
@@ -1081,7 +1080,10 @@ shaderMap_t* parseArgs_t::effectShaders = nullptr;
 /*!
    Main API for the effect shaders. In theory, the user should only have to call this function.
 */
-glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders )
+glm::ivec2 S_LoadShaders( const mapData_t* map,
+						  const gSamplerHandle_t& imageSampler,
+						  std::vector< gImageParams_t >& textures,
+						  shaderMap_t& effectShaders )
 {
 	std::string shaderRootDir( map->basePath );
 	shaderRootDir.append( "scripts/" );
@@ -1101,7 +1103,8 @@ glm::ivec2 S_LoadShaders( const mapData_t* map, std::vector< gImageParams_t >& t
 	{
 		for ( int i = 0; i < entry.second.stageCount; ++i )
 		{
-			LoadStageTexture( maxDims, textures, entry.second, i, map );
+			LoadStageTexture( maxDims,
+				textures, entry.second, i, imageSampler, map );
 		}
 	}
 
