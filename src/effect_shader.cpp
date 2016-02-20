@@ -145,22 +145,19 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
-			if ( strcmp( token, "front" ) == 0 )
-			{
-				outInfo->cullFace = GL_FRONT;
-			}
-			else if ( strcmp( token, "back" ) == 0 )
+			if ( strcmp( token, "back" ) == 0 )
 			{
 				outInfo->cullFace = GL_BACK;
 			}
 			else if ( strcmp( token, "none" ) == 0 || strcmp( token, "disable" ) == 0 )
 			{
-				// shaderInfo_t::cullFace is GL_FALSE (i.e., no cull) by default, so no worries...
-				return true;
+				outInfo->cullFace = GL_NONE;
 			}
 			else
 			{
-				return false;
+				// the Q3 Shader Manual states that GL-FRONT is the default if no keyword is specified. The only other keyword
+				// that we have available to check after the above conditions is "front" anyway.
+				outInfo->cullFace = GL_FRONT;
 			}
 
 			return true;

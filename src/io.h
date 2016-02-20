@@ -19,6 +19,7 @@ void LogWriteAtlasTexture( std::stringstream& sstream,
 void LogBSPData( int bspDataType, void* data, int length );
 
 void O_Log( const char* header, const char* priority, const char* fmt, ... );
+void O_LogBuffer( const char* header, const char* priority, const char* fmt, ... );
 void O_LogF( FILE* f, const char* header, const char* fmt, ... );
 void MyDateTime( const char* format, char* outBuffer, int length );
 
@@ -65,6 +66,8 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 //void MLogError( bool condition, const char* filename, int32_t line, const char* funcname, ... );
 
 #define MLOG_INFO( ... ) ( O_Log( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
+
+#define MLOG_INFOB( ... ) ( O_LogBuffer( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
 #define MLOG_ERROR( ... )                                \
 	do                                                      \

@@ -193,7 +193,7 @@ private:
 
 	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
-	void				DrawSurface( const drawSurface_t& surface, const shaderStage_t* stage ) const;
+	void				DrawSurface(const drawSurface_t& surface) const;
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 

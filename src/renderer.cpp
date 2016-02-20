@@ -19,7 +19,7 @@ struct config_t
 
 static config_t gConfig =
 {
-	false,
+	true,
 	false,
 	false,
 	false,
@@ -27,53 +27,17 @@ static config_t gConfig =
 	false
 };
 
-static uint32_t gWriteCount = 0;
-
-static std::unique_ptr< std::fstream > gRenderLogger( nullptr );
-
-static inline void WriteLog( std::stringstream& out )
+struct counts_t
 {
-#ifdef DEBUG
-	if ( gConfig.logStageTexCoordData && !gRenderLogger )
-	{
-		gRenderLogger.reset( new std::fstream( "log/renderer.log", std::ios_base::trunc | std::ios_base::out ) );
+	uint32_t numSolidEffect;
+	uint32_t numSolidNormal;
+	uint32_t numTransEffect;
+	uint32_t numTransNormal;
+};
 
-		if ( !gRenderLogger->good() )
-			MLOG_ERROR( "Could not open logger filepath." );
-	}
-
-	if ( gConfig.logStageTexCoordData && gRenderLogger && gWriteCount++ < 30 )
-		*gRenderLogger << out.rdbuf();
-#else
-	UNUSED( out );
-#endif
-}
-
-#define CALC_LIGHTMAP_INDEX( index ) ( map->data.numTextures + ( index ) )
+static counts_t gCounts = { 0 };
 
 static uint64_t frameCount = 0;
-
-static INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vector< mapModel_t >& glFaces )
-{
-	mapModel_t& model = glFaces[ faceIndex ];
-
-	if ( surf.faceType == BSP_FACE_TYPE_PATCH )
-	{
-		surf.bufferOffsets.insert( surf.bufferOffsets.end(), model.rowIndices.begin(), model.rowIndices.end() );
-		surf.bufferRanges.insert( surf.bufferRanges.end(), model.trisPerRow.begin(), model.trisPerRow.end() );
-	}
-	else
-	{
-		surf.bufferOffsets.push_back( model.iboOffset );
-		surf.bufferRanges.push_back( model.iboRange );
-	}
-
-	if ( surf.shader
-	&& ( /*!!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) ||*/ surf.shader->deform ) )
-	{
-		surf.faceIndices.push_back( faceIndex );
-	}
-}
 
 //--------------------------------------------------------------
 mapModel_t::mapModel_t( void )
@@ -188,7 +152,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 0.1f, 5000.0f );
+	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 0.1f, 100000.0f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -275,7 +239,7 @@ bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) c
 		{
 			return ( shader->surfaceParms & SURFPARM_TRANS ) != 0;
 		}
-		MLOG_WARNING( "BSPRenderer::IsTransFace was changed - results involving alpha channel usage may be different!" );
+		//MLOG_WARNING( "BSPRenderer::IsTransFace was changed - results involving alpha channel usage may be different!" );
 	}
 
 	return false;
@@ -492,7 +456,6 @@ void BSPRenderer::LoadVertexData( void )
 
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
 	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( indexData[ 0 ] ) * indexData.size(), &indexData[ 0 ], GL_STATIC_DRAW ) );
-
 }
 
 void BSPRenderer::Render( void )
@@ -508,23 +471,35 @@ void BSPRenderer::Render( void )
 
 void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
 	GU_ClearDepth( 1.0f );
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
-	static auto LDrawList = [ this ]( drawSurfaceList_t& list ) -> void
+	memset( &gCounts, 0, sizeof( gCounts ) );
+
+	static auto LDrawList = [ this ]( drawSurfaceList_t& list, bool solid ) -> void
 	{
+		if ( solid )
+		{
+			gCounts.numSolidEffect += list.effectSurfaces.size();
+			gCounts.numSolidNormal += list.surfaces.size();
+		}
+		else
+		{
+			gCounts.numTransEffect += list.effectSurfaces.size();
+			gCounts.numTransNormal += list.surfaces.size();
+		}
+
 		DrawSurfaceList( list.surfaces );
 		DrawSurfaceList( list.effectSurfaces );
 		list.surfaces.clear();
 		list.effectSurfaces.clear();
 	};
 
-	static auto LDrawClear = [ this ]( drawPass_t& pass ) -> void
+	static auto LDrawClear = [ this ]( drawPass_t& pass, bool solid ) -> void
 	{
-		LDrawList( pass.polymeshes );
-		LDrawList( pass.patches );
+		LDrawList( pass.polymeshes, solid );
+		LDrawList( pass.patches, solid );
 		pass.shader = nullptr;
 		pass.face = nullptr;
 	};
@@ -533,7 +508,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 	{
 		pass.isSolid = solid;
 		DrawNode( pass, 0 );
-		LDrawClear( pass );
+		LDrawClear( pass, solid );
 	};
 
 	drawPass_t pass( map, view );
@@ -582,12 +557,26 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 
 	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
 
-	LDrawClear( pass );
+	LDrawClear( pass, true );
 
 	pass.type = PASS_DRAW;
 
+	GL_CHECK( glEnable( GL_CULL_FACE ) );
+	GL_CHECK( glCullFace( GL_FRONT ) );
+	GL_CHECK( glFrontFace( GL_CCW ) );
+
 	LTraverseDraw( pass, true );
 	LTraverseDraw( pass, false );
+
+	GL_CHECK( glDisable( GL_CULL_FACE ) );
+
+
+	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
+			   CalcFPS(),
+			   gCounts.numSolidEffect,
+			   gCounts.numSolidNormal,
+			   gCounts.numTransEffect,
+			   gCounts.numTransNormal );
 }
 
 void BSPRenderer::Update( float dt )
@@ -690,6 +679,7 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 
 void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& mainRef ) > callback )
 {
+
 	const Program& main = *( glPrograms.at( "main" ) );
 
 	main.LoadDefaultAttribProfiles();
@@ -707,6 +697,30 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
 	GReleaseTexture( mainTexHandle, 0 );
 	GReleaseTexture( lightmapHandle, 1 );
+}
+
+namespace {
+	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vector< mapModel_t >& glFaces )
+	{
+		mapModel_t& model = glFaces[ faceIndex ];
+
+		if ( surf.faceType == BSP_FACE_TYPE_PATCH )
+		{
+			surf.bufferOffsets.insert( surf.bufferOffsets.end(), model.rowIndices.begin(), model.rowIndices.end() );
+			surf.bufferRanges.insert( surf.bufferRanges.end(), model.trisPerRow.begin(), model.trisPerRow.end() );
+		}
+		else
+		{
+			surf.bufferOffsets.push_back( model.iboOffset );
+			surf.bufferRanges.push_back( model.iboRange );
+		}
+
+		if ( surf.shader
+		&& ( /*!!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) ||*/ surf.shader->deform ) )
+		{
+			surf.faceIndices.push_back( faceIndex );
+		}
+	}
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
@@ -739,18 +753,11 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 	}
 }
 
-void BSPRenderer::DrawSurface( const drawSurface_t& surf, const shaderStage_t* stage ) const
+void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 {
 	for ( int32_t i: surf.faceIndices )
 	{
 		DeformVertexes( glFaces[ i ], surf.shader );
-	}
-
-	if ( stage && gConfig.logStageTexCoordData )
-	{
-		std::stringstream sstream;
-		LogWriteAtlasTexture( sstream, shaderTexHandle, stage );
-		WriteLog( sstream );
 	}
 
 	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
@@ -766,11 +773,27 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
-	if  ( shader->cullFace )
+	GLint oldCull = -1, oldCullMode = 0, oldFrontFace = 0;
+	if  ( shader->cullFace != G_UNSPECIFIED )
 	{
-		GL_CHECK( glEnable( GL_CULL_FACE ) );
-		GL_CHECK( glCullFace( shader->cullFace ) );
-		GL_CHECK( glFrontFace( GL_CCW ) );
+		GL_CHECK( glGetIntegerv( GL_CULL_FACE, &oldCull ) );
+		if ( oldCull )
+		{
+			GL_CHECK( glGetIntegerv( GL_FRONT_FACE, &oldFrontFace ) );
+			GL_CHECK( glGetIntegerv( GL_CULL_FACE_MODE, &oldCullMode ) );
+		}
+
+		if ( shader->cullFace )
+		{
+			if ( !oldCull )
+				GL_CHECK( glEnable( GL_CULL_FACE ) );
+
+			GL_CHECK( glCullFace( shader->cullFace ) );
+		}
+		else
+		{
+			GL_CHECK( glDisable( GL_CULL_FACE ) );
+		}
 	}
 
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
@@ -819,7 +842,20 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
+
+	if ( oldCull != -1 )
+	{
+		if ( oldCull == GL_TRUE )
+		{
+			GL_CHECK( glCullFace( oldCullMode ) );
+			GL_CHECK( glFrontFace( oldFrontFace ) );
+		}
+		else
+		{
+			GL_CHECK( glDisable( GL_CULL_FACE ) );
+		}
+	}
+
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 }
 
@@ -859,11 +895,13 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 {
 	auto LEffectCallback = [ this ]( const void* voidsurf, const Program& prog, const shaderStage_t* stage )
 	{
+		UNUSED( stage );
+
 		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
 
 		prog.LoadDefaultAttribProfiles();
 
-		DrawSurface( surf, stage );
+		DrawSurface( surf );
 	};
 
 	UNUSED( LEffectCallback );
@@ -880,7 +918,7 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 			DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
 			{
 				UNUSED( main );
-				DrawSurface( surf, nullptr );
+				DrawSurface( surf );
 			});
 		}
 	}

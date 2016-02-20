@@ -27,7 +27,5 @@ using guBufferRangeList_t = std::vector< GLsizei >;
 static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t& indexBuffers, const guBufferRangeList_t& indexBufferSizes )
 {
 	for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
-	{
 		GL_CHECK( glDrawElements( mode, indexBufferSizes[ i ], GL_UNSIGNED_INT, ( const GLvoid* )( indexBuffers[ i ] * 4 ) ) );
-	}
 }

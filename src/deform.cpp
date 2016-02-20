@@ -158,7 +158,7 @@ void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shad
 		if ( shader && shader->tessSize != 0.0f )
 			model->subdivLevel = ( int )shader->tessSize;
 		else
-			model->subdivLevel = 10;
+			model->subdivLevel = 5;
 	}
 
 	const size_t vertexStart = model->patchVertices.size();

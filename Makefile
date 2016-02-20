@@ -24,7 +24,7 @@ OFILES := $(OBJFILES:%=obj/%.$(LFORMAT))
 BINFILE = bspviewer.html
 
 COMMONFLAGS = -O2 -Wall -Wextra -pedantic -Werror \
- -Isrc -Isrc/extern -s SAFE_HEAP=1 \
+ -Isrc -Isrc/extern -s SAFE_HEAP=1 -s ALLOW_MEMORY_GROWTH=1 \
 
 DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
@@ -55,8 +55,8 @@ ifneq ($(filter-out clean, $(MAKECMDGOALS)),)
 -include Makefile.dep
 endif
 
-CC = EMCC_DEBUG=1 emcc -v
-CXX = EMCC_DEBUG=1 em++ -v
+CC = emcc -v
+CXX = em++ -v
 CXXO = -O2
 
 DEPFLAGS= -s USE_SDL=2

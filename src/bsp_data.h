@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "render_data.h"
+#include "renderer/renderer_local.h"
 #include <unordered_map>
 #include <memory>
 
@@ -426,7 +427,7 @@ struct shaderInfo_t
 
 	effect_t            deformParms; // arbitrary parameters for our deform
 
-	GLenum				cullFace = GL_FALSE;
+	uint32_t			cullFace = G_UNSPECIFIED;
 
 	uint32_t			surfaceParms = 0; // global surface parameters
 
