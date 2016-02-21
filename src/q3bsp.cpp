@@ -57,9 +57,9 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 {
 	const bspFace_t* face = data.faces + faceIndex;
 
-	if ( face->effect != -1 )
+	if ( face->shader != -1 )
 	{
-		auto it = effectShaders.find( data.effectShaders[ face->effect ].name );
+		auto it = effectShaders.find( data.shaders[ face->shader ].name );
 
 		if ( it != effectShaders.end() )
 		{
@@ -67,9 +67,9 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 		}
 	}
 
-	if ( face->texture != -1 )
+	if ( face->fog != -1 )
 	{
-		auto it = effectShaders.find( data.textures[ face->texture ].name );
+		auto it = effectShaders.find( data.fogs[ face->fog ].name );
 
 		if ( it != effectShaders.end() )
 		{
@@ -160,8 +160,8 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	data.entities.infoString = ( char* )( data.buffer + data.header->directories[ BSP_LUMP_ENTITIES ].offset );
 	data.entityStringLen = data.header->directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
 
-	data.textures = ( bspTexture_t* )( data.buffer + data.header->directories[ BSP_LUMP_TEXTURES ].offset );
-	data.numTextures = data.header->directories[ BSP_LUMP_TEXTURES ].length / sizeof( bspTexture_t );
+	data.shaders = ( bspShader_t* )( data.buffer + data.header->directories[ BSP_LUMP_SHADERS ].offset );
+	data.numShaders = data.header->directories[ BSP_LUMP_SHADERS ].length / sizeof( bspShader_t );
 
 	data.nodes = ( bspNode_t* )( data.buffer + data.header->directories[ BSP_LUMP_NODES ].offset );
 	data.numNodes = data.header->directories[ BSP_LUMP_NODES ].length / sizeof( bspNode_t );
@@ -190,8 +190,8 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	data.meshVertexes = ( bspMeshVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_MESH_VERTEXES ].offset );
 	data.numMeshVertexes = data.header->directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( bspMeshVertex_t );
 
-	data.effectShaders = ( bspEffect_t* )( data.buffer + data.header->directories[ BSP_LUMP_EFFECTS ].offset );
-	data.numEffectShaders = data.header->directories[ BSP_LUMP_EFFECTS ].length / sizeof( bspEffect_t );
+	data.fogs = ( bspFog_t* )( data.buffer + data.header->directories[ BSP_LUMP_FOGS ].offset );
+	data.numFogs = data.header->directories[ BSP_LUMP_FOGS ].length / sizeof( bspFog_t );
 
 	data.lightmaps = ( bspLightmap_t* )( data.buffer + data.header->directories[ BSP_LUMP_LIGHTMAPS ].offset );
 	data.numLightmaps = data.header->directories[ BSP_LUMP_LIGHTMAPS ].length / sizeof( bspLightmap_t );
@@ -283,7 +283,8 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-	LogBSPData( BSP_LUMP_EFFECTS, ( void* ) ( data.effectShaders ), data.numEffectShaders );
+	LogBSPData( BSP_LUMP_SHADERS, ( void* ) data.shaders, data.numShaders );
+	LogBSPData( BSP_LUMP_FOGS, ( void* ) ( data.fogs ), data.numFogs );
 	LogBSPData( BSP_LUMP_ENTITIES, ( void *) ( data.entities.infoString ), -1 );
 }
 

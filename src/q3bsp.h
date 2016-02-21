@@ -29,10 +29,10 @@ struct mapData_t
 	bspBrush_t*			brushes;
 	bspBrushSide_t*		brushSides;
 
-	bspTexture_t*       textures;
+	bspShader_t*		shaders;
 	bspModel_t*         models;
 
-	bspEffect_t*		effectShaders;
+	bspFog_t*			fogs;
 
 	bspFace_t*			faces;
 
@@ -44,7 +44,6 @@ struct mapData_t
 	bspVisdata_t*       visdata;
 
 	int                 entityStringLen;
-	int                 numEffectShaders;
 
 	int                 numNodes;
 
@@ -59,10 +58,10 @@ struct mapData_t
 	int					numBrushes;
 	int					numBrushSides;
 
-	int                 numTextures;
+	int                 numShaders;
 	int                 numModels;
 
-	int					numEffects;
+	int                 numFogs;
 	int                 numFaces;
 
 	int                 numMeshVertexes;

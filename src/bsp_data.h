@@ -16,7 +16,7 @@ enum
 	BSP_Q3_VERSION = 0x2E,
 
 	BSP_LUMP_ENTITIES = 0x00,
-	BSP_LUMP_TEXTURES = 0x01,
+	BSP_LUMP_SHADERS = 0x01,
 	BSP_LUMP_PLANES = 0x02,
 	BSP_LUMP_NODES = 0x03,
 	BSP_LUMP_LEAVES = 0x04,
@@ -27,7 +27,7 @@ enum
 	BSP_LUMP_BRUSH_SIDES = 0x09,
 	BSP_LUMP_VERTEXES = 0x0A,
 	BSP_LUMP_MESH_VERTEXES = 0x0B,
-	BSP_LUMP_EFFECTS = 0x0C,
+	BSP_LUMP_FOGS = 0x0C,
 	BSP_LUMP_FACES = 0x0D,
 	BSP_LUMP_LIGHTMAPS = 0x0E,
 	BSP_LUMP_LIGHTVOLS = 0x0F,
@@ -41,7 +41,60 @@ enum
 	BSP_LIGHTMAP_WIDTH = 128,
 	BSP_LIGHTMAP_HEIGHT = 128,
 
-	BSP_NUM_CONTROL_POINTS = 9
+	BSP_NUM_CONTROL_POINTS = 9,
+
+	// Stolen from ioquake's code/qcommon/surfaceflags.h
+
+	BSP_CONTENTS_SOLID = 0x1,
+	BSP_CONTENTS_LAVA = 0x8,
+	BSP_CONTENTS_SLIME = 0x10,
+	BSP_CONTENTS_WATER = 0x20,
+	BSP_CONTENTS_FOG = 0x40,
+
+	BSP_CONTENTS_NOTTEAM1 = 0x0080,
+	BSP_CONTENTS_NOTTEAM2 = 0x0100,
+	BSP_CONTENTS_NOBOTCLIP = 0x0200,
+
+	BSP_CONTENTS_AREAPORTAL = 0x8000,
+	BSP_CONTENTS_PLAYERCLIP = 0x10000,
+	BSP_CONTENTS_MONSTERCLIP = 0x20000,
+
+	BSP_CONTENTS_TELEPORTER = 0x40000,
+	BSP_CONTENTS_JUMPPAD = 0x80000,
+	BSP_CONTENTS_CLUSTERPORTAL = 0x100000,
+	BSP_CONTENTS_DONOTENTER = 0x200000,
+	BSP_CONTENTS_BOTCLIP = 0x400000,
+	BSP_CONTENTS_MOVER = 0x800000,
+
+	BSP_CONTENTS_ORIGIN = 0x1000000, // removed before bsping an entity
+
+	BSP_CONTENTS_BODY = 0x2000000,
+	BSP_CONTENTS_CORPSE = 0x4000000,
+	BSP_CONTENTS_DETAIL = 0x8000000, // brush: not used for the bsp
+	BSP_CONTENTS_STRUCTURAL = 0x10000000, // brush: used for the bsp
+	BSP_CONTENTS_TRANSLUCENT = 0x20000000, // don't consume surface fragments inside
+	BSP_CONTENTS_TRIGGER = 0x40000000, //
+	BSP_CONTENTS_NODROP = 0x80000000,
+
+	BSP_SURFACE_NODAMAGE = 0x1, // never give falling damage
+	BSP_SURFACE_SLICK = 0x2, // effects game physics
+	BSP_SURFACE_SKY = 0x4, // lighting from environment map
+	BSP_SURFACE_LADDER = 0x8,
+	BSP_SURFACE_NOIMPACT = 0x10, // don't make missile explosions
+	BSP_SURFACE_NOMARKS = 0x20, // don't leave missile marks
+	BSP_SURFACE_FLESH = 0x40, // make flesh sounds and effects
+	BSP_SURFACE_NODRAW = 0x80, // don't generate a drawsurface at all
+	BSP_SURFACE_HINT = 0x100, // make a primary bsp splitter
+	BSP_SURFACE_SKIP = 0x200, // completely ignore, allowing non-closed brushes
+	BSP_SURFACE_NOLIGHTMAP = 0x400, // surface doesn't need a lightmap
+	BSP_SURFACE_POINTLIGHT = 0x800, // generate light info at vertexes
+	BSP_SURFACE_METALSTEPS = 0x1000, // clanking footsteps
+	BSP_SURFACE_NOSTEPS = 0x2000, // no footstep sounds
+	BSP_SURFACE_NONSOLID = 0x4000, // don't collide against curves with this set
+	BSP_SURFACE_LIGHTFILTER  = 0x8000, // act as a light filter during q3map
+	BSP_SURFACE_ALPHASHADOW = 0x10000, // do per-pixel light shadow casting in q3map
+	BSP_SURFACE_NODLIGHT = 0x20000, // don't dlight(?) even if solid (solid lava, skies)
+	BSP_SURFACE_DUST = 0x40000, // leave a dust trail when walking
 };
 
 // Map loader-specific flags
@@ -82,7 +135,7 @@ struct bspPlane_t
 struct bspNode_t
 {
 	int     plane;
-	int     children[ 2 ];
+	int     children[ 2 ]; // 0 => front, 1 => back
 
 	glm::ivec3   boxMin;
 	glm::ivec3   boxMax;
@@ -129,16 +182,16 @@ struct bspBrush_t
 {
 	int brushSide;
 	int numBrushSides;
-	int texture;
+	int shader; // refers to content flags
 };
 
 struct bspBrushSide_t
 {
-	int plane;
-	int texture;
+	int plane;	// positive plane side faces out of the brush surface
+	int shader;
 };
 
-struct bspTexture_t
+struct bspShader_t
 {
 	char    name[ 64 ];
 	int     surfaceFlags;
@@ -150,17 +203,17 @@ struct bspMeshVertex_t
 	int offset;
 };
 
-struct bspEffect_t
+struct bspFog_t
 {
 	char    name[ 64 ];
 	int     brush;
-	int     unknown;
+	int     visibleSide;
 };
 
 struct bspFace_t
 {
-	int texture;
-	int effect;
+	int shader;
+	int fog;
 	int type;
 
 	int vertexOffset;
@@ -177,7 +230,7 @@ struct bspFace_t
 	glm::vec3 lightmapStVecs[ 2 ]; // world space s/t unit vectors
 	glm::vec3 normal;
 
-	int size[ 2 ];
+	int patchDimensions[ 2 ];
 };
 
 struct bspLightmap_t
@@ -220,7 +273,9 @@ struct leafModel_t
 
 struct mapData_t;
 
+
 // Info can be obtained from http://toolz.nexuizninjaz.com/shader/
+//
 enum surfaceParms_t
 {
 	SURFPARM_ALPHA_SHADOW		= 1 << 1,
@@ -247,7 +302,6 @@ enum surfaceParms_t
 	SURFPARM_STRUCTURAL			= 1 << 22,
 	SURFPARM_TRANS				= 1 << 23,
 	SURFPARM_WATER				= 1 << 24,
-	SURFPARM_ENVMAP				= 1 << 25 // additional; not part of the standarad AFAIK
 };
 
 enum vertexDeformCmd_t

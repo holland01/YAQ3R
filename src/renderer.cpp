@@ -229,15 +229,15 @@ void BSPRenderer::Prep( void )
 
 bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
 {
+	UNUSED( shader );
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
 
-	if ( face && face->texture != -1 )
+	if ( face && face->shader != -1 )
 	{
-		if ( shader )
-		{
-			return ( shader->surfaceParms & SURFPARM_TRANS ) != 0;
-		}
-		//MLOG_WARNING( "BSPRenderer::IsTransFace was changed - results involving alpha channel usage may be different!" );
+		bspShader_t* s = &map->data.shaders[ face->shader ];
+
+		return !!( s->contentsFlags & ( BSP_CONTENTS_WATER | BSP_CONTENTS_TRANSLUCENT ) )
+			|| !!( s->surfaceFlags & ( BSP_SURFACE_NONSOLID ) );
 	}
 
 	return false;
@@ -307,14 +307,14 @@ void BSPRenderer::LoadMainImages( void )
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
 
-	glTextures.resize( map->data.numTextures );
+	glTextures.resize( map->data.numShaders );
 
-	for ( int32_t t = 0; t < map->data.numTextures; t++ )
+	for ( int32_t t = 0; t < map->data.numShaders; t++ )
 	{
 		glTextures[ t ].sampler = mainSampler;
 		bool success = false;
 
-		std::string fname( map->data.textures[ t ].name );
+		std::string fname( map->data.shaders[ t ].name );
 
 		const std::string& texPath = map->data.basePath + fname;
 
@@ -406,8 +406,8 @@ void BSPRenderer::LoadVertexData( void )
 		{
 			mod->vboOffset = ( GLuint ) vertexData.size();
 
-			int width = ( face->size[ 0 ] - 1 ) / 2;
-			int height = ( face->size[ 1 ] - 1 ) / 2;
+			int width = ( face->patchDimensions[ 0 ] - 1 ) / 2;
+			int height = ( face->patchDimensions[ 1 ] - 1 ) / 2;
 
 			// ( k, j ) maps to a ( row, col ) index scheme referring to the beginning of a patch
 			int n, m;
@@ -422,9 +422,9 @@ void BSPRenderer::LoadVertexData( void )
 
 					for ( int32_t c = 0; c < 3; ++c )
 					{
-						mod->controlPoints[ baseDest + c * 3 + 0 ] = &map->data.vertexes[ baseSource + c * face->size[ 0 ] + 0 ];
-						mod->controlPoints[ baseDest + c * 3 + 1 ] = &map->data.vertexes[ baseSource + c * face->size[ 0 ] + 1 ];
-						mod->controlPoints[ baseDest + c * 3 + 2 ] = &map->data.vertexes[ baseSource + c * face->size[ 0 ] + 2 ];
+						mod->controlPoints[ baseDest + c * 3 + 0 ] = &map->data.vertexes[ baseSource + c * face->patchDimensions[ 0 ] + 0 ];
+						mod->controlPoints[ baseDest + c * 3 + 1 ] = &map->data.vertexes[ baseSource + c * face->patchDimensions[ 0 ] + 1 ];
+						mod->controlPoints[ baseDest + c * 3 + 2 ] = &map->data.vertexes[ baseSource + c * face->patchDimensions[ 0 ] + 2 ];
 					}
 
 					GenPatch( modIndices, mod, shader, baseDest, ( int32_t ) vertexData.size() );
@@ -467,6 +467,76 @@ void BSPRenderer::Render( void )
 	frameCount++;
 }
 
+void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
+{
+	// if pass.facesVisited[ faceIndex ] is still false after this criteria's
+	// evaluations, we'll pick it up on the next pass as it will meet
+	// the necessary criteria then.
+	if ( pass.facesVisited[ index ] )
+	{
+		return;
+	}
+
+	LoadPassParams( pass, index, PASS_DRAW_MAIN );
+
+	bool transparent = IsTransFace( pass.faceIndex, pass.shader );
+
+	bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
+
+	if ( add )
+	{
+		// Only draw individual faces if they're patches, since meshes and polygons
+		// can be easily grouped together from the original vbo
+		if ( ( pass.face->type == BSP_FACE_TYPE_PATCH && gConfig.drawFacePatches ) || gConfig.drawFacesOnly )
+		{
+			DrawFace( pass );
+		}
+		else
+		{
+			drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
+			AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
+			pass.facesVisited[ pass.faceIndex ] = true;
+		}
+	}
+}
+
+void BSPRenderer::DrawList( drawSurfaceList_t& list, bool solid )
+{
+	if ( solid )
+	{
+		gCounts.numSolidEffect += list.effectSurfaces.size();
+		gCounts.numSolidNormal += list.surfaces.size();
+	}
+	else
+	{
+		gCounts.numTransEffect += list.effectSurfaces.size();
+		gCounts.numTransNormal += list.surfaces.size();
+	}
+
+	DrawSurfaceList( list.surfaces );
+	DrawSurfaceList( list.effectSurfaces );
+	list.surfaces.clear();
+	list.effectSurfaces.clear();
+}
+
+void BSPRenderer::DrawClear( drawPass_t& pass, bool solid )
+{
+	if ( !gConfig.drawFacesOnly )
+	{
+		DrawList( pass.polymeshes, solid );
+		DrawList( pass.patches, solid );
+		pass.shader = nullptr;
+		pass.face = nullptr;
+	}
+}
+
+void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
+{
+	pass.isSolid = solid;
+	DrawNode( pass, 0 );
+	DrawClear( pass, solid );
+}
+
 void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
 	GU_ClearDepth( 1.0f );
@@ -474,45 +544,9 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 
 	memset( &gCounts, 0, sizeof( gCounts ) );
 
-	static auto LDrawList = [ this ]( drawSurfaceList_t& list, bool solid ) -> void
-	{
-		if ( solid )
-		{
-			gCounts.numSolidEffect += list.effectSurfaces.size();
-			gCounts.numSolidNormal += list.surfaces.size();
-		}
-		else
-		{
-			gCounts.numTransEffect += list.effectSurfaces.size();
-			gCounts.numTransNormal += list.surfaces.size();
-		}
-
-		DrawSurfaceList( list.surfaces );
-		DrawSurfaceList( list.effectSurfaces );
-		list.surfaces.clear();
-		list.effectSurfaces.clear();
-	};
-
-	static auto LDrawClear = [ this ]( drawPass_t& pass, bool solid ) -> void
-	{
-		LDrawList( pass.polymeshes, solid );
-		LDrawList( pass.patches, solid );
-		pass.shader = nullptr;
-		pass.face = nullptr;
-	};
-
-	static auto LTraverseDraw = [ this ]( drawPass_t& pass, bool solid ) -> void
-	{
-		pass.isSolid = solid;
-		DrawNode( pass, 0 );
-		LDrawClear( pass, solid );
-	};
-
 	drawPass_t pass( map, view );
 	pass.envmap = envmap;
 	pass.leaf = map->FindClosestLeaf( pass.view.origin );
-
-	// Draw Models and Leaf Faces
 
 	frustum->Update( pass.view, true );
 
@@ -530,31 +564,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 		}
 
 		for ( int32_t j = 0; j < model->numFaces; ++j )
-		{
-			if ( pass.facesVisited[ model->faceOffset + j ] )
-			{
-				continue;
-			}
-
-			LoadPassParams( pass, model->faceOffset + j, PASS_DRAW_MAIN );
-
-			if ( gConfig.drawFacesOnly )
-			{
-				DrawFace( pass );
-			}
-			else
-			{
-				drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
-
-				AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
-				pass.facesVisited[ pass.faceIndex ] = true;
-			}
-		}
+			ProcessFace( pass, model->faceOffset + j );
 	}
-
-	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
-
-	LDrawClear( pass, true );
 
 	pass.type = PASS_DRAW;
 
@@ -562,11 +573,10 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 	GL_CHECK( glCullFace( GL_FRONT ) );
 	GL_CHECK( glFrontFace( GL_CCW ) );
 
-	LTraverseDraw( pass, false );
-	LTraverseDraw( pass, true );
+	TraverseDraw( pass, true );
+	TraverseDraw( pass, false );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
-
 
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
 			   CalcFPS(),
@@ -610,45 +620,7 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		}
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
-		{
-			int32_t faceIndex = map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index;
-
-			// if pass.facesVisited[ faceIndex ] is still false after this criteria's
-			// evaluations, we'll pick it up on the next pass as it will meet
-			// the necessary criteria then.
-			if ( pass.facesVisited[ faceIndex ] )
-			{
-				continue;
-			}
-
-			LoadPassParams( pass, faceIndex, PASS_DRAW_MAIN );
-
-			bool transparent = IsTransFace( pass.faceIndex, pass.shader );
-
-			bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
-
-			if ( add )
-			{
-				// Only draw individual faces if they're patches, since meshes and polygons
-				// can be easily grouped together from the original vbo
-				if ( ( pass.face->type == BSP_FACE_TYPE_PATCH && gConfig.drawFacePatches ) || gConfig.drawFacesOnly )
-				{
-					DrawFace( pass );
-				}
-				else
-				{
-					drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
-					AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
-				}
-				pass.facesVisited[ pass.faceIndex ] = true;
-			}
-			else
-			{
-				pass.shader = nullptr;
-				pass.face = nullptr;
-				pass.faceIndex = 0;
-			}
-		}
+			ProcessFace( pass, map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
 	}
 	else
 	{
@@ -661,6 +633,7 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		// If both of these are true, it makes sense to draw what is in front of us, as any
 		// non-solid object can be handled properly by depth if it's infront of the partition plane
 		// and we're behind it
+
 		if ( pass.isSolid == ( d > plane->distance ) )
 		{
 			DrawNode( pass, node->children[ 0 ] );
@@ -676,7 +649,6 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 
 void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& mainRef ) > callback )
 {
-
 	const Program& main = *( glPrograms.at( "main" ) );
 
 	main.LoadDefaultAttribProfiles();
@@ -723,17 +695,16 @@ namespace {
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
 {
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
-// check the iterative draw order for the surf list; maybe there was a traversal along the lines of:
-// surfTypeA->face0: draw
-// surfTypeB->face0: draw
-// surfTypeA->face0: draw
+	// check the iterative draw order for the surf list; maybe there was a traversal along the lines of:
+	// surfTypeA->face0: draw
+	// surfTypeB->face0: draw
+	// surfTypeA->face0: draw
 	for ( drawSurface_t& surf: surfList )
 	{
 		// Note: this is a poor heuristic for measuring draw surfaces; the surfaces should be indexed
 		// based on the view-space z plane of what we're looking at. Using an ordered hash map would be beneficial
 		// here, however we'll need to make sure lesser z values are considered "higher"
-
-		if ( shader == surf.shader && face->texture == surf.textureIndex
+		if ( shader == surf.shader && face->shader == surf.textureIndex
 			&& face->lightmapIndex == surf.lightmapIndex && face->type == surf.faceType )
 		{
 			AddSurfaceData( surf, faceIndex, glFaces );
@@ -746,7 +717,7 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 
 		surf.shader = shader;
 		surf.lightmapIndex = face->lightmapIndex;
-		surf.textureIndex = face->texture;
+		surf.textureIndex = face->shader;
 		surf.faceType = face->type;
 
 		AddSurfaceData( surf, faceIndex, glFaces );
@@ -757,9 +728,7 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std
 void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 {
 	for ( int32_t i: surf.faceIndices )
-	{
 		DeformVertexes( glFaces[ i ], surf.shader );
-	}
 
 	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
@@ -862,34 +831,37 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 void BSPRenderer::DrawFace( drawPass_t& pass )
 {
-	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
-	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+//	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
+	//GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 
 	switch ( pass.drawType )
 	{
 		case PASS_DRAW_EFFECT:
 		{
-			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->texture, pass.face->lightmapIndex );
+			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->shader, pass.face->lightmapIndex );
 
 			DrawEffectPass( data, [ &pass, this ]( const void* param, const Program& prog, const shaderStage_t* stage )
 			{
 				UNUSED( param );
-				DrawFaceVerts( pass, stage, prog );
+				UNUSED( prog );
+				DrawFaceVerts( pass, stage );
 			});
 		}
 			break;
 
+		default:
 		case PASS_DRAW_MAIN:
 
-			DrawMapPass( pass.face->texture, pass.face->lightmapIndex, [ &pass, this ]( const Program& main )
+			DrawMapPass( pass.face->shader, pass.face->lightmapIndex, [ &pass, this ]( const Program& prog )
 			{
-				DrawFaceVerts( pass, nullptr, main );
+				UNUSED( prog );
+				DrawFaceVerts( pass, nullptr );
 			});
 
 			break;
 	}
 
-	pass.facesVisited[ pass.faceIndex ] = 1;
+	pass.facesVisited[ pass.faceIndex ] = true;
 }
 
 void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
@@ -925,25 +897,23 @@ void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
 	}
 }
 
-void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const
+void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage ) const
 {
 	UNUSED( stage );
 
 	const mapModel_t& m = glFaces[ pass.faceIndex ];
 
+	if ( pass.shader && pass.shader->deform )
+	{
+		DeformVertexes( m, pass.shader );
+	}
+
 	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
 	{
-		GL_CHECK( glDrawElements( GL_TRIANGLES, m.iboRange, GL_UNSIGNED_INT, ( const GLvoid* ) m.iboOffset ) );
+		GU_DrawElements( GL_TRIANGLES, m.iboOffset, m.iboRange );
 	}
 	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
 	{
-		if ( pass.shader && pass.shader->deform )
-		{
-			DeformVertexes( m, pass.shader );
-		}
-
-		program.LoadDefaultAttribProfiles();
-
 		GU_MultiDrawElements( GL_TRIANGLE_STRIP, m.rowIndices, m.trisPerRow );
 	}
 }

@@ -208,10 +208,10 @@ void LogBSPData( int type, void* data, int length )
 		}
 			break;
 
-		case BSP_LUMP_TEXTURES:
+		case BSP_LUMP_SHADERS:
 		{
 
-			bspTexture_t* texbuf = ( bspTexture_t* ) data;
+			bspShader_t* texbuf = ( bspShader_t* ) data;
 
 			header = "TEXTURE_FILES";
 
@@ -226,10 +226,10 @@ void LogBSPData( int type, void* data, int length )
 		}
 			break;
 
-		case BSP_LUMP_EFFECTS:
+		case BSP_LUMP_FOGS:
 		{
 
-			bspEffect_t* effectBuf = ( bspEffect_t* ) data;
+			bspFog_t* effectBuf = ( bspFog_t* ) data;
 
 			header = "EFFECT_SHADERS";
 
@@ -238,7 +238,7 @@ void LogBSPData( int type, void* data, int length )
 				ss  << "Begin Effect Shader[ " << i << " ]" << "\n";
 				ss  << "\tFilename: " << effectBuf[ i ].name << "\n"
 					<< "\tBrush Index: " << effectBuf[ i ].brush << "\n"
-					<< "\tUknown Integer Field: " << effectBuf[ i ].unknown << "\n";
+					<< "\tUknown Integer Field: " << effectBuf[ i ].visibleSide << "\n";
 				ss  << "End Effect Shader\n\n";
 			}
 		}

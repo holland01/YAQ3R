@@ -55,6 +55,8 @@ struct drawIndirect_t
 
 struct mapModel_t
 {
+	static const size_t INDEX_SIZE = 4u;
+
 	bool						deform: 1;
 	GLuint						vboOffset;
 	intptr_t					iboOffset;
@@ -63,8 +65,6 @@ struct mapModel_t
 
 	// used if face type == mesh or polygon
 	//std::vector< int32_t >				indices;
-
-
 
 	// used if face type == patch
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
@@ -201,11 +201,19 @@ private:
 
 	void				DrawEffectPass( const drawTuple_t& data, drawCall_t callback );
 
+	void				ProcessFace( drawPass_t& pass, uint32_t index );
+
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
+
+	void				DrawList( drawSurfaceList_t& list, bool solid );
+
+	void				DrawClear( drawPass_t& pass, bool solid );
+
+	void				TraverseDraw( drawPass_t& pass, bool solid );
 
 	void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage, const Program& program ) const;
+	void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage ) const;
 
 	void				LoadVertexData( void );
 

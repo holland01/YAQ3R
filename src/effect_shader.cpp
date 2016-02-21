@@ -349,13 +349,13 @@ std::map< std::string, stageEvalFunc_t > stageReadFuncs =
 		"tcgen",
 		STAGE_READ_FUNC
 		{
+			UNUSED( outInfo );
 			ZEROTOK( token );
 			buffer = ReadToken( token, buffer );
 
 			if ( strcmp( token, "environment" ) == 0 )
 			{
 				theStage.tcgen = TCGEN_ENVIRONMENT;
-				outInfo->surfaceParms |= SURFPARM_ENVMAP;
 			}
 			else if ( strcmp( token, "base" ) == 0 )
 			{
