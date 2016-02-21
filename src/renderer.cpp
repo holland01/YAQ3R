@@ -19,7 +19,7 @@ struct config_t
 
 static config_t gConfig =
 {
-	true,
+	false,
 	false,
 	false,
 	false,
@@ -190,9 +190,7 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glEnable( GL_BLEND ) );
 
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-
-	GL_CHECK( glClearColor( 1.0f, 1.0f, 1.0f, 1.0f ) );
-
+	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
 
 	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
@@ -472,7 +470,6 @@ void BSPRenderer::Render( void )
 void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
 	GU_ClearDepth( 1.0f );
-	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
 	memset( &gCounts, 0, sizeof( gCounts ) );
@@ -565,8 +562,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 	GL_CHECK( glCullFace( GL_FRONT ) );
 	GL_CHECK( glFrontFace( GL_CCW ) );
 
-	LTraverseDraw( pass, true );
 	LTraverseDraw( pass, false );
+	LTraverseDraw( pass, true );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
@@ -726,20 +723,24 @@ namespace {
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
 {
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
-
-	bool add = true;
+// check the iterative draw order for the surf list; maybe there was a traversal along the lines of:
+// surfTypeA->face0: draw
+// surfTypeB->face0: draw
+// surfTypeA->face0: draw
 	for ( drawSurface_t& surf: surfList )
 	{
+		// Note: this is a poor heuristic for measuring draw surfaces; the surfaces should be indexed
+		// based on the view-space z plane of what we're looking at. Using an ordered hash map would be beneficial
+		// here, however we'll need to make sure lesser z values are considered "higher"
+
 		if ( shader == surf.shader && face->texture == surf.textureIndex
 			&& face->lightmapIndex == surf.lightmapIndex && face->type == surf.faceType )
 		{
 			AddSurfaceData( surf, faceIndex, glFaces );
-			add = false;
-			break;
+			return;
 		}
 	}
 
-	if ( add )
 	{
 		drawSurface_t surf;
 
