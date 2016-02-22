@@ -10,6 +10,7 @@
 #include <array>
 #include <functional>
 #include <cfloat>
+#include <unordered_map>
 
 // Draw flags
 enum
@@ -105,9 +106,20 @@ struct drawSurface_t
 			{}
 };
 
+using surfKeyTier0_t = uint8_t; // type
+using surfKeyTier1_t = int8_t; // lightmap index
+using surfKeyTier2_t = int8_t; // shader index
+using surfKeyTier3_t = uintptr_t; // shaderInfo_t* address
+
+using surfMapTier3_t = std::unordered_map< surfKeyTier3_t, drawSurface_t >;
+using surfMapTier2_t = std::unordered_map< surfKeyTier2_t, surfMapTier3_t >;
+using surfMapTier1_t = std::unordered_map< surfKeyTier1_t, surfMapTier2_t >;
+
+using surfaceContainer_t = std::array< surfMapTier1_t, 4 >;
+
 struct drawSurfaceList_t
 {
-	std::vector< drawSurface_t > surfaces, effectSurfaces;
+	surfaceContainer_t surfaces, effectSurfaces;
 };
 
 struct drawPass_t
@@ -145,6 +157,12 @@ using effectFnSig_t = void( const Program& p, const effect_t& e );
 using programMap_t = std::unordered_map< std::string, std::unique_ptr< Program > >;
 using effectMap_t = std::unordered_map< std::string, std::function< effectFnSig_t > >;
 
+struct debugFace_t
+{
+	std::vector< glm::vec3 > positions;
+	glm::vec4 color;
+};
+
 class BSPRenderer
 {
 private:
@@ -159,6 +177,8 @@ private:
 	std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture and lightmap indices
 
 	std::vector< mapModel_t >		glFaces;			// has one->one mapping with face indices
+
+	std::vector< debugFace_t > glDebugFaces; // has one-one mapping with face indices - is only used when debugging for immediate data
 
 	programMap_t		glPrograms;
 
@@ -189,19 +209,23 @@ private:
 
 	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& )> callback );
 
-	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList );
+	void				MakeAddSurface(const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList );
+
+	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList );
 
 	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
 
-	void				DrawSurface(const drawSurface_t& surface) const;
+	void				DrawSurface( const drawSurface_t& surface ) const;
 
 	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
 
-	void				DrawSurfaceList( const std::vector< drawSurface_t >& list );
+	void				DrawSurfaceList( const surfaceContainer_t& list, bool solid );
 
 	void				DrawEffectPass( const drawTuple_t& data, drawCall_t callback );
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
+
+	void				DrawDebugFace( uint32_t index );
 
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 

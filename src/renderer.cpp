@@ -6,21 +6,19 @@
 #include "deform.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
+#include <random>
+#include <algorithm>
 
 struct config_t
 {
 	bool drawFacesOnly: 1;
-	bool drawIrradiance: 1;
-	bool drawFacePatches: 1;
-	bool drawFaceBounds: 1;
 	bool drawAtlasTextureBoxes: 1;
 	bool logStageTexCoordData: 1;
+	bool debugRender;
 };
 
 static config_t gConfig =
 {
-	false,
-	false,
 	false,
 	false,
 	false,
@@ -225,6 +223,22 @@ void BSPRenderer::Prep( void )
 
 		MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs );
 	}
+
+	{
+		std::vector< std::string > attribs =
+		{
+			"position"
+		};
+
+		std::vector< std::string > uniforms =
+		{
+			"modelToView",
+			"viewToClip",
+			"fragColor"
+		};
+
+		MakeProg( "debug", "src/debug.vert", "src/debug.frag", uniforms, attribs );
+	}
 }
 
 bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
@@ -379,8 +393,11 @@ void BSPRenderer::LoadLightmaps( void )
 void BSPRenderer::LoadVertexData( void )
 {
 	glFaces.resize( map->data.numFaces );
-	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
 
+	if ( gConfig.debugRender )
+		glDebugFaces.resize( map->data.numFaces );
+
+	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
 	std::vector< uint32_t > indexData;
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
@@ -393,13 +410,20 @@ void BSPRenderer::LoadVertexData( void )
 
 		const bspFace_t* face = map->data.faces + i;
 
+		std::vector< glm::vec3 > debugBuffer;
+
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
 			mod->iboRange = face->numMeshVertexes;
 			mod->iboOffset = indexData.size();
 			for ( int32_t j = 0; j < face->numMeshVertexes; ++j )
 			{
-				modIndices.push_back( face->vertexOffset + map->data.meshVertexes[ face->meshVertexOffset + j ].offset );
+				uint32_t index = face->vertexOffset + map->data.meshVertexes[ face->meshVertexOffset + j ].offset;
+
+				modIndices.push_back( index );
+
+				if ( gConfig.debugRender )
+					debugBuffer.push_back( map->data.vertexes[ index ].position );
 			}
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
@@ -440,12 +464,23 @@ void BSPRenderer::LoadVertexData( void )
 				mod->trisPerRow[ y ] = 2 * L1;
 				mod->rowIndices[ y ] = indexData.size() + y * 2 * L1;
 			}
-
 			vertexData.insert( vertexData.end(), mod->patchVertices.begin(), mod->patchVertices.end() );
 		}
 
 		indexData.insert( indexData.end(), modIndices.begin(), modIndices.end() );
 		mod->CalcBounds( modIndices, face->type, map->data );
+
+		if ( gConfig.debugRender )
+		{
+			std::random_device r;
+			std::default_random_engine e( r() );
+			std::uniform_real_distribution< float > urd( 0.0f, 1.0f );
+
+			glm::vec4 color( urd( e ), urd( e ), urd( e ), 1.0f );
+
+			glDebugFaces[ i ].color = color;
+			glDebugFaces[ i ].positions = std::move( debugBuffer );
+		}
 	}
 
 	// Allocate vertex data from map and store it all in a single vbo
@@ -467,6 +502,55 @@ void BSPRenderer::Render( void )
 	frameCount++;
 }
 
+void BSPRenderer::DrawDebugFace( uint32_t index )
+{
+	pushBlend_t b( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	const bspFace_t& f = map->data.faces[ index ];
+
+	const glm::mat4& viewM = camera->ViewData().transform;
+	const glm::mat4& proj = camera->ViewData().clipTransform;
+
+	if ( f.type != BSP_FACE_TYPE_PATCH )
+	{
+		glm::vec4 w( 0.3f );
+
+		GU_ImmBegin( GL_TRIANGLES, viewM, proj );
+		GU_ImmLoad( glDebugFaces[ index ].positions, w );
+		GU_ImmEnd();
+
+		glm::mat4 viewLine( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapOrigin ) );
+
+		GU_ImmDrawLine( glm::vec3( 0.0f ),
+						f.normal * 100.0f,
+						w,
+						viewLine, proj );
+	}
+	else
+	{
+		glPrograms[ "debug" ]->LoadDefaultAttribProfiles();
+		glPrograms[ "debug" ]->LoadMat4( "modelToView", viewM );
+		glPrograms[ "debug" ]->LoadMat4( "viewToClip", proj );
+		glPrograms[ "debug" ]->LoadVec4( "fragColor", glDebugFaces[ index ].color );
+		glPrograms[ "debug" ]->Bind();
+		GU_MultiDrawElements( GL_TRIANGLE_STRIP, glFaces[ index ].rowIndices, glFaces[ index ].trisPerRow );
+		glPrograms[ "debug" ]->Release();
+
+		glm::mat4 viewLineX( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapStVecs[ 0 ] ) );
+		glm::mat4 viewLineY( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapStVecs[ 1 ] ) );
+
+		GU_ImmDrawLine( glm::vec3( 0.0f ),
+						f.normal * 100.0f,
+						glDebugFaces[ index ].color,
+						viewLineX, proj );
+
+		GU_ImmDrawLine( glm::vec3( 0.0f ),
+						f.normal * 100.0f,
+						glDebugFaces[ index ].color,
+						viewLineY, proj );
+	}
+}
+
 void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 {
 	// if pass.facesVisited[ faceIndex ] is still false after this criteria's
@@ -485,9 +569,13 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 
 	if ( add )
 	{
-		// Only draw individual faces if they're patches, since meshes and polygons
-		// can be easily grouped together from the original vbo
-		if ( ( pass.face->type == BSP_FACE_TYPE_PATCH && gConfig.drawFacePatches ) || gConfig.drawFacesOnly )
+		if ( gConfig.debugRender )
+		{
+			DrawDebugFace( index );
+			return;
+		}
+
+		if ( gConfig.drawFacesOnly )
 		{
 			DrawFace( pass );
 		}
@@ -513,10 +601,10 @@ void BSPRenderer::DrawList( drawSurfaceList_t& list, bool solid )
 		gCounts.numTransNormal += list.surfaces.size();
 	}
 
-	DrawSurfaceList( list.surfaces );
-	DrawSurfaceList( list.effectSurfaces );
-	list.surfaces.clear();
-	list.effectSurfaces.clear();
+	DrawSurfaceList( list.surfaces, solid );
+	DrawSurfaceList( list.effectSurfaces, solid );
+	list.surfaces = surfaceContainer_t();
+	list.effectSurfaces = surfaceContainer_t();
 }
 
 void BSPRenderer::DrawClear( drawPass_t& pass, bool solid )
@@ -540,8 +628,6 @@ void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
 void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 {
 	GU_ClearDepth( 1.0f );
-	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
-
 	memset( &gCounts, 0, sizeof( gCounts ) );
 
 	drawPass_t pass( map, view );
@@ -692,36 +778,53 @@ namespace {
 	}
 }
 
-void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, std::vector< drawSurface_t >& surfList )
+void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
 {
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
-	// check the iterative draw order for the surf list; maybe there was a traversal along the lines of:
-	// surfTypeA->face0: draw
-	// surfTypeB->face0: draw
-	// surfTypeA->face0: draw
-	for ( drawSurface_t& surf: surfList )
+
+	drawSurface_t surf;
+
+	surf.shader = shader;
+	surf.lightmapIndex = face->lightmapIndex;
+	surf.textureIndex = face->shader;
+	surf.faceType = face->type;
+
+	AddSurfaceData( surf, faceIndex, glFaces );
+
+	surfList[ face->type ][ face->lightmapIndex ][ face->shader ][ ( uintptr_t ) shader ] = surf;
+}
+
+void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
+{
+	const bspFace_t* face = &map->data.faces[ faceIndex ];
+
+	surfMapTier1_t& t1 = surfList[ face->type ];
+
+	auto t2 = t1.find( face->lightmapIndex );
+	if ( t2 != t1.end() )
 	{
-		// Note: this is a poor heuristic for measuring draw surfaces; the surfaces should be indexed
-		// based on the view-space z plane of what we're looking at. Using an ordered hash map would be beneficial
-		// here, however we'll need to make sure lesser z values are considered "higher"
-		if ( shader == surf.shader && face->shader == surf.textureIndex
-			&& face->lightmapIndex == surf.lightmapIndex && face->type == surf.faceType )
+		auto t3 = t2->second.find( face->shader );
+		if ( t3 != t2->second.end() )
 		{
-			AddSurfaceData( surf, faceIndex, glFaces );
-			return;
+			auto surfTest = t3->second.find( ( uintptr_t )shader );
+
+			if  ( surfTest != t3->second.end() )
+			{
+				AddSurfaceData( surfTest->second, faceIndex, glFaces );
+			}
+			else
+			{
+				MakeAddSurface( shader, faceIndex, surfList );
+			}
+		}
+		else
+		{
+			MakeAddSurface( shader, faceIndex, surfList );
 		}
 	}
-
+	else
 	{
-		drawSurface_t surf;
-
-		surf.shader = shader;
-		surf.lightmapIndex = face->lightmapIndex;
-		surf.textureIndex = face->shader;
-		surf.faceType = face->type;
-
-		AddSurfaceData( surf, faceIndex, glFaces );
-		surfList.push_back( surf );
+		MakeAddSurface( shader, faceIndex, surfList );
 	}
 }
 
@@ -864,35 +967,47 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	pass.facesVisited[ pass.faceIndex ] = true;
 }
 
-void BSPRenderer::DrawSurfaceList( const std::vector< drawSurface_t >& list )
+void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 {
+	UNUSED( solid );
+
 	auto LEffectCallback = [ this ]( const void* voidsurf, const Program& prog, const shaderStage_t* stage )
 	{
 		UNUSED( stage );
+		UNUSED( prog );
 
 		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
-
-		prog.LoadDefaultAttribProfiles();
 
 		DrawSurface( surf );
 	};
 
 	UNUSED( LEffectCallback );
 
-	for ( const drawSurface_t& surf: list )
+	for ( auto i0 = list.begin(); i0 != list.end(); ++i0 )
 	{
-		if ( surf.shader )
+		for ( auto i1 = ( *i0 ).begin(); i1 != ( *i0 ).end(); ++i1 )
 		{
-			drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
-			DrawEffectPass( tuple, LEffectCallback );
-		}
-		else
-		{
-			DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
+			for ( auto i2 = i1->second.begin(); i2 != i1->second.end(); ++i2 )
 			{
-				UNUSED( main );
-				DrawSurface( surf );
-			});
+				for ( auto i3 = i2->second.begin(); i3 != i2->second.end(); ++i3 )
+				{
+					const drawSurface_t& surf = i3->second;
+
+					if ( surf.shader )
+					{
+						drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
+						DrawEffectPass( tuple, LEffectCallback );
+					}
+					else
+					{
+						DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
+						{
+							UNUSED( main );
+							DrawSurface( surf );
+						});
+					}
+				}
+			}
 		}
 	}
 }

@@ -36,3 +36,38 @@ static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t
 	for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
 		GU_DrawElements( mode, indexBuffers[ i ], indexBufferSizes[ i ] );
 }
+
+using guImmPosList_t = std::vector< glm::vec3 >;
+
+void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj );
+
+void GU_ImmLoad( const guImmPosList_t& v, const glm::vec4& color );
+
+void GU_ImmEnd( void );
+
+void GU_ImmDrawLine( const glm::vec3& origin,
+					 const glm::vec3& dir,
+					 const glm::vec4& color,
+					 const glm::mat4& view,
+					 const glm::mat4& proj );
+
+struct pushBlend_t
+{
+	GLint srcAlpha, srcRGB, destAlpha, destRGB;
+
+	pushBlend_t( GLenum newSrc, GLenum newDst )
+	{
+		GL_CHECK( glGetIntegerv( GL_BLEND_SRC_ALPHA, &srcAlpha ) );
+		GL_CHECK( glGetIntegerv( GL_BLEND_SRC_RGB, &srcRGB ) );
+
+		GL_CHECK( glGetIntegerv( GL_BLEND_DST_ALPHA, &destAlpha ) );
+		GL_CHECK( glGetIntegerv( GL_BLEND_DST_RGB, &destRGB ) );
+
+		GL_CHECK( glBlendFunc( newSrc, newDst ) );
+	}
+
+	~pushBlend_t( void )
+	{
+		GL_CHECK( glBlendFuncSeparate( srcRGB, destRGB, srcAlpha, destAlpha ) );
+	}
+};

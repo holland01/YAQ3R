@@ -31,7 +31,7 @@ INLINE std::vector< bspVertex_t > ConvertToDrawVertex( const std::vector< glm::v
 		vt.position = vertices[ i ];
 		vt.color = glm::vec4( 1.0f );
 		vt.normal = glm::vec3( 1.0f );
-		vt.texCoords[ 0 ] = texCoords[ i ];
+		vt.texCoords[ 0 ] = ( i < texCoords.size() )? texCoords[ i ]: glm::vec2( 0.0f );
 		vt.texCoords[ 1 ] = glm::vec2( 0.0f );
 
 		bufferData.push_back( vt );
@@ -50,7 +50,6 @@ INLINE gVertexBuffer_t* MakeVertexBuffer_GL( const std::vector< bspVertex_t >& b
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
 
 	return buffer;
-
 }
 
 } // end namespace

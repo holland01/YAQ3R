@@ -227,7 +227,7 @@ struct bspFace_t
 	int lightmapSize[ 2 ];
 
 	glm::vec3 lightmapOrigin; // in world space
-	glm::vec3 lightmapStVecs[ 2 ]; // world space s/t unit vectors
+	glm::vec3 lightmapStVecs[ 2 ]; // for patches, 0 and 1 are lod vectors
 	glm::vec3 normal;
 
 	int patchDimensions[ 2 ];

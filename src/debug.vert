@@ -2,13 +2,10 @@
 
 attribute vec3 position;
 
-layout( std140 ) uniform Transforms
-{
-	mat4 viewToClip;
-	mat4 modelToView;
-};
+uniform mat4 modelToView;
+uniform mat4 viewToClip;
 
-void main()
+void main(void)
 {
-    gl_Position = viewToClip * modelToView * vec4( position, 1.0 );
+	gl_Position = viewToClip * modelToView * vec4(position, 1.0);
 }

@@ -14,7 +14,7 @@ static void FrameIteration( void )
 	if ( !gAppTest )
 		return;
 
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
 	gAppTest->Run();
 
@@ -27,11 +27,11 @@ static void FrameIteration( void )
 
 
 Test::Test( int w, int h, bool fullscreen_ )
-    : width( w ), height( h ),
-      deltaTime( 0.0f ),
+	: width( w ), height( h ),
+	  deltaTime( 0.0f ),
 	  fullscreen( fullscreen_ ),
-      cursorVisible( true ), 
-	  running( false ), 
+	  cursorVisible( true ),
+	  running( false ),
 	  useSRGBFramebuffer( true ),
 	  camPtr( nullptr ),
 	  sdlRenderer( nullptr ),
@@ -85,35 +85,35 @@ bool Test::Load( const char* winName )
 
 	SDL_RenderPresent( sdlRenderer );
 
-    running = true;
+	running = true;
 
-    InitSysLog();
+	InitSysLog();
 
-    return true;
+	return true;
 }
 
 int Test::Exec( void )
 {
 	if ( !sdlWindow )
-        return 1;
+		return 1;
 
 #ifdef EMSCRIPTEN
 	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
-    EM_Init();
+	EM_Init();
 	emscripten_set_main_loop( FrameIteration, 0, 1 );
 #else
 	float lastTime = 0.0f;
 
 	while( running )
-    {
+	{
 		FrameIteration();
 
 		deltaTime = ( float )( GetTimeSeconds() - lastTime );
 		lastTime = GetTimeSeconds();
-    }
+	}
 #endif
 
-    return 0;
+	return 0;
 }
 
 void Test::OnInputEvent( SDL_Event* e )
@@ -122,34 +122,34 @@ void Test::OnInputEvent( SDL_Event* e )
 		return;
 
 	switch ( e->type )
-    {
+	{
 		case SDL_KEYDOWN:
 			switch ( e->key.keysym.sym )
-            {
+			{
 				case SDLK_ESCAPE:
-                    running = false;
-                    break;
+					running = false;
+					break;
 
 				case SDLK_F1:
-                    cursorVisible = !cursorVisible;
+					cursorVisible = !cursorVisible;
 
-                    if ( cursorVisible )
+					if ( cursorVisible )
 						 SDL_SetRelativeMouseMode( SDL_FALSE );
-                    else
+					else
 						 SDL_SetRelativeMouseMode( SDL_TRUE );
-                    break;
+					break;
 
-                default:
+				default:
 					if ( camPtr )
 						camPtr->EvalKeyPress( e->key.keysym.sym );
-                    break;
-            }
-            break;
+					break;
+			}
+			break;
 
 		case SDL_KEYUP:
 			if ( camPtr )
 				camPtr->EvalKeyRelease( e->key.keysym.sym );
-            break;
+			break;
 
 		case SDL_MOUSEMOTION:
 			if ( camPtr )
@@ -165,7 +165,7 @@ void Test::OnInputEvent( SDL_Event* e )
 			}
 			break;
 
-        default:
-            break;
-    }
+		default:
+			break;
+	}
 }

@@ -42,3 +42,47 @@ void GU_SetupTexParams( const Program& program,
 		program.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
 	}
 }
+
+
+void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
+{
+	GL_CHECK( glUseProgram( 0 ) );
+	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( proj ) ) );
+
+	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glPushMatrix() );
+	GL_CHECK( glLoadMatrixf( glm::value_ptr( view ) ) );
+
+	glBegin( mode );
+}
+
+void GU_ImmLoad( const guImmPosList_t& v, const glm::vec4& color )
+{
+	for ( const auto& p: v )
+	{
+		glColor4fv( glm::value_ptr( color ) );
+		glVertex3fv( glm::value_ptr( p ) );
+	}
+}
+
+void GU_ImmEnd( void )
+{
+	glEnd();
+	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
+	GL_CHECK( glPopMatrix() );
+}
+
+void GU_ImmDrawLine( const glm::vec3& origin,
+					 const glm::vec3& dir,
+					 const glm::vec4& color,
+					 const glm::mat4& view,
+					 const glm::mat4& proj )
+{
+	GU_ImmBegin( GL_LINES, view, proj );
+	glColor4fv( glm::value_ptr( color ) );
+	glVertex3fv( glm::value_ptr( origin ) );
+	glVertex3fv( glm::value_ptr( dir ) );
+	GU_ImmEnd();
+}
+
