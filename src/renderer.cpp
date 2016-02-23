@@ -653,6 +653,11 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 			continue;
 		}
 
+		pass.isSolid = true;
+		for ( int32_t j = 0; j < model->numFaces; ++j )
+			ProcessFace( pass, model->faceOffset + j );
+
+		pass.isSolid = false;
 		for ( int32_t j = 0; j < model->numFaces; ++j )
 			ProcessFace( pass, model->faceOffset + j );
 	}
@@ -796,14 +801,14 @@ void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex,
 
 	AddSurfaceData( surf, faceIndex, glFaces );
 
-	surfList[ face->type ][ face->lightmapIndex ][ face->shader ][ ( uintptr_t ) shader ] = surf;
+	surfList[ face->type - 1 ][ face->lightmapIndex ][ face->shader ][ ( uintptr_t ) shader ] = surf;
 }
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
 {
 	const bspFace_t* face = &map->data.faces[ faceIndex ];
 
-	surfMapTier1_t& t1 = surfList[ face->type ];
+	surfMapTier1_t& t1 = surfList[ face->type - 1 ];
 
 	auto t2 = t1.find( face->lightmapIndex );
 	if ( t2 != t1.end() )

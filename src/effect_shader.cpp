@@ -806,11 +806,20 @@ static INLINE std::string JoinLines( std::vector< std::string >& lines )
 
 static void GenShaderPrograms( Q3BspMap* map )
 {
+/*
+	for ( auto& e: map->effectShaders )
+	{
+		S_GenPrograms( e.second );
+	}
+*/
 	// Print the generated shaders to a text file
 
 	// Convert each effect stage to its GLSL equivalent
 	for ( int32_t i = 0; i < map->data.numShaders; ++i )
 		S_GenPrograms( map->effectShaders[ map->data.shaders[ i ].name ] );
+
+	for ( int32_t i = 0; i < map->data.numFogs; ++i )
+		S_GenPrograms( map->effectShaders[ map->data.fogs[ i ].name ] );
 }
 
 static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i,
@@ -981,6 +990,9 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 
 void S_GenPrograms( shaderInfo_t& shader )
 {
+	if ( shader.glslMade )
+		return;
+
 	if ( gMeta->logProgramGen )
 		fprintf( gMeta->programLog, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
 
