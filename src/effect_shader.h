@@ -4,11 +4,14 @@
 #include "glutil.h"
 #include <memory>
 
-
 struct gImageParams_t;
 struct gSamplerHandle_t;
 
-glm::ivec2 S_LoadShaders( const mapData_t* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures, shaderMap_t& effectShaders );
+class Q3BspMap;
+
+glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures );
+
+void S_GenPrograms( shaderInfo_t& shader );
 
 bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1, const char* str2 );
 

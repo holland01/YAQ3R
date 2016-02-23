@@ -25,7 +25,6 @@ static void FrameIteration( void )
 		gAppTest->OnInputEvent( &e );
 }
 
-
 Test::Test( int w, int h, bool fullscreen_ )
 	: width( w ), height( h ),
 	  deltaTime( 0.0f ),

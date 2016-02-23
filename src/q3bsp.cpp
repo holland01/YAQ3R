@@ -63,6 +63,9 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 		if ( it != effectShaders.end() )
 		{
+			if ( !it->second.glslMade )
+				return nullptr;
+
 			return &it->second;
 		}
 	}
@@ -73,6 +76,9 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 		if ( it != effectShaders.end() )
 		{
+			if ( !it->second.glslMade )
+				return nullptr;
+
 			return &it->second;
 		}
 	}

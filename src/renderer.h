@@ -264,7 +264,7 @@ public:
 
 	void		Render( void );
 
-	void		RenderPass( const viewParams_t& view, bool envmap );
+	void		RenderPass( const viewParams_t& view );
 
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 

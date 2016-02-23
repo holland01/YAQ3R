@@ -288,7 +288,7 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	{
 		gImageParamList_t shaderTextures;
-		S_LoadShaders( &map->data, mainSampler, shaderTextures, map->effectShaders );
+		S_LoadShaders( map, mainSampler, shaderTextures );
 		gTextureMakeParams_t makeParams( shaderTextures, mainSampler );
 		shaderTexHandle = GMakeTexture( makeParams, 0 );
 	}
@@ -302,8 +302,13 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	// Basic program setup
 	for ( const auto& iShader: map->effectShaders )
-		for ( const shaderStage_t& stage: iShader.second.stageBuffer )
-			stage.program->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+	{
+		if ( iShader.second.glslMade )
+		{
+			for ( const shaderStage_t& stage: iShader.second.stageBuffer )
+				stage.program->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+		}
+	}
 
 	glPrograms[ "main" ]->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 }
@@ -495,7 +500,7 @@ void BSPRenderer::Render( void )
 {
 	float startTime = GetTimeSeconds();
 
-	RenderPass( camera->ViewData(), false );
+	RenderPass( camera->ViewData() );
 
 	frameTime = GetTimeSeconds() - startTime;
 
@@ -625,13 +630,12 @@ void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
 	DrawClear( pass, solid );
 }
 
-void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
+void BSPRenderer::RenderPass( const viewParams_t& view )
 {
 	GU_ClearDepth( 1.0f );
 	memset( &gCounts, 0, sizeof( gCounts ) );
 
 	drawPass_t pass( map, view );
-	pass.envmap = envmap;
 	pass.leaf = map->FindClosestLeaf( pass.view.origin );
 
 	frustum->Update( pass.view, true );
@@ -660,9 +664,10 @@ void BSPRenderer::RenderPass( const viewParams_t& view, bool envmap )
 	GL_CHECK( glFrontFace( GL_CCW ) );
 
 	TraverseDraw( pass, true );
-	TraverseDraw( pass, false );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
+
+	TraverseDraw( pass, false );
 
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
 			   CalcFPS(),

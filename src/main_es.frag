@@ -19,7 +19,7 @@ const float gamma = 1.0 / 3.0;
 
 void main()
 {
-	vec4 col = vec4 ( 1.0 );
+	vec4 col = frag_Color;
 
 	vec2 texCoords = mod( frag_Tex, vec2( 0.99 ) ) * mainImageImageScaleRatio * mainImageImageTransform.zw + mainImageImageTransform.xy;
 	col *= texture2D( mainImageSampler, texCoords );

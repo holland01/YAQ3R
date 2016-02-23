@@ -25,7 +25,6 @@ void MyDateTime( const char* format, char* outBuffer, int length );
 
 float GetTimeSeconds( void );
 
-
 void ExitOnGLError( int line, const char* glFunc, const char* callerFunc );
 
 void InitSysLog( void );
@@ -51,7 +50,6 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 // or an alternative separator if the string already contains it (i.e., we're on Windows and
 // the path isn't using back slashes...)
 bool NeedsTrailingSlash( const std::string& path, char& outSlash );
-
 
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__

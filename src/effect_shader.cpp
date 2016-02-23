@@ -804,162 +804,13 @@ static INLINE std::string JoinLines( std::vector< std::string >& lines )
 	return shaderSrc.str();
 }
 
-
-static void GenShaderPrograms( shaderMap_t& effectShaders )
+static void GenShaderPrograms( Q3BspMap* map )
 {
 	// Print the generated shaders to a text file
-	FILE* f = fopen( "log/shader_gen.txt", "w" );
 
 	// Convert each effect stage to its GLSL equivalent
-	for ( auto& entry: effectShaders )
-	{
-		shaderInfo_t& shader = entry.second;
-		fprintf( f, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
-
-		for ( int j = 0; j < shader.stageCount; ++j )
-		{
-			shaderStage_t& stage = shader.stageBuffer[ j ];
-
-			// Uniform variable names
-			std::vector< std::string > uniforms = {
-				"sampler0",
-				"imageTransform",
-				"imageScaleRatio"
-			};
-
-			const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
-
-			std::vector< std::string > attribs = { "position", "color", texCoordName };
-
-			const size_t vertGlobalVarInsertOffset = 4;
-
-			// Vertex shader...
-			std::vector< std::string > vertexSrc =
-			{
-
-				GetHeader(),
-				DeclAttributeVar( "position", "vec3" ),
-				DeclAttributeVar( "color", "vec4" ),
-				DeclAttributeVar( texCoordName, "vec2" ),
-				DeclTransferVar( "frag_Color", "vec4" ),
-				DeclTransferVar( "frag_Tex", "vec2" ),
-				"void main(void) {",
-			};
-
-			if ( stage.tcgen == TCGEN_ENVIRONMENT )
-			{
-				vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3" ) );
-				attribs.push_back( "normal" );
-			}
-
-			InsertCoreTransformsDecl( vertexSrc, uniforms, vertGlobalVarInsertOffset );
-
-			vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
-
-			if ( stage.tcgen == TCGEN_ENVIRONMENT )
-			{
-				AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
-				vertexSrc.push_back( "\tfrag_Tex = st;" );
-			}
-			else
-			{
-				vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
-			}
-
-			if ( stage.rgbGen == RGBGEN_VERTEX )
-				vertexSrc.push_back( "\tfrag_Color = color;" );
-			else
-				vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
-
-			// Fragment shader....
-			// Unspecified alphaGen implies a default 1.0 alpha channel
-			std::vector< std::string > fragmentSrc =
-			{
-				GetHeader(),
-				"precision highp float;",
-				DeclTransferVar( "frag_Color", "vec4" ),
-				DeclTransferVar( "frag_Tex", "vec2" ),
-				"const float gamma = 1.0 / 2.2;",
-				"void main(void) {"
-			};
-
-			const size_t fragGlobalDeclOffset = 4;
-
-			std::initializer_list<std::string> data  =
-			{
-				"uniform sampler2D sampler0;",
-				"uniform vec4 imageTransform;",
-				"uniform vec2 imageScaleRatio;",
-				"vec2 applyTransform(in vec2 coords) {",
-				"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
-				"}"
-			};
-
-			fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
-
-			fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
-
-			for ( const effect_t& op: shader.stageBuffer[ j ].effects )
-			{
-				// Modify the texture coordinate as necessary before we write to the texture
-				if ( op.name == "tcModTurb" )
-				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform float tcModTurb;" );
-					fragmentSrc.push_back( "\tst *= tcModTurb;" );
-					uniforms.push_back( "tcModTurb" );
-				}
-				else if ( op.name == "tcModScroll" )
-				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec4 tcModScroll;" );
-					fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
-					uniforms.push_back( "tcModScroll" );
-				}
-				else if ( op.name == "tcModRotate" )
-				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 texRotate;" );
-					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec2 texCenter;" );
-					fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
-
-					uniforms.push_back( "texRotate" );
-					uniforms.push_back( "texCenter" );
-				}
-				else if ( op.name == "tcModScale" )
-				{
-					fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 tcModScale;" );
-					fragmentSrc.push_back( "\tst = tcModScale * st;" );
-					uniforms.push_back( "tcModScale" );
-				}
-			}
-
-			switch ( stage.alphaFunc )
-			{
-			case ALPHA_FUNC_UNDEFINED:
-				WriteTexture( fragmentSrc, stage, NULL );
-				break;
-			case ALPHA_FUNC_GEQUAL_128:
-				WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
-				break;
-			case ALPHA_FUNC_GTHAN_0:
-				WriteTexture( fragmentSrc, stage, "color.a == 0" );
-				break;
-			case ALPHA_FUNC_LTHAN_128:
-				WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
-				break;
-			}
-
-			const std::string& vertexString = JoinLines( vertexSrc );
-			const std::string& fragmentString = JoinLines( fragmentSrc );
-
-			stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
-
-			fprintf( f, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n",
-				j,
-				vertexString.c_str(),
-				fragmentString.c_str() );
-		}
-	}
-
-	fclose( f );
+	for ( int32_t i = 0; i < map->data.numShaders; ++i )
+		S_GenPrograms( map->effectShaders[ map->data.shaders[ i ].name ] );
 }
 
 static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i,
@@ -1072,40 +923,212 @@ struct parseArgs_t
 
 shaderMap_t* parseArgs_t::effectShaders = nullptr;
 
+struct meta_t
+{
+	bool logProgramGen = false;
+	FILE*	programLog = nullptr;
+
+	meta_t( void )
+	{
+		if ( logProgramGen )
+			programLog = fopen( "log/shader_gen.txt", "wb" );
+	}
+
+	~meta_t( void )
+	{
+		if ( programLog )
+			fclose( programLog );
+	}
+};
+
+std::unique_ptr< meta_t > gMeta( new meta_t() );
+
 }
 
 /*!
    Main API for the effect shaders. In theory, the user should only have to call this function.
 */
-glm::ivec2 S_LoadShaders( const mapData_t* map,
-						  const gSamplerHandle_t& imageSampler,
-						  std::vector< gImageParams_t >& textures,
-						  shaderMap_t& effectShaders )
+glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures )
 {
-	std::string shaderRootDir( map->basePath );
+	std::string shaderRootDir( map->data.basePath );
 	shaderRootDir.append( "scripts/" );
 
-	printf("Traversing Directory: %s\n", shaderRootDir.c_str());
+	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
 	{
-		parseArgs_t::effectShaders = &effectShaders;
+		parseArgs_t::effectShaders = &map->effectShaders;
 		File_IterateDirTree( shaderRootDir, parseArgs_t::EvaluateEntry );
 		parseArgs_t::effectShaders = nullptr;
 	}
 
-	GenShaderPrograms( effectShaders );
+	GenShaderPrograms( map );
 
 	glm::ivec2 maxDims( 0 );
-	for ( auto& entry: effectShaders )
+	for ( auto& entry: map->effectShaders )
 	{
-		for ( int i = 0; i < entry.second.stageCount; ++i )
+		if ( entry.second.glslMade )
 		{
-			LoadStageTexture( maxDims,
-				textures, entry.second, i, imageSampler, map );
+			for ( int i = 0; i < entry.second.stageCount; ++i )
+			{
+				LoadStageTexture( maxDims,
+					textures, entry.second, i, imageSampler, &map->data );
+			}
 		}
 	}
 
 	return maxDims;
+}
+
+void S_GenPrograms( shaderInfo_t& shader )
+{
+	if ( gMeta->logProgramGen )
+		fprintf( gMeta->programLog, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
+
+	for ( int j = 0; j < shader.stageCount; ++j )
+	{
+		shaderStage_t& stage = shader.stageBuffer[ j ];
+
+		// Uniform variable names
+		std::vector< std::string > uniforms = {
+			"sampler0",
+			"imageTransform",
+			"imageScaleRatio"
+		};
+
+		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
+
+		std::vector< std::string > attribs = { "position", "color", texCoordName };
+
+		const size_t vertGlobalVarInsertOffset = 4;
+
+		// Vertex shader...
+		std::vector< std::string > vertexSrc =
+		{
+			GetHeader(),
+			DeclAttributeVar( "position", "vec3" ),
+			DeclAttributeVar( "color", "vec4" ),
+			DeclAttributeVar( texCoordName, "vec2" ),
+			DeclTransferVar( "frag_Color", "vec4" ),
+			DeclTransferVar( "frag_Tex", "vec2" ),
+			"void main(void) {",
+		};
+
+		if ( stage.tcgen == TCGEN_ENVIRONMENT )
+		{
+			vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3" ) );
+			attribs.push_back( "normal" );
+		}
+
+		InsertCoreTransformsDecl( vertexSrc, uniforms, vertGlobalVarInsertOffset );
+
+		vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
+
+		if ( stage.tcgen == TCGEN_ENVIRONMENT )
+		{
+			AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
+			vertexSrc.push_back( "\tfrag_Tex = st;" );
+		}
+		else
+		{
+			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
+		}
+
+		if ( stage.rgbGen == RGBGEN_VERTEX )
+			vertexSrc.push_back( "\tfrag_Color = color;" );
+		else
+			vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
+
+		// Fragment shader....
+		// Unspecified alphaGen implies a default 1.0 alpha channel
+		std::vector< std::string > fragmentSrc =
+		{
+			GetHeader(),
+			"precision highp float;",
+			DeclTransferVar( "frag_Color", "vec4" ),
+			DeclTransferVar( "frag_Tex", "vec2" ),
+			"const float gamma = 1.0 / 2.2;",
+			"void main(void) {"
+		};
+
+		const size_t fragGlobalDeclOffset = 4;
+
+		std::initializer_list<std::string> data  =
+		{
+			"uniform sampler2D sampler0;",
+			"uniform vec4 imageTransform;",
+			"uniform vec2 imageScaleRatio;",
+			"vec2 applyTransform(in vec2 coords) {",
+			"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
+			"}"
+		};
+
+		fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
+
+		fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+
+		for ( const effect_t& op: shader.stageBuffer[ j ].effects )
+		{
+			// Modify the texture coordinate as necessary before we write to the texture
+			if ( op.name == "tcModTurb" )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform float tcModTurb;" );
+				fragmentSrc.push_back( "\tst *= tcModTurb;" );
+				uniforms.push_back( "tcModTurb" );
+			}
+			else if ( op.name == "tcModScroll" )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec4 tcModScroll;" );
+				fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
+				uniforms.push_back( "tcModScroll" );
+			}
+			else if ( op.name == "tcModRotate" )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 texRotate;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec2 texCenter;" );
+				fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
+
+				uniforms.push_back( "texRotate" );
+				uniforms.push_back( "texCenter" );
+			}
+			else if ( op.name == "tcModScale" )
+			{
+				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 tcModScale;" );
+				fragmentSrc.push_back( "\tst = tcModScale * st;" );
+				uniforms.push_back( "tcModScale" );
+			}
+		}
+
+		switch ( stage.alphaFunc )
+		{
+		case ALPHA_FUNC_UNDEFINED:
+			WriteTexture( fragmentSrc, stage, NULL );
+			break;
+		case ALPHA_FUNC_GEQUAL_128:
+			WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
+			break;
+		case ALPHA_FUNC_GTHAN_0:
+			WriteTexture( fragmentSrc, stage, "color.a == 0" );
+			break;
+		case ALPHA_FUNC_LTHAN_128:
+			WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
+			break;
+		}
+
+		const std::string& vertexString = JoinLines( vertexSrc );
+		const std::string& fragmentString = JoinLines( fragmentSrc );
+
+		stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
+
+		if ( gMeta->logProgramGen )
+		{
+			fprintf( gMeta->programLog, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n",
+				j,
+				vertexString.c_str(),
+				fragmentString.c_str() );
+		}
+	}
+
+	shader.glslMade = shader.stageCount != 0;
 }
 
 bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1, const char* str2 )
