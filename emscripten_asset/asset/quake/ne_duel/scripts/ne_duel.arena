@@ -1,7 +1,0 @@
-{
-map "ne_duel"
-longname "Never Enough"
-bots "Doom"
-fraglimit 20
-type "ffa tourney team"
-}

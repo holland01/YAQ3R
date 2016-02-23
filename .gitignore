@@ -7,6 +7,7 @@ bspviewer.html
 testbin*
 obj/*
 build-bspviewer_*
+asset/
 
 # C++ objects and libs
 
@@ -63,7 +64,7 @@ vs/bspview/bspview.v12.suo
 [Rr]eleases/
 x64/
 x86/
-build/
+#build/
 bld/
 [Bb]in/
 [Oo]bj/

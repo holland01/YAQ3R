@@ -119,6 +119,8 @@ Product {
         "../src/renderer.h",
         "../src/renderer/buffer.cpp",
         "../src/renderer/buffer.h",
+        "../src/renderer/draw_buffer.cpp",
+        "../src/renderer/draw_buffer.h",
         "../src/renderer/renderer_local.h",
         "../src/renderer/shared.h",
         "../src/renderer/texture.cpp",
