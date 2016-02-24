@@ -4,6 +4,8 @@
 #include "tests/trenderer.h"
 #include "tests/test_textures.h"
 
+#undef main
+
 #ifdef EMSCRIPTEN
 #	include <emscripten.h>
 #endif

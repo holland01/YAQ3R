@@ -116,6 +116,8 @@
 // The three functions you must define are "read" (reads some bytes of data),
 // "skip" (skips some bytes of data), "eof" (reports if the stream is at the end).
 
+//#define STBI_HEADER_FILE_ONLY
+
 #ifndef STBI_NO_STDIO
 
 #if defined(_MSC_VER) && _MSC_VER >= 0x1400
@@ -253,6 +255,8 @@ extern void stbi_install_idct(stbi_idct_8x8 func);
 extern void stbi_install_YCbCr_to_RGB(stbi_YCbCr_to_RGB_run func);
 #endif // STBI_SIMD
 
+
+#include "stb_image.c"
 
 #ifdef __cplusplus
 }

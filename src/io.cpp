@@ -1,6 +1,6 @@
 #include "io.h"
 #include "q3bsp.h"
-#include "extern/stb_image.h"
+#include <extern/stb_image.h>
 #include "renderer.h"
 #include "effect_shader.h"
 #include <glm/gtx/string_cast.hpp>
@@ -344,7 +344,9 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
 	while ( success )
 	{
-		if ( !QueryCaller( directory + std::string( findFileData.cFileName ), callback ) )
+		std::string path( directory + std::string( findFileData.cFileName ) );
+
+		if ( !callback( ( const filedata_t )path.c_str() ) )
 			break;
 
 		success = FindNextFileA( file, &findFileData );

@@ -1,13 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -19,15 +27,21 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -96,6 +110,24 @@
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Link>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(GL_UTIL_LIB_ROOT)/sdl2/lib/x64;$(GL_UTIL_LIB_ROOT)/glew-msvc/lib/Release/x64</AdditionalLibraryDirectories>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(GL_UTIL_LIB_ROOT)/sdl2;$(GL_UTIL_LIB_ROOT)/glm;$(GL_UTIL_LIB_ROOT)/glew-msvc/include;$(ProjectDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Link>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(GL_UTIL_LIB_ROOT)/sdl2/lib/x64;$(GL_UTIL_LIB_ROOT)/glew-msvc/lib/Release/x64</AdditionalLibraryDirectories>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(GL_UTIL_LIB_ROOT)/sdl2;$(GL_UTIL_LIB_ROOT)/glm;$(GL_UTIL_LIB_ROOT)/glew-msvc/include;$(ProjectDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\aabb.cpp" />
     <ClCompile Include="..\..\src\deform.cpp" />
@@ -107,27 +139,24 @@
     <None Include="..\..\src\debug.vert" />
     <None Include="..\..\src\extern\stb_image.c" />
     <ClCompile Include="..\..\src\frustum.cpp" />
-    <ClCompile Include="..\..\src\gldebug.cpp" />
     <ClCompile Include="..\..\src\glutil.cpp" />
     <ClCompile Include="..\..\src\input.cpp" />
     <ClCompile Include="..\..\src\io.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\math_util.cpp" />
-    <ClCompile Include="..\..\src\mtrand.cpp" />
     <ClCompile Include="..\..\src\q3bsp.cpp" />
     <ClCompile Include="..\..\src\bsp_data.cpp" />
     <ClCompile Include="..\..\src\renderer.cpp" />
     <ClCompile Include="..\..\src\renderer\buffer.cpp" />
+    <ClCompile Include="..\..\src\renderer\draw_buffer.cpp" />
+    <ClCompile Include="..\..\src\renderer\program.cpp" />
     <ClCompile Include="..\..\src\renderer\texture.cpp" />
+    <ClCompile Include="..\..\src\renderer\util.cpp" />
     <ClCompile Include="..\..\src\render_data.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
     <ClCompile Include="..\..\src\tests\test.cpp" />
     <ClCompile Include="..\..\src\tests\test_textures.cpp" />
     <ClCompile Include="..\..\src\tests\trenderer.cpp" />
-    <None Include="..\..\src\model.frag" />
-    <None Include="..\..\src\model.vert" />
-    <None Include="..\..\src\irradiate.frag" />
-    <None Include="..\..\src\irradiate.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\aabb.h" />
@@ -136,30 +165,30 @@
     <ClInclude Include="..\..\src\common.h" />
     <ClInclude Include="..\..\src\effect_shader.h" />
     <ClInclude Include="..\..\src\eu_ang.h" />
+    <ClInclude Include="..\..\src\extern\stb_image.h" />
     <ClInclude Include="..\..\src\frustum.h" />
-    <ClInclude Include="..\..\src\gldebug.h" />
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\glutil.h" />
     <ClInclude Include="..\..\src\input.h" />
     <ClInclude Include="..\..\src\io.h" />
     <ClInclude Include="..\..\src\math_util.h" />
-    <ClInclude Include="..\..\src\mtrand.h" />
     <ClInclude Include="..\..\src\plane.h" />
     <ClInclude Include="..\..\src\q3bsp.h" />
     <ClInclude Include="..\..\src\bsp_data.h" />
     <ClInclude Include="..\..\src\renderer.h" />
     <ClInclude Include="..\..\src\renderer\buffer.h" />
+    <ClInclude Include="..\..\src\renderer\draw_buffer.h" />
+    <ClInclude Include="..\..\src\renderer\program.h" />
     <ClInclude Include="..\..\src\renderer\renderer_local.h" />
+    <ClInclude Include="..\..\src\renderer\shared.h" />
     <ClInclude Include="..\..\src\renderer\texture.h" />
+    <ClInclude Include="..\..\src\renderer\util.h" />
     <ClInclude Include="..\..\src\render_data.h" />
     <ClInclude Include="..\..\src\shader.h" />
     <ClInclude Include="..\..\src\tests\test.h" />
     <ClInclude Include="..\..\src\tests\test_textures.h" />
+    <ClInclude Include="..\..\src\tests\test_util.h" />
     <ClInclude Include="..\..\src\tests\trenderer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\src\main.frag" />
-    <None Include="..\..\src\main.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -65,8 +65,6 @@
 // or create stb_image.h, #define STBI_HEADER_FILE_ONLY, and
 // then include stb_image.c from it.
 
-#include "stb_image.h"
-
 #ifndef STBI_HEADER_FILE_ONLY
 
 #ifndef STBI_NO_HDR
