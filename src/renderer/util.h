@@ -1,10 +1,7 @@
 #pragma once
 
-#include "common.h"
 #include "texture.h"
 #include "glutil.h"
-
-#define G_INDEX_BYTE_STRIDE 4
 
 void GU_SetupTexParams( const Program& program,
 						const char* uniformPrefix,
@@ -15,7 +12,7 @@ void GU_SetupTexParams( const Program& program,
 
 static INLINE void GU_ClearDepth( float d )
 {
-#ifdef GLES
+#ifdef EMSCRIPTEN
 	GL_CHECK( glClearDepthf( d ) );
 #else
 	GL_CHECK( glClearDepth( d ) );

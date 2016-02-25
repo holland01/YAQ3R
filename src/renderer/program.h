@@ -3,7 +3,7 @@
 #include "common.h"
 #include "renderer_local.h"
 
-struct Program;
+class Program;
 
 struct gProgramHandle_t
 {

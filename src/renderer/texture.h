@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.h"
 #include "renderer_local.h"
 
 enum
@@ -64,8 +63,6 @@ gSamplerHandle_t GMakeSampler(
 gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags );
 
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image );
-
-bool GDetermineImageFormat( gImageParams_t& image );
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue );
 

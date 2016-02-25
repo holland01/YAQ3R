@@ -1,11 +1,8 @@
-#version 100
+#version 330
 
-precision highp float;
-precision highp sampler2D;
-
-varying vec4 frag_Color;
-varying vec2 frag_Tex;
-varying vec2 frag_Lightmap;
+in vec4 frag_Color;
+in vec2 frag_Tex;
+in vec2 frag_Lightmap;
 
 uniform sampler2D mainImageSampler;
 uniform vec2 mainImageImageScaleRatio;
@@ -16,6 +13,8 @@ uniform vec2 lightmapImageScaleRatio;
 uniform vec4 lightmapImageTransform;
 
 const float gamma = 1.0 / 3.0;
+
+out vec4 fragment;
 
 void main()
 {
@@ -36,5 +35,7 @@ void main()
 	col.g = pow( col.g, gamma );
 	col.b = pow( col.b, gamma );
 
-	gl_FragColor = col;
+	//gl_FragColor = col;
+
+	fragment = col;
 }

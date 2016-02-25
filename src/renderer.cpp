@@ -9,6 +9,34 @@
 #include <random>
 #include <algorithm>
 
+#if USE_GL_CORE
+#	define MAIN_SHADER_SUFFIX "core"
+	struct vao_t
+	{
+		GLuint vao;
+
+		vao_t( void )
+			: vao( 0 )
+		{
+			GL_CHECK( glGenVertexArrays( 1u, &vao ) );
+			GL_CHECK( glBindVertexArray( vao ) );
+		}
+
+		~vao_t(void)
+		{
+			if ( vao )
+			{
+				GL_CHECK( glBindVertexArray( 0 ) );
+				GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
+			}
+		}
+	};
+
+	std::unique_ptr< vao_t > gVao( nullptr );
+#else
+#	define MAIN_SHADER_SUFFIX "es"
+#endif
+
 struct config_t
 {
 	bool drawFacesOnly: 1;
@@ -19,7 +47,7 @@ struct config_t
 
 static config_t gConfig =
 {
-	false,
+	true,
 	false,
 	false,
 	false
@@ -150,7 +178,11 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 0.1f, 100000.0f );
+	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 1.0f, 1000000.0f );
+	glGetError();
+#if USE_GL_CORE
+	gVao.reset( new vao_t() );
+#endif
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -185,15 +217,17 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath
 void BSPRenderer::Prep( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-	GL_CHECK( glEnable( GL_BLEND ) );
 
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glDepthRange( 0.0f, 0.5f ) );
+
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
-
+	
 	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
+	GL_CHECK( glDisable( GL_BLEND ) );
 
 	// Load main shader glPrograms
 	{
@@ -221,9 +255,10 @@ void BSPRenderer::Prep( void )
 			"lightmapActive"
 		};
 
-		MakeProg( "main", "src/main_es.vert", "src/main_es.frag", uniforms, attribs );
+		MakeProg( "main", "src/main_" MAIN_SHADER_SUFFIX ".vert", "src/main_" MAIN_SHADER_SUFFIX ".frag", uniforms, attribs );
 	}
 
+	/*
 	{
 		std::vector< std::string > attribs =
 		{
@@ -239,6 +274,7 @@ void BSPRenderer::Prep( void )
 
 		MakeProg( "debug", "src/debug.vert", "src/debug.frag", uniforms, attribs );
 	}
+	*/
 }
 
 bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
@@ -632,7 +668,6 @@ void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
 
 void BSPRenderer::RenderPass( const viewParams_t& view )
 {
-	GU_ClearDepth( 1.0f );
 	memset( &gCounts, 0, sizeof( gCounts ) );
 
 	drawPass_t pass( map, view );
@@ -663,16 +698,16 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	pass.type = PASS_DRAW;
-
+	/*
 	GL_CHECK( glEnable( GL_CULL_FACE ) );
 	GL_CHECK( glCullFace( GL_FRONT ) );
 	GL_CHECK( glFrontFace( GL_CCW ) );
-
+	*/
 	TraverseDraw( pass, true );
 
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
+	//GL_CHECK( glDisable( GL_CULL_FACE ) );
 
-	TraverseDraw( pass, false );
+	//TraverseDraw( pass, false );
 
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
 			   CalcFPS(),
@@ -856,19 +891,25 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
+	// Assess the current culling situation; if the current
+	// shader uses a setting which differs from what's currently set,
+	// we restore our cull settings to their previous values after this draw
 	GLint oldCull = -1, oldCullMode = 0, oldFrontFace = 0;
 	if  ( shader->cullFace != G_UNSPECIFIED )
 	{
 		GL_CHECK( glGetIntegerv( GL_CULL_FACE, &oldCull ) );
+
+		// Store values right now, before the potential change in state
 		if ( oldCull )
 		{
 			GL_CHECK( glGetIntegerv( GL_FRONT_FACE, &oldFrontFace ) );
 			GL_CHECK( glGetIntegerv( GL_CULL_FACE_MODE, &oldCullMode ) );
 		}
 
+		// Check for desired face culling
 		if ( shader->cullFace )
 		{
-			if ( !oldCull )
+			if ( !oldCull ) // Not enabled, so we need to activate it
 				GL_CHECK( glEnable( GL_CULL_FACE ) );
 
 			GL_CHECK( glCullFace( shader->cullFace ) );
@@ -926,10 +967,14 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 
+	// Did we bother checking earlier?
 	if ( oldCull != -1 )
 	{
+		// If true, we had culling enabled previously, so
+		// restore previous settings; otherwise, we ensure it's disabled
 		if ( oldCull == GL_TRUE )
 		{
+			GL_CHECK( glEnable( GL_CULL_FACE ) );
 			GL_CHECK( glCullFace( oldCullMode ) );
 			GL_CHECK( glFrontFace( oldFrontFace ) );
 		}
@@ -949,6 +994,7 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 
 	switch ( pass.drawType )
 	{
+		/*
 		case PASS_DRAW_EFFECT:
 		{
 			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->shader, pass.face->lightmapIndex );
@@ -961,7 +1007,7 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 			});
 		}
 			break;
-
+		*/
 		default:
 		case PASS_DRAW_MAIN:
 
@@ -1003,12 +1049,14 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 				{
 					const drawSurface_t& surf = i3->second;
 
+					/*
 					if ( surf.shader )
 					{
 						drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
 						DrawEffectPass( tuple, LEffectCallback );
 					}
 					else
+					*/
 					{
 						DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
 						{
@@ -1039,7 +1087,7 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 	}
 	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
 	{
-		GU_MultiDrawElements( GL_TRIANGLE_STRIP, m.rowIndices, m.trisPerRow );
+		//GU_MultiDrawElements( GL_TRIANGLE_STRIP, m.rowIndices, m.trisPerRow );
 	}
 }
 

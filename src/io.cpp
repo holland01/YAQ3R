@@ -111,7 +111,7 @@ void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 			}
 		}
 
-		O_Log( _FUNC_NAME_, "DRAW ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s", callerFunc, glFunc, line, error, errorString );
+		O_Log( _FUNC_NAME_, "DRAW ERROR", "%s -> [ %s ( %i ) ]: \'0x%x\' => %s\n", callerFunc, glFunc, line, error, errorString );
 		FlagExit();
 	}
 }

@@ -11,6 +11,12 @@
 #endif
 */
 
+#ifndef EMSCRIPTEN
+#	define _DEBUG_USE_GL_GET_ERR
+#endif
+
+#define USE_GL_CORE 0
+
 #if defined(_WIN32)
 #	include <Windows.h>
 #	define GL_PROC APIENTRY

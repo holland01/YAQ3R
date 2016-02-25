@@ -71,18 +71,19 @@ INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
 	GL_CHECK( glGenTextures( 1, &tt->handle ) );
 	GL_CHECK( glBindTexture( tt->target, tt->handle ) );
 
-	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
-	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
-	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
-	GL_CHECK( glTexParameterf( tt->target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
+	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
+	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
+	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
+	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
 
 	{
+		std::vector< uint8_t > zeroOut( canvasParams.width * sampler.bpp * canvasParams.height, 0 );
 		GL_CHECK( glTexImage2D( tt->target, 0, sampler.format,
 			   canvasParams.width,
 			   canvasParams.height,
 			   0,
 			   sampler.internalFormat,
-			   GL_UNSIGNED_BYTE, NULL ) );
+			   GL_UNSIGNED_BYTE, &zeroOut[ 0 ] ) );
 	}
 
 	const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );

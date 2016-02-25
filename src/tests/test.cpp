@@ -8,7 +8,7 @@
 #endif
 
 Test* gAppTest = nullptr;
-
+ 
 static void FrameIteration( void )
 {
 	if ( !gAppTest )
@@ -58,10 +58,14 @@ bool Test::Load( const char* winName )
 {
 	SDL_Init( SDL_INIT_VIDEO );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, G_API_MAJOR_VERSION );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, G_API_MINOR_VERSION );
 
-	SDL_CreateWindowAndRenderer( width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN, &sdlWindow, &sdlRenderer );
+#if USE_GL_CORE
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+#endif
+	
+	SDL_CreateWindowAndRenderer( width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE, &sdlWindow, &sdlRenderer );
 	SDL_SetWindowTitle( sdlWindow, winName );
 
 	sdlContext = SDL_GL_CreateContext( sdlWindow );

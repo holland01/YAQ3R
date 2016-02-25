@@ -11,13 +11,43 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
 static float ReadFloat( const char*& buffer );
 static const char* ReadToken( char* out, const char* buffer );
 
+
+namespace {
+
+// struct for debugging shader generation/parsing
+struct meta_t
+{
+	bool logProgramGen = true;
+	FILE*	programLog = nullptr;
+	uint32_t currLineCount = 0;
+	
+	std::string currShaderFile;
+
+	meta_t( void )
+	{
+		if ( logProgramGen )
+			programLog = fopen( "log/shader_gen.txt", "wb" );
+	}
+
+	~meta_t( void )
+	{
+		if ( programLog )
+			fclose( programLog );
+	}
+};
+
+std::unique_ptr< meta_t > gMeta( new meta_t() );
+
+}
+
 using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) >;
 
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) -> bool
 
 #define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 
-std::map< std::string, stageEvalFunc_t > stageReadFuncs =
+// Lookup table we use for each shader/stage command
+std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 {
 	{
 		"surfaceparm",
@@ -498,8 +528,6 @@ enum tokType_t
 	TOKTYPE_COMMENT
 };
 
-static int gLineCount = 0;
-
 static INLINE GLsizei GL_EnumFromStr( const char* str )
 {
 	// blending
@@ -545,7 +573,7 @@ static INLINE tokType_t Token( const char* c )
 	};
 
 	if ( *c == '\n' )
-		gLineCount++;
+		gMeta->currLineCount++;
 
 	// If we have an indent, space, newline, or a comment, then the token is invalid
 	if ( *c == '/' && *( c + 1 ) == '/' )
@@ -563,9 +591,6 @@ static INLINE const char* NextLine( const char* buffer )
 	while ( *buffer != '\n' )
 		buffer++;
 
-	//gLineCount++;
-
-	// Add one to skip the newline
 	return buffer;
 }
 
@@ -700,28 +725,57 @@ static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const 
 
 static INLINE std::string SampleTexture2D( const std::string& samplerName, const std::string& coords )
 {
+#if USE_GL_CORE
+	std::string fname( "texture" );
+#else
 	std::string fname( "texture2D" );
+#endif
 	return fname + "( " + samplerName + ", " + coords + " )";
 }
 
 static INLINE std::string WriteFragment( const std::string& value )
 {
+#if USE_GL_CORE
+	return "fragment = " + value + ";";
+#else
 	return "gl_FragColor = " + value + ";";
+#endif
 }
 
-static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type )
+static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type, const int32_t location = -1 )
 {
+#if USE_GL_CORE 
+	std::string decl("in " + type + " " + name + ";");
+	
+	if ( location != -1 )
+	{
+		decl = "layout( location = " + std::to_string( location ) + " ) " + decl;		
+	}
+
+	return decl;
+#else
+	UNUSED( location );
 	return "attribute " + type + " " + name + ";";
+#endif
 }
 
-static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type )
+static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type, const std::string& transferMode="" )
 {
+#if USE_GL_CORE
+	return transferMode + " " + type + " " + name + ";";
+#else
+	UNUSED( transferMode );
 	return "varying " + type + " " + name + ";";
+#endif
 }
 
 static INLINE std::string GetHeader( void )
 {
+#if USE_GL_CORE
+	return "#version 330";
+#else
 	return "#version 100";
+#endif
 }
 
 static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destShaderSrc,
@@ -735,7 +789,6 @@ static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destSha
 		{ "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
 	);
 }
-
 
 static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
 		const shaderStage_t& stage, const char* discardPredicate )
@@ -910,7 +963,11 @@ struct parseArgs_t
 				MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
 				return FILE_CONTINUE_TRAVERSAL;
 			}
+
+			gMeta->currShaderFile = filepath;
 		}
+
+		gMeta->currLineCount = 0;
 
 		const char* pChar = ( const char* ) &fileBuffer[ 0 ];
 
@@ -924,33 +981,12 @@ struct parseArgs_t
 			effectShaders->insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
 		}
 
-		gLineCount = 0;
-
 		return FILE_CONTINUE_TRAVERSAL;
 	}
 };
 
 shaderMap_t* parseArgs_t::effectShaders = nullptr;
 
-struct meta_t
-{
-	bool logProgramGen = false;
-	FILE*	programLog = nullptr;
-
-	meta_t( void )
-	{
-		if ( logProgramGen )
-			programLog = fopen( "log/shader_gen.txt", "wb" );
-	}
-
-	~meta_t( void )
-	{
-		if ( programLog )
-			fclose( programLog );
-	}
-};
-
-std::unique_ptr< meta_t > gMeta( new meta_t() );
 
 }
 
@@ -1014,14 +1050,16 @@ void S_GenPrograms( shaderInfo_t& shader )
 		const size_t vertGlobalVarInsertOffset = 4;
 
 		// Vertex shader...
+		// if we're not using core the last args for both the attribute and transfer
+		// decl funcs won't be written; they'll likely just get optimized away
 		std::vector< std::string > vertexSrc =
 		{
 			GetHeader(),
-			DeclAttributeVar( "position", "vec3" ),
-			DeclAttributeVar( "color", "vec4" ),
-			DeclAttributeVar( texCoordName, "vec2" ),
-			DeclTransferVar( "frag_Color", "vec4" ),
-			DeclTransferVar( "frag_Tex", "vec2" ),
+			DeclAttributeVar( "position", "vec3", 0 ), 
+			DeclAttributeVar( "color", "vec4", 1 ),
+			DeclAttributeVar( texCoordName, "vec2", 2 ),
+			DeclTransferVar( "frag_Color", "vec4", "out" ),
+			DeclTransferVar( "frag_Tex", "vec2", "out" ),
 			"void main(void) {",
 		};
 
@@ -1055,10 +1093,15 @@ void S_GenPrograms( shaderInfo_t& shader )
 		std::vector< std::string > fragmentSrc =
 		{
 			GetHeader(),
+#if !USE_GL_CORE
 			"precision highp float;",
-			DeclTransferVar( "frag_Color", "vec4" ),
-			DeclTransferVar( "frag_Tex", "vec2" ),
+#endif
+			DeclTransferVar( "frag_Color", "vec4", "in" ),
+			DeclTransferVar( "frag_Tex", "vec2", "in" ),
 			"const float gamma = 1.0 / 2.2;",
+#if USE_GL_CORE
+			DeclTransferVar( "fragment", "vec4", "out" ),
+#endif
 			"void main(void) {"
 		};
 
