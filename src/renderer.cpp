@@ -4,6 +4,7 @@
 #include "math_util.h"
 #include "effect_shader.h"
 #include "deform.h"
+#include "model.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
 #include <random>
@@ -22,7 +23,7 @@
 			GL_CHECK( glBindVertexArray( vao ) );
 		}
 
-		~vao_t(void)
+		~vao_t( void )
 		{
 			if ( vao )
 			{
@@ -47,7 +48,7 @@ struct config_t
 
 static config_t gConfig =
 {
-	true,
+	false,
 	false,
 	false,
 	false
@@ -62,51 +63,7 @@ struct counts_t
 };
 
 static counts_t gCounts = { 0 };
-
 static uint64_t frameCount = 0;
-
-//--------------------------------------------------------------
-mapModel_t::mapModel_t( void )
-	: deform( false ),
-	  vboOffset( 0 ),
-	  subdivLevel( 0 )
-{
-}
-
-mapModel_t::~mapModel_t( void )
-{
-}
-
-void mapModel_t::CalcBounds( const std::vector< int32_t >& indices, int32_t faceType, const mapData_t& data )
-{
-	bounds.Empty();
-
-	auto LCheck = [ & ]( const glm::vec3& v )
-	{
-		if ( v.x < bounds.minPoint.x ) bounds.minPoint.x = v.x;
-		if ( v.y < bounds.minPoint.y ) bounds.minPoint.y = v.y;
-		if ( v.z > bounds.minPoint.z ) bounds.minPoint.z = v.z;
-
-		if ( v.x > bounds.maxPoint.x ) bounds.maxPoint.x = v.x;
-		if ( v.y > bounds.maxPoint.y ) bounds.maxPoint.y = v.y;
-		if ( v.y < bounds.maxPoint.z ) bounds.maxPoint.z = v.z;
-	};
-
-	if ( faceType == BSP_FACE_TYPE_PATCH )
-	{
-		for ( const bspVertex_t& v: patchVertices )
-		{
-			LCheck( v.position );
-		}
-	}
-	else
-	{
-		for ( size_t i = 0; i < indices.size(); ++i )
-		{
-			LCheck( data.vertexes[ indices[ i ] ].position );
-		}
-	}
-}
 
 //--------------------------------------------------------------
 drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData )
@@ -257,24 +214,6 @@ void BSPRenderer::Prep( void )
 
 		MakeProg( "main", "src/main_" MAIN_SHADER_SUFFIX ".vert", "src/main_" MAIN_SHADER_SUFFIX ".frag", uniforms, attribs );
 	}
-
-	/*
-	{
-		std::vector< std::string > attribs =
-		{
-			"position"
-		};
-
-		std::vector< std::string > uniforms =
-		{
-			"modelToView",
-			"viewToClip",
-			"fragColor"
-		};
-
-		MakeProg( "debug", "src/debug.vert", "src/debug.frag", uniforms, attribs );
-	}
-	*/
 }
 
 bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
@@ -439,80 +378,43 @@ void BSPRenderer::LoadVertexData( void )
 		glDebugFaces.resize( map->data.numFaces );
 
 	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
+
+#if !G_STREAM_INDEX_VALUES
 	std::vector< uint32_t > indexData;
+	MapModelGenIndexBuffer( indexData );
+#endif
+
+	size_t iboSize = 0;
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
 	for ( int32_t i = 0; i < map->data.numFaces; ++i )
 	{
-		std::vector< int32_t > modIndices;
-		const shaderInfo_t* shader = map->GetShaderInfo( i );
-		mapModel_t* mod = &glFaces[ i ];
-
-		const bspFace_t* face = map->data.faces + i;
-
-		std::vector< glm::vec3 > debugBuffer;
+		const bspFace_t* face = &map->data.faces[ i ];
 
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
-			mod->iboRange = face->numMeshVertexes;
-			mod->iboOffset = indexData.size();
-			for ( int32_t j = 0; j < face->numMeshVertexes; ++j )
-			{
-				uint32_t index = face->vertexOffset + map->data.meshVertexes[ face->meshVertexOffset + j ].offset;
-
-				modIndices.push_back( index );
-
-				if ( gConfig.debugRender )
-					debugBuffer.push_back( map->data.vertexes[ index ].position );
-			}
+			glFaces[ i ].reset( new mapModel_t() ); 				
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
-			mod->vboOffset = ( GLuint ) vertexData.size();
-
-			int width = ( face->patchDimensions[ 0 ] - 1 ) / 2;
-			int height = ( face->patchDimensions[ 1 ] - 1 ) / 2;
-
-			// ( k, j ) maps to a ( row, col ) index scheme referring to the beginning of a patch
-			int n, m;
-			mod->controlPoints.resize( width * height * 9 );
-
-			for ( n = 0; n < width; ++n )
-			{
-				for ( m = 0; m < height; ++m )
-				{
-					int baseSource = face->vertexOffset + 2 * m * width + 2 * n;
-					int baseDest = ( m * width + n ) * 9;
-
-					for ( int32_t c = 0; c < 3; ++c )
-					{
-						mod->controlPoints[ baseDest + c * 3 + 0 ] = &map->data.vertexes[ baseSource + c * face->patchDimensions[ 0 ] + 0 ];
-						mod->controlPoints[ baseDest + c * 3 + 1 ] = &map->data.vertexes[ baseSource + c * face->patchDimensions[ 0 ] + 1 ];
-						mod->controlPoints[ baseDest + c * 3 + 2 ] = &map->data.vertexes[ baseSource + c * face->patchDimensions[ 0 ] + 2 ];
-					}
-
-					GenPatch( modIndices, mod, shader, baseDest, ( int32_t ) vertexData.size() );
-				}
-			}
-
-			const uint32_t L1 = mod->subdivLevel + 1;
-			mod->rowIndices.resize( width * height * mod->subdivLevel, 0 );
-			mod->trisPerRow.resize( width * height * mod->subdivLevel, 0 );
-
-			for ( size_t y = 0; y < mod->rowIndices.size(); ++y )
-			{
-				mod->trisPerRow[ y ] = 2 * L1;
-				mod->rowIndices[ y ] = indexData.size() + y * 2 * L1;
-			}
-			vertexData.insert( vertexData.end(), mod->patchVertices.begin(), mod->patchVertices.end() );
+			glFaces[ i ].reset( new mapPatch_t() );
 		}
 
-		indexData.insert( indexData.end(), modIndices.begin(), modIndices.end() );
-		mod->CalcBounds( modIndices, face->type, map->data );
+		glFaces[ i ]->Generate( vertexData, map, i );
+		glFaces[ i ]->CalcBounds( map->data );
 
+#if G_STREAM_INDEX_VALUES
+		// Allocate the largest index buffer out of all models, so we can just
+		// stream each item, and save GPU mallocs
+		if ( iboSize < glFaces[ i ]->iboRange )
+		{
+			iboSize = glFaces[ i ]->iboRange;
+		}
+#endif
 		if ( gConfig.debugRender )
 		{
+			MLOG_ASSERT( false, "gConfig.debugRender is true; you need to add the vertex data to the glDebugFaces member" );
 			std::random_device r;
 			std::default_random_engine e( r() );
 			std::uniform_real_distribution< float > urd( 0.0f, 1.0f );
@@ -520,16 +422,19 @@ void BSPRenderer::LoadVertexData( void )
 			glm::vec4 color( urd( e ), urd( e ), urd( e ), 1.0f );
 
 			glDebugFaces[ i ].color = color;
-			glDebugFaces[ i ].positions = std::move( debugBuffer );
+			//glDebugFaces[ i ].positions = std::move( debugBuffer );
 		}
 	}
 
-	// Allocate vertex data from map and store it all in a single vbo
+	// Allocate vertex data from map and store it all in a single vbo; we use dynamic draw as a hint,
+	// considering that vertex deforms require a buffer update
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
 	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData[ 0 ] ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
 
+#if !G_STREAM_INDEX_VALUES
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
 	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( indexData[ 0 ] ) * indexData.size(), &indexData[ 0 ], GL_STATIC_DRAW ) );
+#endif
 }
 
 void BSPRenderer::Render( void )
@@ -574,7 +479,9 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 		glPrograms[ "debug" ]->LoadMat4( "viewToClip", proj );
 		glPrograms[ "debug" ]->LoadVec4( "fragColor", glDebugFaces[ index ].color );
 		glPrograms[ "debug" ]->Bind();
-		GU_MultiDrawElements( GL_TRIANGLE_STRIP, glFaces[ index ].rowIndices, glFaces[ index ].trisPerRow );
+		GU_MultiDrawElements( GL_TRIANGLE_STRIP, 
+					glFaces[ index ]->ToPatch()->rowIndices, 
+					glFaces[ index ]->ToPatch()->trisPerRow );
 		glPrograms[ "debug" ]->Release();
 
 		glm::mat4 viewLineX( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapStVecs[ 0 ] ) );
@@ -698,14 +605,12 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	pass.type = PASS_DRAW;
-	/*
 	GL_CHECK( glEnable( GL_CULL_FACE ) );
 	GL_CHECK( glCullFace( GL_FRONT ) );
 	GL_CHECK( glFrontFace( GL_CCW ) );
-	*/
 	TraverseDraw( pass, true );
 
-	//GL_CHECK( glDisable( GL_CULL_FACE ) );
+	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
 	//TraverseDraw( pass, false );
 
@@ -751,7 +656,8 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		}
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
-			ProcessFace( pass, map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+			ProcessFace( pass, 
+						map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
 	}
 	else
 	{
@@ -784,6 +690,17 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
 	main.LoadDefaultAttribProfiles();
 
+	shaderInfo_t* tex = nullptr;
+	if ( textureIndex != -1 )
+	{
+		auto i = map->effectShaders.find( map->data.shaders[ textureIndex ].name );
+		if ( i != map->effectShaders.end() )
+		{
+			tex = &i->second;
+			__nop();
+		}
+	}
+
 	GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
@@ -800,23 +717,28 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 }
 
 namespace {
-	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, std::vector< mapModel_t >& glFaces )
+	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, modelBuffer_t& glFaces )
 	{
-		mapModel_t& model = glFaces[ faceIndex ];
+		mapModel_t& model = *( glFaces[ faceIndex ] ); 
 
-		if ( surf.faceType == BSP_FACE_TYPE_PATCH )
-		{
-			surf.bufferOffsets.insert( surf.bufferOffsets.end(), model.rowIndices.begin(), model.rowIndices.end() );
-			surf.bufferRanges.insert( surf.bufferRanges.end(), model.trisPerRow.begin(), model.trisPerRow.end() );
-		}
-		else
-		{
-			surf.bufferOffsets.push_back( model.iboOffset );
-			surf.bufferRanges.push_back( model.iboRange );
-		}
+		#if G_STREAM_INDEX_VALUES
+			surf.drawFaceIndices.push_back( faceIndex );
+		#else
+			if ( surf.faceType == BSP_FACE_TYPE_PATCH )
+			{
+				mapPatch_t& patch = *( model.ToPatch() );
 
-		if ( surf.shader
-		&& ( /*!!( surf.shader->surfaceParms & SURFPARM_ENVMAP ) ||*/ surf.shader->deform ) )
+				surf.bufferOffsets.insert( surf.bufferOffsets.end(), patch.rowIndices.begin(), patch.rowIndices.end() );
+				surf.bufferRanges.insert( surf.bufferRanges.end(), patch.trisPerRow.begin(), patch.trisPerRow.end() );
+			}
+			else
+			{
+				surf.bufferOffsets.push_back( model.iboOffset );
+				surf.bufferRanges.push_back( model.iboRange );
+			}
+		#endif
+
+		if ( surf.shader && surf.shader->deform )
 		{
 			surf.faceIndices.push_back( faceIndex );
 		}
@@ -876,11 +798,19 @@ void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, sur
 void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 {
 	for ( int32_t i: surf.faceIndices )
-		DeformVertexes( glFaces[ i ], surf.shader );
+		DeformVertexes( *( glFaces[ i ] ), surf.shader );
 
 	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
+#if G_STREAM_INDEX_VALUES
+	for ( uint32_t i = 0; i < surf.drawFaceIndices.size(); ++i )
+	{
+		mapModel_t& m = *( glFaces[ surf.drawFaceIndices[ i ] ] );
+		GL_CHECK( glDrawElements( mode, m.indices.size(), GL_UNSIGNED_INT, &m.indices[ 0 ] ) );
+	}
+#else
 	GU_MultiDrawElements( mode, surf.bufferOffsets, surf.bufferRanges );
+#endif
 }
 
 void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
@@ -994,7 +924,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 
 	switch ( pass.drawType )
 	{
-		/*
 		case PASS_DRAW_EFFECT:
 		{
 			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->shader, pass.face->lightmapIndex );
@@ -1007,7 +936,6 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 			});
 		}
 			break;
-		*/
 		default:
 		case PASS_DRAW_MAIN:
 
@@ -1049,14 +977,12 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 				{
 					const drawSurface_t& surf = i3->second;
 
-					/*
 					if ( surf.shader )
 					{
 						drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
 						DrawEffectPass( tuple, LEffectCallback );
 					}
 					else
-					*/
 					{
 						DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
 						{
@@ -1074,7 +1000,7 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 {
 	UNUSED( stage );
 
-	const mapModel_t& m = glFaces[ pass.faceIndex ];
+	const mapModel_t& m = *( glFaces[ pass.faceIndex ] );
 
 	if ( pass.shader && pass.shader->deform )
 	{
@@ -1087,7 +1013,8 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 	}
 	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
 	{
-		//GU_MultiDrawElements( GL_TRIANGLE_STRIP, m.rowIndices, m.trisPerRow );
+		const mapPatch_t& p = *( m.ToPatch() );
+		GU_MultiDrawElements( GL_TRIANGLE_STRIP, p.rowIndices, p.trisPerRow );
 	}
 }
 
@@ -1096,12 +1023,12 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED )
 		return;
 
-	std::vector< bspVertex_t > verts = m.patchVertices;
+	const mapPatch_t& p = *( m.ToPatch() );
+	std::vector< bspVertex_t > verts = p.patchVertices;
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
 		glm::vec3 n( verts[ i ].normal * GenDeformScale( verts[ i ].position, shader ) );
-
 		verts[ i ].position += n;
 	}
 

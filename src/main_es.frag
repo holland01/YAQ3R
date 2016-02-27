@@ -1,7 +1,7 @@
 #version 100
 
-precision highp float;
-precision highp sampler2D;
+precision mediump float;
+precision mediump sampler2D;
 
 varying vec4 frag_Color;
 varying vec2 frag_Tex;

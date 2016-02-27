@@ -45,43 +45,6 @@ enum viewMode_t
 	VIEW_LIGHT_SAMPLE,
 };
 
-struct drawIndirect_t
-{
-	uint32_t count;
-	uint32_t instanceCount;
-	uint32_t firstIndex;
-	uint32_t baseVertex;
-	uint32_t baseInstance;
-};
-
-struct mapModel_t
-{
-	static const size_t INDEX_SIZE = 4u;
-
-	bool						deform: 1;
-	GLuint						vboOffset;
-	intptr_t					iboOffset;
-	GLsizei						iboRange; // num indices being drawn
-	int32_t						subdivLevel;
-
-	// used if face type == mesh or polygon
-	//std::vector< int32_t >				indices;
-
-	// used if face type == patch
-	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
-	std::vector< bspVertex_t >			patchVertices;
-	guBufferOffsetList_t				rowIndices;
-	guBufferRangeList_t					trisPerRow;
-	//std::vector< int32_t	>
-
-	AABB								bounds;
-
-	mapModel_t( void );
-	~mapModel_t( void );
-
-	void								CalcBounds( const std::vector< int32_t >& indices, int32_t faceType, const mapData_t& data );
-};
-
 using drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
 
 struct drawSurface_t
@@ -94,9 +57,12 @@ struct drawSurface_t
 	int32_t					faceType;
 	const shaderInfo_t*		shader;
 
-	guBufferOffsetList_t	bufferOffsets;
-	guBufferRangeList_t		bufferRanges;
-	std::vector< int32_t >	faceIndices;
+	guBufferOffsetList_t			bufferOffsets;
+	guBufferRangeList_t				bufferRanges;
+	
+	std::vector< int32_t >			drawFaceIndices;
+
+	std::vector< int32_t >			faceIndices; // for vertex deformations
 
 			drawSurface_t( void )
 				:	textureIndex( 0 ),
@@ -152,10 +118,12 @@ struct drawPass_t
 
 struct effect_t;
 struct shaderStage_t;
+struct mapModel_t;
 
 using effectFnSig_t = void( const Program& p, const effect_t& e );
 using programMap_t = std::unordered_map< std::string, std::unique_ptr< Program > >;
 using effectMap_t = std::unordered_map< std::string, std::function< effectFnSig_t > >;
+using modelBuffer_t = std::vector< std::unique_ptr< mapModel_t > >;
 
 struct debugFace_t
 {
@@ -176,7 +144,7 @@ private:
 
 	std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture and lightmap indices
 
-	std::vector< mapModel_t >		glFaces;			// has one->one mapping with face indices
+	modelBuffer_t					glFaces;			// has one->one mapping with face indices
 
 	std::vector< debugFace_t > glDebugFaces; // has one-one mapping with face indices - is only used when debugging for immediate data
 

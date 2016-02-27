@@ -31,7 +31,9 @@ static INLINE void GU_DrawElements( GLenum mode, guOffset_t buffOffset, GLsizei 
 static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t& indexBuffers, const guBufferRangeList_t& indexBufferSizes )
 {
 	for ( uint32_t i = 0; i < indexBuffers.size(); ++i )
+	{
 		GU_DrawElements( mode, indexBuffers[ i ], indexBufferSizes[ i ] );
+	}
 }
 
 using guImmPosList_t = std::vector< glm::vec3 >;

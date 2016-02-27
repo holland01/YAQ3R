@@ -1,5 +1,6 @@
 #include "deform.h"
 #include "renderer.h"
+#include "model.h"
 #include "io.h"
 #include "q3bsp.h"
 #include "glutil.h"
@@ -151,7 +152,7 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 
 //----------------------------------------------------------
 
-void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset )
+void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset )
 {
 	if ( !model->subdivLevel )
 	{

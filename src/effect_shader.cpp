@@ -11,7 +11,6 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
 static float ReadFloat( const char*& buffer );
 static const char* ReadToken( char* out, const char* buffer );
 
-
 namespace {
 
 // struct for debugging shader generation/parsing
@@ -575,6 +574,9 @@ static INLINE tokType_t Token( const char* c )
 	if ( *c == '\n' )
 		gMeta->currLineCount++;
 
+	if ( gMeta->currLineCount == 144 && gMeta->currShaderFile == "asset/stockmaps/maps/../scripts/base.shader" )
+		__nop();
+
 	// If we have an indent, space, newline, or a comment, then the token is invalid
 	if ( *c == '/' && *( c + 1 ) == '/' )
 		return TOKTYPE_COMMENT;
@@ -610,12 +612,9 @@ static INLINE const char* SkipInvalid( const char* buffer )
 
 static const char* ReadToken( char* out, const char* buffer )
 {
-	static int callCount = 0;
-
 	buffer = SkipInvalid( buffer );
 
 	// Parse token
-	int charCount = 0;
 	char* pOut = out;
 	while ( Token( buffer ) == TOKTYPE_VALID )
 	{
@@ -625,10 +624,7 @@ static const char* ReadToken( char* out, const char* buffer )
 		}
 
 		*pOut++ = tolower( *buffer++ );
-		charCount++;
 	}
-
-	callCount++;
 
 	return buffer;
 }
@@ -679,7 +675,6 @@ evaluate_tok:
 			// We're not in the main level, but we're leaving this stage, so decrease our level by 1 and add on to our stageCount
 			else
 			{
-				//outInfo->stageBuffer.insert( outInfo->stageBuffer.begin(), stage );
 				outInfo->stageBuffer.push_back( stage );
 				stage = shaderStage_t();
 				outInfo->stageCount += 1;
@@ -970,8 +965,10 @@ struct parseArgs_t
 		gMeta->currLineCount = 0;
 
 		const char* pChar = ( const char* ) &fileBuffer[ 0 ];
+		const char* end = ( const char* ) &fileBuffer[ fileBuffer.size() - 1 ];
+		ptrdiff_t range = ( ptrdiff_t )( end - pChar );
 
-		while ( *pChar )
+		while ( *pChar && range > 0 )
 		{
 			shaderInfo_t entry;
 
@@ -979,6 +976,7 @@ struct parseArgs_t
 			pChar = ParseEntry( &entry, pChar, 0 );
 
 			effectShaders->insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
+			range = ( ptrdiff_t )( end - pChar );
 		}
 
 		return FILE_CONTINUE_TRAVERSAL;

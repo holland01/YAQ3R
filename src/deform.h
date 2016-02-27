@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "bsp_data.h"
+#include "renderer/renderer_local.h"
 #include <array>
 
 #define BEZ_BUF_COUNT 2
@@ -20,7 +21,7 @@
 
 struct bspFace_t;
 struct deformModel_t;
-struct mapModel_t;
+struct mapPatch_t;
 struct mapData_t;
 
 struct deformGlobal_t
@@ -33,7 +34,7 @@ extern deformGlobal_t deformCache;
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
 
-void GenPatch( std::vector< int32_t >& outIndices, mapModel_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset = 0 );
+void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset = 0 );
 
 void TessellateTri(
 	std::vector< bspVertex_t >& outVerts,

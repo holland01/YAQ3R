@@ -8,6 +8,9 @@
 
 #define G_INDEX_BYTE_STRIDE 4
 
+// if 1, we don't use GL_ELEMENT_ARRAY_BUFFER, we just send the indices directly through the draw call itself.
+#define G_STREAM_INDEX_VALUES 1 
+
 #if USE_CORE
 #	define G_INTERNAL_RGBA_FORMAT GL_RGBA8
 #	define G_RGBA_FORMAT GL_RGBA
@@ -27,6 +30,9 @@
 #define G_MAG_FILTER GL_LINEAR
 
 #define G_MIPMAPPED false
+
+using gIndex_t = uint32_t;
+using gIndexBuffer_t = std::vector< gIndex_t >;
 
 #ifdef EMSCRIPTEN
 #   define glClearDepth glClearDepthf
