@@ -17,3 +17,12 @@ void GFreeVertexBuffer( gVertexBufferHandle_t& handle );
 void GBindVertexBuffer( const gVertexBufferHandle_t& buffer );
 
 void GReleaseVertexBuffer( void );
+
+struct gIndexBufferHandle_t
+{
+	uint32_t id;
+};
+
+gIndexBufferHandle_t GMakeIndexBuffer( void );
+
+void GIndexBufferAdd( gIndexBufferHandle_t dest, uint32_t v );
