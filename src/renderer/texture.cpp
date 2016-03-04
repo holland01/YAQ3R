@@ -258,9 +258,6 @@ gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags 
 	maxDims.x = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
 	maxDims.y = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
 
-	//maxDims.x = glm::max( maxDims.x, maxDims.y );
-	//maxDims.y = glm::max( maxDims.x, maxDims.y );
-
 	size_t numImages = ( size_t )( makeParams.end - makeParams.start );
 
 	uint32_t closeSquare = ( uint32_t )( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) numImages ) ) ) );

@@ -174,9 +174,9 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath
 void BSPRenderer::Prep( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-
+	GL_CHECK( glDepthMask( GL_TRUE ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-	GL_CHECK( glDepthRange( 0.0f, 0.5f ) );
+	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
@@ -191,9 +191,8 @@ void BSPRenderer::Prep( void )
 		std::vector< std::string > attribs =
 		{
 			"position",
-			"color",
-			"tex0",
-			"lightmap"
+			//"color",
+			"tex0"
 		};
 
 		std::vector< std::string > uniforms =
@@ -203,13 +202,12 @@ void BSPRenderer::Prep( void )
 
 			"mainImageSampler",
 			"mainImageImageTransform",
-			"mainImageImageScaleRatio",
-			"mainImageActive",
-
+			"mainImageImageScaleRatio"
+			/*
 			"lightmapSampler",
 			"lightmapImageTransform",
 			"lightmapImageScaleRatio",
-			"lightmapActive"
+			"lightmapActive"*/
 		};
 
 		MakeProg( "main", "src/main_" MAIN_SHADER_SUFFIX ".vert", "src/main_" MAIN_SHADER_SUFFIX ".frag", uniforms, attribs );
@@ -259,9 +257,10 @@ void BSPRenderer::Load( const std::string& filepath )
 		mainSampler = GMakeSampler();
 	}
 
+	
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 2 ) );
 
 	/*
 	{
