@@ -67,10 +67,10 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
 #define MLOG_INFOB( ... ) ( O_LogBuffer( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
-#define MLOG_ERROR( ... )                                \
+#define MLOG_ERROR( ... )									\
 	do                                                      \
 	{                                                       \
-		O_Log( ( _FUNC_NAME_ ), "ERROR", __VA_ARGS__ );           \
+		O_Log( ( _FUNC_NAME_ ), "ERROR", __VA_ARGS__ );     \
 		FlagExit();                                         \
 	}                                                       \
 	while( 0 )
@@ -79,15 +79,19 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
 #define MLOG_WARNING_SANS_FUNCNAME( title, ... ) ( O_Log( ( title ), "WARNING", __VA_ARGS__ )  )
 
-#define MLOG_ASSERT( condition, ... )    \
-	do                                      \
-	{                                       \
-		if ( !( condition ) )               \
-		{                                   \
-			MLOG_ERROR( __VA_ARGS__ );           \
-		}                                   \
-	}                                       \
-	while( 0 )
+#ifdef DEBUG
+#	define MLOG_ASSERT( condition, ... )		\
+		do                                      \
+		{                                       \
+			if ( !( condition ) )               \
+			{                                   \
+				MLOG_ERROR( __VA_ARGS__ );      \
+			}                                   \
+		}                                       \
+		while( 0 )
+#else
+#	define MLOG_ASSERT( condition, ... ) ()
+#endif
 
 template < typename T >
 INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
@@ -150,11 +154,20 @@ static INLINE void Pixels_To32Bit( uint8_t* destination,
 
 		for ( uint8_t k = sourceBPP; k < 3; ++k )
 			destination[ i * 4 + k ] = 0;
+	}
+}
 
-		/*
-		destination[ i * 4 + 0 ] = source[ i * 3 + 0 ];
-		destination[ i * 4 + 1 ] = source[ i * 3 + 1 ];
-		destination[ i * 4 + 2 ] = source[ i * 3 + 2 ];
-		*/
+/// Convert a buffer with an arbitrary bytes per pixel into an R equivalent
+/// buffer. The channel param passed refers to the color channel for each pixel
+/// in the source buffer we want to fetch.
+static INLINE void Pixels_ToR( uint8_t* destination,
+							   const uint8_t* source,
+							   uint8_t sourceBPP,
+							   uint8_t channel,
+							   int32_t numPixels )
+{
+	for ( int32_t i = 0; i < numPixels; ++i )
+	{
+		destination[ i ] = source[ i * sourceBPP + channel ];
 	}
 }

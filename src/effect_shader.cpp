@@ -720,7 +720,7 @@ static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const 
 
 static INLINE std::string SampleTexture2D( const std::string& samplerName, const std::string& coords )
 {
-#if USE_GL_CORE
+#ifdef G_USE_GL_CORE
 	std::string fname( "texture" );
 #else
 	std::string fname( "texture2D" );
@@ -730,7 +730,7 @@ static INLINE std::string SampleTexture2D( const std::string& samplerName, const
 
 static INLINE std::string WriteFragment( const std::string& value )
 {
-#if USE_GL_CORE
+#ifdef G_USE_GL_CORE
 	return "fragment = " + value + ";";
 #else
 	return "gl_FragColor = " + value + ";";
@@ -739,7 +739,7 @@ static INLINE std::string WriteFragment( const std::string& value )
 
 static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type, const int32_t location = -1 )
 {
-#if USE_GL_CORE 
+#ifdef G_USE_GL_CORE 
 	std::string decl("in " + type + " " + name + ";");
 	
 	if ( location != -1 )
@@ -756,7 +756,7 @@ static INLINE std::string DeclAttributeVar( const std::string& name, const std::
 
 static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type, const std::string& transferMode="" )
 {
-#if USE_GL_CORE
+#ifdef G_USE_GL_CORE
 	return transferMode + " " + type + " " + name + ";";
 #else
 	UNUSED( transferMode );
@@ -766,7 +766,7 @@ static INLINE std::string DeclTransferVar( const std::string& name, const std::s
 
 static INLINE std::string GetHeader( void )
 {
-#if USE_GL_CORE
+#ifdef G_USE_GL_CORE
 	return "#version 330";
 #else
 	return "#version 100";
@@ -1091,13 +1091,13 @@ void S_GenPrograms( shaderInfo_t& shader )
 		std::vector< std::string > fragmentSrc =
 		{
 			GetHeader(),
-#if !USE_GL_CORE
+#ifndef G_USE_GL_CORE
 			"precision highp float;",
 #endif
 			DeclTransferVar( "frag_Color", "vec4", "in" ),
 			DeclTransferVar( "frag_Tex", "vec2", "in" ),
 			"const float gamma = 1.0 / 2.2;",
-#if USE_GL_CORE
+#ifdef G_USE_GL_CORE
 			DeclTransferVar( "fragment", "vec4", "out" ),
 #endif
 			"void main(void) {"

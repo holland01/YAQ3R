@@ -11,4 +11,3 @@ struct gDrawBufferHandle_t
 gDrawBufferHandle_t GAllocDrawBuffer( size_t elemSize, size_t numElements );
 
 void GDrawDrawBuffer( gDrawBufferHandle_t buffer, size_t offset, size_t amount, void* memory );
-

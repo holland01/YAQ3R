@@ -10,7 +10,7 @@
 #include <random>
 #include <algorithm>
 
-#if USE_GL_CORE
+#ifdef G_USE_GL_CORE
 #	define MAIN_SHADER_SUFFIX "core"
 	struct vao_t
 	{
@@ -137,7 +137,8 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	camera = new InputCamera( view, EuAng() );
 	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 1.0f, 1000000.0f );
 	glGetError();
-#if USE_GL_CORE
+
+#ifdef G_USE_GL_CORE
 	gVao.reset( new vao_t() );
 #endif
 }
@@ -174,9 +175,9 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath
 void BSPRenderer::Prep( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-	GL_CHECK( glDepthRange( 0.0f, 0.5f ) );
+	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
+	GL_CHECK( glDepthMask( GL_TRUE ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
@@ -204,12 +205,10 @@ void BSPRenderer::Prep( void )
 			"mainImageSampler",
 			"mainImageImageTransform",
 			"mainImageImageScaleRatio",
-			"mainImageActive",
 
 			"lightmapSampler",
 			"lightmapImageTransform",
-			"lightmapImageScaleRatio",
-			"lightmapActive"
+			"lightmapImageScaleRatio"
 		};
 
 		MakeProg( "main", "src/main_" MAIN_SHADER_SUFFIX ".vert", "src/main_" MAIN_SHADER_SUFFIX ".frag", uniforms, attribs );
@@ -357,8 +356,7 @@ void BSPRenderer::LoadLightmaps( void )
 		image.sampler = mainSampler;
 		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
 
-		Pixels_To32Bit( &image.data[ 0 ],
-			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
+		GSetAlignedImageData( image, &map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, image.width * image.height );
 
 		lightmaps.push_back( image );
 	}
@@ -605,14 +603,16 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	pass.type = PASS_DRAW;
+	
 	GL_CHECK( glEnable( GL_CULL_FACE ) );
 	GL_CHECK( glCullFace( GL_FRONT ) );
 	GL_CHECK( glFrontFace( GL_CCW ) );
+	
 	TraverseDraw( pass, true );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
-
-	//TraverseDraw( pass, false );
+) );
+	TraverseDraw( pass, false );
 
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
 			   CalcFPS(),
@@ -690,17 +690,6 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
 	main.LoadDefaultAttribProfiles();
 
-	shaderInfo_t* tex = nullptr;
-	if ( textureIndex != -1 )
-	{
-		auto i = map->effectShaders.find( map->data.shaders[ textureIndex ].name );
-		if ( i != map->effectShaders.end() )
-		{
-			tex = &i->second;
-			__nop();
-		}
-	}
-
 	GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
@@ -721,22 +710,22 @@ namespace {
 	{
 		mapModel_t& model = *( glFaces[ faceIndex ] ); 
 
-		#if G_STREAM_INDEX_VALUES
-			surf.drawFaceIndices.push_back( faceIndex );
-		#else
-			if ( surf.faceType == BSP_FACE_TYPE_PATCH )
-			{
-				mapPatch_t& patch = *( model.ToPatch() );
+#if G_STREAM_INDEX_VALUES
+		surf.drawFaceIndices.push_back( faceIndex );
+#else
+		if ( surf.faceType == BSP_FACE_TYPE_PATCH )
+		{
+			mapPatch_t& patch = *( model.ToPatch() );
 
-				surf.bufferOffsets.insert( surf.bufferOffsets.end(), patch.rowIndices.begin(), patch.rowIndices.end() );
-				surf.bufferRanges.insert( surf.bufferRanges.end(), patch.trisPerRow.begin(), patch.trisPerRow.end() );
-			}
-			else
-			{
-				surf.bufferOffsets.push_back( model.iboOffset );
-				surf.bufferRanges.push_back( model.iboRange );
-			}
-		#endif
+			surf.bufferOffsets.insert( surf.bufferOffsets.end(), patch.rowIndices.begin(), patch.rowIndices.end() );
+			surf.bufferRanges.insert( surf.bufferRanges.end(), patch.trisPerRow.begin(), patch.trisPerRow.end() );
+		}
+		else
+		{
+			surf.bufferOffsets.push_back( model.iboOffset );
+			surf.bufferRanges.push_back( model.iboRange );
+		}
+#endif
 
 		if ( surf.shader && surf.shader->deform )
 		{
@@ -806,7 +795,7 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 	for ( uint32_t i = 0; i < surf.drawFaceIndices.size(); ++i )
 	{
 		mapModel_t& m = *( glFaces[ surf.drawFaceIndices[ i ] ] );
-		GL_CHECK( glDrawElements( mode, m.indices.size(), GL_UNSIGNED_INT, &m.indices[ 0 ] ) );
+		GDrawFromIndices( m.indices, mode );	
 	}
 #else
 	GU_MultiDrawElements( mode, surf.bufferOffsets, surf.bufferRanges );
@@ -1020,11 +1009,30 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 
 void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const
 {
-	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED )
-		return;
+	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED ) return;
 
-	const mapPatch_t& p = *( m.ToPatch() );
-	std::vector< bspVertex_t > verts = p.patchVertices;
+	bspVertex_t* vertices;
+	gIndex_t* indices;
+	GL_CHECK( vertices = ( bspVertex_t* ) glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY ) );
+	GL_CHECK( indices = ( gIndex_t* ) glMapBuffer( GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY ) );
+
+	for ( uint32_t i = 0; i < m.clientVertices.size(); ++i )
+	{
+		gIndex_t index = indices[ m.iboOffset + i ];
+
+		glm::vec3 position( m.clientVertices[ i ].position );
+		glm::vec3 normal( m.clientVertices[ i ].normal );
+
+		normal *= GenDeformScale( m.clientVertices[ i ].position, shader );
+
+		vertices[ index ].position = position + normal;
+	}
+	
+	GL_CHECK( glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER ) );
+	GL_CHECK( glUnmapBuffer( GL_ARRAY_BUFFER ) );
+
+	/*
+	std::vector< bspVertex_t > verts = m.clientVertices;
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
@@ -1033,6 +1041,7 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 	}
 
 	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, apiHandles[ 0 ], m.vboOffset, verts, false );
+	*/	
 }
 
 void BSPRenderer::LoadLightVol( const drawPass_t& pass, const Program& prog ) const

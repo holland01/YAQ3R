@@ -9,7 +9,7 @@ void MapModelGenIndexBuffer( gIndexBuffer_t& buffer )
 }
 
 mapModel_t::mapModel_t( void )
-	: deform( false ),
+	: shader( nullptr ),
 	  vboOffset( 0 ),
 	  iboOffset( 0 ),
 	  iboRange( 0 ),
@@ -17,26 +17,56 @@ mapModel_t::mapModel_t( void )
 {
 }
 
+void mapModel_t::PreGenerate( std::vector< bspVertex_t >& vertexData, const Q3BspMap* map, size_t faceOffset )
+{
+	if ( gServiceIndexBuffer )
+	{
+		iboOffset = ( intptr_t )gServiceIndexBuffer->size();
+	}
+	else
+	{
+		if ( !G_NULL( indices ) )
+			GFreeIndexBuffer( indices );
+		
+		indices = GMakeIndexBuffer();
+		iboOffset = 0;
+	}
+	
+	shader = map->GetShaderInfo( faceOffset );
+
+	if ( shader && shader->deform 
+		&& map->data.faces[ faceOffset ].type != BSP_FACE_TYPE_PATCH )
+	{
+		clientVertices.reserve( map->data.faces[ faceOffset ].numMeshVertexes );		
+	}
+}
+
 void mapModel_t::Generate( std::vector< bspVertex_t >& vertexData, 
 						  const Q3BspMap* map, 
 						  size_t faceOffset )
 {
+	PreGenerate( vertexData, map, faceOffset );
+
 	const bspFace_t* face = &map->data.faces[ faceOffset ];
 	iboRange = face->numMeshVertexes;
-
-	iboOffset = ( intptr_t )( gServiceIndexBuffer? gServiceIndexBuffer->size(): 0 );
-	vboOffset = ( GLuint ) vertexData.size();
-
-	vertexData.resize( vertexData.size() + face->numMeshVertexes );
 
 	for ( int32_t j = 0; j < face->numMeshVertexes; ++j )
 	{
 		uint32_t index = face->vertexOffset + map->data.meshVertexes[ face->meshVertexOffset + j ].offset;
 
 		if ( gServiceIndexBuffer )
+		{
 			gServiceIndexBuffer->push_back( index );
+		}
 		else
-			indices.push_back( index );
+		{
+			GPushIndex( indices, index );
+		}
+
+		if ( shader && shader->deform )
+		{
+			clientVertices.push_back( map->data.vertexes[ index ] );
+		}
 	}
 }
 
@@ -63,9 +93,19 @@ void mapModel_t::CalcBounds( const mapData_t& data )
 {
 	bounds.Empty();
 	
-	for ( size_t i = 0; i < indices.size(); ++i )
+	if ( gServiceIndexBuffer )
 	{
-		EncloseBoundsOnPoint( data.vertexes[ indices[ i ] ].position );
+		for ( size_t i = 0; i < iboRange; ++i )
+		{
+			EncloseBoundsOnPoint( data.vertexes[ ( *gServiceIndexBuffer )[ iboOffset + i ] ].position );
+		}
+	}
+	else
+	{
+		for ( size_t i = 0; i < iboRange; ++i )
+		{
+			EncloseBoundsOnPoint( data.vertexes[ GGetIndex( indices, i ) ].position );
+		}
 	}
 }
 
@@ -79,11 +119,12 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 							const Q3BspMap* map, 
 							size_t faceOffset )
 {
+	PreGenerate( vertexData, map, faceOffset );
+
+	vboOffset = ( GLuint ) vertexData.size();
+
 	const bspFace_t* face = &map->data.faces[ faceOffset ];
 	const shaderInfo_t* shader = map->GetShaderInfo( faceOffset );
-
-	iboOffset = ( intptr_t )( gServiceIndexBuffer? gServiceIndexBuffer->size(): 0 );
-	vboOffset = ( GLuint ) vertexData.size();
 
 	int width = ( face->patchDimensions[ 0 ] - 1 ) / 2;
 	int height = ( face->patchDimensions[ 1 ] - 1 ) / 2;
@@ -97,6 +138,8 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 	size_t store = 0;
 	if ( store )
 		store = gServiceIndexBuffer->size();
+
+	std::vector< gIndex_t > tmp;
 
 	for ( n = 0; n < width; ++n )
 	{
@@ -119,7 +162,7 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 			}
 			else
 			{
-				GenPatch( indices,
+				GenPatch( tmp,
 					this, shader, baseDest, ( int32_t ) vertexData.size() );
 			}
 		}
@@ -127,9 +170,18 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 
 	// Snag the amount which is relevant to our portion
 	if ( gServiceIndexBuffer )
+	{
 		iboRange = gServiceIndexBuffer->size() - store;
+	}
 	else
-		iboRange = indices.size();
+	{
+		iboRange = tmp.size();
+	
+		for ( uint32_t i = 0; i < tmp.size(); ++i )
+		{
+			GPushIndex( indices, tmp[ i ] );
+		}
+	}
 
 	// Calculate our row offsets; there are width * height patches, and our subdivision
 	// level represents the amount of tessellation rows for each patch, every row consisting
@@ -154,7 +206,7 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 		rowIndices[ y ] = iboOffset + y * 2 * L1;
 	}
 
-	vertexData.insert( vertexData.end(), patchVertices.begin(), patchVertices.end() );
+	vertexData.insert( vertexData.end(), clientVertices.begin(), clientVertices.end() );
 }
 
 void mapPatch_t::CalcBounds( const mapData_t& data )
@@ -163,7 +215,7 @@ void mapPatch_t::CalcBounds( const mapData_t& data )
 
 	bounds.Empty();
 
-	for ( const bspVertex_t& v: patchVertices )
+	for ( const bspVertex_t& v: clientVertices )
 	{
 		EncloseBoundsOnPoint( v.position );
 	}

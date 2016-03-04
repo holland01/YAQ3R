@@ -162,11 +162,11 @@ void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t
 			model->subdivLevel = 5;
 	}
 
-	const size_t vertexStart = model->patchVertices.size();
+	const size_t vertexStart = model->clientVertices.size();
 
 	// Vertex count along a side is 1 + number of edges
 	const int L1 = model->subdivLevel + 1;
-	model->patchVertices.resize( vertexStart + L1 * L1 );
+	model->clientVertices.resize( vertexStart + L1 * L1 );
 
 	// Compute the first spline along the edge
 	for ( int i = 0; i < L1; ++i )
@@ -174,7 +174,7 @@ void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t
 		float a = ( float )i / ( float )model->subdivLevel;
 		float b = 1.0f - a;
 
-		model->patchVertices[ vertexStart + i ] =
+		model->clientVertices[ vertexStart + i ] =
 			*( model->controlPoints[ controlPointStart + 0 ] ) * ( b * b ) +
 			*( model->controlPoints[ controlPointStart + 3 ] ) * ( 2 * b * a ) +
 			*( model->controlPoints[ controlPointStart + 6 ] ) * ( a * a );
@@ -204,7 +204,7 @@ void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t
 			float a1 = ( float )j / ( float )model->subdivLevel;
 			float b1 = 1.0f - a1;
 
-			bspVertex_t& v = model->patchVertices[ vertexStart + i * L1 + j ];
+			bspVertex_t& v = model->clientVertices[ vertexStart + i * L1 + j ];
 
 			v = tmp[ 0 ] * ( b1 * b1 ) +
 				tmp[ 1 ] * ( 2 * b1 * a1 ) +

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "renderer/util.h"
+#include "renderer/buffer.h"
 #include "aabb.h"
 
 void MapModelGenIndexBuffer( gIndexBuffer_t& buffer );
@@ -14,20 +15,24 @@ struct mapModel_t
 {
 	static const size_t INDEX_SIZE = 4u;
 
-	bool						deform: 1;
+	const shaderInfo_t*			shader;
 	GLuint						vboOffset;
 	intptr_t					iboOffset;
 	GLsizei						iboRange; // num indices being drawn - may very well be something other than indices.size(), so we choose not to rely on it
 	int32_t						subdivLevel;
 
-	gIndexBuffer_t				indices; // NOTE: these _will_ be cleared if the instance is actually a mapPatch_t underneath, since there's a much more useful data structure for that purpose...
-
+	gIndexBufferHandle_t		indices; // NOTE: these _will_ be cleared if the instance is actually a mapPatch_t underneath, since there's a much more useful data structure for that purpose...
+	
 	AABB						bounds;
+
+	std::vector< bspVertex_t >			clientVertices; // only used for patches and vertex deforms via shader
 
 	mapModel_t( void );
 	virtual ~mapModel_t( void );
 
 	void								EncloseBoundsOnPoint( const glm::vec3& v );
+
+	void								PreGenerate( std::vector< bspVertex_t >& vertexData, const Q3BspMap* map, size_t faceOffset );
 
 	virtual void						CalcBounds( const mapData_t& data );		
 
@@ -43,7 +48,6 @@ struct mapModel_t
 struct mapPatch_t : public mapModel_t
 {
 	std::vector< const bspVertex_t* >	controlPoints; // control point elems are stored in multiples of 9
-	std::vector< bspVertex_t >			patchVertices;
 	guBufferOffsetList_t				rowIndices;
 	guBufferRangeList_t					trisPerRow;
 

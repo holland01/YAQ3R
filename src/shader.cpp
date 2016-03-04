@@ -1,6 +1,7 @@
 #include "shader.h"
 #include "io.h"
 #include "glutil.h"
+#include "renderer/shared.h"
 
 GLuint LinkProgram( GLuint shaders[], int len, const std::vector< std::string >& bindAttribs )
 {
@@ -10,8 +11,12 @@ GLuint LinkProgram( GLuint shaders[], int len, const std::vector< std::string >&
     for ( int i = 0; i < len; ++i )
         GL_CHECK( glAttachShader( program, shaders[ i ] ) );
 
+#ifdef G_USE_GL_CORE
+	UNUSED( bindAttribs );	
+#else
     for ( uint32_t i = 0; i < bindAttribs.size(); ++i )
         GL_CHECK( glBindAttribLocation( program, i, bindAttribs[ i ].c_str() ) );
+#endif
 
     GL_CHECK( glLinkProgram( program ) );
 
