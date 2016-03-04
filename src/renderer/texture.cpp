@@ -391,7 +391,7 @@ bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
 	{
 		uint32_t numPixels = width * height;
 		image.data.resize( numPixels * gSamplers[ image.sampler.id ].bpp, 255 );
-		GSetAlignedImageData( image, &tmp[ 0 ], gSamplers[ image.sampler.id ].bpp, numPixels );
+		GSetAlignedImageData( image, &tmp[ 0 ], bpp, numPixels );
 	}
 	else
 	{

@@ -10,8 +10,12 @@ GLuint LinkProgram( GLuint shaders[], int len, const std::vector< std::string >&
     for ( int i = 0; i < len; ++i )
         GL_CHECK( glAttachShader( program, shaders[ i ] ) );
 
+#if USE_GL_CORE
+	UNUSED( bindAttribs );
+#else
     for ( uint32_t i = 0; i < bindAttribs.size(); ++i )
         GL_CHECK( glBindAttribLocation( program, i, bindAttribs[ i ].c_str() ) );
+#endif
 
     GL_CHECK( glLinkProgram( program ) );
 

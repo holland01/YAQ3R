@@ -256,7 +256,7 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	if ( G_NULL( mainSampler ) )
 	{
-		mainSampler = GMakeSampler( 1 );
+		mainSampler = GMakeSampler();
 	}
 
 	GLint oldAlign;
