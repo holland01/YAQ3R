@@ -57,20 +57,47 @@ struct gTexConfig_t
 
 std::vector< gTexConfig_t > gSamplers;
 
+INLINE bool ValidateTexture( const gTexture_t& tt, const gTexConfig_t& sampler )
+{
+	std::vector< uint8_t > zeroOut( tt.width * sampler.bpp * tt.height, 0 );
+
+	GL_CHECK( glTexImage2D( GL_PROXY_TEXTURE_2D, 0,  sampler.internalFormat,
+			   tt.width,
+			   tt.height,
+			   0,
+			   sampler.format,
+			   GL_UNSIGNED_BYTE, &zeroOut[ 0 ] ) );
+
+	GLint testWidth, testHeight;
+	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &testWidth ) );
+	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &testHeight ) );
+	
+	return testWidth && testHeight;
+}
+
 
 INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
 						 const gImageParams_t& slotParams,
 						 gTextureMakeParams_t& makeParams )
 {
 	gTexture_t* tt = new gTexture_t();
+	tt->width = canvasParams.width;
+	tt->height = canvasParams.height;
 
-	const gTexConfig_t& sampler = gSamplers[ makeParams.sampler.id ];
+	gTexConfig_t& sampler = gSamplers[ makeParams.sampler.id ];
 
 	tt->target = GL_TEXTURE_2D;
 
+	/*
+	if ( !ValidateTexture( *tt, sampler ) )
+	{
+		MLOG_WARNING( "Invalid texture load of texels %i x %i was attempted; bailing.", tt->width, tt->height );
+		goto done;
+	}
+	*/
+
 	GL_CHECK( glGenTextures( 1, &tt->handle ) );
 	GL_CHECK( glBindTexture( tt->target, tt->handle ) );
-
 	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
 	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
 	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
@@ -78,11 +105,11 @@ INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
 
 	{
 		std::vector< uint8_t > zeroOut( canvasParams.width * sampler.bpp * canvasParams.height, 0 );
-		GL_CHECK( glTexImage2D( tt->target, 0, sampler.format,
+		GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, sampler.internalFormat,
 			   canvasParams.width,
 			   canvasParams.height,
 			   0,
-			   sampler.internalFormat,
+			   sampler.format,
 			   GL_UNSIGNED_BYTE, &zeroOut[ 0 ] ) );
 	}
 
@@ -96,6 +123,10 @@ INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
 
 	tt->invRowPitch.x = 1.0f / ( float ) stride;
 	tt->invRowPitch.y = 1.0f / ( float ) rows;
+
+	GLint param;
+	GL_CHECK( glGetIntegerv( GL_MAX_RECTANGLE_TEXTURE_SIZE, &param ) );
+	UNUSED( param );
 
 	uint32_t y = 0, x = 0;
 	for ( auto iImage = makeParams.start; iImage != makeParams.end; ++iImage )
@@ -131,8 +162,8 @@ INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
 		x++;
 	}
 
+done:
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
-
 	return tt;
 }
 
@@ -199,6 +230,16 @@ gSamplerHandle_t GMakeSampler(
 	return sampler;
 }
 
+int8_t GSamplerBPP( const gSamplerHandle_t& sampler )
+{
+ 	if ( sampler.id < gSamplers.size() )
+	{
+		return gSamplers[ sampler.id ].bpp;
+	}
+
+	return 0;
+}
+
 gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags )
 {
 	UNUSED( flags );
@@ -217,8 +258,8 @@ gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags 
 	maxDims.x = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
 	maxDims.y = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
 
-	maxDims.x = glm::max( maxDims.x, maxDims.y );
-	maxDims.y = glm::max( maxDims.x, maxDims.y );
+	//maxDims.x = glm::max( maxDims.x, maxDims.y );
+	//maxDims.y = glm::max( maxDims.x, maxDims.y );
 
 	size_t numImages = ( size_t )( makeParams.end - makeParams.start );
 
@@ -314,6 +355,24 @@ bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint
 	return true;
 }
 
+void GSetAlignedImageData( gImageParams_t& destImage, 
+						    uint8_t* sourceData, 
+					        int8_t sourceBPP, 
+						    uint32_t numPixels,
+					        uint8_t fetchChannel )
+{
+	switch ( GSamplerBPP( destImage.sampler ) )
+	{
+	case 1:
+		Pixels_ToR( &destImage.data[ 0 ], sourceData, sourceBPP, fetchChannel, numPixels );
+		break;
+
+	default:
+		Pixels_To32Bit( &destImage.data[ 0 ], sourceData, sourceBPP, numPixels );
+		break;
+	}
+}
+
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
 {
 	int32_t width, height, bpp;
@@ -328,11 +387,11 @@ bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
 	if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
 		return false;
 
-	if ( bpp != G_INTERNAL_BPP )
+	if ( bpp != gSamplers[ image.sampler.id ].bpp )
 	{
-		image.data.resize( width * height * G_INTERNAL_BPP, 255 );
-		Pixels_To32Bit( &image.data[ 0 ], &tmp[ 0 ], ( uint8_t ) bpp, width * height );
-		bpp = G_INTERNAL_BPP;
+		uint32_t numPixels = width * height;
+		image.data.resize( numPixels * gSamplers[ image.sampler.id ].bpp, 255 );
+		GSetAlignedImageData( image, &tmp[ 0 ], gSamplers[ image.sampler.id ].bpp, numPixels );
 	}
 	else
 	{
@@ -341,13 +400,6 @@ bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
 
 	image.width = width;
 	image.height = height;
-
-	if ( bpp != gSamplers[ image.sampler.id ].bpp )
-	{
-		image.sampler = GMakeSampler( bpp,
-			gSamplers[ image.sampler.id ].mipmap,
-			gSamplers[ image.sampler.id ].wrap );
-	}
 
 	return true;
 }

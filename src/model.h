@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "renderer/util.h"
+#include "renderer/buffer.h"
 #include "aabb.h"
 
 void MapModelGenIndexBuffer( gIndexBuffer_t& buffer );
@@ -20,7 +21,7 @@ struct mapModel_t
 	GLsizei						iboRange; // num indices being drawn - may very well be something other than indices.size(), so we choose not to rely on it
 	int32_t						subdivLevel;
 
-	gIndexBuffer_t				indices; // NOTE: these _will_ be cleared if the instance is actually a mapPatch_t underneath, since there's a much more useful data structure for that purpose...
+	gIndexBufferHandle_t		indices; // NOTE: these _will_ be cleared if the instance is actually a mapPatch_t underneath, since there's a much more useful data structure for that purpose...
 
 	AABB						bounds;
 
@@ -28,6 +29,8 @@ struct mapModel_t
 	virtual ~mapModel_t( void );
 
 	void								EncloseBoundsOnPoint( const glm::vec3& v );
+
+	void								PreGenerate( std::vector< bspVertex_t >& vertexData );
 
 	virtual void						CalcBounds( const mapData_t& data );		
 

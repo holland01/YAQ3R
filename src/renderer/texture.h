@@ -60,11 +60,22 @@ gSamplerHandle_t GMakeSampler(
 	uint32_t wrap = GL_CLAMP_TO_EDGE
 );
 
+int8_t GSamplerBPP( const gSamplerHandle_t& sampler );
+
 gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags );
 
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image );
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue );
+
+// Sets the given destImage's data to sourceData's, in a manner which follows the user-specified
+// image bpp.
+// fetchChannel is only relevant if destImage.bpp == 
+void GSetAlignedImageData( gImageParams_t& destImage, 
+						    uint8_t* sourceData, 
+					        int8_t sourceBPP, 
+						    uint32_t numPixels,
+					        uint8_t fetchChannel = 0 );
 
 void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 

@@ -15,9 +15,9 @@
 #	define _DEBUG_USE_GL_GET_ERR
 #endif
 
-#define USE_GL_CORE 0
+#define USE_GL_CORE 1
 
-#if defined(_WIN32)
+#if defined( _WIN32 )
 #	include <Windows.h>
 #	define GL_PROC APIENTRY
 #else

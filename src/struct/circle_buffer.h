@@ -1,12 +1,15 @@
 #pragma once
 
 #include "common.h"
+#include "io.h"
 #include <array>
 
 namespace {
 template < class Tint >
 const INLINE Tint NextPower2( Tint x )
 {
+	MLOG_ASSERT( sizeof( x ) != 8, "NextPower2 does not work with 64-bit integers yet" );
+
 	x--;
 	x |= x >> 1;
 	x |= x >> 2;
@@ -14,7 +17,6 @@ const INLINE Tint NextPower2( Tint x )
 
 	if ( sizeof( x ) >= 2 ) x |= x >> 8;
 	if ( sizeof( x ) >= 4 ) x |= x >> 16;
-	//if ( sizeof( x ) >= 8 ) x |= x >> 32;
 
 	x++;
 	return x;

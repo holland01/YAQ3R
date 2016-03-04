@@ -254,22 +254,26 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	map->Read( filepath, 1 );
 
-	if ( mainSampler.id == G_UNSPECIFIED )
-		mainSampler = GMakeSampler();
+	if ( G_NULL( mainSampler ) )
+	{
+		mainSampler = GMakeSampler( 1 );
+	}
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
+	/*
 	{
 		gImageParamList_t shaderTextures;
 		S_LoadShaders( map, mainSampler, shaderTextures );
 		gTextureMakeParams_t makeParams( shaderTextures, mainSampler );
 		shaderTexHandle = GMakeTexture( makeParams, 0 );
 	}
+	*/
 
 	LoadMainImages();
-	LoadLightmaps();
+	//LoadLightmaps();
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
@@ -356,10 +360,7 @@ void BSPRenderer::LoadLightmaps( void )
 		gImageParams_t image;
 		image.sampler = mainSampler;
 		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
-
-		Pixels_To32Bit( &image.data[ 0 ],
-			&map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT );
-
+		GSetAlignedImageData( image, &map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, image.width * image.height );
 		lightmaps.push_back( image );
 	}
 
@@ -425,6 +426,12 @@ void BSPRenderer::LoadVertexData( void )
 			//glDebugFaces[ i ].positions = std::move( debugBuffer );
 		}
 	}
+
+	GLint maxVerts, maxInds;
+	GL_CHECK( glGetIntegerv( GL_MAX_ELEMENTS_INDICES, &maxInds ) );
+	GL_CHECK( glGetIntegerv( GL_MAX_ELEMENTS_VERTICES, &maxVerts ) );
+	UNUSED( maxVerts );
+	UNUSED( maxInds );
 
 	// Allocate vertex data from map and store it all in a single vbo; we use dynamic draw as a hint,
 	// considering that vertex deforms require a buffer update
@@ -605,12 +612,11 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	pass.type = PASS_DRAW;
-	GL_CHECK( glEnable( GL_CULL_FACE ) );
-	GL_CHECK( glCullFace( GL_FRONT ) );
-	GL_CHECK( glFrontFace( GL_CCW ) );
+	//GL_CHECK( glEnable( GL_CULL_FACE ) );
+	//GL_CHECK( glCullFace( GL_FRONT ) );
+	//GL_CHECK( glFrontFace( GL_CCW ) );
 	TraverseDraw( pass, true );
-
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
+	//GL_CHECK( glDisable( GL_CULL_FACE ) );
 
 	//TraverseDraw( pass, false );
 
@@ -690,6 +696,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
 	main.LoadDefaultAttribProfiles();
 
+	/*
 	shaderInfo_t* tex = nullptr;
 	if ( textureIndex != -1 )
 	{
@@ -700,9 +707,10 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 			__nop();
 		}
 	}
+	*/
 
 	GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
-	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
+	//GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
 	main.LoadMat4( "modelToView", camera->ViewData().transform );
 
@@ -713,7 +721,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 	main.Release();
 
 	GReleaseTexture( mainTexHandle, 0 );
-	GReleaseTexture( lightmapHandle, 1 );
+	//GReleaseTexture( lightmapHandle, 1 );
 }
 
 namespace {
@@ -806,7 +814,9 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 	for ( uint32_t i = 0; i < surf.drawFaceIndices.size(); ++i )
 	{
 		mapModel_t& m = *( glFaces[ surf.drawFaceIndices[ i ] ] );
-		GL_CHECK( glDrawElements( mode, m.indices.size(), GL_UNSIGNED_INT, &m.indices[ 0 ] ) );
+		
+		GDrawFromIndices( m.indices, mode );
+		//GL_CHECK( glDrawElements( mode, m.indices.size(), GL_UNSIGNED_INT, &m.indices[ 0 ] ) );
 	}
 #else
 	GU_MultiDrawElements( mode, surf.bufferOffsets, surf.bufferRanges );

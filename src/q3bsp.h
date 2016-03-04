@@ -3,7 +3,7 @@
 #include "common.h"
 #include "deform.h"
 #include "bsp_data.h"
-#include "circle_buffer.h"
+#include "struct/circle_buffer.h"
 #include <memory>
 #include <unordered_map>
 
