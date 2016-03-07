@@ -62,8 +62,8 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 		/*
 		glslMade is only true if there's been shader compiles; this shouldn't be here
 		*/
-		if ( !it->second.glslMade )
-			return nullptr;
+		//if ( !it->second.glslMade )
+			//return nullptr;
 		
 
 

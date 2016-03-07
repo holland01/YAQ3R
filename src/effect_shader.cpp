@@ -750,7 +750,6 @@ evaluate_tok:
 			// Ensure we have a valid shader which a) we know is used by the map
 			// and b) hasn't already been read
 			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader );
-				//&& !map->GetShaderInfo( &outInfo->name[ 0 ] );
 
 			if ( !used )
 			{
@@ -1089,13 +1088,10 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 	glm::ivec2 maxDims( 0 );
 	for ( auto& entry: map->effectShaders )
 	{
-		if ( entry.second.glslMade )
+		for ( int i = 0; i < entry.second.stageCount; ++i )
 		{
-			for ( int i = 0; i < entry.second.stageCount; ++i )
-			{
-				LoadStageTexture( maxDims,
-					textures, entry.second, i, imageSampler, &map->data );
-			}
+			LoadStageTexture( maxDims,
+				textures, entry.second, i, imageSampler, &map->data );
 		}
 	}
 
@@ -1262,8 +1258,6 @@ void S_GenPrograms( shaderInfo_t& shader )
 				fragmentString.c_str() );
 		}
 	}
-
-	shader.glslMade = shader.stageCount != 0;
 }
 
 bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1, const char* str2 )

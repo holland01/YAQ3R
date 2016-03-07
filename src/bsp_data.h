@@ -474,8 +474,6 @@ struct shaderStage_t
 
 struct shaderInfo_t
 {
-	bool				glslMade = false;
-
 	bool				deform = false; // implies an animated vertex deformation
 
 	vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED; // choose wave, normal, or bulge

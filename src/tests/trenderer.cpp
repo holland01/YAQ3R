@@ -4,7 +4,7 @@
 static const char* gTitle = "I am a floating camera";
 
 // Below strings are commented to prevent compiler complaint
-static const char* railgunArena = "asset/stockmaps/maps/q3tourney2.bsp";
+static const char* railgunArena = "asset/stockmaps/maps/Railgun_Arena.bsp";
 
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),

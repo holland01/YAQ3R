@@ -276,10 +276,9 @@ void BSPRenderer::Load( const std::string& filepath )
 	// Basic program setup
 	for ( const auto& iShader: map->effectShaders )
 	{
-		if ( iShader.second.glslMade )
+		for ( const shaderStage_t& stage: iShader.second.stageBuffer )
 		{
-			for ( const shaderStage_t& stage: iShader.second.stageBuffer )
-				stage.program->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+			stage.program->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 		}
 	}
 
