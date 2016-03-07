@@ -335,6 +335,11 @@ glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 	return gTextureMap[ handle.id ]->invRowPitch;
 }
 
+bool GMakeDummyImage( gImageParams_t& image )
+{
+	return GSetImageBuffer( image, 16, 16, 0 );
+}
+
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )
 {
 	if ( image.sampler.id == G_UNSPECIFIED ) return false;

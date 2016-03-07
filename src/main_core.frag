@@ -12,7 +12,7 @@ uniform sampler2D lightmapSampler;
 uniform vec2 lightmapImageScaleRatio;
 uniform vec4 lightmapImageTransform;
 
-const float gamma = 1.0 / 3.0;
+const float gamma = 1.0 / 2.2;
 
 out vec4 fragment;
 
@@ -32,6 +32,4 @@ void main()
 	col.b = pow( col.b, gamma );
 
 	fragment = col;
-
-	//gl_FragDepth = gl_FragCoord.z;
 }

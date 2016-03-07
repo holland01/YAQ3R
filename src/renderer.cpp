@@ -178,15 +178,13 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 	GL_CHECK( glDepthMask( GL_TRUE ) );
-	//GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
+	GL_CHECK( glEnable( GL_BLEND ) );
+	GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
 	
 	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
-
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
-	GL_CHECK( glDisable( GL_BLEND ) );
 
 	// Load main shader glPrograms
 	{
@@ -254,7 +252,7 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	map->Read( filepath, 1 );
 
-	if ( mainSampler.id == G_UNSPECIFIED )
+	if ( G_NULL( mainSampler ) )
 		mainSampler = GMakeSampler();
 
 	GLint oldAlign;
@@ -305,12 +303,19 @@ void BSPRenderer::LoadMainImages( void )
 
 	for ( int32_t t = 0; t < map->data.numShaders; t++ )
 	{
+		// We pre-initialize these before needing them because of the goto.
+		std::string fname( map->data.shaders[ t ].name );
+		const std::string& texPath = map->data.basePath + fname; 
+
 		glTextures[ t ].sampler = mainSampler;
+
 		bool success = false;
 
-		std::string fname( map->data.shaders[ t ].name );
-
-		const std::string& texPath = map->data.basePath + fname;
+		// No use in allocating tex memory if this is meant to be used with a shader
+		if ( map->GetShaderInfo( map->data.shaders[ t ].name ) )
+		{
+			goto stub_out;
+		}
 
 		// If we don't have a file extension appended in the name,
 		// try to find one for it which is valid
@@ -327,16 +332,17 @@ void BSPRenderer::LoadMainImages( void )
 			}
 		}
 
+stub_out:
 		// We stub the buffer with a simple dummy fill - otherwise, bad things will happen in the texture fetches.
 		if ( !success )
 		{
-			GSetImageBuffer( glTextures[ t ], 16, 16, 255 );
-			goto FAIL_WARN;
+			GMakeDummyImage( glTextures[ t ] );
+			goto fail_warn;
 		}
 
 		continue;
 
-FAIL_WARN:
+fail_warn:
 		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 	}
 
@@ -528,7 +534,7 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 		}
 		else
 		{
-			if ( pass.shader && !( pass.shader->surfaceParms & SURFPARM_NO_DRAW ) )
+			if ( pass.shader && !!( pass.shader->surfaceParms & SURFPARM_NO_DRAW ) )
 			{
 				pass.facesVisited[ pass.faceIndex ] = true;
 				return;
@@ -612,8 +618,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	pass.type = PASS_DRAW;
 	
 	GL_CHECK( glEnable( GL_CULL_FACE ) );
-	GL_CHECK( glCullFace( GL_FRONT ) );
-	GL_CHECK( glFrontFace( GL_CCW ) );
+	GL_CHECK( glCullFace( GL_BACK ) );
+	GL_CHECK( glFrontFace( GL_CW ) );
 	
 	TraverseDraw( pass, true );
 
@@ -699,7 +705,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 	const Program& main = *( glPrograms.at( "main" ) );
 
 	main.LoadDefaultAttribProfiles();
-
+	
 	GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
@@ -893,8 +899,6 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	}
 
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
-
-	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
 
 	// Did we bother checking earlier?
 	if ( oldCull != -1 )

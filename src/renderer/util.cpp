@@ -7,7 +7,7 @@ void GU_SetupTexParams( const Program& program,
 						int32_t textureIndex,
 						int32_t offset )
 {
-	if ( textureIndex < 0 && offset >= 0 )
+	if ( textureIndex < 0 )
 	{
 		GReleaseTexture( texHandle, offset );
 		return;

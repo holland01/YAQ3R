@@ -749,8 +749,8 @@ evaluate_tok:
 			
 			// Ensure we have a valid shader which a) we know is used by the map
 			// and b) hasn't already been read
-			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader ) 
-				&& !map->GetShaderInfo( &outInfo->name[ 0 ] );
+			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader );
+				//&& !map->GetShaderInfo( &outInfo->name[ 0 ] );
 
 			if ( !used )
 			{
@@ -963,7 +963,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 				{
 					// If we fail second try, turn it into a dummy
 					MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
-					GSetImageBuffer( img, 16, 16, 255 );
+					GMakeDummyImage( img );
 				}
 			}
 		}
@@ -1104,9 +1104,6 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 
 void S_GenPrograms( shaderInfo_t& shader )
 {
-	if ( shader.glslMade )
-		return;
-
 	if ( gMeta->logProgramGen )
 		fprintf( gMeta->programLog, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
 

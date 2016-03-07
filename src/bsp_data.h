@@ -466,6 +466,7 @@ struct shaderStage_t
 	std::shared_ptr< Program >	program; // handle to our generated program
 
 	shaderStage_t( void )
+		: program( nullptr )
 	{
 		texturePath.fill( 0 );
 	}

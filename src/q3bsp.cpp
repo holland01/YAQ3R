@@ -62,8 +62,8 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 		/*
 		glslMade is only true if there's been shader compiles; this shouldn't be here
 		*/
-		//if ( !it->second.glslMade )
-			//return nullptr;
+		if ( !it->second.glslMade )
+			return nullptr;
 		
 
 
@@ -80,12 +80,12 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 	
 	if ( face->shader != -1 )
 	{
-		shader = GetShaderInfo( data.shaders[ faceIndex ].name );
+		shader = GetShaderInfo( data.shaders[ face->shader ].name );
 	}
 
 	if ( face->fog != -1 && !shader )
 	{
-		shader = GetShaderInfo( data.fogs[ faceIndex ].name );
+		shader = GetShaderInfo( data.fogs[ face->fog ].name );
 	}
 
 	return shader;
@@ -93,10 +93,11 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const 
 { 
-	return File_StripExt( File_StripPath( shaderPath ) ) == name;
+	const std::string shadername( File_StripExt( File_StripPath( shaderPath ) ) );
+
+	return shadername == name;
 }
 	
-
 void Q3BspMap::DestroyMap( void )
 {
 	if ( mapAllocated )
