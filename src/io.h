@@ -127,14 +127,79 @@ static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std
 	{
 		outExt = filename.substr( index + 1 );
 		if ( outIndex )
+		{
 			*outIndex = index;
-
+		}
+		
 		return true;
 	}
 
 	return false;
 }
 
+static INLINE std::string File_StripPath( const std::string& path )
+{
+	// We check for both path separators, considering that having two separators simultaneously 
+	// is totally possible anywhere.
+	size_t slash = path.find_last_of( '/' );
+	size_t criminal = path.find_last_of( '\\' ); 
+
+	size_t index = std::string::npos;
+	if ( slash != std::string::npos && criminal != std::string::npos )
+	{
+		// Cleanse this path of its terrible affliction due to the abysmal
+		// hell that is the result of having too many standards
+		std::string tmp( path );
+		index = slash;
+		for ( uint32_t i = 0; i < tmp.length(); ++i )
+		{
+			if ( tmp[ i ] == '\\' )
+			{
+				tmp[ i ] = '/';
+			}
+		}
+
+		index = tmp.find_last_of( '/' );
+	}
+
+	// Maybe we didn't have both at the same time, so
+	// find which one is used ( if at all )
+	if ( index == std::string::npos )
+	{
+		if ( slash != std::string::npos )
+		{
+			index = slash;
+		}
+		else if ( criminal != std::string::npos )
+		{
+			index = criminal;
+		}
+		else
+		{
+			return path;
+		}
+	}
+
+	// One final validation...
+	if ( index == path.size() - 1 )
+	{
+		return path;
+	}
+
+	return path.substr( index + 1 );
+}
+
+static INLINE std::string File_StripExt( const std::string& name )
+{
+	size_t index = name.find_last_of( '.' );
+
+	if ( index == std::string::npos )
+	{
+		return name;
+	}
+
+	return name.substr( 0, index );
+}
 
 bool File_GetPixels( const std::string& filepath,
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );

@@ -77,6 +77,10 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				outInfo->surfaceParms |= SURFPARM_TRANS;
 			}
+			else if ( strcmp( token, "nodraw" ) == 0 )
+			{
+				outInfo->surfaceParms  |= SURFPARM_NO_DRAW;
+			}
 			else
 			{
 				return false;
@@ -636,8 +640,63 @@ static float ReadFloat( const char*& buffer )
 	return ( float ) strtod( f, NULL );
 }
 
+static bool ShaderUsed( const char* header, const Q3BspMap* map )
+{
+	for ( uint32_t i = 0; i < map->data.numShaders; ++i )
+	{
+		if ( strcmp( map->data.shaders[ i ].name, header ) == 0 )
+		{
+			return true;
+		}
+	}
+
+	for ( uint32_t i = 0; i < map->data.numFogs; ++i )
+	{
+		if ( strcmp( map->data.fogs[ i ].name, header ) == 0 )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static const char* SkipLevel( const char* buffer, int8_t targetLevel )
+{
+	const char *pch = buffer;
+
+	int8_t level = targetLevel;
+
+	while ( *pch )
+	{
+		switch ( *pch )
+		{
+		case '{': 
+			level++; 
+			break;
+		case '}': 
+			level--;
+			if ( level == targetLevel )
+			{
+				return pch + 1;
+			}
+			break;
+		}
+
+		pch++;
+	}
+
+	return pch;
+}
+
 // Returns the char count to increment the filebuffer by
-static const char* ParseEntry( shaderInfo_t* outInfo, const char* buffer, int level )
+static const char* ParseEntry( 
+	shaderInfo_t* outInfo, 
+	bool isMapShader,
+	bool& used, 
+	const char* buffer, 
+	int level, 
+	const Q3BspMap* map )
 {
 	char token[ 64 ];
 
@@ -687,6 +746,17 @@ evaluate_tok:
 		if ( level == 0 )
 		{
 			strcpy( &outInfo->name[ 0 ], token );
+			
+			// Ensure we have a valid shader which a) we know is used by the map
+			// and b) hasn't already been read
+			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader ) 
+				&& !map->GetShaderInfo( &outInfo->name[ 0 ] );
+
+			if ( !used )
+			{
+				return SkipLevel( buffer, level );
+			}
+
 			continue;
 		}
 
@@ -854,20 +924,13 @@ static INLINE std::string JoinLines( std::vector< std::string >& lines )
 
 static void GenShaderPrograms( Q3BspMap* map )
 {
-/*
-	for ( auto& e: map->effectShaders )
+	for ( auto& entry: map->effectShaders )
 	{
-		S_GenPrograms( e.second );
+		const std::string& name = entry.first;
+
+		shaderInfo_t& shader = entry.second;
+		S_GenPrograms( shader );
 	}
-*/
-	// Print the generated shaders to a text file
-
-	// Convert each effect stage to its GLSL equivalent
-	for ( int32_t i = 0; i < map->data.numShaders; ++i )
-		S_GenPrograms( map->effectShaders[ map->data.shaders[ i ].name ] );
-
-	for ( int32_t i = 0; i < map->data.numFogs; ++i )
-		S_GenPrograms( map->effectShaders[ map->data.fogs[ i ].name ] );
 }
 
 static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i,
@@ -900,7 +963,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 				{
 					// If we fail second try, turn it into a dummy
 					MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
-					GSetImageBuffer( img, 64, 64, 255 );
+					GSetImageBuffer( img, 16, 16, 255 );
 				}
 			}
 		}
@@ -927,9 +990,9 @@ namespace {
 
 struct parseArgs_t
 {
-	static shaderMap_t* effectShaders;
+	static Q3BspMap* map;
 
-	static int EvaluateEntry( const filedata_t data )
+	static int ReadShaderFile( const filedata_t data )
 	{
 		// Something's probably wrong if there's no data,
 		// so let's just end it.
@@ -938,20 +1001,31 @@ struct parseArgs_t
 			return FILE_CONTINUE_TRAVERSAL;
 		}
 
-		if ( !effectShaders )
+		if ( !map )
 		{
-			MLOG_WARNING(  "No reference to effect shader map given; leaving" );
+			MLOG_ERROR( "No reference to bsp map data given; aborting traversal" );
 			return FILE_STOP_TRAVERSAL;
 		}
 
 		std::vector< uint8_t > fileBuffer;
-
+		bool isMapShader = false;
 		{
 			std::string filepath( ( const char* ) data, strlen( ( const char* )data ) );
 
 			std::string ext;
-			if ( !File_GetExt( ext, nullptr, filepath ) || ext != "shader" )
+			bool extFound = File_GetExt( ext, nullptr, filepath );
+			
+			if ( !extFound )
+			{
+				MLOG_WARNING( "No extension found for file \'%s\'; moving on", filepath.c_str() );
 				return FILE_CONTINUE_TRAVERSAL;
+			}
+			
+			if ( ext != "shader" )
+			{
+				MLOG_WARNING( "File \'%s\' does not have shader extension; moving on", filepath.c_str() );
+				return FILE_CONTINUE_TRAVERSAL;
+			}
 
 			if ( !File_GetBuf( fileBuffer, filepath ) )
 			{
@@ -960,6 +1034,8 @@ struct parseArgs_t
 			}
 
 			gMeta->currShaderFile = filepath;
+
+			isMapShader = map->IsMapOnlyShader( filepath );
 		}
 
 		gMeta->currLineCount = 0;
@@ -971,11 +1047,16 @@ struct parseArgs_t
 		while ( *pChar && range > 0 )
 		{
 			shaderInfo_t entry;
-
+			
+			bool used = false;
 			entry.localLoadFlags = 0;
-			pChar = ParseEntry( &entry, pChar, 0 );
+			pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
 
-			effectShaders->insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
+			if ( used )
+			{
+				map->effectShaders.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
+			}
+
 			range = ( ptrdiff_t )( end - pChar );
 		}
 
@@ -983,8 +1064,7 @@ struct parseArgs_t
 	}
 };
 
-shaderMap_t* parseArgs_t::effectShaders = nullptr;
-
+Q3BspMap* parseArgs_t::map = nullptr;
 
 }
 
@@ -999,9 +1079,9 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
 	{
-		parseArgs_t::effectShaders = &map->effectShaders;
-		File_IterateDirTree( shaderRootDir, parseArgs_t::EvaluateEntry );
-		parseArgs_t::effectShaders = nullptr;
+		parseArgs_t::map = map;
+		File_IterateDirTree( shaderRootDir, parseArgs_t::ReadShaderFile );
+		parseArgs_t::map = nullptr;
 	}
 
 	GenShaderPrograms( map );
@@ -1063,7 +1143,7 @@ void S_GenPrograms( shaderInfo_t& shader )
 
 		if ( stage.tcgen == TCGEN_ENVIRONMENT )
 		{
-			vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3" ) );
+			vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3", 3 ) );
 			attribs.push_back( "normal" );
 		}
 
@@ -1081,10 +1161,15 @@ void S_GenPrograms( shaderInfo_t& shader )
 			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
 		}
 
-		if ( stage.rgbGen == RGBGEN_VERTEX )
-			vertexSrc.push_back( "\tfrag_Color = color;" );
-		else
+		switch ( stage.rgbGen )
+		{
+		default:
 			vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
+			break;
+		case RGBGEN_VERTEX:
+			vertexSrc.push_back( "\tfrag_Color = color;" );
+			break;
+		}		
 
 		// Fragment shader....
 		// Unspecified alphaGen implies a default 1.0 alpha channel
@@ -1154,7 +1239,7 @@ void S_GenPrograms( shaderInfo_t& shader )
 		switch ( stage.alphaFunc )
 		{
 		case ALPHA_FUNC_UNDEFINED:
-			WriteTexture( fragmentSrc, stage, NULL );
+			WriteTexture( fragmentSrc, stage, nullptr );
 			break;
 		case ALPHA_FUNC_GEQUAL_128:
 			WriteTexture( fragmentSrc, stage, "color.a < 0.5" );

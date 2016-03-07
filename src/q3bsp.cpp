@@ -53,38 +53,49 @@ Q3BspMap::~Q3BspMap( void )
 	DestroyMap();
 }
 
-const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
+const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 {
-	const bspFace_t* face = data.faces + faceIndex;
+	auto it = effectShaders.find( name );
 
-	if ( face->shader != -1 )
+	if ( it != effectShaders.end() )
 	{
-		auto it = effectShaders.find( data.shaders[ face->shader ].name );
+		/*
+		glslMade is only true if there's been shader compiles; this shouldn't be here
+		*/
+		//if ( !it->second.glslMade )
+			//return nullptr;
+		
 
-		if ( it != effectShaders.end() )
-		{
-			if ( !it->second.glslMade )
-				return nullptr;
 
-			return &it->second;
-		}
-	}
-
-	if ( face->fog != -1 )
-	{
-		auto it = effectShaders.find( data.fogs[ face->fog ].name );
-
-		if ( it != effectShaders.end() )
-		{
-			if ( !it->second.glslMade )
-				return nullptr;
-
-			return &it->second;
-		}
+		return &it->second;
 	}
 
 	return nullptr;
 }
+
+const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
+{
+	const bspFace_t* face = data.faces + faceIndex;
+	const shaderInfo_t* shader = nullptr;
+	
+	if ( face->shader != -1 )
+	{
+		shader = GetShaderInfo( data.shaders[ faceIndex ].name );
+	}
+
+	if ( face->fog != -1 && !shader )
+	{
+		shader = GetShaderInfo( data.fogs[ faceIndex ].name );
+	}
+
+	return shader;
+}
+
+bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const 
+{ 
+	return File_StripExt( File_StripPath( shaderPath ) ) == name;
+}
+	
 
 void Q3BspMap::DestroyMap( void )
 {
@@ -292,6 +303,8 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	LogBSPData( BSP_LUMP_SHADERS, ( void* ) data.shaders, data.numShaders );
 	LogBSPData( BSP_LUMP_FOGS, ( void* ) ( data.fogs ), data.numFogs );
 	LogBSPData( BSP_LUMP_ENTITIES, ( void *) ( data.entities.infoString ), -1 );
+
+	name = File_StripExt( File_StripPath( filepath ) );
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

@@ -124,10 +124,6 @@ INLINE gTexture_t* MakeTexture_GLES( const gImageParams_t& canvasParams,
 	tt->invRowPitch.x = 1.0f / ( float ) stride;
 	tt->invRowPitch.y = 1.0f / ( float ) rows;
 
-	GLint param;
-	GL_CHECK( glGetIntegerv( GL_MAX_RECTANGLE_TEXTURE_SIZE, &param ) );
-	UNUSED( param );
-
 	uint32_t y = 0, x = 0;
 	for ( auto iImage = makeParams.start; iImage != makeParams.end; ++iImage )
 	{

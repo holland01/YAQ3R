@@ -7,7 +7,7 @@ void GU_SetupTexParams( const Program& program,
 						int32_t textureIndex,
 						int32_t offset )
 {
-	if ( textureIndex < 0 )
+	if ( textureIndex < 0 && offset >= 0 )
 	{
 		GReleaseTexture( texHandle, offset );
 		return;
@@ -37,7 +37,10 @@ void GU_SetupTexParams( const Program& program,
 	}
 	else // otherwise, we have an effect shader
 	{
-		program.LoadInt( "sampler0", offset );
+
+		if ( offset > -1 )
+			program.LoadInt( "sampler0", offset );
+		
 		program.LoadVec4( "imageTransform", transform );
 		program.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
 	}

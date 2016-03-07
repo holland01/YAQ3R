@@ -82,6 +82,8 @@ private:
 
 	bool							mapAllocated;
 
+	std::string						name;
+
 	void							ReadFile( const std::string& filepath, const int scale );
 
 public:
@@ -103,7 +105,13 @@ public:
 
 	bool						IsAllocated( void ) const { return mapAllocated; }
 
+	const shaderInfo_t*			GetShaderInfo( const char* name ) const;
+
 	const shaderInfo_t*			GetShaderInfo( int faceIndex ) const;
+
+	const std::string&			GetFileName( void ) const { return name; }
+
+	bool						IsMapOnlyShader( const std::string& filepath ) const;
 
 	void						DestroyMap( void );
 };

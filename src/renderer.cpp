@@ -135,7 +135,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 1.0f, 1000000.0f );
+	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 500.0f, 5000.0f );
 	glGetError();
 
 #ifdef G_USE_GL_CORE
@@ -178,6 +178,7 @@ void BSPRenderer::Prep( void )
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 	GL_CHECK( glDepthMask( GL_TRUE ) );
+	//GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
@@ -329,7 +330,7 @@ void BSPRenderer::LoadMainImages( void )
 		// We stub the buffer with a simple dummy fill - otherwise, bad things will happen in the texture fetches.
 		if ( !success )
 		{
-			GSetImageBuffer( glTextures[ t ], 32, 32, 255 );
+			GSetImageBuffer( glTextures[ t ], 16, 16, 255 );
 			goto FAIL_WARN;
 		}
 
@@ -527,6 +528,12 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 		}
 		else
 		{
+			if ( pass.shader && !( pass.shader->surfaceParms & SURFPARM_NO_DRAW ) )
+			{
+				pass.facesVisited[ pass.faceIndex ] = true;
+				return;
+			}
+
 			drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
 			AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
 			pass.facesVisited[ pass.faceIndex ] = true;
@@ -611,7 +618,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	TraverseDraw( pass, true );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
-) );
+
 	TraverseDraw( pass, false );
 
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
@@ -686,6 +693,9 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 
 void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& mainRef ) > callback )
 {
+	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
+
 	const Program& main = *( glPrograms.at( "main" ) );
 
 	main.LoadDefaultAttribProfiles();
@@ -902,8 +912,6 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			GL_CHECK( glDisable( GL_CULL_FACE ) );
 		}
 	}
-
-	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 }
 
 void BSPRenderer::DrawFace( drawPass_t& pass )

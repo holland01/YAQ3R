@@ -182,8 +182,10 @@ private:
     std::vector< attribProfile_t > altAttribProfiles;
 
 public:
-	std::map< std::string, GLint > uniforms; 
-	std::map< std::string, GLint > attribs;
+	using dataMap_t = std::unordered_map< std::string, GLint >;
+
+	dataMap_t uniforms; 
+	dataMap_t attribs;
 
 	std::vector< std::string > disableAttribs; // Cleared on each invocation of LoadAttribLayout
 
