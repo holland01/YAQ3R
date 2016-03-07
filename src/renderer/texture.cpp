@@ -1,5 +1,6 @@
 #include "texture.h"
 #include "glutil.h"
+#include "lib/math.h"
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
@@ -251,12 +252,12 @@ gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags 
 			maxDims.y = img.height;
 	});
 
-	maxDims.x = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.x ) ) ) );
-	maxDims.y = int32_t( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) maxDims.y ) ) ) );
+	maxDims.x = NextPower2( maxDims.x );
+	maxDims.y = NextPower2( maxDims.y );
 
 	size_t numImages = ( size_t )( makeParams.end - makeParams.start );
 
-	uint32_t closeSquare = ( uint32_t )( glm::pow( 2.0f, glm::ceil( glm::log2( ( float ) numImages ) ) ) );
+	uint32_t closeSquare = NextPower2( numImages );
 	uint32_t arrayDims = 2;
 
 	while ( arrayDims * arrayDims < closeSquare )

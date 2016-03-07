@@ -1,7 +1,7 @@
 #pragma once
 
 template < class Tint >
-const INLINE Tint NextPower2( Tint x )
+static INLINE Tint NextPower2( Tint x )
 {
 	x--;
 	x |= x >> 1;
@@ -18,7 +18,7 @@ const INLINE Tint NextPower2( Tint x )
 
 //! TODO: unroll this...
 template < class Tint >
-INLINE Tint NumBitsSet( Tint x )
+static INLINE Tint NumBitsSet( Tint x )
 {
 	const uint16_t maxBitCount = sizeof( x ) * 8;
 
@@ -28,4 +28,29 @@ INLINE Tint NumBitsSet( Tint x )
 			numBits++;
 
 	return numBits;
+}
+
+template < typename T >
+static INLINE T Inv255( void )
+{
+	return T( 0.0039215686274509803921568627451 );
+}
+
+template < typename T >
+static INLINE T Inv128( void )
+{
+	return T( 0.0078125 );
+}
+
+template < typename T >
+static INLINE T Inv64( void )
+{
+	return T( 0.015625 );
+}
+
+static INLINE void SetNearFar( glm::mat4& clipTrans, float znear, float zfar )
+{
+	float invDiff = 1.0f / ( zfar - znear );
+	clipTrans[ 2 ][ 2 ] = -1.0f * ( zfar + znear ) * invDiff;
+	clipTrans[ 3 ][ 2 ] = -1.0f * ( 2.0f * zfar * znear ) * invDiff;
 }

@@ -1,7 +1,7 @@
 #include "renderer.h"
 #include "shader.h"
 #include "io.h"
-#include "math_util.h"
+#include "lib/math.h"
 #include "effect_shader.h"
 #include "deform.h"
 #include "model.h"
@@ -623,9 +623,9 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	
 	TraverseDraw( pass, true );
 
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
-
 	TraverseDraw( pass, false );
+
+	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
 			   CalcFPS(),
@@ -640,7 +640,7 @@ void BSPRenderer::Update( float dt )
 	camera->Update();
 
 	viewParams_t& view = camera->ViewDataMut();
-	SetNearFar( view.clipTransform, 1.0f, 100000.0f );
+	SetNearFar( view.clipTransform, 500.0f, 5000.0f );
 
 	frustum->Update( view, false );
 
