@@ -1,6 +1,0 @@
-* 1/19/16:
-    * Get this running with Emscripten; replace input as necessary.
-        - Need to figure out how to use the file system API to iterate the right directories. The object which is returned by FS.lookupPath() appears
-        to have some answers (notably, the node member it contains may lead to other directories).
-    * Pick 2 things you can refactor and then test.
-    * Gamma correction.
