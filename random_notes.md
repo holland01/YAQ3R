@@ -86,9 +86,8 @@ struct uniform_t
 };
 ```
 
-and then, in the release call, just memset the entire buffer to 0; this will indirectly set needs_write to false.
-Keep in mind that this may or may not be faster than just iterating over each element and settings needs_write to false
-for each one: you won't really know until you profile and compare.
+simply send the upload on program bind, and then make sure you set needs_write to false
+for every newly uploaded element.
 
 This is totally a C approach. It's also a much simpler approach than what would be written in idiomatic C++,
 and also far more reliable (in this case).
