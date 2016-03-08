@@ -147,7 +147,7 @@ void TTextureTest::Load( void )
 
 	gSamplerHandle_t sampler = GMakeSampler();
 	gTextureMakeParams_t makeParams( imageInfo, sampler );
-	texture = GMakeTexture( makeParams, 0 );
+	texture = GMakeTexture( makeParams );
 	currImage = GTextureImage( texture, 3 );
 	invRowPitch = GTextureInverseRowPitch( texture );
 }

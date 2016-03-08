@@ -142,8 +142,6 @@ private:
 
 	gTextureHandle_t				shaderTexHandle, mainTexHandle, lightmapHandle;
 
-	std::vector< gImageParams_t >	glTextures;			// has one->one mapping with texture and lightmap indices
-
 	modelBuffer_t					glFaces;			// has one->one mapping with face indices
 
 	std::vector< debugFace_t > glDebugFaces; // has one-one mapping with face indices - is only used when debugging for immediate data

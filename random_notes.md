@@ -16,4 +16,8 @@ is being constructed, ignoring them, and therefore not even adding their data to
 unnecessary glTexImage2D calls. If anything, only one dummy texture should be allocated, and any indices which require a dummy should be 
 marked in the atlas data so that a bind to a dummy can simply be mapped when an arbitrary index is passed.
 
+**3/7/16**
+
+Apparently using GL_BGRA as an input format for textures can prevent having to do intermediate software memory transfers on the GPU...
+
 

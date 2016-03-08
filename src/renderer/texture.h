@@ -4,11 +4,11 @@
 
 enum
 {
-	G_TEXTURE_REPEAT = ( 1 << 0 ),
-	G_TEXTURE_LINEAR = ( 1 << 1 ),
-	G_TEXTURE_FORMAT_ALPHA = ( 1 << 2 ),
-	G_TEXTURE_FORMAT_RGBA = ( 1 << 3 )
+	G_TEXTURE_STORAGE_KEY_MAPPED_BIT = 1 << 0,
+	G_TEXTURE_DUMMY_BIT = 1 << 31
 };
+
+using gTextureFlags_t = uint32_t;
 
 struct gTextureHandle_t
 {
@@ -25,6 +25,7 @@ struct gImageParams_t
 	gSamplerHandle_t sampler;
 	int32_t width = 0;
 	int32_t height = 0;
+	gTextureFlags_t flags = 0;
 	std::vector< uint8_t > data;
 };
 
@@ -40,16 +41,21 @@ struct gTextureImage_t
 
 struct gTextureMakeParams_t
 {
+	using key_t = uint8_t;
+
 	gImageParamList_t& images;
+	std::vector< key_t > keyMaps; // specify G_TEXTURE_STORAGE_KEY_MAPPED
 	gImageParamList_t::iterator start;
 	gImageParamList_t::iterator end;
 	gSamplerHandle_t sampler;
+	gTextureFlags_t flags;
 
-	gTextureMakeParams_t( gImageParamList_t& images_, const gSamplerHandle_t& sampler_ )
+	gTextureMakeParams_t( gImageParamList_t& images_, const gSamplerHandle_t& sampler_, gTextureFlags_t flags_ = 0 )
 		: images( images_ ),
 		  start( images_.begin() ),
 		  end( images_.end() ),
-		  sampler( sampler_ )
+		  sampler( sampler_ ),
+		  flags( flags_ )
 	{
 	}
 };
@@ -62,11 +68,9 @@ gSamplerHandle_t GMakeSampler(
 
 int8_t GSamplerBPP( const gSamplerHandle_t& sampler );
 
-gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams, uint32_t flags );
+gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams );
 
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image );
-
-bool GMakeDummyImage( gImageParams_t& image );
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue );
 
@@ -83,9 +87,11 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
-const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
+void GBindDummyTexture( uint32_t offset = 0 );
 
-const gTextureImage_t& GTextureImageByKey( const gTextureHandle_t& handle, uint32_t key );
+void GReleaseDummyTexture( uint32_t offset = 0 );
+
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 

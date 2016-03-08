@@ -94,7 +94,7 @@ enum
 	BSP_SURFACE_LIGHTFILTER  = 0x8000, // act as a light filter during q3map
 	BSP_SURFACE_ALPHASHADOW = 0x10000, // do per-pixel light shadow casting in q3map
 	BSP_SURFACE_NODLIGHT = 0x20000, // don't dlight(?) even if solid (solid lava, skies)
-	BSP_SURFACE_DUST = 0x40000, // leave a dust trail when walking
+	BSP_SURFACE_DUST = 0x40000 // leave a dust trail when walking
 };
 
 // Map loader-specific flags

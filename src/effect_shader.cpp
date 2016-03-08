@@ -951,6 +951,7 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 
 		// If it's a tga file and we fail, then chances are there is a jpeg duplicate
 		// of it that we can fall back on
+
 		if ( !GLoadImageFromFile( texFileRoot.c_str(), img ) )
 		{
 			std::string ext;
@@ -960,9 +961,9 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 				texFileRoot.replace( index, 4, ".jpg" );
 				if ( !GLoadImageFromFile( texFileRoot, img ) )
 				{
-					// If we fail second try, turn it into a dummy
+					// If we fail second try, just leave it: it will be rendered as a dummy
 					MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
-					GMakeDummyImage( img );
+					return;
 				}
 			}
 		}

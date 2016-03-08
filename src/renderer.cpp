@@ -263,7 +263,7 @@ void BSPRenderer::Load( const std::string& filepath )
 		gImageParamList_t shaderTextures;
 		S_LoadShaders( map, mainSampler, shaderTextures );
 		gTextureMakeParams_t makeParams( shaderTextures, mainSampler );
-		shaderTexHandle = GMakeTexture( makeParams, 0 );
+		shaderTexHandle = GMakeTexture( makeParams );
 	}
 
 	LoadMainImages();
@@ -298,7 +298,8 @@ void BSPRenderer::LoadMainImages( void )
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
 	};
 
-	glTextures.resize( map->data.numShaders );
+	gImageParamList_t textures;
+	std::vector< gTextureMakeParams_t::key_t > indices; 
 
 	for ( int32_t t = 0; t < map->data.numShaders; t++ )
 	{
@@ -306,14 +307,15 @@ void BSPRenderer::LoadMainImages( void )
 		std::string fname( map->data.shaders[ t ].name );
 		const std::string& texPath = map->data.basePath + fname; 
 
-		glTextures[ t ].sampler = mainSampler;
+		gImageParams_t texture;
+		texture.sampler = mainSampler;
 
 		bool success = false;
 
 		// No use in allocating tex memory if this is meant to be used with a shader
 		if ( map->GetShaderInfo( map->data.shaders[ t ].name ) )
 		{
-			goto stub_out;
+			MLOG_INFO( "Shader found for: \'%s\'; skipping.", map->data.shaders[ t ].name );
 		}
 
 		// If we don't have a file extension appended in the name,
@@ -323,31 +325,28 @@ void BSPRenderer::LoadMainImages( void )
 			{
 				const std::string& str = texPath + std::string( validImgExt[ i ] );
 
-				if ( GLoadImageFromFile( str, glTextures[ t ] ) )
+				if ( GLoadImageFromFile( str, texture ) )
 				{
 					success = true;
+					indices.push_back( t );
+					textures.push_back( texture );
 					break;
 				}
 			}
 		}
 
-stub_out:
-		// We stub the buffer with a simple dummy fill - otherwise, bad things will happen in the texture fetches.
 		if ( !success )
 		{
-			GMakeDummyImage( glTextures[ t ] );
-			goto fail_warn;
+			MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 		}
-
-		continue;
-
-fail_warn:
-		MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
 	}
 
 	{
-		gTextureMakeParams_t makeParams( glTextures, mainSampler );
-		mainTexHandle = GMakeTexture( makeParams, 0 );
+		// We want to maintain a one->one mapping with the texture indices in the bsp file,
+		// so we ensure the indices are properly mapped
+		gTextureMakeParams_t makeParams( textures, mainSampler, G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+		makeParams.keyMaps = std::move( indices );
+		mainTexHandle = GMakeTexture( makeParams );
 	}
 }
 
@@ -368,7 +367,7 @@ void BSPRenderer::LoadLightmaps( void )
 	}
 
 	gTextureMakeParams_t makeParams( lightmaps, mainSampler );
-	lightmapHandle = GMakeTexture( makeParams, 0 );
+	lightmapHandle = GMakeTexture( makeParams );
 }
 
 //---------------------------------------------------------------------
@@ -705,7 +704,23 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 
 	main.LoadDefaultAttribProfiles();
 	
-	GU_SetupTexParams( main, "mainImage", mainTexHandle, textureIndex, 0 );
+	gTextureHandle_t mainImageHandle;
+
+	if ( textureIndex == -1 )
+	{
+		mainImageHandle.id = G_UNSPECIFIED;
+	}
+	else
+	{
+		mainImageHandle = mainTexHandle;	
+	}
+
+	if ( textureIndex == -1 )
+	{
+		textureIndex = 0;
+	}
+	
+	GU_SetupTexParams( main, "mainImage", mainImageHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
 	main.LoadMat4( "modelToView", camera->ViewData().transform );
@@ -1022,6 +1037,7 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 {
 	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED ) return;
 
+	/*
 	bspVertex_t* vertices;
 	gIndex_t* indices;
 	GL_CHECK( vertices = ( bspVertex_t* ) glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY ) );
@@ -1042,7 +1058,8 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 	GL_CHECK( glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER ) );
 	GL_CHECK( glUnmapBuffer( GL_ARRAY_BUFFER ) );
 
-	/*
+	*/
+	
 	std::vector< bspVertex_t > verts = m.clientVertices;
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )
@@ -1052,7 +1069,6 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 	}
 
 	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, apiHandles[ 0 ], m.vboOffset, verts, false );
-	*/	
 }
 
 void BSPRenderer::LoadLightVol( const drawPass_t& pass, const Program& prog ) const
