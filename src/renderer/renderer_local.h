@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <unordered_map>
 
 #define TEXNAME_CHAR_LIMIT 64
 #define G_UNSPECIFIED 0xFFFFFFFF
@@ -9,7 +10,7 @@
 #define G_INDEX_BYTE_STRIDE 4
 
 // if 1, we don't use GL_ELEMENT_ARRAY_BUFFER, we just send the indices directly through the draw call itself.
-#define G_STREAM_INDEX_VALUES 0 
+#define G_STREAM_INDEX_VALUES 0
 
 #ifdef G_USE_GL_CORE
 #	define G_INTERNAL_RGBA_FORMAT GL_RGBA8
@@ -34,6 +35,8 @@
 
 using gIndex_t = uint32_t;
 using gIndexBuffer_t = std::vector< gIndex_t >;
+
+using programDataMap_t = std::unordered_map< std::string, GLint >;
 
 #ifdef EMSCRIPTEN
 #   define glClearDepth glClearDepthf

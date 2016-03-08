@@ -6,6 +6,7 @@
 #include <array>
 #include <tuple>
 #include <unordered_map>
+#include "renderer/renderer_local.h"
 
 #define ATTRIB_OFFSET( type, member )( ( void* ) offsetof( type, member ) )
 
@@ -182,10 +183,11 @@ private:
 	std::vector< attribProfile_t > altAttribProfiles;
 
 public:
-	using dataMap_t = std::unordered_map< std::string, GLint >;
 
-	dataMap_t uniforms;
-	dataMap_t attribs;
+	programDataMap_t uniforms;
+	programDataMap_t attribs;
+
+	const shaderStage_t* stage;
 
 	std::vector< std::string > disableAttribs; // Cleared on each invocation of LoadAttribLayout
 

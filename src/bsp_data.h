@@ -367,6 +367,17 @@ enum texCoordGen_t
 	TCGEN_VECTOR
 };
 
+enum effectType_t
+{
+	EFFECT_UNDEFINED = 0xFF,
+	EFFECT_WAVE = 0,
+	EFFECT_BULGE,
+	EFFECT_NORMAL,
+	EFFECT_ROTATION2D,
+	EFFECT_SCALE2D,
+	EFFECT_XYZW
+};
+
 struct normal_t
 {
 	float x;
@@ -392,6 +403,7 @@ struct bulge_t
 struct effect_t
 {
 	std::string name;
+	effectType_t type;
 
 	union data_t
 	{
@@ -412,24 +424,24 @@ struct effect_t
 
 	effect_t( void )
 		: name( KEY_UNDEFINED ),
+		  type( EFFECT_UNDEFINED ),
 		  data()
 	{
 	}
 
 	effect_t( const std::string& name_ )
 		: name( name_ ),
+		  type( EFFECT_UNDEFINED ),
 		  data()
 	{
 	}
 
 	effect_t( const effect_t& e )
 		: name( e.name ),
+		  type( e.type ),
 		  data( e.data )
 	{
 	}
-
-	~effect_t( void )
-	{}
 };
 
 #define SHADER_MAX_TOKEN_CHAR_LENGTH 64
@@ -464,12 +476,11 @@ struct shaderStage_t
 
 	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath; // path to the texture image, if we have one
 
-	//gProgramHandle_t program;
-
-	std::shared_ptr< Program > program;
+	gProgramHandle_t program;
 
 	shaderStage_t( void )
-		: program( nullptr )
+	//	: program( nullptr )
+		: program( { ( uint16_t ) G_UNSPECIFIED } )
 	{
 		texturePath.fill( 0 );
 	}
@@ -506,6 +517,8 @@ struct shaderInfo_t
 		name.fill( 0 );
 	}
 };
+
+bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b );
 
 using shaderMap_t = std::unordered_map< std::string, shaderInfo_t >;
 using shaderMapEntry_t = std::pair< std::string, shaderInfo_t >;

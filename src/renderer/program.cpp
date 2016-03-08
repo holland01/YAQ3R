@@ -1,4 +1,5 @@
 #include "program.h"
+#include "bsp_data.h"
 #include "glutil.h"
 #include <memory>
 
@@ -19,7 +20,7 @@ namespace {
 		return h;
 	}
 
-	bool CompareMaps( const Program::dataMap_t& p, const Program::dataMap_t& q )
+	bool CompareMaps( const programDataMap_t& p, const programDataMap_t& q )
 	{
 		if ( p.size() != q.size() )
 			return false;
@@ -56,18 +57,19 @@ namespace {
 	}
 }
 
-gProgramHandle_t GFindProgramByData( const Program::dataMap_t& attribs, const Program::dataMap_t& uniforms )
+gProgramHandle_t GFindProgramByData( const programDataMap_t& attribs,
+									 const programDataMap_t& uniforms,
+									 const shaderStage_t* stage )
 {
 	for ( uint32_t i = 0; i < gProgramStorage.size(); ++i )
 	{
 		const std::unique_ptr< Program >& q = gProgramStorage[ i ];
 
-		if ( CompareMaps( q->attribs, attribs ) )
+		if ( CompareMaps( q->attribs, attribs )
+		  && CompareMaps( q->uniforms, uniforms )
+		  && EquivalentProgramTypes( stage, q->stage ) )
 		{
-			if ( CompareMaps( q->uniforms, uniforms ) )
-			{
-				return { i };
-			}
+			return { i };
 		}
 	}
 
@@ -81,13 +83,10 @@ gProgramHandle_t GStoreProgram( Program* p )
 		return { G_UNSPECIFIED };
 	}
 
-	// Make sure we don't already have a program like this before
-	// adding it
-
 	return AddProgram( p );
 }
 
-Program* GQueryProgram( const gProgramHandle_t& handle )
+Program* GQueryProgram( gProgramHandle_t handle )
 {
 	if ( handle.id >= gProgramStorage.size() )
 	{
@@ -95,4 +94,9 @@ Program* GQueryProgram( const gProgramHandle_t& handle )
 	}
 
 	return gProgramStorage[ handle.id ].get();
+}
+
+const Program& GQueryProgram( gProgramHandle_t handle )
+{
+	return *( GQueryProgram( handle ) );
 }

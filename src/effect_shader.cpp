@@ -1406,10 +1406,19 @@ void S_GenPrograms( shaderInfo_t& shader )
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
 
-		stage.program.reset( p );
+		stage.program = GFindProgramByData( p->attribs, p->uniforms, &stage );
 
-		gMeta->LogShader( "Vertex", vertexString, j );
-		gMeta->LogShader( "Fragment", fragmentString, j );
+		if ( G_NULL( stage.program ) )
+		{
+			gMeta->LogShader( "Vertex", vertexString, j );
+			gMeta->LogShader( "Fragment", fragmentString, j );
+			p->stage = &stage;
+			GStoreProgram( p );
+		}
+		else
+		{
+			delete p;
+		}
 	}
 }
 

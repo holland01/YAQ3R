@@ -84,7 +84,8 @@ static INLINE void DisableAllAttribs( void )
 }
 
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, const std::vector< std::string >& bindAttribs )
-	: program( 0 )
+	: program( 0 ),
+	  stage( nullptr )
 {
 	std::string fullVertexShader( S_GetGLSLHeader() + "\n" + vertexShader );
 	std::string fullFragmentShader( S_GetGLSLHeader() + "\n" + fragmentShader );
