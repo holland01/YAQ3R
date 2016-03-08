@@ -256,7 +256,10 @@ extern void stbi_install_YCbCr_to_RGB(stbi_YCbCr_to_RGB_run func);
 #endif // STBI_SIMD
 
 
-#include "stb_image.c"
+#ifndef __linux__ // including from header file only works with MSVC
+#	include "stb_image.c"
+#endif
+
 
 #ifdef __cplusplus
 }

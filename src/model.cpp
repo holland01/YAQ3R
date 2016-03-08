@@ -17,7 +17,7 @@ mapModel_t::mapModel_t( void )
 {
 }
 
-void mapModel_t::PreGenerate( std::vector< bspVertex_t >& vertexData, const Q3BspMap* map, size_t faceOffset )
+void mapModel_t::PreGenerate( const Q3BspMap* map, size_t faceOffset )
 {
 	if ( gServiceIndexBuffer )
 	{
@@ -27,25 +27,26 @@ void mapModel_t::PreGenerate( std::vector< bspVertex_t >& vertexData, const Q3Bs
 	{
 		if ( !G_NULL( indices ) )
 			GFreeIndexBuffer( indices );
-		
+
 		indices = GMakeIndexBuffer();
 		iboOffset = 0;
 	}
-	
+
 	shader = map->GetShaderInfo( faceOffset );
 
-	if ( shader && shader->deform 
+	if ( shader && shader->deform
 		&& map->data.faces[ faceOffset ].type != BSP_FACE_TYPE_PATCH )
 	{
-		clientVertices.reserve( map->data.faces[ faceOffset ].numMeshVertexes );		
+		clientVertices.reserve( map->data.faces[ faceOffset ].numMeshVertexes );
 	}
 }
 
-void mapModel_t::Generate( std::vector< bspVertex_t >& vertexData, 
-						  const Q3BspMap* map, 
+void mapModel_t::Generate( std::vector< bspVertex_t >& vertexData,
+						  const Q3BspMap* map,
 						  size_t faceOffset )
 {
-	PreGenerate( vertexData, map, faceOffset );
+	UNUSED( vertexData );
+	PreGenerate( map, faceOffset );
 
 	const bspFace_t* face = &map->data.faces[ faceOffset ];
 	iboRange = face->numMeshVertexes;
@@ -92,17 +93,17 @@ void mapModel_t::EncloseBoundsOnPoint( const glm::vec3& v )
 void mapModel_t::CalcBounds( const mapData_t& data )
 {
 	bounds.Empty();
-	
+
 	if ( gServiceIndexBuffer )
 	{
-		for ( size_t i = 0; i < iboRange; ++i )
+		for ( GLsizei i = 0; i < iboRange; ++i )
 		{
 			EncloseBoundsOnPoint( data.vertexes[ ( *gServiceIndexBuffer )[ iboOffset + i ] ].position );
 		}
 	}
 	else
 	{
-		for ( size_t i = 0; i < iboRange; ++i )
+		for ( GLsizei i = 0; i < iboRange; ++i )
 		{
 			EncloseBoundsOnPoint( data.vertexes[ GGetIndex( indices, i ) ].position );
 		}
@@ -115,11 +116,11 @@ mapPatch_t::mapPatch_t( void )
 {
 }
 
-void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData, 
-							const Q3BspMap* map, 
+void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
+							const Q3BspMap* map,
 							size_t faceOffset )
 {
-	PreGenerate( vertexData, map, faceOffset );
+	PreGenerate( map, faceOffset );
 
 	vboOffset = ( GLuint ) vertexData.size();
 
@@ -157,7 +158,7 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 
 			if ( gServiceIndexBuffer )
 			{
-				GenPatch( *gServiceIndexBuffer, 
+				GenPatch( *gServiceIndexBuffer,
 					this, shader, baseDest, ( int32_t ) vertexData.size() );
 			}
 			else
@@ -176,7 +177,7 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 	else
 	{
 		iboRange = tmp.size();
-	
+
 		for ( uint32_t i = 0; i < tmp.size(); ++i )
 		{
 			GPushIndex( indices, tmp[ i ] );
@@ -189,16 +190,16 @@ void mapPatch_t::Generate(  std::vector< bspVertex_t >& vertexData,
 
 	const uint32_t L1 = subdivLevel + 1;
 	rowIndices.resize( width * height * subdivLevel, 0 );
-	
+
 	// This will always be 2 * L1 for every row, since they're all uniform.
 	// Best thing to is be aware of what the largest number of row indices
 	// is out of all of the mapPatch_t's generated, and then create a data store (preallocated as the size of the largest number of row indices)
-	// which can be written to with the appropriate value (trisPerRow would then 
+	// which can be written to with the appropriate value (trisPerRow would then
 	// just be the scalar 2 * L1
 
 	// (OR just use the scalar value in glDrawElements; you could write a separate GU_MultiDrawElements which
 	// is designed to take N index buffer offsets, each of which has a range of the same size).
-	
+
 	trisPerRow.resize( width * height * subdivLevel, 2 * L1 );
 
 	for ( size_t y = 0; y < rowIndices.size(); ++y )

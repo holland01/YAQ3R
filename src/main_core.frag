@@ -1,5 +1,3 @@
-#version 330 core
-
 smooth in vec4 frag_Color;
 smooth in vec2 frag_Tex;
 smooth in vec2 frag_Lightmap;

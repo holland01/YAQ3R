@@ -19,7 +19,7 @@ struct meta_t
 	bool logProgramGen = true;
 	FILE*	programLog = nullptr;
 	uint32_t currLineCount = 0;
-	
+
 	std::string currShaderFile;
 
 	meta_t( void )
@@ -32,6 +32,19 @@ struct meta_t
 	{
 		if ( programLog )
 			fclose( programLog );
+	}
+
+	void LogShader( const std::string& title,
+					const std::string& source,
+					uint8_t stage = 0 )
+	{
+		if ( logProgramGen )
+		{
+			fprintf( programLog, "[ %i ] [ \n\n %s \n\n%s \n\n ]",
+				stage,
+				title.c_str(),
+				source.c_str() );
+		}
 	}
 };
 
@@ -575,11 +588,10 @@ static INLINE tokType_t Token( const char* c )
 		'*', '[', ']', '(', ')'
 	};
 
+#ifdef DEBUG
 	if ( *c == '\n' )
 		gMeta->currLineCount++;
-
-	if ( gMeta->currLineCount == 144 && gMeta->currShaderFile == "asset/stockmaps/maps/../scripts/base.shader" )
-		__nop();
+#endif
 
 	// If we have an indent, space, newline, or a comment, then the token is invalid
 	if ( *c == '/' && *( c + 1 ) == '/' )
@@ -642,7 +654,7 @@ static float ReadFloat( const char*& buffer )
 
 static bool ShaderUsed( const char* header, const Q3BspMap* map )
 {
-	for ( uint32_t i = 0; i < map->data.numShaders; ++i )
+	for ( int i = 0; i < map->data.numShaders; ++i )
 	{
 		if ( strcmp( map->data.shaders[ i ].name, header ) == 0 )
 		{
@@ -650,7 +662,7 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 		}
 	}
 
-	for ( uint32_t i = 0; i < map->data.numFogs; ++i )
+	for ( int i = 0; i < map->data.numFogs; ++i )
 	{
 		if ( strcmp( map->data.fogs[ i ].name, header ) == 0 )
 		{
@@ -671,10 +683,10 @@ static const char* SkipLevel( const char* buffer, int8_t targetLevel )
 	{
 		switch ( *pch )
 		{
-		case '{': 
-			level++; 
+		case '{':
+			level++;
 			break;
-		case '}': 
+		case '}':
 			level--;
 			if ( level == targetLevel )
 			{
@@ -690,12 +702,12 @@ static const char* SkipLevel( const char* buffer, int8_t targetLevel )
 }
 
 // Returns the char count to increment the filebuffer by
-static const char* ParseEntry( 
-	shaderInfo_t* outInfo, 
+static const char* ParseEntry(
+	shaderInfo_t* outInfo,
 	bool isMapShader,
-	bool& used, 
-	const char* buffer, 
-	int level, 
+	bool& used,
+	const char* buffer,
+	int level,
 	const Q3BspMap* map )
 {
 	char token[ 64 ];
@@ -746,7 +758,7 @@ evaluate_tok:
 		if ( level == 0 )
 		{
 			strcpy( &outInfo->name[ 0 ], token );
-			
+
 			// Ensure we have a valid shader which a) we know is used by the map
 			// and b) hasn't already been read
 			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader );
@@ -797,6 +809,25 @@ static INLINE std::string SampleTexture2D( const std::string& samplerName, const
 	return fname + "( " + samplerName + ", " + coords + " )";
 }
 
+static INLINE std::string SampleFromTexture( const std::string& destCoords,
+									 const std::string& destSample,
+									 const std::string& srcCoords,
+									 const std::string& srcSample,
+									 const std::string& scaleParams,
+									 const std::string& transform )
+{
+
+	std::stringstream ss;
+
+	ss << "\t" << destCoords << " = " << "mod( " << srcCoords << ", vec2( 0.99 ) ) * " << scaleParams
+	   << " * " << transform << ".zw + " << transform << ".xy;\n";
+
+	ss << "\t" << destSample << " = " << SampleTexture2D( srcSample, destCoords ) << ";";
+
+	return ss.str();
+}
+
+
 static INLINE std::string WriteFragment( const std::string& value )
 {
 #ifdef G_USE_GL_CORE
@@ -808,14 +839,17 @@ static INLINE std::string WriteFragment( const std::string& value )
 
 static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type, const int32_t location = -1 )
 {
-#ifdef G_USE_GL_CORE 
+#ifdef G_USE_GL_CORE
 	std::string decl("in " + type + " " + name + ";");
-	
+
+#	ifdef __linux__
+	UNUSED( location );
+#else
 	if ( location != -1 )
 	{
-		decl = "layout( location = " + std::to_string( location ) + " ) " + decl;		
+		decl = "layout( location = " + std::to_string( location ) + " ) " + decl;
 	}
-
+#	endif
 	return decl;
 #else
 	UNUSED( location );
@@ -823,7 +857,9 @@ static INLINE std::string DeclAttributeVar( const std::string& name, const std::
 #endif
 }
 
-static INLINE std::string DeclTransferVar( const std::string& name, const std::string& type, const std::string& transferMode="" )
+static INLINE std::string DeclTransferVar( const std::string& name,
+										   const std::string& type,
+										   const std::string& transferMode="" )
 {
 #ifdef G_USE_GL_CORE
 	return transferMode + " " + type + " " + name + ";";
@@ -833,16 +869,18 @@ static INLINE std::string DeclTransferVar( const std::string& name, const std::s
 #endif
 }
 
-static INLINE std::string GetHeader( void )
+static INLINE std::string DeclCoreTransforms( void )
 {
-#ifdef G_USE_GL_CORE
-	return "#version 330";
-#else
-	return "#version 100";
-#endif
+	return "uniform mat4 modelToView;\n"
+		   "uniform mat4 viewToClip;";
 }
 
-static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destShaderSrc,
+static INLINE std::string DeclGammaConstant( void )
+{
+	return "const float gamma = 1.0 / 2.2;";
+}
+
+static INLINE void DeclCoreTransforms(	std::vector< std::string >& destShaderSrc,
 											 std::vector< std::string >& uniforms,
 											 size_t offset )
 {
@@ -852,6 +890,17 @@ static INLINE void InsertCoreTransformsDecl( std::vector< std::string >& destSha
 	destShaderSrc.insert( destShaderSrc.begin() + offset,
 		{ "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
 	);
+}
+
+static INLINE std::string GammaCorrect( const std::string& colorVec )
+{
+	std::stringstream ss;
+
+	ss << "\t" << colorVec << ".r = pow( " << colorVec << ".r, gamma );\n"
+	   << "\t" << colorVec << ".g = pow( " << colorVec << ".g, gamma );\n"
+	   << "\t" << colorVec << ".b = pow( " << colorVec << ".b, gamma );";
+
+	return ss.str();
 }
 
 static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
@@ -882,15 +931,12 @@ static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
 		AddDiscardIf( fragmentSrc, std::string( discardPredicate ) );
 
 	// Gamma correction
-	fragmentSrc.insert( fragmentSrc.end(),
-	{
-		"\tcolor.r = pow( color.r, gamma );",
-		"\tcolor.g = pow( color.g, gamma );",
-		"\tcolor.b = pow( color.b, gamma );"
-	} );
+	fragmentSrc.insert( fragmentSrc.end(), GammaCorrect( "color" ) );
 
 	fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
 }
+
+
 
  // Quick subroutine enabling the calculation of environment map;
 // uses a simple form of displacement mapping to achieve desired results.
@@ -925,8 +971,6 @@ static void GenShaderPrograms( Q3BspMap* map )
 {
 	for ( auto& entry: map->effectShaders )
 	{
-		const std::string& name = entry.first;
-
 		shaderInfo_t& shader = entry.second;
 		S_GenPrograms( shader );
 	}
@@ -1014,13 +1058,13 @@ struct parseArgs_t
 
 			std::string ext;
 			bool extFound = File_GetExt( ext, nullptr, filepath );
-			
+
 			if ( !extFound )
 			{
 				MLOG_WARNING( "No extension found for file \'%s\'; moving on", filepath.c_str() );
 				return FILE_CONTINUE_TRAVERSAL;
 			}
-			
+
 			if ( ext != "shader" )
 			{
 				MLOG_WARNING( "File \'%s\' does not have shader extension; moving on", filepath.c_str() );
@@ -1047,7 +1091,7 @@ struct parseArgs_t
 		while ( *pChar && range > 0 )
 		{
 			shaderInfo_t entry;
-			
+
 			bool used = false;
 			entry.localLoadFlags = 0;
 			pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
@@ -1066,6 +1110,84 @@ struct parseArgs_t
 
 Q3BspMap* parseArgs_t::map = nullptr;
 
+}
+
+std::string S_GetGLSLHeader( void )
+{
+#ifdef G_USE_GL_CORE
+#	ifdef __linux__
+		return "#version 130\n";
+#	else
+		return "#version 330";
+#	endif // __linux__
+#else
+	return "#version 100";
+#endif
+}
+
+//! JoinLines function call will append
+//! the ending bracket for the main function,
+//! so we don't have to worry about it here.
+std::string S_MainVertexShader( void )
+{
+	std::vector< std::string > sourceLines =
+	{
+		DeclAttributeVar( "position", "vec3", 0 ),
+		DeclAttributeVar( "tex0", "vec2", 1 ),
+		DeclAttributeVar( "lightmap", "vec2", 2 ),
+		DeclAttributeVar( "color", "vec4", 3 ),
+		DeclTransferVar( "frag_Color", "vec4", "out" ),
+		DeclTransferVar( "frag_Tex", "vec2", "out" ),
+		DeclTransferVar( "frag_Lightmap", "vec2", "out" ),
+		DeclCoreTransforms(),
+		"void main(void) {",
+		"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );",
+		"\tfrag_Color = color;",
+		"\tfrag_Lightmap = lightmap;",
+		"\tfrag_Tex = tex0;"
+	};
+
+	std::string source( JoinLines( sourceLines ) );
+
+	gMeta->LogShader( "Main Vertex", source );
+
+	return source;
+}
+
+std::string S_MainFragmentShader( void )
+{
+	std::vector< std::string > sourceLines =
+	{
+		DeclGammaConstant(),
+		DeclTransferVar( "frag_Color", "vec4", "in" ),
+		DeclTransferVar( "frag_Tex", "vec2", "in" ),
+		DeclTransferVar( "frag_Lightmap", "vec2", "in" ),
+		"uniform sampler2D mainImageSampler;",
+		"uniform vec2 mainImageImageScaleRatio;",
+		"uniform vec4 mainImageImageTransform;",
+		"uniform sampler2D lightmapSampler;",
+		"uniform vec2 lightmapImageScaleRatio;",
+		"uniform vec4 lightmapImageTransform;",
+#ifdef G_USE_GL_CORE
+		DeclTransferVar( "fragment", "vec4", "out" ),
+#endif
+		"void main(void) {",
+		"\tvec2 texCoords;",
+		"\tvec4 image, lightmap, color;",
+		SampleFromTexture( "texCoords", "image", "frag_Tex",
+			"mainImageSampler", "mainImageImageScaleRatio", "mainImageImageTransform" ),
+		SampleFromTexture( "texCoords", "lightmap", "frag_Lightmap",
+			"lightmapSampler", "lightmapImageScaleRatio", "lightmapImageTransform" ),
+		"\tcolor = frag_Color * image * lightmap;",
+		GammaCorrect( "color" ),
+		WriteFragment( "color" )
+	};
+
+	std::string source( JoinLines( sourceLines ) );
+
+	gMeta->LogShader( "Main Fragment", source );
+
+	return source;
 }
 
 /*!
@@ -1126,8 +1248,7 @@ void S_GenPrograms( shaderInfo_t& shader )
 		// decl funcs won't be written; they'll likely just get optimized away
 		std::vector< std::string > vertexSrc =
 		{
-			GetHeader(),
-			DeclAttributeVar( "position", "vec3", 0 ), 
+			DeclAttributeVar( "position", "vec3", 0 ),
 			DeclAttributeVar( "color", "vec4", 1 ),
 			DeclAttributeVar( texCoordName, "vec2", 2 ),
 			DeclTransferVar( "frag_Color", "vec4", "out" ),
@@ -1141,7 +1262,7 @@ void S_GenPrograms( shaderInfo_t& shader )
 			attribs.push_back( "normal" );
 		}
 
-		InsertCoreTransformsDecl( vertexSrc, uniforms, vertGlobalVarInsertOffset );
+		DeclCoreTransforms( vertexSrc, uniforms, vertGlobalVarInsertOffset );
 
 		vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
 
@@ -1163,13 +1284,12 @@ void S_GenPrograms( shaderInfo_t& shader )
 		case RGBGEN_VERTEX:
 			vertexSrc.push_back( "\tfrag_Color = color;" );
 			break;
-		}		
+		}
 
 		// Fragment shader....
 		// Unspecified alphaGen implies a default 1.0 alpha channel
 		std::vector< std::string > fragmentSrc =
 		{
-			GetHeader(),
 #ifndef G_USE_GL_CORE
 			"precision highp float;",
 #endif
@@ -1251,13 +1371,8 @@ void S_GenPrograms( shaderInfo_t& shader )
 
 		stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
 
-		if ( gMeta->logProgramGen )
-		{
-			fprintf( gMeta->programLog, "[ %i ] [\n\n Vertex \n\n%s \n\n Fragment \n\n%s \n\n ]\n\n",
-				j,
-				vertexString.c_str(),
-				fragmentString.c_str() );
-		}
+		gMeta->LogShader( "Vertex", vertexString, j );
+		gMeta->LogShader( "Fragment", fragmentString, j );
 	}
 }
 

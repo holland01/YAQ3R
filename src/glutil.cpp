@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "aabb.h"
 #include "renderer/texture.h"
+#include "effect_shader.h"
 #include <algorithm>
 
 static inline void MapTexCoord( GLint location, intptr_t offset )
@@ -85,10 +86,13 @@ static INLINE void DisableAllAttribs( void )
 Program::Program( const std::string& vertexShader, const std::string& fragmentShader, const std::vector< std::string >& bindAttribs )
 	: program( 0 )
 {
+	std::string fullVertexShader( S_GetGLSLHeader() + "\n" + vertexShader );
+	std::string fullFragmentShader( S_GetGLSLHeader() + "\n" + fragmentShader );
+
 	GLuint shaders[] =
 	{
-		CompileShaderSource( vertexShader.c_str(), vertexShader.size(), GL_VERTEX_SHADER ),
-		CompileShaderSource( fragmentShader.c_str(), fragmentShader.size(), GL_FRAGMENT_SHADER )
+		CompileShaderSource( fullVertexShader.c_str(), fullVertexShader.size(), GL_VERTEX_SHADER ),
+		CompileShaderSource( fullFragmentShader.c_str(), fullFragmentShader.size(), GL_FRAGMENT_SHADER )
 	};
 
 	program = LinkProgram( shaders, 2, bindAttribs );

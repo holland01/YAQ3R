@@ -27,9 +27,9 @@ struct gTexture_t
 	std::string name;
 
 	std::vector< gTextureImage_t > texCoordSlots;
-	
-	std::unordered_map< 
-		gTextureMakeParams_t::key_t, 
+
+	std::unordered_map<
+		gTextureMakeParams_t::key_t,
 		gTextureImage_t > keyMapSlots;
 
 	glm::vec2 invRowPitch;
@@ -62,8 +62,8 @@ std::vector< gTexConfig_t > gSamplers;
 
 INLINE const gTexConfig_t& GetTexConfig( gSamplerHandle_t handle )
 {
-	MLOG_ASSERT( handle.id < gSamplers.size(), 
-				"Attempt to access nonexistant sampler! ID: %iu, size: %iu", 
+	MLOG_ASSERT( handle.id < gSamplers.size(),
+				"Attempt to access nonexistant sampler! ID: %iu, size: %iu",
 				handle.id, ( uint32_t )gSamplers.size() );
 
 	return gSamplers[ handle.id ];
@@ -95,7 +95,7 @@ INLINE bool ValidateTexture( const gTexture_t& tt, const gTexConfig_t& sampler )
 	GLint testWidth, testHeight;
 	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &testWidth ) );
 	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &testHeight ) );
-	
+
 	return testWidth && testHeight;
 }
 
@@ -104,7 +104,7 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 	if ( !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT ) )
 	{
 		size_t numEntries = ( size_t )( makeParams.end - makeParams.start );
-		
+
 		if ( numEntries != makeParams.keyMaps.size() )
 		{
 			MLOG_WARNING( "%s", "G_TEXTURE_STORAGE_KEY_MAPPED specified with entry/key size mismatch; aborting." );
@@ -115,11 +115,11 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 	return true;
 }
 
-void GenTextureData( gTexture_t* tt, const gImageParams_t& params )
+bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 {
 	if ( !tt )
 	{
-		return;
+		return false;
 	}
 
 	const gTexConfig_t& sampler = GetTexConfig( params.sampler );
@@ -143,12 +143,14 @@ void GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 			GL_UNSIGNED_BYTE, &params.data[ 0 ] ) );
 
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
+
+	return true;
 }
 
 INLINE void TryAllocDummy( void )
 {
 	if ( !gDummy && !gSamplers.empty() ) // The sampler we use in particular is pretty much irrelevant
- 	{
+	{
 		gImageParams_t params;
 		params.sampler.id = 0;
 
@@ -181,7 +183,7 @@ gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
 	tt->keyMapped = !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
 
 	GenTextureData( tt, canvasParams );
-	
+
 	const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
 	const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
 
@@ -263,7 +265,6 @@ gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
 		x++;
 	}
 
-done:
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
 	return tt;
 }
@@ -333,7 +334,7 @@ gSamplerHandle_t GMakeSampler(
 
 int8_t GSamplerBPP( const gSamplerHandle_t& sampler )
 {
- 	if ( sampler.id < gSamplers.size() )
+	if ( sampler.id < gSamplers.size() )
 	{
 		return gSamplers[ sampler.id ].bpp;
 	}
@@ -421,7 +422,7 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 	assert( handle.id < gTextureMap.size() );
 
 	const gTexture_t* t = GetTexture( handle );
-	
+
 	// Ensure we don't have something like a negative texture index
 	if ( t == gDummy.get() )
 	{
@@ -460,11 +461,11 @@ bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint
 	return true;
 }
 
-void GSetAlignedImageData( gImageParams_t& destImage, 
-						    uint8_t* sourceData, 
-					        int8_t sourceBPP, 
-						    uint32_t numPixels,
-					        uint8_t fetchChannel )
+void GSetAlignedImageData( gImageParams_t& destImage,
+							uint8_t* sourceData,
+							int8_t sourceBPP,
+							uint32_t numPixels,
+							uint8_t fetchChannel )
 {
 	switch ( GSamplerBPP( destImage.sampler ) )
 	{

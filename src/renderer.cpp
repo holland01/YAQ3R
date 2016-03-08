@@ -153,10 +153,12 @@ BSPRenderer::~BSPRenderer( void )
 	delete camera;
 }
 
-void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
+void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc, const std::string& fragSrc,
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
 {
+	/*
 	std::vector< char > vertex, fragment;
+
 	if ( !File_GetBuf( vertex, vertPath ) )
 	{
 		MLOG_ERROR( "Could not open vertex shader" );
@@ -168,8 +170,9 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertPath
 		MLOG_ERROR( "Could not open fragment shader" );
 		return;
 	}
+	*/
 
-	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertex, fragment, uniforms, attribs ) );
+	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc, fragSrc, uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
@@ -183,7 +186,7 @@ void BSPRenderer::Prep( void )
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 	GU_ClearDepth( 1.0f );
-	
+
 	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
 
 	// Load main shader glPrograms
@@ -210,7 +213,7 @@ void BSPRenderer::Prep( void )
 			"lightmapImageScaleRatio"
 		};
 
-		MakeProg( "main", "src/main_" MAIN_SHADER_SUFFIX ".vert", "src/main_" MAIN_SHADER_SUFFIX ".frag", uniforms, attribs );
+		MakeProg( "main", S_MainVertexShader(), S_MainFragmentShader(), uniforms, attribs );
 	}
 }
 
@@ -299,13 +302,13 @@ void BSPRenderer::LoadMainImages( void )
 	};
 
 	gImageParamList_t textures;
-	std::vector< gTextureMakeParams_t::key_t > indices; 
+	std::vector< gTextureMakeParams_t::key_t > indices;
 
 	for ( int32_t t = 0; t < map->data.numShaders; t++ )
 	{
 		// We pre-initialize these before needing them because of the goto.
 		std::string fname( map->data.shaders[ t ].name );
-		const std::string& texPath = map->data.basePath + fname; 
+		const std::string& texPath = map->data.basePath + fname;
 
 		gImageParams_t texture;
 		texture.sampler = mainSampler;
@@ -387,7 +390,9 @@ void BSPRenderer::LoadVertexData( void )
 	MapModelGenIndexBuffer( indexData );
 #endif
 
+#if G_STREAM_INDEX_VALUES
 	size_t iboSize = 0;
+#endif
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
@@ -397,7 +402,7 @@ void BSPRenderer::LoadVertexData( void )
 
 		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
-			glFaces[ i ].reset( new mapModel_t() ); 				
+			glFaces[ i ].reset( new mapModel_t() );
 		}
 		else if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
@@ -482,8 +487,8 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 		glPrograms[ "debug" ]->LoadMat4( "viewToClip", proj );
 		glPrograms[ "debug" ]->LoadVec4( "fragColor", glDebugFaces[ index ].color );
 		glPrograms[ "debug" ]->Bind();
-		GU_MultiDrawElements( GL_TRIANGLE_STRIP, 
-					glFaces[ index ]->ToPatch()->rowIndices, 
+		GU_MultiDrawElements( GL_TRIANGLE_STRIP,
+					glFaces[ index ]->ToPatch()->rowIndices,
 					glFaces[ index ]->ToPatch()->trisPerRow );
 		glPrograms[ "debug" ]->Release();
 
@@ -614,11 +619,11 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	pass.type = PASS_DRAW;
-	
+
 	GL_CHECK( glEnable( GL_CULL_FACE ) );
 	GL_CHECK( glCullFace( GL_BACK ) );
 	GL_CHECK( glFrontFace( GL_CW ) );
-	
+
 	TraverseDraw( pass, true );
 
 	TraverseDraw( pass, false );
@@ -667,7 +672,7 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		}
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
-			ProcessFace( pass, 
+			ProcessFace( pass,
 						map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
 	}
 	else
@@ -703,7 +708,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 	const Program& main = *( glPrograms.at( "main" ) );
 
 	main.LoadDefaultAttribProfiles();
-	
+
 	gTextureHandle_t mainImageHandle;
 
 	if ( textureIndex == -1 )
@@ -712,14 +717,14 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 	}
 	else
 	{
-		mainImageHandle = mainTexHandle;	
+		mainImageHandle = mainTexHandle;
 	}
 
 	if ( textureIndex == -1 )
 	{
 		textureIndex = 0;
 	}
-	
+
 	GU_SetupTexParams( main, "mainImage", mainImageHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
 
@@ -738,7 +743,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std:
 namespace {
 	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, modelBuffer_t& glFaces )
 	{
-		mapModel_t& model = *( glFaces[ faceIndex ] ); 
+		mapModel_t& model = *( glFaces[ faceIndex ] );
 
 #if G_STREAM_INDEX_VALUES
 		surf.drawFaceIndices.push_back( faceIndex );
@@ -825,7 +830,7 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 	for ( uint32_t i = 0; i < surf.drawFaceIndices.size(); ++i )
 	{
 		mapModel_t& m = *( glFaces[ surf.drawFaceIndices[ i ] ] );
-		GDrawFromIndices( m.indices, mode );	
+		GDrawFromIndices( m.indices, mode );
 	}
 #else
 	GU_MultiDrawElements( mode, surf.bufferOffsets, surf.bufferRanges );
@@ -1054,12 +1059,12 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 
 		vertices[ index ].position = position + normal;
 	}
-	
+
 	GL_CHECK( glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER ) );
 	GL_CHECK( glUnmapBuffer( GL_ARRAY_BUFFER ) );
 
 	*/
-	
+
 	std::vector< bspVertex_t > verts = m.clientVertices;
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )

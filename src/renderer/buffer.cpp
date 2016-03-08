@@ -105,7 +105,6 @@ namespace {
 gIndexBufferHandle_t GMakeIndexBuffer( void )
 {
 	gIndexBufferHandle_t handle;
-	handle.id;
 	return handle;
 }
 
@@ -117,23 +116,33 @@ void GFreeIndexBuffer( gIndexBufferHandle_t buffer )
 	}
 
 	// TODO: refrain from actually freeing the memory; rather,
-	// zero it out and set its length to zero as well. 
+	// zero it out and set its length to zero as well.
 	// If we use an STL vector, we shouldn't clear it.
 }
 
 void GPushIndex( gIndexBufferHandle_t dest, uint32_t v )
 {
-	// TODO	
+	// TODO
+	UNUSED( dest );
+	UNUSED( v );
 }
 
 uint32_t GGetIndex( gIndexBufferHandle_t buffer, uint32_t index )
 {
-	// TODO	
+	// TODO
+	UNUSED( buffer );
+	UNUSED( index );
 
 	return 0;
 }
 
 void GDrawFromIndices( gIndexBufferHandle_t buffer, GLenum mode )
 {
-	// TODO	
+	// TODO
+	UNUSED( buffer );
+	UNUSED( mode );
+	UNUSED( GGetIndex );
+	UNUSED( GPushIndex );
+	UNUSED( GFreeIndexBuffer );
+	UNUSED( GMakeIndexBuffer );
 }

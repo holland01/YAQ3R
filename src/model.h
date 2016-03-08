@@ -22,7 +22,7 @@ struct mapModel_t
 	int32_t						subdivLevel;
 
 	gIndexBufferHandle_t		indices; // NOTE: these _will_ be cleared if the instance is actually a mapPatch_t underneath, since there's a much more useful data structure for that purpose...
-	
+
 	AABB						bounds;
 
 	std::vector< bspVertex_t >			clientVertices; // only used for patches and vertex deforms via shader
@@ -32,12 +32,12 @@ struct mapModel_t
 
 	void								EncloseBoundsOnPoint( const glm::vec3& v );
 
-	void								PreGenerate( std::vector< bspVertex_t >& vertexData, const Q3BspMap* map, size_t faceOffset );
+	void								PreGenerate( const Q3BspMap* map, size_t faceOffset );
 
-	virtual void						CalcBounds( const mapData_t& data );		
+	virtual void						CalcBounds( const mapData_t& data );
 
-	virtual	void						Generate( std::vector< bspVertex_t >& vertexData, 
-												  const Q3BspMap* map, 
+	virtual	void						Generate( std::vector< bspVertex_t >& vertexData,
+												  const Q3BspMap* map,
 												  size_t faceOffset );
 
 	mapPatch_t*							ToPatch( void );
@@ -53,10 +53,10 @@ struct mapPatch_t : public mapModel_t
 
 	mapPatch_t( void );
 
-	void						CalcBounds( const mapData_t& data ) override;		
+	void						CalcBounds( const mapData_t& data ) override;
 
-	void						Generate( std::vector< bspVertex_t >& vertexData, 
-												  const Q3BspMap* map, 
+	void						Generate( std::vector< bspVertex_t >& vertexData,
+												  const Q3BspMap* map,
 												  size_t faceOffset ) override;
 };
 
