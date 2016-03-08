@@ -40,7 +40,7 @@ I'm thinking the issue might be due to dependencies which are linked in via MSVC
 for debugging which is applied in VS at runtime.
 
 
-** On programs ( this should be done AFTER removal of duplicate programs ) **
+**On programs ( this should be done AFTER removal of duplicate programs )**
 
 One thing which really needs to happen is that there should be strictly one single buffer for the lazy uniform upload
 that happens on program binding for the `Program` class. Each element in that buffer needs to be a union, which maps
