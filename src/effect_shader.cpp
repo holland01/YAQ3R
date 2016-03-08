@@ -903,8 +903,11 @@ static INLINE std::string GammaCorrect( const std::string& colorVec )
 	return ss.str();
 }
 
-static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
-		const shaderStage_t& stage, const char* discardPredicate )
+static INLINE void WriteTexture(
+		std::vector< std::string >& fragmentSrc,
+		const shaderStage_t& stage,
+		const char* discardPredicate,
+		bool usesColor )
 {
 	std::string sampleTextureExpr;
 
@@ -915,16 +918,35 @@ static INLINE void WriteTexture( std::vector< std::string >& fragmentSrc,
 
 	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
 
+	std::stringstream colorAssign;
+
+	colorAssign << "\tvec4 color = ";
+
 	// Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
 	{
 		fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
-		fragmentSrc.push_back( "\tvec4 color = vec4( " + sampleTextureExpr + ".rgb, alphaGen ) * vec4( frag_Color.rgb, alphaGen );" );
+
+		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
+
+		if ( usesColor )
+		{
+			 colorAssign << " * vec4( frag_Color.rgb, alphaGen )";
+		}
 	}
 	else
 	{
-		fragmentSrc.push_back( "\tvec4 color = " + sampleTextureExpr + " * frag_Color;" );
+		colorAssign << sampleTextureExpr;
+
+		if ( usesColor )
+		{
+			colorAssign <<  " * frag_Color";
+		}
 	}
+
+	colorAssign << ";";
+
+	fragmentSrc.push_back( colorAssign.str() );
 
 	// Is used occasionally, for example in situations like a bad alpha value.
 	if ( discardPredicate )
@@ -1234,35 +1256,37 @@ void S_GenPrograms( shaderInfo_t& shader )
 		std::vector< std::string > uniforms = {
 			"sampler0",
 			"imageTransform",
-			"imageScaleRatio"
+			"imageScaleRatio",
+			"modelToView",
+			"viewToClip",
 		};
 
 		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
 
-		std::vector< std::string > attribs = { "position", "color", texCoordName };
+		std::vector< std::string > attribs = { "position", texCoordName };
 
-		const size_t vertGlobalVarInsertOffset = 4;
+		size_t vertTransferOffset = 3;
+		size_t vertAttrOffset = 2;
+
+		uint32_t attribLocCounter = 0;
 
 		// Vertex shader...
 		// if we're not using core the last args for both the attribute and transfer
 		// decl funcs won't be written; they'll likely just get optimized away
 		std::vector< std::string > vertexSrc =
 		{
-			DeclAttributeVar( "position", "vec3", 0 ),
-			DeclAttributeVar( "color", "vec4", 1 ),
-			DeclAttributeVar( texCoordName, "vec2", 2 ),
-			DeclTransferVar( "frag_Color", "vec4", "out" ),
+			DeclAttributeVar( "position", "vec3", attribLocCounter++ ),
+			DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
 			DeclTransferVar( "frag_Tex", "vec2", "out" ),
+			DeclCoreTransforms(),
 			"void main(void) {",
 		};
 
 		if ( stage.tcgen == TCGEN_ENVIRONMENT )
 		{
-			vertexSrc.insert( vertexSrc.begin() + vertGlobalVarInsertOffset, DeclAttributeVar( "normal", "vec3", 3 ) );
+			vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "normal", "vec3", attribLocCounter++ ) );
 			attribs.push_back( "normal" );
 		}
-
-		DeclCoreTransforms( vertexSrc, uniforms, vertGlobalVarInsertOffset );
 
 		vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
 
@@ -1276,15 +1300,23 @@ void S_GenPrograms( shaderInfo_t& shader )
 			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
 		}
 
+		bool usesColor = false;
 		switch ( stage.rgbGen )
 		{
 		default:
-			vertexSrc.push_back( "\tfrag_Color = vec4( 1.0 );" );
+			// Do nothing; there's no need for it.
 			break;
 		case RGBGEN_VERTEX:
+			usesColor = true;
+			vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "color", "vec4", attribLocCounter++ ) );
+			vertexSrc.insert( vertexSrc.begin() + vertTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "out" ) );
 			vertexSrc.push_back( "\tfrag_Color = color;" );
+			attribs.push_back( "color" );
 			break;
 		}
+
+		size_t fragTransferOffset = 2;
+		size_t fragUnifOffset = 3;
 
 		// Fragment shader....
 		// Unspecified alphaGen implies a default 1.0 alpha channel
@@ -1293,17 +1325,15 @@ void S_GenPrograms( shaderInfo_t& shader )
 #ifndef G_USE_GL_CORE
 			"precision highp float;",
 #endif
-			DeclTransferVar( "frag_Color", "vec4", "in" ),
-			DeclTransferVar( "frag_Tex", "vec2", "in" ),
 			"const float gamma = 1.0 / 2.2;",
+			DeclTransferVar( "frag_Tex", "vec2", "in" ),
 #ifdef G_USE_GL_CORE
 			DeclTransferVar( "fragment", "vec4", "out" ),
 #endif
 			"void main(void) {"
 		};
 
-		const size_t fragGlobalDeclOffset = 4;
-
+		// Add our base image data
 		std::initializer_list<std::string> data  =
 		{
 			"uniform sampler2D sampler0;",
@@ -1314,29 +1344,34 @@ void S_GenPrograms( shaderInfo_t& shader )
 			"}"
 		};
 
-		fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, data );
+		fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, data );
 
 		fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+
+		if ( usesColor )
+		{
+			fragmentSrc.insert( fragmentSrc.begin() + fragTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "in" ) );
+		}
 
 		for ( const effect_t& op: shader.stageBuffer[ j ].effects )
 		{
 			// Modify the texture coordinate as necessary before we write to the texture
 			if ( op.name == "tcModTurb" )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform float tcModTurb;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
 				fragmentSrc.push_back( "\tst *= tcModTurb;" );
 				uniforms.push_back( "tcModTurb" );
 			}
 			else if ( op.name == "tcModScroll" )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec4 tcModScroll;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
 				fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
 				uniforms.push_back( "tcModScroll" );
 			}
 			else if ( op.name == "tcModRotate" )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 texRotate;" );
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform vec2 texCenter;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texRotate;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec2 texCenter;" );
 				fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
 
 				uniforms.push_back( "texRotate" );
@@ -1344,7 +1379,7 @@ void S_GenPrograms( shaderInfo_t& shader )
 			}
 			else if ( op.name == "tcModScale" )
 			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragGlobalDeclOffset, "uniform mat2 tcModScale;" );
+				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 tcModScale;" );
 				fragmentSrc.push_back( "\tst = tcModScale * st;" );
 				uniforms.push_back( "tcModScale" );
 			}
@@ -1353,23 +1388,25 @@ void S_GenPrograms( shaderInfo_t& shader )
 		switch ( stage.alphaFunc )
 		{
 		case ALPHA_FUNC_UNDEFINED:
-			WriteTexture( fragmentSrc, stage, nullptr );
+			WriteTexture( fragmentSrc, stage, nullptr, usesColor );
 			break;
 		case ALPHA_FUNC_GEQUAL_128:
-			WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
+			WriteTexture( fragmentSrc, stage, "color.a < 0.5", usesColor );
 			break;
 		case ALPHA_FUNC_GTHAN_0:
-			WriteTexture( fragmentSrc, stage, "color.a == 0" );
+			WriteTexture( fragmentSrc, stage, "color.a == 0", usesColor );
 			break;
 		case ALPHA_FUNC_LTHAN_128:
-			WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
+			WriteTexture( fragmentSrc, stage, "color.a >= 0.5", usesColor );
 			break;
 		}
 
 		const std::string& vertexString = JoinLines( vertexSrc );
 		const std::string& fragmentString = JoinLines( fragmentSrc );
 
-		stage.program = std::make_shared< Program >( vertexString, fragmentString, uniforms, attribs );
+		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
+
+		stage.program.reset( p );
 
 		gMeta->LogShader( "Vertex", vertexString, j );
 		gMeta->LogShader( "Fragment", fragmentString, j );

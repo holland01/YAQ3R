@@ -3,6 +3,7 @@
 #include "common.h"
 #include "render_data.h"
 #include "renderer/renderer_local.h"
+#include "renderer/program.h"
 #include <unordered_map>
 #include <memory>
 
@@ -447,7 +448,7 @@ struct shaderStage_t
 
 	GLenum						blendDest = GL_ZERO; // destination is the pixels which are already within the framebuffer from the previous frame
 
-	GLenum						depthFunc = GL_LEQUAL; // Default is LEQUAL
+	GLenum						depthFunc = GL_LEQUAL;
 
 	rgbGen_t					rgbGen = RGBGEN_UNDEFINED; // how colors are generated - identity refers to a white image
 
@@ -463,7 +464,9 @@ struct shaderStage_t
 
 	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath; // path to the texture image, if we have one
 
-	std::shared_ptr< Program >	program; // handle to our generated program
+	//gProgramHandle_t program;
+
+	std::shared_ptr< Program > program;
 
 	shaderStage_t( void )
 		: program( nullptr )
@@ -486,7 +489,7 @@ struct shaderInfo_t
 
 	uint32_t			surfaceParms = 0; // global surface parameters
 
-	uint32_t			localLoadFlags = 0; // we pass a list of global flags we'd like to see applied everywhere, however some shaders may contradict this
+	uint8_t				localLoadFlags;
 
 	float				tessSize = 0.0f; // 0 if none
 

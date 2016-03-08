@@ -83,19 +83,16 @@ gProgramHandle_t GStoreProgram( Program* p )
 
 	// Make sure we don't already have a program like this before
 	// adding it
-	
 
 	return AddProgram( p );
 }
 
 Program* GQueryProgram( const gProgramHandle_t& handle )
 {
-	if ( handle.id >= gProgramStorage.size() ) 
+	if ( handle.id >= gProgramStorage.size() )
 	{
 		return NULL;
 	}
 
 	return gProgramStorage[ handle.id ].get();
 }
-
-
