@@ -95,8 +95,3 @@ Program* GQueryProgram( gProgramHandle_t handle )
 
 	return gProgramStorage[ handle.id ].get();
 }
-
-const Program& GQueryProgram( gProgramHandle_t handle )
-{
-	return *( GQueryProgram( handle ) );
-}

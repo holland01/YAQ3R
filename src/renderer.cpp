@@ -281,7 +281,7 @@ void BSPRenderer::Load( const std::string& filepath )
 	{
 		for ( const shaderStage_t& stage: iShader.second.stageBuffer )
 		{
-			stage.program->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+			stage.GetProgram().LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 		}
 	}
 
@@ -877,7 +877,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
-		const Program& stageProg = *( stage.program );
+		const Program& stageProg = stage.GetProgram();
 
 		stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
 

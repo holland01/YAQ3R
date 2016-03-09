@@ -15,7 +15,7 @@ bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b )
 	if ( a->blendDest != b->blendDest ) return false;
 	if ( a->blendSrc != b->blendSrc ) return false;
 	if ( a->depthFunc != b->depthFunc ) return false;
-	//if ( a.depthPass != b.depthPass ) return false;
+	if ( a->depthPass != b->depthPass ) return false;
 	if ( a->effects.size() != b->effects.size() ) return false;
 	if ( a->rgbGen != b->rgbGen ) return false;
 

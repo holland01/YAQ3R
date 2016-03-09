@@ -17,5 +17,3 @@ class Program;
 gProgramHandle_t GStoreProgram( Program* p );
 
 Program* GQueryProgram( gProgramHandle_t handle );
-
-const Program& GQueryProgram( gProgramHandle_t handle );

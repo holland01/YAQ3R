@@ -903,11 +903,15 @@ static INLINE std::string GammaCorrect( const std::string& colorVec )
 	return ss.str();
 }
 
+static INLINE bool UsesColor( const shaderStage_t& stage )
+{
+	return stage.rgbGen == RGBGEN_VERTEX;
+}
+
 static INLINE void WriteTexture(
 		std::vector< std::string >& fragmentSrc,
 		const shaderStage_t& stage,
-		const char* discardPredicate,
-		bool usesColor )
+		const char* discardPredicate )
 {
 	std::string sampleTextureExpr;
 
@@ -929,7 +933,7 @@ static INLINE void WriteTexture(
 
 		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
 
-		if ( usesColor )
+		if ( UsesColor( stage ) )
 		{
 			 colorAssign << " * vec4( frag_Color.rgb, alphaGen )";
 		}
@@ -938,7 +942,7 @@ static INLINE void WriteTexture(
 	{
 		colorAssign << sampleTextureExpr;
 
-		if ( usesColor )
+		if ( UsesColor( stage ) )
 		{
 			colorAssign <<  " * frag_Color";
 		}
@@ -989,6 +993,149 @@ static INLINE std::string JoinLines( std::vector< std::string >& lines )
 	return shaderSrc.str();
 }
 
+static std::string GenVertexShader( shaderStage_t& stage,
+									const std::string& texCoordName,
+									std::vector< std::string >& attribs )
+{
+
+	size_t vertTransferOffset = 3;
+	size_t vertAttrOffset = 2;
+
+	uint32_t attribLocCounter = 0;
+
+	// Vertex shader...
+	// if we're not using core the last args for both the attribute and transfer
+	// decl funcs won't be written; they'll likely just get optimized away
+	std::vector< std::string > vertexSrc =
+	{
+		DeclAttributeVar( "position", "vec3", attribLocCounter++ ),
+		DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
+		DeclTransferVar( "frag_Tex", "vec2", "out" ),
+		DeclCoreTransforms(),
+		"void main(void) {",
+	};
+
+	if ( stage.tcgen == TCGEN_ENVIRONMENT )
+	{
+		vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "normal", "vec3", attribLocCounter++ ) );
+		attribs.push_back( "normal" );
+	}
+
+	vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
+
+	if ( stage.tcgen == TCGEN_ENVIRONMENT )
+	{
+		AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
+		vertexSrc.push_back( "\tfrag_Tex = st;" );
+	}
+	else
+	{
+		vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
+	}
+
+	if ( UsesColor( stage ) )
+	{
+		vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "color", "vec4", attribLocCounter++ ) );
+		vertexSrc.insert( vertexSrc.begin() + vertTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "out" ) );
+		vertexSrc.push_back( "\tfrag_Color = color;" );
+		attribs.push_back( "color" );
+	}
+
+	return JoinLines( vertexSrc );
+}
+
+static std::string GenFragmentShader( shaderStage_t& stage,
+							   std::vector< std::string >& uniforms )
+{
+	size_t fragTransferOffset = 2;
+	size_t fragUnifOffset = 3;
+
+	// Fragment shader....
+	// Unspecified alphaGen implies a default 1.0 alpha channel
+	std::vector< std::string > fragmentSrc =
+	{
+#ifndef G_USE_GL_CORE
+		"precision highp float;",
+#endif
+		"const float gamma = 1.0 / 2.2;",
+		DeclTransferVar( "frag_Tex", "vec2", "in" ),
+#ifdef G_USE_GL_CORE
+		DeclTransferVar( "fragment", "vec4", "out" ),
+#endif
+		"void main(void) {"
+	};
+
+	// Add our base image data
+	std::initializer_list<std::string> data  =
+	{
+		"uniform sampler2D sampler0;",
+		"uniform vec4 imageTransform;",
+		"uniform vec2 imageScaleRatio;",
+		"vec2 applyTransform(in vec2 coords) {",
+		"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
+		"}"
+	};
+
+	fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, data );
+
+	fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
+
+	if ( UsesColor( stage ) )
+	{
+		fragmentSrc.insert( fragmentSrc.begin() + fragTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "in" ) );
+	}
+
+	for ( const effect_t& op: stage.effects )
+	{
+		// Modify the texture coordinate as necessary before we write to the texture
+		if ( op.name == "tcModTurb" )
+		{
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
+			fragmentSrc.push_back( "\tst *= tcModTurb;" );
+			uniforms.push_back( "tcModTurb" );
+		}
+		else if ( op.name == "tcModScroll" )
+		{
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
+			fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
+			uniforms.push_back( "tcModScroll" );
+		}
+		else if ( op.name == "tcModRotate" )
+		{
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texRotate;" );
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec2 texCenter;" );
+			fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
+
+			uniforms.push_back( "texRotate" );
+			uniforms.push_back( "texCenter" );
+		}
+		else if ( op.name == "tcModScale" )
+		{
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 tcModScale;" );
+			fragmentSrc.push_back( "\tst = tcModScale * st;" );
+			uniforms.push_back( "tcModScale" );
+		}
+	}
+
+	switch ( stage.alphaFunc )
+	{
+	case ALPHA_FUNC_UNDEFINED:
+		WriteTexture( fragmentSrc, stage, nullptr );
+		break;
+	case ALPHA_FUNC_GEQUAL_128:
+		WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
+		break;
+	case ALPHA_FUNC_GTHAN_0:
+		WriteTexture( fragmentSrc, stage, "color.a == 0" );
+		break;
+	case ALPHA_FUNC_LTHAN_128:
+		WriteTexture( fragmentSrc, stage, "color.a >= 0.5" );
+		break;
+	}
+
+	return JoinLines( fragmentSrc );
+}
+
 static void GenShaderPrograms( Q3BspMap* map )
 {
 	for ( auto& entry: map->effectShaders )
@@ -1010,7 +1157,6 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 
 		// If a texture atlas is being used as a substitute for a texture array,
 		// this won't matter.
-
 		std::string texFileRoot( map->basePath );
 		std::string texRelativePath( &stage.texturePath[ 0 ], strlen( &stage.texturePath[ 0 ] ) );
 		texFileRoot.append( texRelativePath );
@@ -1246,13 +1392,20 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 void S_GenPrograms( shaderInfo_t& shader )
 {
 	if ( gMeta->logProgramGen )
+	{
 		fprintf( gMeta->programLog, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
+	}
+
+	if ( shader.name == "textures/skies/hellsky2bright" )
+		__nop();
 
 	for ( int j = 0; j < shader.stageCount; ++j )
 	{
 		shaderStage_t& stage = shader.stageBuffer[ j ];
 
-		// Uniform variable names
+		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
+
+		std::vector< std::string > attribs = { "position", texCoordName };
 		std::vector< std::string > uniforms = {
 			"sampler0",
 			"imageTransform",
@@ -1261,148 +1414,8 @@ void S_GenPrograms( shaderInfo_t& shader )
 			"viewToClip",
 		};
 
-		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
-
-		std::vector< std::string > attribs = { "position", texCoordName };
-
-		size_t vertTransferOffset = 3;
-		size_t vertAttrOffset = 2;
-
-		uint32_t attribLocCounter = 0;
-
-		// Vertex shader...
-		// if we're not using core the last args for both the attribute and transfer
-		// decl funcs won't be written; they'll likely just get optimized away
-		std::vector< std::string > vertexSrc =
-		{
-			DeclAttributeVar( "position", "vec3", attribLocCounter++ ),
-			DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
-			DeclTransferVar( "frag_Tex", "vec2", "out" ),
-			DeclCoreTransforms(),
-			"void main(void) {",
-		};
-
-		if ( stage.tcgen == TCGEN_ENVIRONMENT )
-		{
-			vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "normal", "vec3", attribLocCounter++ ) );
-			attribs.push_back( "normal" );
-		}
-
-		vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
-
-		if ( stage.tcgen == TCGEN_ENVIRONMENT )
-		{
-			AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
-			vertexSrc.push_back( "\tfrag_Tex = st;" );
-		}
-		else
-		{
-			vertexSrc.push_back( "\tfrag_Tex = " + texCoordName + ";" );
-		}
-
-		bool usesColor = false;
-		switch ( stage.rgbGen )
-		{
-		default:
-			// Do nothing; there's no need for it.
-			break;
-		case RGBGEN_VERTEX:
-			usesColor = true;
-			vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "color", "vec4", attribLocCounter++ ) );
-			vertexSrc.insert( vertexSrc.begin() + vertTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "out" ) );
-			vertexSrc.push_back( "\tfrag_Color = color;" );
-			attribs.push_back( "color" );
-			break;
-		}
-
-		size_t fragTransferOffset = 2;
-		size_t fragUnifOffset = 3;
-
-		// Fragment shader....
-		// Unspecified alphaGen implies a default 1.0 alpha channel
-		std::vector< std::string > fragmentSrc =
-		{
-#ifndef G_USE_GL_CORE
-			"precision highp float;",
-#endif
-			"const float gamma = 1.0 / 2.2;",
-			DeclTransferVar( "frag_Tex", "vec2", "in" ),
-#ifdef G_USE_GL_CORE
-			DeclTransferVar( "fragment", "vec4", "out" ),
-#endif
-			"void main(void) {"
-		};
-
-		// Add our base image data
-		std::initializer_list<std::string> data  =
-		{
-			"uniform sampler2D sampler0;",
-			"uniform vec4 imageTransform;",
-			"uniform vec2 imageScaleRatio;",
-			"vec2 applyTransform(in vec2 coords) {",
-			"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
-			"}"
-		};
-
-		fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, data );
-
-		fragmentSrc.push_back( "\tvec2 st = frag_Tex;" );
-
-		if ( usesColor )
-		{
-			fragmentSrc.insert( fragmentSrc.begin() + fragTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "in" ) );
-		}
-
-		for ( const effect_t& op: shader.stageBuffer[ j ].effects )
-		{
-			// Modify the texture coordinate as necessary before we write to the texture
-			if ( op.name == "tcModTurb" )
-			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
-				fragmentSrc.push_back( "\tst *= tcModTurb;" );
-				uniforms.push_back( "tcModTurb" );
-			}
-			else if ( op.name == "tcModScroll" )
-			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
-				fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
-				uniforms.push_back( "tcModScroll" );
-			}
-			else if ( op.name == "tcModRotate" )
-			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texRotate;" );
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec2 texCenter;" );
-				fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
-
-				uniforms.push_back( "texRotate" );
-				uniforms.push_back( "texCenter" );
-			}
-			else if ( op.name == "tcModScale" )
-			{
-				fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 tcModScale;" );
-				fragmentSrc.push_back( "\tst = tcModScale * st;" );
-				uniforms.push_back( "tcModScale" );
-			}
-		}
-
-		switch ( stage.alphaFunc )
-		{
-		case ALPHA_FUNC_UNDEFINED:
-			WriteTexture( fragmentSrc, stage, nullptr, usesColor );
-			break;
-		case ALPHA_FUNC_GEQUAL_128:
-			WriteTexture( fragmentSrc, stage, "color.a < 0.5", usesColor );
-			break;
-		case ALPHA_FUNC_GTHAN_0:
-			WriteTexture( fragmentSrc, stage, "color.a == 0", usesColor );
-			break;
-		case ALPHA_FUNC_LTHAN_128:
-			WriteTexture( fragmentSrc, stage, "color.a >= 0.5", usesColor );
-			break;
-		}
-
-		const std::string& vertexString = JoinLines( vertexSrc );
-		const std::string& fragmentString = JoinLines( fragmentSrc );
+		const std::string& vertexString = GenVertexShader( stage, texCoordName, attribs );
+		const std::string& fragmentString = GenFragmentShader( stage, uniforms );
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
 

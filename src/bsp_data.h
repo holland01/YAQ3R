@@ -484,6 +484,8 @@ struct shaderStage_t
 	{
 		texturePath.fill( 0 );
 	}
+
+	const Program& GetProgram( void ) const { return *GQueryProgram( program ); }
 };
 
 struct shaderInfo_t
