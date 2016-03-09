@@ -22,6 +22,7 @@ void GU_SetupTexParams( const Program& program,
 	transform.z = invRowPitch.x;
 	transform.w = invRowPitch.y;
 
+	GStageSlot( textureIndex );
 	GBindTexture( texHandle, offset );
 
 	// If true, we're using the main program
@@ -40,10 +41,12 @@ void GU_SetupTexParams( const Program& program,
 
 		if ( offset > -1 )
 			program.LoadInt( "sampler0", offset );
-		
+
 		program.LoadVec4( "imageTransform", transform );
 		program.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
 	}
+
+	GUnstageSlot();
 }
 
 

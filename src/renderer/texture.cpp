@@ -48,6 +48,19 @@ struct gTexture_t
 		}
 	}
 
+	const gTextureImage_t& GetSlot( uint16_t slot ) const
+	{
+		if ( keyMapped )
+		{
+			return keyMapSlots.at( ( gTextureMakeParams_t::key_t ) slot );
+		}
+		else
+		{
+			MLOG_ASSERT( slot < imageSlots.size(), "Bad index %i for texture slot", slot );
+			return imageSlots[ slot ];
+		}
+	}
+
 	~gTexture_t( void )
 	{
 		for ( uint32_t i = 0; i < numGrids; ++i )
@@ -62,6 +75,8 @@ struct gTexture_t
 using texturePointer_t = std::unique_ptr< gTexture_t >;
 
 std::vector< texturePointer_t > gTextureMap;
+
+int32_t gSlotStage = G_UNSPECIFIED;
 
 std::unique_ptr< gTexture_t > gDummy( nullptr );
 
@@ -445,8 +460,32 @@ void GFreeTexture( gTextureHandle_t& handle )
 void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
 	const gTexture_t* t = GetTexture( handle );
+
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	GL_CHECK( glBindTexture( t->target, t->grids[ 0 ].handle ) );
+
+	if ( t->numGrids == 1 )
+	{
+		GL_CHECK( glBindTexture( t->target, t->grids[ 0 ].handle ) );
+	}
+	else
+	{
+		MLOG_ASSERT( gSlotStage != G_UNSPECIFIED,
+					 "No log stage set for handle: %i at offset: %i", handle.id, offset );
+
+		const gTextureImage_t& data = GTextureImage( handle, gSlotStage );
+
+		for ( uint8_t i = 0; i < t->numGrids; ++i )
+		{
+			if ( data.stOffsetStart.x < t->grids[ i ].xStart ) continue;
+			if ( data.stOffsetStart.x > t->grids[ i ].xEnd ) continue;
+
+			if ( data.stOffsetStart.y < t->grids[ i ].yStart ) continue;
+			if ( data.stOffsetStart.y > t->grids[ i ].yEnd ) continue;
+
+			GL_CHECK( glBindTexture( t->target, t->grids[ i ].handle ) );
+			break;
+		}
+	}
 }
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
@@ -468,15 +507,7 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 		slot = 0;
 	}
 
-	if ( t->keyMapped )
-	{
-		return t->keyMapSlots.at( ( gTextureMakeParams_t::key_t ) slot );
-	}
-	else
-	{
-		MLOG_ASSERT( slot < t->imageSlots.size(), "Bad index %i for texture slot", slot );
-		return t->imageSlots[ slot ];
-	}
+	return t->GetSlot( slot );
 }
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
