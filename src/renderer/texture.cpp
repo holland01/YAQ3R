@@ -76,7 +76,7 @@ using texturePointer_t = std::unique_ptr< gTexture_t >;
 
 std::vector< texturePointer_t > gTextureMap;
 
-int32_t gSlotStage = G_UNSPECIFIED;
+gTexSlot_t gSlotStage = ( gTexSlot_t ) G_UNSPECIFIED;
 
 std::unique_ptr< gTexture_t > gDummy( nullptr );
 
@@ -457,6 +457,16 @@ void GFreeTexture( gTextureHandle_t& handle )
 	handle.id = G_UNSPECIFIED;
 }
 
+void GStageSlot( gTexSlot_t slot )
+{
+	gSlotStage = slot;
+}
+
+void GUnstageSlot( void )
+{
+	gSlotStage = (gTexSlot_t ) G_UNSPECIFIED;
+}
+
 void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
 	const gTexture_t* t = GetTexture( handle );
@@ -469,7 +479,7 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 	}
 	else
 	{
-		MLOG_ASSERT( gSlotStage != G_UNSPECIFIED,
+		MLOG_ASSERT( gSlotStage != (gTexSlot_t ) G_UNSPECIFIED,
 					 "No log stage set for handle: %i at offset: %i", handle.id, offset );
 
 		const gTextureImage_t& data = GTextureImage( handle, gSlotStage );

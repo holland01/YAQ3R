@@ -9,6 +9,7 @@ enum
 };
 
 using gTextureFlags_t = uint32_t;
+using gTexSlot_t = int16_t;
 
 struct gTextureHandle_t
 {
@@ -76,12 +77,16 @@ bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint
 
 // Sets the given destImage's data to sourceData's, in a manner which follows the user-specified
 // image bpp.
-// fetchChannel is only relevant if destImage.bpp == 
-void GSetAlignedImageData( gImageParams_t& destImage, 
-						    uint8_t* sourceData, 
-					        int8_t sourceBPP, 
-						    uint32_t numPixels,
-					        uint8_t fetchChannel = 0 );
+// fetchChannel is only relevant if destImage.bpp ==
+void GSetAlignedImageData( gImageParams_t& destImage,
+							uint8_t* sourceData,
+							int8_t sourceBPP,
+							uint32_t numPixels,
+							uint8_t fetchChannel = 0 );
+
+void GStageSlot( gTexSlot_t slot );
+
+void GUnstageSlot( void );
 
 void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
