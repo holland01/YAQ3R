@@ -11,7 +11,7 @@ class Q3BspMap;
 
 glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures );
 
-void S_GenPrograms( shaderInfo_t& shader );
+void S_GenPrograms( shaderInfo_t* shader );
 
 std::string S_GetGLSLHeader( void );
 

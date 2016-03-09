@@ -8,6 +8,14 @@
 
 namespace {
 
+struct gSubTexture_t
+{
+	GLuint handle;
+	GLsizei width;
+	GLsizei height;
+	GLenum target;
+};
+
 struct gTexture_t
 {
 	bool srgb = false;
@@ -18,21 +26,22 @@ struct gTexture_t
 	uint32_t samplerID = 0;
 
 	GLuint handle = 0;
-	GLuint maxMip = 0;
 	GLsizei width = 0;
 	GLsizei height = 0;
-	GLsizei bpp = 0; // bpp is in bytes
 	GLenum target;
 
-	std::string name;
-
-	std::vector< gTextureImage_t > texCoordSlots;
+	std::vector< gTextureImage_t > imageSlots;
 
 	std::unordered_map<
 		gTextureMakeParams_t::key_t,
 		gTextureImage_t > keyMapSlots;
 
 	glm::vec2 invRowPitch;
+
+	gTexture_t( void )
+	{
+
+	}
 
 	~gTexture_t( void )
 	{
@@ -168,7 +177,7 @@ INLINE void TryAllocDummy( void )
 		data.stOffsetEnd = glm::vec2( 1.0f, 1.0f );
 		data.stOffsetStart = glm::vec2( 0.0f, 0.0f );
 
-		gDummy->texCoordSlots.push_back( data );
+		gDummy->imageSlots.push_back( data );
 
 		gDummy->invRowPitch = glm::vec2( 1.0f, 1.0f );
 	}
@@ -189,7 +198,7 @@ gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
 
 	if ( !tt->keyMapped )
 	{
-		tt->texCoordSlots.resize( rows * stride );
+		tt->imageSlots.resize( rows * stride );
 	}
 
 	float invSlotWidth = 1.0f / ( float ) slotParams.width;
@@ -255,7 +264,7 @@ gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
 		else
 		{
 			uint32_t slot = ( x % stride ) + y * stride;
-			tt->texCoordSlots[ slot ] = data;
+			tt->imageSlots[ slot ] = data;
 		}
 
 		if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
@@ -435,8 +444,8 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 	}
 	else
 	{
-		MLOG_ASSERT( slot < t->texCoordSlots.size(), "Bad index %i for texture slot", slot );
-		return t->texCoordSlots[ slot ];
+		MLOG_ASSERT( slot < t->imageSlots.size(), "Bad index %i for texture slot", slot );
+		return t->imageSlots[ slot ];
 	}
 }
 

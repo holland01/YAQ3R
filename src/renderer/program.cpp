@@ -95,3 +95,8 @@ Program* GQueryProgram( gProgramHandle_t handle )
 
 	return gProgramStorage[ handle.id ].get();
 }
+
+size_t GNumPrograms( void )
+{
+	return gProgramStorage.size();
+}

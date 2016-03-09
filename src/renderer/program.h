@@ -17,3 +17,5 @@ class Program;
 gProgramHandle_t GStoreProgram( Program* p );
 
 Program* GQueryProgram( gProgramHandle_t handle );
+
+size_t GNumPrograms( void );

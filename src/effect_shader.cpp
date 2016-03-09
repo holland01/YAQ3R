@@ -6,6 +6,8 @@
 #include "renderer/texture.h"
 #include <sstream>
 
+//#define G_DUPLICATE_PROGRAMS
+
 static INLINE GLsizei GL_EnumFromStr( const char* str );
 static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
 static float ReadFloat( const char*& buffer );
@@ -44,6 +46,18 @@ struct meta_t
 				stage,
 				title.c_str(),
 				source.c_str() );
+		}
+	}
+
+	void LogEndShaderGen( void )
+	{
+		if ( logProgramGen )
+		{
+			fprintf( programLog,
+					 "---------------------------\n\n"
+					 "PROGRAM COUNT: %llu"
+					 "\n\n-----------------------------",
+					 ( unsigned long long ) GNumPrograms() );
 		}
 	}
 };
@@ -1136,15 +1150,6 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	return JoinLines( fragmentSrc );
 }
 
-static void GenShaderPrograms( Q3BspMap* map )
-{
-	for ( auto& entry: map->effectShaders )
-	{
-		shaderInfo_t& shader = entry.second;
-		S_GenPrograms( shader );
-	}
-}
-
 static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images, shaderInfo_t& info, int i,
 							  const gSamplerHandle_t& sampler, const mapData_t* map )
 {
@@ -1374,7 +1379,15 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 		parseArgs_t::map = nullptr;
 	}
 
-	GenShaderPrograms( map );
+	for ( auto& entry: map->effectShaders )
+	{
+		S_GenPrograms( &entry.second );
+	}
+
+	if ( gMeta )
+	{
+		gMeta->LogEndShaderGen();
+	}
 
 	glm::ivec2 maxDims( 0 );
 	for ( auto& entry: map->effectShaders )
@@ -1389,19 +1402,17 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 	return maxDims;
 }
 
-void S_GenPrograms( shaderInfo_t& shader )
+void S_GenPrograms( shaderInfo_t* shader )
 {
 	if ( gMeta->logProgramGen )
 	{
-		fprintf( gMeta->programLog, "------------------------------------------\n%s\n", &shader.name[ 0 ] );
+		fprintf( gMeta->programLog, "------------------------------------------\n%s\n", &shader->name[ 0 ] );
 	}
 
-	if ( shader.name == "textures/skies/hellsky2bright" )
-		__nop();
-
-	for ( int j = 0; j < shader.stageCount; ++j )
+	int j;
+	for ( j = 0; j < shader->stageCount; ++j )
 	{
-		shaderStage_t& stage = shader.stageBuffer[ j ];
+		shaderStage_t& stage = shader->stageBuffer[ j ];
 
 		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
 
@@ -1419,19 +1430,23 @@ void S_GenPrograms( shaderInfo_t& shader )
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
 
+// On the directive: this is good for testing and doing performance comparisons
+#ifndef G_DUPLICATE_PROGRAMS
 		stage.program = GFindProgramByData( p->attribs, p->uniforms, &stage );
-
 		if ( G_NULL( stage.program ) )
+#endif
 		{
 			gMeta->LogShader( "Vertex", vertexString, j );
 			gMeta->LogShader( "Fragment", fragmentString, j );
 			p->stage = &stage;
-			GStoreProgram( p );
+			stage.program = GStoreProgram( p );
 		}
+#ifndef G_DUPLICATE_PROGRAMS
 		else
 		{
 			delete p;
 		}
+#endif
 	}
 }
 
