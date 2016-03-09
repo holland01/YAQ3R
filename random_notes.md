@@ -92,3 +92,16 @@ for every newly uploaded element.
 This is totally a C approach. It's also a much simpler approach than what would be written in idiomatic C++,
 and also far more reliable (in this case).
 
+**3/8/16**
+
+#### Profiling
+
+Definitely need to find a means of profiling on Linux. intel-gpu-tools seems like a good
+bet, however it requires packages which are too ahead of what's available for my
+current Linux distro. It may be time to upgrade, if nothing else is available.
+
+#### Splitting (Textures)
+
+Use the grid structure as a means to bind staged slots approapriately. Textures should
+generally be split when hardware limitations don't allow them to used as a whole. Some
+images will be part of one grid while others will be apart of another.
