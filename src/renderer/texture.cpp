@@ -8,45 +8,54 @@
 
 namespace {
 
-struct gSubTexture_t
+struct gGrid_t
 {
 	GLuint handle;
-	GLsizei width;
-	GLsizei height;
-	GLenum target;
+	uint16_t xStart, xEnd;
+	uint16_t yStart, yEnd;
+
 };
 
 struct gTexture_t
 {
-	bool srgb = false;
-	bool mipmap = false;
-	bool keyMapped = false;
-
-	uint32_t id = 0;
-	uint32_t samplerID = 0;
-
-	GLuint handle = 0;
-	GLsizei width = 0;
-	GLsizei height = 0;
-	GLenum target;
-
 	std::vector< gTextureImage_t > imageSlots;
-
 	std::unordered_map<
 		gTextureMakeParams_t::key_t,
 		gTextureImage_t > keyMapSlots;
-
 	glm::vec2 invRowPitch;
 
-	gTexture_t( void )
-	{
+	bool keyMapped;
+	GLenum target;
+	gSamplerHandle_t sampler;
+	gGrid_t* grids;
+	uint8_t numGrids;
 
+	gTexture_t( void )
+		: invRowPitch( 0.0f ),
+		  keyMapped( false ),
+		  grids( nullptr ),
+		  numGrids( 0 )
+	{
+	}
+
+	void FreeGrid( gGrid_t* s )
+	{
+		if ( s && s->handle )
+		{
+			GL_CHECK( glBindTexture( target, 0 ) );
+			GL_CHECK( glDeleteTextures( 1, &s->handle ) );
+			s->handle = 0;
+		}
 	}
 
 	~gTexture_t( void )
 	{
-		if ( handle )
-			GL_CHECK( glDeleteTextures( 1, &handle ) );
+		for ( uint32_t i = 0; i < numGrids; ++i )
+		{
+			FreeGrid( grids + i );
+		}
+
+		delete[] grids;
 	}
 };
 
@@ -90,13 +99,13 @@ INLINE const gTexture_t* GetTexture( gTextureHandle_t handle )
 	}
 }
 
-INLINE bool ValidateTexture( const gTexture_t& tt, const gTexConfig_t& sampler )
+INLINE bool ValidateTexture( const gImageParams_t& params, const gTexConfig_t& sampler )
 {
-	std::vector< uint8_t > zeroOut( tt.width * sampler.bpp * tt.height, 0 );
+	std::vector< uint8_t > zeroOut( params.width * sampler.bpp * params.height, 0 );
 
 	GL_CHECK( glTexImage2D( GL_PROXY_TEXTURE_2D, 0,  sampler.internalFormat,
-			   tt.width,
-			   tt.height,
+			   params.width,
+			   params.height,
 			   0,
 			   sampler.format,
 			   GL_UNSIGNED_BYTE, &zeroOut[ 0 ] ) );
@@ -124,6 +133,32 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 	return true;
 }
 
+void GenGridTexture( GLenum target,
+					gGrid_t* grid,
+					const gTexConfig_t& sampler,
+					const uint8_t* data )
+{
+	GL_CHECK( glGenTextures( 1, &grid->handle ) );
+	GL_CHECK( glBindTexture( target, grid->handle ) );
+
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
+
+	GLsizei width = ( GLsizei ) ( grid->xEnd - grid->xStart );
+	GLsizei height = ( GLsizei ) ( grid->yEnd - grid->yStart );
+
+	GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, sampler.internalFormat,
+			width,
+			height,
+			0,
+			sampler.format,
+			GL_UNSIGNED_BYTE, data ) );
+
+	GL_CHECK( glBindTexture( target, 0 ) );
+}
+
 bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 {
 	if ( !tt )
@@ -133,25 +168,20 @@ bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 
 	const gTexConfig_t& sampler = GetTexConfig( params.sampler );
 
-	tt->width = params.width;
-	tt->height = params.height;
+	if ( ValidateTexture( params, sampler ) )
+	{
+		tt->numGrids = 1;
+		tt->grids = new gGrid_t[ 1 ]();
 
-	GL_CHECK( glGenTextures( 1, &tt->handle ) );
-	GL_CHECK( glBindTexture( tt->target, tt->handle ) );
+		tt->grids[ 0 ].xStart = tt->grids[ 0 ].yStart = 0;
+		tt->grids[ 0 ].xEnd = params.width;
+		tt->grids[ 0 ].yEnd = params.height;
 
-	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
-	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
-	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
-	GL_CHECK( glTexParameteri( tt->target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
-
-	GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, sampler.internalFormat,
-			params.width,
-			params.height,
-			0,
-			sampler.format,
-			GL_UNSIGNED_BYTE, &params.data[ 0 ] ) );
-
-	GL_CHECK( glBindTexture( tt->target, 0 ) );
+		GenGridTexture( tt->target,
+						tt->grids,
+						sampler,
+						&params.data[ 0 ] );
+	}
 
 	return true;
 }
@@ -167,12 +197,12 @@ INLINE void TryAllocDummy( void )
 
 		gDummy.reset( new gTexture_t() );
 		gDummy->target = GL_TEXTURE_2D;
-		gDummy->samplerID = 0;
+		gDummy->sampler.id = 0;
 
 		GenTextureData( gDummy.get(), params );
 
 		gTextureImage_t data;
-		data.dims = glm::vec2( ( float ) gDummy->width, ( float ) gDummy->height );
+		data.dims = glm::vec2( ( float ) params.width, ( float ) params.height );
 		data.imageScaleRatio = glm::vec2( 1.0f, 1.0f );
 		data.stOffsetEnd = glm::vec2( 1.0f, 1.0f );
 		data.stOffsetStart = glm::vec2( 0.0f, 0.0f );
@@ -211,7 +241,7 @@ gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
 
 	const gTexConfig_t& sampler = GetTexConfig( makeParams.sampler );
 
-	GL_CHECK( glBindTexture( tt->target, tt->handle ) );
+	GL_CHECK( glBindTexture( tt->target, tt->grids[ 0 ].handle ) );
 
 	for ( auto iImage = makeParams.start; iImage != makeParams.end; ++iImage )
 	{
@@ -416,7 +446,7 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
 	const gTexture_t* t = GetTexture( handle );
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	GL_CHECK( glBindTexture( t->target, t->handle ) );
+	GL_CHECK( glBindTexture( t->target, t->grids[ 0 ].handle ) );
 }
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
