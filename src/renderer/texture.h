@@ -46,15 +46,11 @@ struct gTextureMakeParams_t
 
 	gImageParamList_t& images;
 	std::vector< key_t > keyMaps; // specify G_TEXTURE_STORAGE_KEY_MAPPED
-	gImageParamList_t::iterator start;
-	gImageParamList_t::iterator end;
 	gSamplerHandle_t sampler;
 	gTextureFlags_t flags;
 
 	gTextureMakeParams_t( gImageParamList_t& images_, const gSamplerHandle_t& sampler_, gTextureFlags_t flags_ = 0 )
 		: images( images_ ),
-		  start( images_.begin() ),
-		  end( images_.end() ),
 		  sampler( sampler_ ),
 		  flags( flags_ )
 	{
@@ -92,11 +88,9 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
-void GBindDummyTexture( uint32_t offset = 0 );
-
-void GReleaseDummyTexture( uint32_t offset = 0 );
-
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
+
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle );
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 

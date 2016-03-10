@@ -13,7 +13,9 @@ void GU_SetupTexParams( const Program& program,
 		return;
 	}
 
-	const gTextureImage_t& texParams = GTextureImage( texHandle, textureIndex );
+	GStageSlot( textureIndex );
+
+	const gTextureImage_t& texParams = GTextureImage( texHandle );
 	glm::vec2 invRowPitch( GTextureInverseRowPitch( texHandle ) );
 
 	glm::vec4 transform;
@@ -22,7 +24,6 @@ void GU_SetupTexParams( const Program& program,
 	transform.z = invRowPitch.x;
 	transform.w = invRowPitch.y;
 
-	GStageSlot( textureIndex );
 	GBindTexture( texHandle, offset );
 
 	// If true, we're using the main program
@@ -48,7 +49,6 @@ void GU_SetupTexParams( const Program& program,
 
 	GUnstageSlot();
 }
-
 
 void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
 {

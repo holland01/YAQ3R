@@ -11,9 +11,10 @@ namespace {
 struct gGrid_t
 {
 	GLuint handle;
-	uint16_t xStart, xEnd;
-	uint16_t yStart, yEnd;
-
+	uint16_t xStart, yStart;
+	uint16_t xEnd, yEnd;
+	float invStride;
+	float invRows;
 };
 
 struct gTexture_t
@@ -136,9 +137,7 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 {
 	if ( !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT ) )
 	{
-		size_t numEntries = ( size_t )( makeParams.end - makeParams.start );
-
-		if ( numEntries != makeParams.keyMaps.size() )
+		if ( makeParams.images.size() != makeParams.keyMaps.size() )
 		{
 			MLOG_WARNING( "%s", "G_TEXTURE_STORAGE_KEY_MAPPED specified with entry/key size mismatch; aborting." );
 			return false;
@@ -161,12 +160,9 @@ void GenGridTexture( GLenum target,
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
 
-	GLsizei width = ( GLsizei ) ( grid->xEnd - grid->xStart );
-	GLsizei height = ( GLsizei ) ( grid->yEnd - grid->yStart );
-
 	GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, sampler.internalFormat,
-			width,
-			height,
+			grid->xEnd - grid->xStart,
+			grid->yEnd - grid->yStart,
 			0,
 			sampler.format,
 			GL_UNSIGNED_BYTE, data ) );
@@ -183,20 +179,40 @@ bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 
 	const gTexConfig_t& sampler = GetTexConfig( params.sampler );
 
-	if ( ValidateTexture( params, sampler ) )
 	{
-		tt->numGrids = 1;
-		tt->grids = new gGrid_t[ 1 ]();
+		gImageParams_t subdivision;
+		subdivision.width = params.width;
+		subdivision.height = params.height;
+		subdivision.data = std::move( params.data );
 
+		GLint gpuMaxDims;
+		GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &gpuMaxDims ) );
+
+		uint32_t xDivide = 0, yDivide = 0;
+		
+		while ( !ValidateTexture( subdivision, sampler ) )
+		{
+			if ( subdivision.width > gpuMaxDims )
+			{
+				subdivision.width >>= 1;
+				xDivide++;
+			}
+
+			if ( subdivision.height > gpuMaxDims )
+			{
+				subdivision.height >>= 1;
+				yDivide++;
+			}
+		}
+
+		tt->numGrids = 1 << ( xDivide + yDivide );
+		tt->grids = new gGrid_t[ tt->numGrids ]();
 		tt->grids[ 0 ].xStart = tt->grids[ 0 ].yStart = 0;
 		tt->grids[ 0 ].xEnd = params.width;
 		tt->grids[ 0 ].yEnd = params.height;
-
-		GenGridTexture( tt->target,
-						tt->grids,
-						sampler,
-						&params.data[ 0 ] );
 	}
+
+	GenGridTexture( tt->target, tt->grids, sampler, &params.data[ 0 ] );
 
 	return true;
 }
@@ -228,53 +244,67 @@ INLINE void TryAllocDummy( void )
 	}
 }
 
-gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
-						 const gImageParams_t& slotParams,
-						 gTextureMakeParams_t& makeParams )
+INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 {
-	gTexture_t* tt = new gTexture_t();
-	tt->target = GL_TEXTURE_2D;
-	tt->keyMapped = !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+	const gTexture_t* t = GetTexture( handle );
+	const gTextureImage_t& data = GTextureImage( handle, slotIndex );
 
-	GenTextureData( tt, canvasParams );
+	for ( uint8_t i = 0; i < t->numGrids; ++i )
+	{
+		if ( data.stOffsetStart.x < t->grids[ i ].xStart ) continue;
+		if ( data.stOffsetEnd.x > t->grids[ i ].xEnd ) continue;
 
+		if ( data.stOffsetStart.y < t->grids[ i ].yStart ) continue;
+		if ( data.stOffsetEnd.y > t->grids[ i ].yEnd ) continue;
+
+		return t->grids + i;
+	}
+
+	return nullptr;
+}
+
+void GenSubdivision( gTexture_t* tt, 
+					 uint32_t grid,
+					 gTextureMakeParams_t& makeParams,
+					 const gImageParams_t& canvasParams, 
+					 const gImageParams_t& slotParams,
+					 gImageParams_t* base,
+					 gImageParams_t* start,
+					 gImageParams_t* bound )
+{
 	const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
 	const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
-
-	if ( !tt->keyMapped )
-	{
-		tt->imageSlots.resize( rows * stride );
-	}
 
 	float invSlotWidth = 1.0f / ( float ) slotParams.width;
 	float invSlotHeight = 1.0f / ( float ) slotParams.height;
 
-	tt->invRowPitch.x = 1.0f / ( float ) stride;
-	tt->invRowPitch.y = 1.0f / ( float ) rows;
+	float invStride = 1.0f / ( float ) stride;
+	float invRows = 1.0f / ( float ) rows;
 
-	uint32_t y = 0, x = 0;
+	tt->grids[ grid ].invStride = invStride;
+	tt->grids[ grid ].invRows = invRows;
 
 	const gTexConfig_t& sampler = GetTexConfig( makeParams.sampler );
 
-	GL_CHECK( glBindTexture( tt->target, tt->grids[ 0 ].handle ) );
+	GL_CHECK( glBindTexture( tt->target, tt->grids[ grid ].handle ) );
 
-	for ( auto iImage = makeParams.start; iImage != makeParams.end; ++iImage )
+	uint32_t x = 0, y = 0;
+
+	for ( gImageParams_t* iImage = start; iImage != bound; ++iImage )
 	{
 		gImageParams_t& image = *iImage;
 
 		uint32_t yb = y * slotParams.height;
-		uint32_t xb = ( x % stride ) * slotParams.width;
+		uint32_t xb = x * slotParams.width;
 
 		GL_CHECK( glTexSubImage2D( tt->target, 0, xb, yb, image.width,
 			image.height, sampler.format, GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
 
-		// !FIXME?: invSlotWidth may be able to be removed from these computations - it would be good
-		// to double check these on paper
-		float fxStart = ( float )xb * invSlotWidth * tt->invRowPitch.x;
-		float fyStart = ( float )yb * invSlotHeight * tt->invRowPitch.y;
+		float fxStart = ( float )xb * invSlotWidth * invStride;
+		float fyStart = ( float )yb * invSlotHeight * invRows;
 
-		float fxEnd = fxStart + ( float )image.width * invSlotWidth * tt->invRowPitch.x;
-		float fyEnd = fyStart + ( float )image.height * invSlotHeight * tt->invRowPitch.y;
+		float fxEnd = fxStart + ( float )image.width * invSlotWidth * invStride;
+		float fyEnd = fyStart + ( float )image.height * invSlotHeight * invRows;
 
 		gTextureImage_t data;
 
@@ -284,42 +314,55 @@ gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
 				glm::vec2( ( float ) image.width * invSlotWidth, ( float ) image.height * invSlotHeight );
 		data.dims = glm::vec2( ( float ) image.width, ( float ) image.height );
 
-#ifdef DEBUG
-		{
-			// It's good to clarify the difference between the iterator-based indexing and
-			// our grid (x,y) indexing: there's always the chance that we may
-			// want to modify the actual layout of the textures such that there's no guarantee
-			// both indexing schemes are equivalent.
-
-			// As it stands, the only reason why slot == index at the time of this writing
-			// is because any extra slots which are added (for the sake of conforming to power of two size)
-			// will never be filled, given the linear appending.
-
-			size_t index = ( size_t )( iImage - makeParams.start );
-			uint32_t slot = ( x % stride ) + y * stride;
-			assert( index == slot );
-		}
-#endif
+		uintptr_t slot = ( uintptr_t )( iImage - base );
 
 		if ( tt->keyMapped )
 		{
-			size_t index = ( size_t )( iImage - makeParams.start );
-			tt->keyMapSlots[ makeParams.keyMaps[ ( gTextureMakeParams_t::key_t ) index ] ] = data;
+			tt->keyMapSlots[ makeParams.keyMaps[ ( gTextureMakeParams_t::key_t ) slot ] ] = data;
 		}
 		else
 		{
-			uint32_t slot = ( x % stride ) + y * stride;
 			tt->imageSlots[ slot ] = data;
 		}
 
-		if ( ( xb + slotParams.width ) % canvasParams.width == 0 )
+		uint32_t next = ( x + 1 ) % rows;
+
+		if ( next == 0 )
 			y++;
 
 		image.data.clear();
-		x++;
+		x = next;
 	}
 
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
+}
+
+gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
+						 const gImageParams_t& slotParams,
+						 gTextureMakeParams_t& makeParams )
+{
+	gTexture_t* tt = new gTexture_t();
+	tt->target = GL_TEXTURE_2D;
+	tt->keyMapped = !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+
+	if ( !tt->keyMapped )
+	{
+		tt->imageSlots.resize( ( canvasParams.width / slotParams.width ) 
+							  * ( canvasParams.height / slotParams.height ) );
+	}
+
+	GenTextureData( tt, canvasParams );
+
+	for ( uint32_t i = 0; i < tt->numGrids; ++i )
+	{
+		GenSubdivision( tt, i, 
+					   makeParams,
+					   canvasParams, slotParams,
+					   &makeParams.images[ 0 ],
+					   &makeParams.images[ i ],
+					   &makeParams.images[ makeParams.images.size() - 1 ] );
+	}
+	
 	return tt;
 }
 
@@ -407,7 +450,7 @@ gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams )
 
 	glm::ivec2 maxDims( 0 );
 
-	std::for_each( makeParams.start, makeParams.end, [ &maxDims ]( const gImageParams_t& img )
+	std::for_each( makeParams.images.begin(), makeParams.images.end(), [ &maxDims ]( const gImageParams_t& img )
 	{
 		if ( img.width > maxDims.x )
 			maxDims.x = img.width;
@@ -419,9 +462,7 @@ gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams )
 	maxDims.x = NextPower2( maxDims.x );
 	maxDims.y = NextPower2( maxDims.y );
 
-	size_t numImages = ( size_t )( makeParams.end - makeParams.start );
-
-	uint32_t closeSquare = NextPower2( numImages );
+	uint32_t closeSquare = NextPower2( makeParams.images.size() );
 	uint32_t arrayDims = 2;
 
 	while ( arrayDims * arrayDims < closeSquare )
@@ -472,29 +513,13 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 	const gTexture_t* t = GetTexture( handle );
 
 	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+	gGrid_t* grid = GridFromSlot( handle, gSlotStage );
 
-	if ( t->numGrids == 1 )
-	{
-		GL_CHECK( glBindTexture( t->target, t->grids[ 0 ].handle ) );
-	}
-	else
+	if ( grid )
 	{
 		MLOG_ASSERT( gSlotStage != (gTexSlot_t ) G_UNSPECIFIED,
 					 "No log stage set for handle: %i at offset: %i", handle.id, offset );
-
-		const gTextureImage_t& data = GTextureImage( handle, gSlotStage );
-
-		for ( uint8_t i = 0; i < t->numGrids; ++i )
-		{
-			if ( data.stOffsetStart.x < t->grids[ i ].xStart ) continue;
-			if ( data.stOffsetStart.x > t->grids[ i ].xEnd ) continue;
-
-			if ( data.stOffsetStart.y < t->grids[ i ].yStart ) continue;
-			if ( data.stOffsetStart.y > t->grids[ i ].yEnd ) continue;
-
-			GL_CHECK( glBindTexture( t->target, t->grids[ i ].handle ) );
-			break;
-		}
+		GL_CHECK( glBindTexture( t->target, grid->handle ) );
 	}
 }
 
@@ -520,11 +545,22 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 	return t->GetSlot( slot );
 }
 
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle )
+{
+	MLOG_ASSERT( gSlotStage != G_UNSPECIFIED, "Not slot stage set. Handle: %i", handle.id );
+
+	return GTextureImage( handle, gSlotStage );
+}
+
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 {
 	assert( handle.id < gTextureMap.size() );
 
-	return gTextureMap[ handle.id ]->invRowPitch;
+	MLOG_ASSERT( gSlotStage != G_UNSPECIFIED, "No slot stage loaded for handle: %i", handle.id );
+
+	gGrid_t* grid = GridFromSlot( handle, gSlotStage );
+
+	return glm::vec2( grid->invStride, grid->invRows );
 }
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )

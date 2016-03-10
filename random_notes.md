@@ -34,6 +34,9 @@ This will help in replacing all of the calls in the renderer.
 
 Running the renderer using Intel drivers gives me 30 FPS at best and over 160 MB of RAM per frame.
 
+**Update** with O2, Intel drivers on Windows give about 120 FPS, which is pretty solid. The high RAM usage is still prevelant,
+but apparently the HD 4600 only has 128 MB of dedicated VRAM. This may explain the dfferences in system RAM usage being reported between Linux and Windows.
+
 On Linux I get 60 MB of ram and 60 FPS with a) intel drivers and b) less convenient features.
 
 I'm thinking the issue might be due to dependencies which are linked in via MSVC, and possibly other things like meta data
@@ -105,3 +108,30 @@ current Linux distro. It may be time to upgrade, if nothing else is available.
 Use the grid structure as a means to bind staged slots approapriately. Textures should
 generally be split when hardware limitations don't allow them to used as a whole. Some
 images will be part of one grid while others will be apart of another.
+
+**3/9/16**
+
+#### Splitting (Textures)
+
+* Indexing/Lookup scheme for grids and the stOffset{Start|End} parameters, using the grid's {x, y}{Start|End} parameters 
+is somewhat inefficient; there's likely a better way to find the proper coordinate, using the semantics of the grid's
+scheme itself, in additiont to some implicit logarithmic/quadtree-esque properties.
+
+* The GMakeTexture function has a section of code which determines the atlas size. Make the following modifications:
+
+	- Abstract out the size determining function so that the dimensions can be recalculated if the atlas needs to be subdivided;
+		each subdivision/grid within the atlas will have separate canvas/slot parameters.
+
+	- Sort the images by their size (consider the magnitude of their width and height, or sort by width first then height as a secondary for widths which
+	are equivalent. [1]). You can swap out the std::for_each with an std::sort, and still find the max dimensions that way.
+
+	- Move the abstracted size compute function so that it's called for every sub-atlas created.
+
+* You'll probably have to grow and shrink different subdivisions to ensure that there's enough room for each atlas. The sort by dimension should help with this. 
+
+[1] e.g., for the following images:
+		
+( 64, 128 ); ( 64, 256 ) | ( 128, 256 ); ( 128, 512 ) | ... ( w, h0 ); ( w, h1 ); .... ; ( w, hn )
+	
+
+
