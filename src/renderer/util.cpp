@@ -1,5 +1,7 @@
 #include "util.h"
 #include "glutil.h"
+#include "effect_shader.h"
+#include "q3bsp.h"
 
 void GU_SetupTexParams( const Program& program,
 						const char* uniformPrefix,
@@ -48,6 +50,14 @@ void GU_SetupTexParams( const Program& program,
 	}
 
 	GUnstageSlot();
+}
+
+gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler )
+{
+	gImageParamList_t shaderTextures;
+	S_LoadShaders( &map, sampler, shaderTextures );
+	gTextureMakeParams_t makeParams( shaderTextures, sampler );
+	return GMakeTexture( makeParams );
 }
 
 void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )

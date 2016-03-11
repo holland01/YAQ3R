@@ -4,6 +4,7 @@
 #include "glutil.h"
 #include "renderer/texture.h"
 #include "renderer/buffer.h"
+#include "q3bsp.h"
 #include "input.h"
 #include <memory>
 
@@ -16,12 +17,12 @@ private:
     std::unique_ptr< InputCamera > camera;
 
     gTextureHandle_t texture;
-
-    gTextureImage_t currImage;
-
-    glm::vec2 invRowPitch;
+	
+	gSamplerHandle_t sampler;
 
     gVertexBufferHandle_t vbo;
+
+	Q3BspMap map;
 
     void Run( void );
 

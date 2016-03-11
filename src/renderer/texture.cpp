@@ -246,9 +246,19 @@ INLINE void TryAllocDummy( void )
 
 INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 {
+	if ( slotIndex == G_UNSPECIFIED )
+	{
+		return nullptr;
+	}
+
 	const gTexture_t* t = GetTexture( handle );
 	const gTextureImage_t& data = GTextureImage( handle, slotIndex );
 
+	// TODO: If this slot has a good relationship with the layout of the 
+	// grids, then we can make this more intelligent. (geometrically, 
+	// the slot should map to rectangle in a grid of grids - each grid
+	// maps to its own set of x,y ranges; the slot is likely to have a corresponding
+	// relationship with these x,y ranges.)
 	for ( uint8_t i = 0; i < t->numGrids; ++i )
 	{
 		if ( data.stOffsetStart.x < t->grids[ i ].xStart ) continue;
@@ -261,6 +271,43 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 	}
 
 	return nullptr;
+}
+
+void CalcGridDimensions( gImageParams_t& canvasParams, 
+						 gImageParams_t& slotParams,
+						 const gTextureMakeParams_t& makeParams,
+						 gImageParamList_t& images )
+{
+	glm::ivec2 maxDims( 0 );
+
+	std::sort( images.begin(), images.end(), [ &maxDims ]( gImageParams_t& a, gImageParams_t& b )
+	{
+		if ( a.width > maxDims.x )
+			maxDims.x = a.width;
+
+		if ( a.height > maxDims.y )
+			maxDims.y = a.height;
+
+		float alength = glm::length( glm::vec2( ( float ) a.width, ( float ) a.height ) );
+		float blength = glm::length( glm::vec2( ( float ) b.width, ( float ) b.height ) );
+
+		return alength < blength;
+	});
+
+	maxDims.x = NextPower2( maxDims.x );
+	maxDims.y = NextPower2( maxDims.y );
+
+	uint32_t closeSquare = NextPower2( makeParams.images.size() );
+	uint32_t arrayDims = 2;
+
+	while ( arrayDims * arrayDims < closeSquare )
+		arrayDims += 2;
+
+	canvasParams.sampler = makeParams.sampler;
+	GSetImageBuffer( canvasParams, maxDims.x * arrayDims, maxDims.y * arrayDims, 0 );
+
+	slotParams.width = maxDims.x;
+	slotParams.height = maxDims.y;
 }
 
 void GenSubdivision( gTexture_t* tt, 
@@ -337,10 +384,142 @@ void GenSubdivision( gTexture_t* tt,
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
 }
 
-gTexture_t* MakeTexture( const gImageParams_t& canvasParams,
-						 const gImageParams_t& slotParams,
-						 gTextureMakeParams_t& makeParams )
+struct gSlotImage_t
 {
+	const gImageParams_t* image;
+	glm::vec2 max, min;
+};
+
+struct gSegment_t
+{
+	glm::vec2 start, end;
+	gSegment_t* next = nullptr;
+
+	~gSegment_t( void )
+	{
+		if ( next )
+		{
+			delete next;
+		}
+	}
+};
+
+struct gImageGroup_t
+{
+	std::vector< gSlotImage_t > images;
+
+	uint32_t Area( void )
+	{
+		uint32_t a = 0;
+
+		for ( const gSlotImage_t& i: images )
+		{
+			a += i.image->width * i.image->height;
+		}
+
+		return a;
+	}
+
+	std::unique_ptr< gSegment_t > CalcPerimeter( void )
+	{
+		std::unique_ptr< gSegment_t > p( new gSegment_t() );
+
+		p->start = images[ 0 ].min;
+		p->end = glm::vec2( images[ 0 ].max.x, 0.0f );
+		
+		p->next = new gSegment_t();
+		
+		gSegment_t* seg = p->next;
+		seg->start = p->end;
+		seg->end = seg->start;
+
+		for ( uint32_t i = 1; i < images.size(); ++i )
+		{
+			seg->end.y = images[ i ].min.y;
+			seg->next = new gSegment_t();
+			seg->next->start = seg->end;
+			seg->next->end.x = images[ i ].max.x;
+			seg->next->end.y = seg->end.y;
+			seg = seg->next;
+		}
+	}
+};
+
+void Fill( std::unordered_map< int32_t, bool >& taken,
+		   gImageParams_t& canvasParams,
+		   gImageParams_t& slotParams,
+		   gImageParams_t& currImage,
+		   gImageGroup_t& currGroup )
+{
+
+	uint32_t slotArea = slotParams.width * slotParams.height;
+
+	gSlotImage_t currSlot;
+	currSlot.image = &currImage;
+	currSlot.max.x = ( float ) currImage.width;
+	currSlot.max.y = ( float ) currImage.height;
+	currSlot.min.x = currSlot.min.y = 0.0f;
+
+	currGroup.images.push_back( currSlot );
+
+	for ( size_t y0 = 0; y0 < pitch; ++y0 )
+	{
+		for ( size_t x0 = 0; x0 < stride; ++x0 )
+		{
+			uint32_t area = images[ y0 * stride + x0 ].width * images[ y0 * stride + x0 ].height;
+			uint32_t currArea = currGroup.Area();
+
+			if ( currArea >= slotArea - 8 )
+			{
+				return;
+			}
+
+			if ( area + currArea > slotArea )
+			{
+				continue;
+			}
+		}
+	}
+}
+
+void PlaceImages( const gImageParams_t& canvasParams,
+				  const gImageParams_t& slotParams, 
+				  const gImageParamList_t& images,
+				  std::vector< gImageGroup_t >& groups )
+{
+	size_t numImages = images.size();
+
+	uint32_t pitch = canvasParams.width / slotParams.width;
+	uint32_t stride = canvasParams.height / slotParams.height;
+
+	uint32_t slotArea = slotParams.width * slotParams.height;
+
+	std::unordered_map< int32_t, bool > taken;
+
+	gImageGroup_t tmpGroup;
+
+	for ( size_t y = 0; y < pitch; ++y )
+	{
+		for ( size_t x = 0; x < stride; ++x )
+		{
+			auto f = taken.find( y * stride + x );
+
+			if ( f != taken.end() )
+			{
+				continue;
+			}
+
+			
+		}
+	}
+}
+
+gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
+{
+	gImageParams_t canvasParams, slotParams;
+
+	CalcGridDimensions( canvasParams, slotParams, makeParams, makeParams.images );
+
 	gTexture_t* tt = new gTexture_t();
 	tt->target = GL_TEXTURE_2D;
 	tt->keyMapped = !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
@@ -448,35 +627,7 @@ gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams )
 		return { G_UNSPECIFIED };
 	}
 
-	glm::ivec2 maxDims( 0 );
-
-	std::for_each( makeParams.images.begin(), makeParams.images.end(), [ &maxDims ]( const gImageParams_t& img )
-	{
-		if ( img.width > maxDims.x )
-			maxDims.x = img.width;
-
-		if ( img.height > maxDims.y )
-			maxDims.y = img.height;
-	});
-
-	maxDims.x = NextPower2( maxDims.x );
-	maxDims.y = NextPower2( maxDims.y );
-
-	uint32_t closeSquare = NextPower2( makeParams.images.size() );
-	uint32_t arrayDims = 2;
-
-	while ( arrayDims * arrayDims < closeSquare )
-		arrayDims += 2;
-
-	gImageParams_t canvasParams;
-	canvasParams.sampler = makeParams.sampler;
-	GSetImageBuffer( canvasParams, maxDims.x * arrayDims, maxDims.y * arrayDims, 0 );
-
-	gImageParams_t slotParams;
-	slotParams.width = maxDims.x;
-	slotParams.height = maxDims.y;
-
-	gTexture_t* texture = MakeTexture( canvasParams, slotParams, makeParams );
+	gTexture_t* texture = MakeTexture( makeParams );
 
 	gTextureHandle_t handle =
 	{
@@ -512,13 +663,25 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 {
 	const gTexture_t* t = GetTexture( handle );
 
-	GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
-	gGrid_t* grid = GridFromSlot( handle, gSlotStage );
+	if ( !t )
+	{
+		return;
+	}
+
+	gGrid_t* grid = nullptr;
+
+	if ( t->numGrids == 1 )
+	{
+		grid = t->grids;
+	}
+	else
+	{
+		grid = GridFromSlot( handle, gSlotStage );
+	}
 
 	if ( grid )
 	{
-		MLOG_ASSERT( gSlotStage != (gTexSlot_t ) G_UNSPECIFIED,
-					 "No log stage set for handle: %i at offset: %i", handle.id, offset );
+		GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
 		GL_CHECK( glBindTexture( t->target, grid->handle ) );
 	}
 }

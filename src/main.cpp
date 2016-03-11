@@ -32,7 +32,7 @@ int main( void )
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
-	gAppTest = new TRenderer();
+	gAppTest = new TTextureTest();
 	gAppTest->Load();
 
     int code = gAppTest->Exec();

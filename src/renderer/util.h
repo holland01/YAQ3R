@@ -36,6 +36,10 @@ static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t
 	}
 }
 
+class Q3BspMap;
+
+gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t handle );
+
 using guImmPosList_t = std::vector< glm::vec3 >;
 
 void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj );
@@ -70,3 +74,6 @@ struct pushBlend_t
 		GL_CHECK( glBlendFuncSeparate( srcRGB, destRGB, srcAlpha, destAlpha ) );
 	}
 };
+
+
+

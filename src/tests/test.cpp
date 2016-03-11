@@ -1,6 +1,7 @@
 #include "test.h"
 #include "../io.h"
 #include "../glutil.h"
+#include "renderer/buffer.h"
 
 #ifdef EMSCRIPTEN
 #	include <emscripten.h>
@@ -88,6 +89,10 @@ bool Test::Load( const char* winName )
 #endif
 
 	SDL_RenderPresent( sdlRenderer );
+	glGetError(); // HACK: error checking is impossible unless this happens; apparently an invalid enumaration exists - possibly
+	// in SDL or GLEW's initialization...
+
+	GLoadVao();
 
 	running = true;
 

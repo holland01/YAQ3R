@@ -60,7 +60,50 @@ void GEnableDepthBuffer( void )
 {
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glDepthMask( GL_TRUE ) );
+	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 	GL_CHECK( glClearDepth( 1.0f ) );
+}
+
+namespace {
+#ifdef G_USE_GL_CORE
+	struct vao_t
+	{
+		//GLsync fence;
+		GLuint vao;
+
+		vao_t( void )
+			:	vao( 0 )
+		{
+			//GL_CHECK( fence = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 ) );
+			//GL_CHECK( glClientWaitSync( fence, GL_SYNC_FLUSH_COMMANDS_BIT, 100000000 ) );
+
+			GL_CHECK( glGenVertexArrays( 1, &vao ) );
+			GL_CHECK( glBindVertexArray( vao ) );
+		}
+
+		~vao_t( void )
+		{
+			if ( vao )
+			{
+				GL_CHECK( glBindVertexArray( 0 ) );
+				GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
+			}
+		}
+	};
+#else
+	struct vao_t
+	{
+		GLuint dummy;
+	};
+#endif
+
+	std::unique_ptr< vao_t > gVao( nullptr );
+}
+
+void GLoadVao( void )
+{
+	gVao.reset( new vao_t() );
 }
 
 gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertices, const std::vector< glm::vec2 >& texCoords )

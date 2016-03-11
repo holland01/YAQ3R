@@ -10,33 +10,7 @@
 #include <random>
 #include <algorithm>
 
-#ifdef G_USE_GL_CORE
-#	define MAIN_SHADER_SUFFIX "core"
-	struct vao_t
-	{
-		GLuint vao;
 
-		vao_t( void )
-			: vao( 0 )
-		{
-			GL_CHECK( glGenVertexArrays( 1u, &vao ) );
-			GL_CHECK( glBindVertexArray( vao ) );
-		}
-
-		~vao_t( void )
-		{
-			if ( vao )
-			{
-				GL_CHECK( glBindVertexArray( 0 ) );
-				GL_CHECK( glDeleteVertexArrays( 1, &vao ) );
-			}
-		}
-	};
-
-	std::unique_ptr< vao_t > gVao( nullptr );
-#else
-#	define MAIN_SHADER_SUFFIX "es"
-#endif
 
 struct config_t
 {
@@ -136,11 +110,6 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 
 	camera = new InputCamera( view, EuAng() );
 	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 500.0f, 5000.0f );
-	glGetError();
-
-#ifdef G_USE_GL_CORE
-	gVao.reset( new vao_t() );
-#endif
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -177,15 +146,20 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc,
 
 void BSPRenderer::Prep( void )
 {
+	/*
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 	GL_CHECK( glDepthMask( GL_TRUE ) );
+	*/
+
+	GEnableDepthBuffer();
+
 	GL_CHECK( glEnable( GL_BLEND ) );
 	GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
-	GU_ClearDepth( 1.0f );
+	//GU_ClearDepth( 1.0f );
 
 	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
 
@@ -262,13 +236,8 @@ void BSPRenderer::Load( const std::string& filepath )
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	{
-		gImageParamList_t shaderTextures;
-		S_LoadShaders( map, mainSampler, shaderTextures );
-		gTextureMakeParams_t makeParams( shaderTextures, mainSampler );
-		shaderTexHandle = GMakeTexture( makeParams );
-	}
-
+	shaderTexHandle = GU_LoadShaderTextures( *map, mainSampler );
+	
 	LoadMainImages();
 	LoadLightmaps();
 
