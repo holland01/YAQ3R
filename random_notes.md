@@ -132,6 +132,42 @@ scheme itself, in additiont to some implicit logarithmic/quadtree-esque properti
 [1] e.g., for the following images:
 		
 ( 64, 128 ); ( 64, 256 ) | ( 128, 256 ); ( 128, 512 ) | ... ( w, h0 ); ( w, h1 ); .... ; ( w, hn )
+
+**3/10/16**
+
+#### Splitting (Textures) -> Placement
+	
+Before splitting is to take place, it's clear that a mechanism needs to be devised which will encourage textures of different sizes to be placed
+more adjacent to each other. For a given slot, which represents the maximum dimensions of an image in a corresponding group, you want to fit as many smaller
+images as possible into that slot. In other words, slots which only contain a single image should be avoided as much as possible. 
+
+The best way to achieve this involves, after sorting the images by the vector length of their dimensions:
+	* Iterating over each image
+	* Checking every other image and assessing whether or not it can fit inside the current slot our iterator represents
+	* Keeping track of slots which are emptied and images which have been moved (so they aren't affected in a future in iteration, after they've been appointed a different slot)
+	* Using a bounds mechanism for each image to aid in determining whther or not the candidate image can "fit" inside the slot, against other images
+	of varied dimensions, location, and orientation.
+		- For this, it'd be good to use a perimeter generation mechanism as a means to simply find a good fit for the incoming candidate:
+		- Be sure a given group of images for a single slot is sorted by increasing x-values - this will guarantee that, when perimeter is constructed,
+		we'll always be moving towards the next image in an increasing manner. 
+			
+			The perimeter construction mechanism should be something along the lines of:
+				start0 = slotOrigin
+				end0 = (start0_x, max0_y)
+				start1 = end0
+				end1 = (min1_x, end1_y)  
+				start2 = end1
+				end2 = (start2_x, max1_y)
+
+				Some important things to think about are:
+					how do we know which y coordinate to choose? X is obvious, because the list is sorted by x values.
+					Using the max-y-value for each bounding box appears to be reasonable method.
+
+				Anyway, the perimeter generation method is useful because the box of the image which we want to insert
+				cannot penetrate any area of that line.
+
+
+	
 	
 
 
