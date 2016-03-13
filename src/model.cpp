@@ -25,7 +25,7 @@ void mapModel_t::PreGenerate( const Q3BspMap* map, size_t faceOffset )
 	}
 	else
 	{
-		if ( !G_NULL( indices ) )
+		if ( G_HNULL( indices ) )
 			GFreeIndexBuffer( indices );
 
 		indices = GMakeIndexBuffer();

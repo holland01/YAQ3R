@@ -3,13 +3,19 @@
 #include "../glutil.h"
 #include "renderer/buffer.h"
 
+#if defined(G_USE_GL_CORE)
+#	define T_DEFAULT_PROFILE SDL_GL_CONTEXT_PROFILE_CORE
+#else
+#	define T_DEFAULT_PROFILE SDL_GL_CONTEXT_PROFILE_ES
+#endif
+
 #ifdef EMSCRIPTEN
 #	include <emscripten.h>
 #	include "em_api.h"
 #endif
 
 Test* gAppTest = nullptr;
- 
+
 static void FrameIteration( void )
 {
 	if ( !gAppTest )
@@ -33,6 +39,7 @@ Test::Test( int w, int h, bool fullscreen_ )
 	  cursorVisible( true ),
 	  running( false ),
 	  useSRGBFramebuffer( true ),
+	  context( T_DEFAULT_PROFILE ),
 	  camPtr( nullptr ),
 	  sdlRenderer( nullptr ),
 	  sdlContext( nullptr ),
@@ -62,11 +69,8 @@ bool Test::Load( const char* winName )
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, G_API_MAJOR_VERSION );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, G_API_MINOR_VERSION );
 	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, context );
 
-#ifdef G_USE_GL_CORE
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-#endif
-	
 	SDL_CreateWindowAndRenderer( width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE, &sdlWindow, &sdlRenderer );
 	SDL_SetWindowTitle( sdlWindow, winName );
 
@@ -97,6 +101,8 @@ bool Test::Load( const char* winName )
 	running = true;
 
 	InitSysLog();
+
+
 
 	return true;
 }

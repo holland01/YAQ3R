@@ -42,9 +42,13 @@ gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t handle )
 
 using guImmPosList_t = std::vector< glm::vec3 >;
 
+void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj );
+
 void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj );
 
 void GU_ImmLoad( const guImmPosList_t& v, const glm::vec4& color );
+
+void GU_ImmLoad( const guImmPosList_t& v, const glm::u8vec4& color );
 
 void GU_ImmEnd( void );
 

@@ -8,9 +8,6 @@ enum
 	G_TEXTURE_DUMMY_BIT = 1 << 31
 };
 
-using gTextureFlags_t = uint32_t;
-using gTexSlot_t = int16_t;
-
 struct gTextureHandle_t
 {
 	uint32_t id;

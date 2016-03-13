@@ -31,10 +31,19 @@
 #define G_MAG_FILTER GL_LINEAR
 #define G_MIPMAPPED false
 
-#define G_NULL( handle ) ( ( handle ).id == G_UNSPECIFIED )
-
 using gIndex_t = uint32_t;
 using gIndexBuffer_t = std::vector< gIndex_t >;
+using gTextureFlags_t = uint32_t;
+using gTexSlot_t = int16_t;
+
+
+#define G_HNULL( handle ) ( ( handle ).id == G_UNSPECIFIED )
+
+template < class Tint >
+static bool G_VNULL( Tint v )
+{
+	return v == ( Tint )G_UNSPECIFIED;
+}
 
 using programDataMap_t = std::unordered_map< std::string, GLint >;
 

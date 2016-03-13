@@ -1433,7 +1433,7 @@ void S_GenPrograms( shaderInfo_t* shader )
 // On the directive: this is good for testing and doing performance comparisons
 #ifndef G_DUPLICATE_PROGRAMS
 		stage.program = GFindProgramByData( p->attribs, p->uniforms, &stage );
-		if ( G_NULL( stage.program ) )
+		if ( G_HNULL( stage.program ) )
 #endif
 		{
 			gMeta->LogShader( "Vertex", vertexString, j );

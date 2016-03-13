@@ -16,6 +16,18 @@ static INLINE Tint NextPower2( Tint x )
 	return x;
 }
 
+template < class Tint >
+static INLINE Tint NextSquare( Tint l )
+{
+	Tint closeSquare = NextPower2( l );
+	Tint arrayDims = 2;
+
+	while ( arrayDims * arrayDims < closeSquare )
+		arrayDims += 2;
+
+	return arrayDims;
+}
+
 //! TODO: unroll this...
 template < class Tint >
 static INLINE Tint NumBitsSet( Tint x )

@@ -153,10 +153,7 @@ gIndexBufferHandle_t GMakeIndexBuffer( void )
 
 void GFreeIndexBuffer( gIndexBufferHandle_t buffer )
 {
-	if ( G_NULL( buffer ) )
-	{
-		return;
-	}
+	UNUSED( buffer );
 
 	// TODO: refrain from actually freeing the memory; rather,
 	// zero it out and set its length to zero as well.

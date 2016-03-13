@@ -229,7 +229,7 @@ void BSPRenderer::Load( const std::string& filepath )
 
 	map->Read( filepath, 1 );
 
-	if ( G_NULL( mainSampler ) )
+	if ( G_HNULL( mainSampler ) )
 		mainSampler = GMakeSampler();
 
 	GLint oldAlign;

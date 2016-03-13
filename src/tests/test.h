@@ -10,25 +10,27 @@ class Test
 {
 protected:
 
-    int             width, height;
+	int             width, height;
 
-    float			deltaTime;
+	float			deltaTime;
 
-    bool            fullscreen,
-					cursorVisible, 
-					running, 
+	bool            fullscreen,
+					cursorVisible,
+					running,
 					useSRGBFramebuffer;
 
-    InputCamera*    camPtr;
+	SDL_GLprofile	context;
+
+	InputCamera*    camPtr;
 
 	SDL_Renderer*	sdlRenderer;
 
 	SDL_GLContext	sdlContext;
 
-    bool            Load( const char* winTitle );
+	bool            Load( const char* winTitle );
 
 	float			mouseX;
-    float           mouseY;
+	float           mouseY;
 
 	float			lastMouseX;
 	float			lastMouseY;
@@ -37,15 +39,15 @@ public:
 
 	SDL_Window*		sdlWindow;
 
-    Test( int width, int height, bool fullscreen );
+	Test( int width, int height, bool fullscreen );
 
-    virtual ~Test( void );
+	virtual ~Test( void );
 
-    int          Exec( void );
+	int          Exec( void );
 
-    virtual void Load( void ) = 0;
+	virtual void Load( void ) = 0;
 
-    virtual void Run( void ) = 0;
+	virtual void Run( void ) = 0;
 
 	virtual void OnInputEvent( SDL_Event* e );
 };

@@ -60,7 +60,7 @@ gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler 
 	return GMakeTexture( makeParams );
 }
 
-void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
+void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj )
 {
 	GL_CHECK( glUseProgram( 0 ) );
 	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
@@ -69,7 +69,11 @@ void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
 	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
 	GL_CHECK( glPushMatrix() );
 	GL_CHECK( glLoadMatrixf( glm::value_ptr( view ) ) );
+}
 
+void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
+{
+	GU_ImmLoadMatrices( view, proj );
 	glBegin( mode );
 }
 
@@ -78,6 +82,15 @@ void GU_ImmLoad( const guImmPosList_t& v, const glm::vec4& color )
 	for ( const auto& p: v )
 	{
 		glColor4fv( glm::value_ptr( color ) );
+		glVertex3fv( glm::value_ptr( p ) );
+	}
+}
+
+void GU_ImmLoad( const guImmPosList_t& v, const glm::u8vec4& color )
+{
+	for ( const auto& p: v )
+	{
+		glColor4ubv( glm::value_ptr( color ) );
 		glVertex3fv( glm::value_ptr( p ) );
 	}
 }

@@ -3,6 +3,7 @@
 #include "io.h"
 #include "tests/trenderer.h"
 #include "tests/test_textures.h"
+#include "tests/test_atlas_struct.h"
 #include "renderer/buffer.h"
 
 #undef main
@@ -14,8 +15,8 @@
 // Is global
 void FlagExit( void )
 {
-    delete gAppTest;
-    gAppTest = NULL;
+	delete gAppTest;
+	gAppTest = NULL;
 	system( "pause" );
 #ifdef EMSCRIPTEN
 	emscripten_force_exit( 0 );
@@ -32,14 +33,14 @@ int main( void )
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
-	gAppTest = new TTextureTest();
+	gAppTest = new TAtlas();
 	gAppTest->Load();
 
-    int code = gAppTest->Exec();
+	int code = gAppTest->Exec();
 
-    FlagExit();
+	FlagExit();
 
-    return code;
+	return code;
 
 	return 0;
 }
