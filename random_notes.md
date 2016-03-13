@@ -113,7 +113,7 @@ images will be part of one grid while others will be apart of another.
 
 #### Splitting (Textures)
 
-* Indexing/Lookup scheme for grids and the stOffset{Start|End} parameters, using the grid's {x, y}{Start|End} parameters 
+* Indexing/Lookup scheme for grids and the stOffset{Start|End} parameters, using the grid's {x, y}{Start|End} parameters
 is somewhat inefficient; there's likely a better way to find the proper coordinate, using the semantics of the grid's
 scheme itself, in additiont to some implicit logarithmic/quadtree-esque properties.
 
@@ -127,19 +127,19 @@ scheme itself, in additiont to some implicit logarithmic/quadtree-esque properti
 
 	- Move the abstracted size compute function so that it's called for every sub-atlas created.
 
-* You'll probably have to grow and shrink different subdivisions to ensure that there's enough room for each atlas. The sort by dimension should help with this. 
+* You'll probably have to grow and shrink different subdivisions to ensure that there's enough room for each atlas. The sort by dimension should help with this.
 
 [1] e.g., for the following images:
-		
+
 ( 64, 128 ); ( 64, 256 ) | ( 128, 256 ); ( 128, 512 ) | ... ( w, h0 ); ( w, h1 ); .... ; ( w, hn )
 
 **3/10/16**
 
 #### Splitting (Textures) -> Placement
-	
+
 Before splitting is to take place, it's clear that a mechanism needs to be devised which will encourage textures of different sizes to be placed
 more adjacent to each other. For a given slot, which represents the maximum dimensions of an image in a corresponding group, you want to fit as many smaller
-images as possible into that slot. In other words, slots which only contain a single image should be avoided as much as possible. 
+images as possible into that slot. In other words, slots which only contain a single image should be avoided as much as possible.
 
 The best way to achieve this involves, after sorting the images by the vector length of their dimensions:
 	* Iterating over each image
@@ -149,13 +149,13 @@ The best way to achieve this involves, after sorting the images by the vector le
 	of varied dimensions, location, and orientation.
 		- For this, it'd be good to use a perimeter generation mechanism as a means to simply find a good fit for the incoming candidate:
 		- Be sure a given group of images for a single slot is sorted by increasing x-values - this will guarantee that, when perimeter is constructed,
-		we'll always be moving towards the next image in an increasing manner. 
-			
+		we'll always be moving towards the next image in an increasing manner.
+
 			The perimeter construction mechanism should be something along the lines of:
 				start0 = slotOrigin
 				end0 = (start0_x, max0_y)
 				start1 = end0
-				end1 = (min1_x, end1_y)  
+				end1 = (min1_x, end1_y)
 				start2 = end1
 				end2 = (start2_x, max1_y)
 
@@ -166,8 +166,19 @@ The best way to achieve this involves, after sorting the images by the vector le
 				Anyway, the perimeter generation method is useful because the box of the image which we want to insert
 				cannot penetrate any area of that line.
 
+**3/13/16**
 
-	
-	
+So far, there has yet to be a minimum distance which doesn't meet the requirements of being greater than or equal
+to the dimensions of the bounds being moved. However, there's still problems.
+
+A couple issues are:
+
+a) some shapes will, for some reason, just stay inside the origin of the owning region bounds.
+Something is probably wrong with the collision detection, considering that no invalid dimension/distance
+issues have been found yet.
+
+b) Some resolved primitives will appear to penetrate the boudns of the atlas itself; this may
+be due to too high of an offset being applied in the collision resolution loop.
+
 
 
