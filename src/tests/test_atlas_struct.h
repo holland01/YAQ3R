@@ -19,6 +19,7 @@ struct bounds_t
 	float dimX, dimY;
 	glm::vec2 origin;
 	glm::u8vec4 color;
+	bool rot = false;
 };
 
 using pointSet_t = std::set< glm::vec2 >;

@@ -5,6 +5,7 @@
 #include "renderer/buffer.h"
 #include "io.h"
 #include <algorithm>
+#include <unordered_map>
 
 namespace {
 
@@ -47,173 +48,155 @@ INLINE glm::u8vec4 UniqueColor( void )
 	return glm::u8vec4( 0 ); // <___<
 }
 
-bool Colliding( const bounds_t& a, const bounds_t& b )
+struct bucket_t
 {
-	std::array< glm::vec2, 4 > aPoints, bPoints;
-
-	auto LGetPoints = []( const bounds_t& bounds, std::array< glm::vec2, 4 >& points )
-	{
-		glm::vec2 ex( bounds.dimX * 0.5f, 0.0f );
-		glm::vec2 ey( bounds.dimY * 0.5f, 0.0f );
-
-		points[ 0 ] = bounds.origin - ex - ey;
-		points[ 1 ] = bounds.origin - ex + ey;
-		points[ 2 ] = bounds.origin + ex + ey;
-		points[ 3 ] = bounds.origin + ex - ey;
-	};
-
-	LGetPoints( a, aPoints );
-	LGetPoints( b, bPoints );
-
-	// Project A's right onto B's left
-	if ( bPoints[ 0 ].y > aPoints[ 1 ].y )
-	{
-		return false;
-	}
-
-	if ( bPoints[ 1 ].y < aPoints[ 0 ].y )
-	{
-		return false;
-	}
-
-	// Project A's bottom onto B's top
-	if ( bPoints[ 3 ].x < aPoints[ 0 ].x )
-	{
-		return false;
-	}
-
-	if ( bPoints[ 0 ].x > aPoints[ 3 ].x )
-	{
-		return false;
-	}
-
-	return true;
-}
-
-struct resolveParams_t
-{
-	float outer;
-	float inner;
-	glm::vec2 dir;
+	uint16_t val;
+	std::unique_ptr< bucket_t > next;
 };
 
-std::vector< int8_t > gMerged;
-
-void ResolveCollision( std::vector< bounds_t >& boundsList,
-					   uint16_t stagnant,
-					   uint16_t moving,
-					   uint16_t slotDims )
+struct tree_t
 {
-	float srcArea = boundsList[ stagnant ].dimX * boundsList[ stagnant ].dimY;
-	float nextArea = boundsList[ moving ].dimX * boundsList[ moving ].dimY;
+	uint16_t key;
+	uint8_t numBuckets;
+	std::unique_ptr< bucket_t > first;
+	std::unique_ptr< tree_t > left;
+	std::unique_ptr< tree_t > right;
+};
 
-	uint32_t largest = srcArea > nextArea? stagnant: moving;
-
-	// Find the direction with the shortest distance possible, which is needed to
-	// resolve the collision between the two bounds
-	std::array< resolveParams_t, 4 > resolveParams;
-
-	glm::vec2 p( boundsList[ largest ].dimX * 0.5f, 0.0f );
-	glm::vec2 q( 0.0f, boundsList[ largest ].dimY * 0.5f );
-	glm::vec2 u( 1.0f, 0.0f );
-	glm::vec2 v( 0.0f, 1.0f );
-	glm::vec2 o( boundsList[ moving ].origin );
-
-	float offset;
-	glm::vec2 s;
-	glm::vec2 s0;
-
-	offset = slotDims - boundsList[ largest ].dimX;
-	s = o - p;
-	s0 = s - u * offset;
-	resolveParams[ 0 ].outer = glm::distance( s0, s );
-	resolveParams[ 0 ].inner = glm::distance( o - p, o );
-	resolveParams[ 0 ].dir = -p;
-
-	offset = slotDims - boundsList[ largest ].dimY;
-	s = o + q;
-	s0 = s + v * offset;
-	resolveParams[ 1 ].outer = glm::distance( s0, s );
-	resolveParams[ 1 ].inner = glm::distance( o + q, o );
-	resolveParams[ 1 ].dir = q;
-
-	offset = slotDims - boundsList[ largest ].dimX;
-	s = o + p;
-	s0 = s + u * offset;
-	resolveParams[ 2 ].outer = glm::distance( s0, s );
-	resolveParams[ 2 ].inner = glm::distance( o + p, o );
-	resolveParams[ 2 ].dir = p;
-
-	offset = slotDims - boundsList[ largest ].dimY;
-	s = o - q;
-	s0 = s - v * offset;
-	resolveParams[ 3 ].outer = glm::distance( s0, s );
-	resolveParams[ 3 ].inner = glm::distance( o - q, o );
-	resolveParams[ 3 ].dir = -q;
-
-	float minDistance = std::numeric_limits< float >::max();
-	uint32_t d = 0;
-	for ( uint32_t k = 0; k < resolveParams.size(); ++k )
-	{
-		const resolveParams_t& rp = resolveParams[ k ];
-		if ( rp.outer < minDistance )
-		{
-			if ( boundsList[ moving ].dimX <= minDistance && boundsList[ moving ].dimY <= minDistance )
-			{
-				d = k;
-				minDistance = rp.outer;
-			}
-		}
-	}
-
-	if ( minDistance == std::numeric_limits< float >::max() )
-	{
-		return;
-	}
-
-	while ( Colliding( boundsList[ moving ], boundsList[ stagnant ] ) )
-	{
-		boundsList[ moving ].origin += resolveParams[ d ].dir * 0.1f;
-	}
-
-	gMerged[ moving ] = true;
+void ShiftForward( std::unique_ptr< bucket_t >& newb, bucket_t* p, uint16_t v )
+{
+	newb->val = p->val;
+	newb->next = std::move( p->next );
+	p->next = std::move( newb );
+	p->val = v;
 }
 
-void FindMerge( std::vector< bounds_t >& boundsList, uint16_t src, uint16_t slotDims )
+void FindNitch( tree_t& t,
+				bucket_t** curr,
+				bucket_t** prev,
+				uint16_t val )
 {
-	gMerged[ src ] = true;
-	float srcArea = boundsList[ src ].dimX * boundsList[ src ].dimY;
-	float maxArea = slotDims * slotDims;
+	*prev = nullptr;
+	*curr = t.first.get();
 
-	uint16_t i;
-	for ( i = 0; i < boundsList.size(); ++i )
+	while ( *curr && val < ( *curr )->val )
 	{
-		if ( gMerged[ i ] )
-		{
-			continue;
-		}
-
-		float nextArea = boundsList[ i ].dimX * boundsList[ i ].dimY;
-
-		if ( srcArea + nextArea < maxArea )
-		{
-			boundsList[ i ].origin = boundsList[ 0 ].origin;
-			break;
-		}
+		*prev = *curr;
+		*curr = ( *curr )->next.get();
 	}
-
-	ResolveCollision( boundsList, src, i, slotDims );
 }
 
-uint16_t NextUnmerged( uint16_t start = 0 )
+void BucketInsert( tree_t* t, uint16_t v )
 {
-	uint16_t c = start;
-	while ( c < gMerged.size() && gMerged[ c ] )
+	bucket_t* prev, *p;
+	FindNitch( *t, &p, &prev, v );
+
+	std::unique_ptr< bucket_t > newb( new bucket_t() );
+
+	if ( prev )
 	{
-		c++;
+		if ( p )
+		{
+			ShiftForward( newb, p, v );
+		}
+		else
+		{
+			newb->val = v;
+			prev->next = std::move( newb );
+		}
 	}
-	return c;
+	else // v > first element, so we just correct that.
+	{
+		ShiftForward( newb, p, v );
+	}
+
+	t->numBuckets++;
 }
+
+std::unique_ptr< tree_t > TreeMake( uint16_t k, uint16_t v )
+{
+	std::unique_ptr< tree_t > t( new tree_t() );
+	t->key = k;
+	t->numBuckets = 1;
+	t->first.reset( new bucket_t() );
+	t->first->val = v;
+	return t;
+}
+
+void InsertOrMake( std::unique_ptr< tree_t >& t, uint16_t k, uint16_t v )
+{
+	if ( t )
+	{
+		TreeInsert( t.get(), k, v );
+	}
+	else
+	{
+		t = TreeMake( k, v );
+	}
+}
+
+void TreeInsert( tree_t* t, uint16_t k, uint16_t v, uint16_t sum = 0 )
+{
+	if ( k < t->k )
+	{
+		InsertOrMake( t->left, k, v );
+	}
+	else if ( k > t->k )
+	{
+		InsertOrMake( t->right, k, v );
+	}
+	else
+	{
+		BucketInsert( t, v );
+	}
+}
+
+void TreePoint( tree_t& t, bounds_t& bounds, float& x, float& y )
+{
+	if ( bounds.dimX < ( float ) t.key )
+	{
+		x -= t.left->key;
+		TreePoint( *( t.left ), bounds, x, y );
+	}
+	else if ( bounds.dimX > ( float ) t.key )
+	{
+		x += t.key;
+		TreePoint( *( t.right ), bounds, x, y );
+	}
+	else
+	{
+		bucket_t* prev = nullptr;
+		bucket_t* curr = t.first.get();
+
+		// bug: any duplicates will not be iterated over,
+		// since bounds.dimY < curr->val will just fail as soon
+		// it's equal to curr->val (i.e., the first element, regardless
+		// of any duplication).
+		// We can't just pop off the elements every time, either,
+		// because then the y value will not accumulate for any
+		// duplicate heights.
+
+		// So, you could use a bool as a mechanism to circumvent this,
+		// OR (and this sounds much more efficient)
+		// you could store a count of duplicates for each bucket,
+		// use that count as an offset for the value (in the sum of the iteration)
+		// and subtract the count by one each time bounds.dimY == curr->val (take into account the fact that
+		// curr->val will NOT be applied to y once dimY == curr->val).
+		// When the count reaches 0, you can remove the bucket to save iteration times.
+		while ( curr && bounds.dimY < curr->val )
+		{
+			prev = curr;
+			curr = curr->next.get();
+			y += curr->val;
+		}
+
+		x += bounds.dimX * 0.5f;
+		y += bounds.dimY * 0.5f;
+	}
+}
+
+// sort all elements by width, using buckets of heights sorted in descending order for each width node.
+// use the tree as a mechanism to query
 
 }
 
@@ -234,13 +217,13 @@ void TAtlas::Load( void )
 
 	Random< uint16_t > maxDimsGen( 256, 512 );
 	uint16_t slotDims = NextPower2( maxDimsGen() );
-	Random< uint8_t > numImages( 20, 50 );
-	uint16_t nImage = numImages();
-	uint16_t square = NextSquare( nImage );
+	uint16_t nImage = 30;
 
 	Random< uint16_t > dimGen( 32, slotDims );
 
-	for ( uint16_t i = 0; i < square * square; ++i )
+	glm::ivec2 totalRes;
+
+	for ( uint16_t i = 0; i < nImage; ++i )
 	{
 		bounds_t box;
 
@@ -248,31 +231,11 @@ void TAtlas::Load( void )
 		box.dimX = ( float ) NextPower2( dimGen() );
 		box.dimY = ( float ) NextPower2( dimGen() );
 
+		totalRes.x += box.dimX;
+		totalRes.y += box.dimY;
+
 		boundsList.push_back( box );
 	}
-
-	std::sort( boundsList.begin(), boundsList.end(), [ & ]( const bounds_t& a, const bounds_t& b ) -> bool
-	{
-		float al = glm::length( glm::vec2( a.dimX, a.dimY ) );
-		float bl = glm::length( glm::vec2( b.dimX, b.dimY ) );
-
-		return al < bl;
-	} );
-
-	float fSlotDims = ( float ) slotDims;
-
-	for ( uint32_t y = 0; y < square; ++y )
-	{
-		for ( uint32_t x = 0; x < square; ++x )
-		{
-			boundsList[ y * square + x ].origin = glm::vec2( ( float ) x * fSlotDims, ( float ) y * fSlotDims );
-		}
-	}
-
-	gMerged.resize( boundsList.size(), false );
-
-	FindMerge( boundsList, 0, slotDims );
-	FindMerge( boundsList, NextUnmerged(), slotDims );
 
 	camPtr->SetPerspective( 90.0f, 800.0f, 600.0f, 1.0f, 5000.0f );
 
@@ -283,7 +246,9 @@ void TAtlas::Load( void )
 
 	camPtr->moveStep = 0.1f;
 
-	MLOG_INFO( "Num Images: %i\n Square: %i\n Slot Dimensions: %i\n", nImage, square, slotDims );
+	MLOG_INFO( "Num Images: %i\n Square: %i\n Slot Dimensions: %i\n Total Res: %i x %i\n POT Total Res: %i x %i\n",
+			   nImage, square, slotDims,
+			   totalRes.x, totalRes.y );
 }
 
 void TAtlas::Run( void )
