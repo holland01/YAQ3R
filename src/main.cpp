@@ -41,6 +41,4 @@ int main( void )
 	FlagExit();
 
 	return code;
-
-	return 0;
 }

@@ -7,6 +7,21 @@
 #include <algorithm>
 #include <unordered_map>
 
+struct bucket_t
+{
+	uint8_t count;
+	uint16_t val;
+	std::unique_ptr< bucket_t > next;
+};
+
+struct tree_t
+{
+	uint16_t key;
+	std::unique_ptr< bucket_t > first;
+	std::unique_ptr< tree_t > left;
+	std::unique_ptr< tree_t > right;
+};
+
 namespace {
 
 INLINE pointSet_t::iterator& Increment( pointSet_t::iterator& p, int x )
@@ -48,21 +63,6 @@ INLINE glm::u8vec4 UniqueColor( void )
 	return glm::u8vec4( 0 ); // <___<
 }
 
-struct bucket_t
-{
-	uint16_t val;
-	std::unique_ptr< bucket_t > next;
-};
-
-struct tree_t
-{
-	uint16_t key;
-	uint8_t numBuckets;
-	std::unique_ptr< bucket_t > first;
-	std::unique_ptr< tree_t > left;
-	std::unique_ptr< tree_t > right;
-};
-
 void ShiftForward( std::unique_ptr< bucket_t >& newb, bucket_t* p, uint16_t v )
 {
 	newb->val = p->val;
@@ -71,27 +71,32 @@ void ShiftForward( std::unique_ptr< bucket_t >& newb, bucket_t* p, uint16_t v )
 	p->val = v;
 }
 
-void FindNitch( tree_t& t,
-				bucket_t** curr,
-				bucket_t** prev,
-				uint16_t val )
+void BucketInsert( tree_t& t, uint16_t v )
 {
-	*prev = nullptr;
-	*curr = t.first.get();
-
-	while ( *curr && val < ( *curr )->val )
+	if ( !t.first )
 	{
-		*prev = *curr;
-		*curr = ( *curr )->next.get();
+		t.first.reset( new bucket_t() );
 	}
-}
 
-void BucketInsert( tree_t* t, uint16_t v )
-{
 	bucket_t* prev, *p;
-	FindNitch( *t, &p, &prev, v );
+
+	prev = nullptr;
+	p = t.first.get();
+
+	while ( p && v < p->val )
+	{
+		prev = p;
+		p = p->next.get();
+	}
+
+	if ( p && p->val == v )
+	{
+		p->count++;
+		return;
+	}
 
 	std::unique_ptr< bucket_t > newb( new bucket_t() );
+	newb->count = 1;
 
 	if ( prev )
 	{
@@ -109,25 +114,24 @@ void BucketInsert( tree_t* t, uint16_t v )
 	{
 		ShiftForward( newb, p, v );
 	}
-
-	t->numBuckets++;
 }
 
 std::unique_ptr< tree_t > TreeMake( uint16_t k, uint16_t v )
 {
 	std::unique_ptr< tree_t > t( new tree_t() );
 	t->key = k;
-	t->numBuckets = 1;
 	t->first.reset( new bucket_t() );
 	t->first->val = v;
 	return t;
 }
 
+void TreeInsert( tree_t& t, uint16_t k, uint16_t v );
+
 void InsertOrMake( std::unique_ptr< tree_t >& t, uint16_t k, uint16_t v )
 {
 	if ( t )
 	{
-		TreeInsert( t.get(), k, v );
+		TreeInsert( *t, k, v );
 	}
 	else
 	{
@@ -135,15 +139,15 @@ void InsertOrMake( std::unique_ptr< tree_t >& t, uint16_t k, uint16_t v )
 	}
 }
 
-void TreeInsert( tree_t* t, uint16_t k, uint16_t v, uint16_t sum = 0 )
+void TreeInsert( tree_t& t, uint16_t k, uint16_t v )
 {
-	if ( k < t->k )
+	if ( k < t.key )
 	{
-		InsertOrMake( t->left, k, v );
+		InsertOrMake( t.left, k, v );
 	}
-	else if ( k > t->k )
+	else if ( k > t.key )
 	{
-		InsertOrMake( t->right, k, v );
+		InsertOrMake( t.right, k, v );
 	}
 	else
 	{
@@ -153,12 +157,12 @@ void TreeInsert( tree_t* t, uint16_t k, uint16_t v, uint16_t sum = 0 )
 
 void TreePoint( tree_t& t, bounds_t& bounds, float& x, float& y )
 {
-	if ( bounds.dimX < ( float ) t.key )
+	if ( bounds.dimX < t.key )
 	{
 		x -= t.left->key;
 		TreePoint( *( t.left ), bounds, x, y );
 	}
-	else if ( bounds.dimX > ( float ) t.key )
+	else if ( bounds.dimX > t.key )
 	{
 		x += t.key;
 		TreePoint( *( t.right ), bounds, x, y );
@@ -168,30 +172,32 @@ void TreePoint( tree_t& t, bounds_t& bounds, float& x, float& y )
 		bucket_t* prev = nullptr;
 		bucket_t* curr = t.first.get();
 
-		// bug: any duplicates will not be iterated over,
-		// since bounds.dimY < curr->val will just fail as soon
-		// it's equal to curr->val (i.e., the first element, regardless
-		// of any duplication).
-		// We can't just pop off the elements every time, either,
-		// because then the y value will not accumulate for any
-		// duplicate heights.
-
-		// So, you could use a bool as a mechanism to circumvent this,
-		// OR (and this sounds much more efficient)
-		// you could store a count of duplicates for each bucket,
-		// use that count as an offset for the value (in the sum of the iteration)
-		// and subtract the count by one each time bounds.dimY == curr->val (take into account the fact that
-		// curr->val will NOT be applied to y once dimY == curr->val).
-		// When the count reaches 0, you can remove the bucket to save iteration times.
 		while ( curr && bounds.dimY < curr->val )
 		{
 			prev = curr;
 			curr = curr->next.get();
-			y += curr->val;
+			y += ( float )curr->val * ( float )curr->count;
 		}
+
+		// Bucket values are ordered descending, so curr->val == bounds.dimY
+		y += ( float ) curr->val * ( float )( curr->count - 1 );
+
+		curr->count--;
 
 		x += bounds.dimX * 0.5f;
 		y += bounds.dimY * 0.5f;
+
+		if ( curr->count == 0 )
+		{
+			if ( prev )
+			{
+				prev->next = std::move( curr->next );
+			}
+			else
+			{
+				t.first = std::move( curr->next );
+			}
+		}
 	}
 }
 
@@ -216,25 +222,37 @@ void TAtlas::Load( void )
 	}
 
 	Random< uint16_t > maxDimsGen( 256, 512 );
-	uint16_t slotDims = NextPower2( maxDimsGen() );
+	uint16_t maxImage = NextPower2( maxDimsGen() );
 	uint16_t nImage = 30;
 
-	Random< uint16_t > dimGen( 32, slotDims );
+	Random< uint16_t > dimGen( 32, maxImage );
 
 	glm::ivec2 totalRes;
+
+	median_t widths;
 
 	for ( uint16_t i = 0; i < nImage; ++i )
 	{
 		bounds_t box;
 
 		box.color = UniqueColor();
-		box.dimX = ( float ) NextPower2( dimGen() );
-		box.dimY = ( float ) NextPower2( dimGen() );
+		box.dimX = NextPower2( dimGen() );
+		box.dimY = NextPower2( dimGen() );
 
 		totalRes.x += box.dimX;
 		totalRes.y += box.dimY;
 
+		widths.Insert( box.dimX );
+
 		boundsList.push_back( box );
+	}
+
+	tree.reset( new tree_t() );
+	tree->key = widths.Get();
+
+	for ( uint16_t i = 0; i < boundsList.size(); ++i )
+	{
+		TreeInsert( *tree, boundsList[ i ].dimX, boundsList[ i ].dimY );
 	}
 
 	camPtr->SetPerspective( 90.0f, 800.0f, 600.0f, 1.0f, 5000.0f );
@@ -246,8 +264,8 @@ void TAtlas::Load( void )
 
 	camPtr->moveStep = 0.1f;
 
-	MLOG_INFO( "Num Images: %i\n Square: %i\n Slot Dimensions: %i\n Total Res: %i x %i\n POT Total Res: %i x %i\n",
-			   nImage, square, slotDims,
+	MLOG_INFO( "Num Images: %i\n Max Image Dims: %i\n Total Res: %i x %i\n POT Total Res: %i x %i\n",
+			   nImage, maxImage,
 			   totalRes.x, totalRes.y );
 }
 
@@ -262,8 +280,8 @@ void TAtlas::Run( void )
 		glm::mat4 v( camPtr->ViewData().transform );
 
 		glm::vec3 s( box.origin, Z_PLANE );
-		glm::vec3 e0( box.dimX * 0.5f, 0.0f, 0.0f );
-		glm::vec3 e1( 0.0f, box.dimY * 0.5f, 0.0f );
+		glm::vec3 e0( ( float ) box.dimX * 0.5f, 0.0f, 0.0f );
+		glm::vec3 e1( 0.0f, ( float ) box.dimY * 0.5f, 0.0f );
 
 		GU_ImmBegin( GL_LINE_LOOP, v, camPtr->ViewData().clipTransform );
 
