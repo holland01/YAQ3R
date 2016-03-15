@@ -69,6 +69,7 @@ void ShiftForward( std::unique_ptr< bucket_t >& newb, bucket_t* p, uint16_t v )
 	newb->next = std::move( p->next );
 	p->next = std::move( newb );
 	p->val = v;
+	p->count = 1;
 }
 
 void BucketInsert( tree_t& t, uint16_t v )
@@ -155,54 +156,54 @@ void TreeInsert( tree_t& t, uint16_t k, uint16_t v )
 	}
 }
 
-void TreePoint( tree_t& t, bounds_t& bounds, float& x, float& y )
+
+// !FIXMEs:
+// - occasional overlap on bottom height with other heights (by removing the count/node removal, this may be fixed now)
+// - overlap with 128 width and 64 width
+// - gap between 128/256; 128 should be placed in this gap.
+
+void TreePoint( tree_t& t, bounds_t& bounds, int8_t sign )
 {
 	if ( bounds.dimX < t.key )
 	{
-		x -= t.left->key;
-		TreePoint( *( t.left ), bounds, x, y );
+		bounds.origin.x -= t.left->key;
+		TreePoint( *( t.left ), bounds, -1 );
 	}
 	else if ( bounds.dimX > t.key )
 	{
-		x += t.key;
-		TreePoint( *( t.right ), bounds, x, y );
+		bounds.origin.x += t.key;
+		TreePoint( *( t.right ), bounds, 1 );
 	}
 	else
 	{
-		bucket_t* prev = nullptr;
-		bucket_t* curr = t.first.get();
+		bucket_t * prev = nullptr;
+		bucket_t * curr = t.first.get();
 
+		// offset our origin by any heights which
+		// are meant to occur before it - we also
+		// take into account the amount of duplications
+		// for every height value
 		while ( curr && bounds.dimY < curr->val )
 		{
 			prev = curr;
 			curr = curr->next.get();
-			y += ( float )curr->val * ( float )curr->count;
+			bounds.origin.y += ( float )curr->val * ( float )curr->count;
 		}
 
-		// Bucket values are ordered descending, so curr->val == bounds.dimY
-		y += ( float ) curr->val * ( float )( curr->count - 1 );
+		UNUSED( prev );
 
-		curr->count--;
-
-		x += bounds.dimX * 0.5f;
-		y += bounds.dimY * 0.5f;
-
-		if ( curr->count == 0 )
+		// if curr != nullptr, we know that, by nature of the this structure,
+		// curr->val is implicitly == bounds.dimY
+		if ( curr && curr->count > 1 )
 		{
-			if ( prev )
-			{
-				prev->next = std::move( curr->next );
-			}
-			else
-			{
-				t.first = std::move( curr->next );
-			}
+			bounds.origin.y += ( float )curr->val * ( float )( curr->count - 1 );
+			curr->count--;
 		}
+
+		bounds.origin.x += sign * bounds.dimX * 0.5f;
+		bounds.origin.y += bounds.dimY * 0.5f;
 	}
 }
-
-// sort all elements by width, using buckets of heights sorted in descending order for each width node.
-// use the tree as a mechanism to query
 
 }
 
@@ -229,7 +230,7 @@ void TAtlas::Load( void )
 
 	glm::ivec2 totalRes;
 
-	median_t widths;
+	median_t widths, heights;
 
 	for ( uint16_t i = 0; i < nImage; ++i )
 	{
@@ -243,6 +244,7 @@ void TAtlas::Load( void )
 		totalRes.y += box.dimY;
 
 		widths.Insert( box.dimX );
+		heights.Insert( box.dimY );
 
 		boundsList.push_back( box );
 	}
@@ -255,6 +257,11 @@ void TAtlas::Load( void )
 		TreeInsert( *tree, boundsList[ i ].dimX, boundsList[ i ].dimY );
 	}
 
+	for ( uint32_t i = 0; i < boundsList.size(); ++i )
+	{
+		TreePoint( *tree, boundsList[ i ], 1 );
+	}
+
 	camPtr->SetPerspective( 90.0f, 800.0f, 600.0f, 1.0f, 5000.0f );
 
 	GEnableDepthBuffer();
@@ -264,9 +271,31 @@ void TAtlas::Load( void )
 
 	camPtr->moveStep = 0.1f;
 
-	MLOG_INFO( "Num Images: %i\n Max Image Dims: %i\n Total Res: %i x %i\n POT Total Res: %i x %i\n",
+	std::stringstream out;
+
+	out << "Num Images: %i\n"
+		<< "Max Image Dims: %i\n"
+		<< "Total Res: %i x %i\n"
+		<< "POT Total Res: %i x %i\n";
+
+	out << "Widths: {\n";
+	for ( uint16_t w: widths.store )
+	{
+		out << "\t" << std::to_string( w ) << "\n";
+	}
+
+	out << "}\nHeights: {\n";
+	for ( uint16_t h: heights.store )
+	{
+		out << '\t' << std::to_string( h ) << '\n';
+	}
+
+	out << "}\n";
+
+	MLOG_INFO( out.str().c_str(),
 			   nImage, maxImage,
-			   totalRes.x, totalRes.y );
+			   totalRes.x, totalRes.y,
+			   NextPower2( totalRes.x ), NextPower2( totalRes.y ) );
 }
 
 void TAtlas::Run( void )
