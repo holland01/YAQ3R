@@ -9,9 +9,40 @@
 
 struct bucket_t
 {
-	uint8_t count;
-	uint16_t val;
+	uint16_t count = 0;
+	uint16_t val = 0;
 	std::unique_ptr< bucket_t > next;
+
+	void WriteCount( uint16_t c )
+	{
+		count = c | ( c << 8 );
+	}
+
+	void IncCount( void )
+	{
+		uint16_t c = count & 0xFF;
+		c++;
+		WriteCount( c );
+	}
+
+	uint8_t ReadCount( void )
+	{
+		return ( uint8_t )( c & 0xFF );
+	}
+
+	void SubOffset( void )
+	{
+		uint16_t off = ( c >> 8 ) & 0xFF;
+		off--;
+		c = ( c & 0xFF ) | ( off << 8 );
+	}
+
+	uint8_t ReadOffset( void )
+	{
+		return ( uint8_t ) ( ( c >> 8 ) & 0xFF );
+	}
+
+
 };
 
 struct tree_t
@@ -66,17 +97,22 @@ INLINE glm::u8vec4 UniqueColor( void )
 void ShiftForward( std::unique_ptr< bucket_t >& newb, bucket_t* p, uint16_t v )
 {
 	newb->val = p->val;
+	newb->count = p->count;
 	newb->next = std::move( p->next );
 	p->next = std::move( newb );
 	p->val = v;
-	p->count = 1;
+	p->WriteCount( 1 );
 }
 
+// Insert height values in descending order
 void BucketInsert( tree_t& t, uint16_t v )
 {
 	if ( !t.first )
 	{
 		t.first.reset( new bucket_t() );
+		t.first->val = v;
+		t.first->count = 1;
+		return;
 	}
 
 	bucket_t* prev, *p;
@@ -96,11 +132,11 @@ void BucketInsert( tree_t& t, uint16_t v )
 		return;
 	}
 
-	std::unique_ptr< bucket_t > newb( new bucket_t() );
-	newb->count = 1;
-
 	if ( prev )
 	{
+		std::unique_ptr< bucket_t > newb( new bucket_t() );
+
+		// p->val < v < prev->val
 		if ( p )
 		{
 			ShiftForward( newb, p, v );
@@ -108,11 +144,15 @@ void BucketInsert( tree_t& t, uint16_t v )
 		else
 		{
 			newb->val = v;
+			newb->count = 1;
 			prev->next = std::move( newb );
 		}
 	}
-	else // v > first element, so we just correct that.
+	// if prev == nullptr, p automatically isn't null
+	// and v > first element, so we just correct that.
+	else
 	{
+		std::unique_ptr< bucket_t > newb( new bucket_t() );
 		ShiftForward( newb, p, v );
 	}
 }
@@ -162,12 +202,18 @@ void TreeInsert( tree_t& t, uint16_t k, uint16_t v )
 // - overlap with 128 width and 64 width
 // - gap between 128/256; 128 should be placed in this gap.
 
+// TODO:
+// offset: the actual offset which decrements for duplicate height values
+// count: the number of duplicate height values for a given bucket - this must
+// stay the same, so that buckets of heights which are less than the current height's
+// count will be able to take that value into account
+
 void TreePoint( tree_t& t, bounds_t& bounds, int8_t sign )
 {
 	if ( bounds.dimX < t.key )
 	{
 		bounds.origin.x -= t.left->key;
-		TreePoint( *( t.left ), bounds, -1 );
+		TreePoint( *( t.left ), bounds, 1 );
 	}
 	else if ( bounds.dimX > t.key )
 	{
@@ -176,7 +222,6 @@ void TreePoint( tree_t& t, bounds_t& bounds, int8_t sign )
 	}
 	else
 	{
-		bucket_t * prev = nullptr;
 		bucket_t * curr = t.first.get();
 
 		// offset our origin by any heights which
@@ -185,18 +230,16 @@ void TreePoint( tree_t& t, bounds_t& bounds, int8_t sign )
 		// for every height value
 		while ( curr && bounds.dimY < curr->val )
 		{
-			prev = curr;
-			curr = curr->next.get();
 			bounds.origin.y += ( float )curr->val * ( float )curr->count;
+			curr = curr->next.get();
 		}
-
-		UNUSED( prev );
 
 		// if curr != nullptr, we know that, by nature of the this structure,
 		// curr->val is implicitly == bounds.dimY
 		if ( curr && curr->count > 1 )
 		{
 			bounds.origin.y += ( float )curr->val * ( float )( curr->count - 1 );
+
 			curr->count--;
 		}
 
@@ -250,7 +293,7 @@ void TAtlas::Load( void )
 	}
 
 	tree.reset( new tree_t() );
-	tree->key = widths.Get();
+	tree->key = widths.GetMedian();
 
 	for ( uint16_t i = 0; i < boundsList.size(); ++i )
 	{

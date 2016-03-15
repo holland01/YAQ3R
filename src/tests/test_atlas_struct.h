@@ -60,9 +60,14 @@ struct median_t
 		}
 	}
 
-	uint16_t Get( void )
+	uint16_t GetMedian( void )
 	{
 		return store[ store.size() >> 1 ];
+	}
+
+	uint16_t GetHigh( void )
+	{
+		return store[ store.size() - 1 ];
 	}
 };
 
