@@ -89,6 +89,12 @@ struct uniform_t
 };
 ```
 
+(**NOTE** Using a buffer of bytes which are of variable length (depending on the
+byte width for the type needed may be more advantageous than
+using a full blown union, given that it would eliminate unnecessary memory usage
+for values like integers, which in the union instance would still require 64 bytes of memory
+to be taken up, as a means to support 4x4 matrices).
+
 simply send the upload on program bind, and then make sure you set needs_write to false
 for every newly uploaded element.
 
@@ -180,5 +186,38 @@ issues have been found yet.
 b) Some resolved primitives will appear to penetrate the boudns of the atlas itself; this may
 be due to too high of an offset being applied in the collision resolution loop.
 
+**3/15/16**
 
+So far, so good. Everything is much, much simpler now...as well as more efficient.
+
+However, the Railgun_Arena test has an x-offset for glTexSubImage being mapped outside of the
+dimensions of the texture memory; the x-offset's value is 512 (After the subtraction by half-width is made)
+and the width of the texture itself (the canvasParams) is 512...
+
+This is pretty bad. However, doubling the initial width generated has appeared
+to at least bypass the GL error that's thrown.
+
+Another problem emerges, though: the implementation will not work for sets of images which all have the same dimensions.
+
+For Quake 3 maps, this definitely means that lightmaps cannot thrive on this setting. It may
+therefore be advantagous to produce a an atlas via a much simpler, linear means. In other words,
+forgoing the tree search/setup and finding a simple square dimensions among the amount of images,
+each of which is 256 * 256 texels in size (or whatever the standard size is for lightmaps).
+
+You can determine which approach to take simply by assessing whether or not there is any
+significant variation between the dimensions for all of the images. If all of the dimensions
+are the exact same, just find a square from a 1D size for a texture buffer and then
+fill it linearly.
+
+Also, the final addition to the origin at the end of the TreePoint function, after the height
+has been applied, looks as follows:
+
+```
+origin.x += width * 0.5f
+origin.y += height * 0.5f
+```
+
+Despite being useful in the original unit test, this now is actually completely useless:
+in the GenSubdivision call, these half width/height offsets are removed, placing the origin
+back where it originally was - these may as well be ditched altogether.
 

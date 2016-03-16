@@ -193,13 +193,13 @@ bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 
 		while ( !ValidateTexture( subdivision, sampler ) )
 		{
-			if ( subdivision.width > gpuMaxDims )
+			if ( subdivision.width >= gpuMaxDims )
 			{
 				subdivision.width >>= 1;
 				xDivide++;
 			}
 
-			if ( subdivision.height > gpuMaxDims )
+			if ( subdivision.height >= gpuMaxDims )
 			{
 				subdivision.height >>= 1;
 				yDivide++;
@@ -299,7 +299,7 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 		}
 	}
 
-	canvasParams.width = NextPower2( ( int32_t )( maxPoint.x - minPoint.x ) );
+	canvasParams.width = NextPower2( ( int32_t )( maxPoint.x - minPoint.x ) << 1 );
 	canvasParams.height = NextPower2( ( int32_t )( maxPoint.y - minPoint.y ) );
 	canvasParams.sampler = sampler;
 
