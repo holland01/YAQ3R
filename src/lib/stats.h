@@ -40,12 +40,23 @@ struct median_t
 		}
 	}
 
-	Tint GetMedian( void )
+	Tint GetMedian( void ) const
 	{
 		return store[ store.size() >> 1 ];
 	}
 
-	Tint GetHigh( void )
+	Tint SumToMedian( void ) const
+	{
+		uint16_t exclusive = store.size() >> 1;
+		uint16_t sum = 0;
+		for ( uint16_t i = 0; i < exclusive; ++i )
+		{
+			sum += store[ i ];
+		}
+		return sum;
+	}
+
+	Tint GetHigh( void ) const
 	{
 		return store[ store.size() - 1 ];
 	}

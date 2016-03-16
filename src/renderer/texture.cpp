@@ -1,6 +1,7 @@
 #include "texture.h"
 #include "glutil.h"
 #include "lib/math.h"
+#include "lib/atlas_gen.h"
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
@@ -273,37 +274,44 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 	return nullptr;
 }
 
-void CalcGridDimensions( gImageParams_t& canvasParams,
+std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasParams,
 						 gImageParams_t& slotParams,
 						 const gTextureMakeParams_t& makeParams,
 						 gImageParamList_t& images )
 {
-	glm::ivec2 maxDims( 0 );
+	UNUSED( makeParams );
+	UNUSED( slotParams );
 
-	std::sort( images.begin(), images.end(), [ &maxDims ]( gImageParams_t& a, gImageParams_t& b )
+	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images );
+
+	glm::vec2 maxPoint( std::numeric_limits< float >::min() ), minPoint( std::numeric_limits< float >::max() );
+	float maxLength = glm::length( maxPoint ), minLength = glm::length( minPoint );
+
+	for ( const atlasPositionMap_t& am: origins )
 	{
-		if ( a.width > maxDims.x )
-			maxDims.x = a.width;
+		float length = glm::length( am.origin );
 
-		if ( a.height > maxDims.y )
-			maxDims.y = a.height;
+		if ( length > maxLength )
+		{
+			maxPoint = am.origin;
+			maxLength = length;
+		}
 
-		float alength = glm::length( glm::vec2( ( float ) a.width, ( float ) a.height ) );
-		float blength = glm::length( glm::vec2( ( float ) b.width, ( float ) b.height ) );
+		if ( length < minLength )
+		{
+			minPoint = am.origin;
+			minLength = length;
+		}
+	}
 
-		return alength < blength;
-	});
+	canvasParams.width = NextPower2( ( int32_t )( maxPoint.x - minPoint.x ) );
+	canvasParams.height = NextPower2( ( int32_t )( maxPoint.y - minPoint.y ) );
+	canvasParams.sampler = slotParams.sampler = makeParams.sampler;
 
-	maxDims.x = NextPower2( maxDims.x );
-	maxDims.y = NextPower2( maxDims.y );
+	slotParams.width = 1;
+	slotParams.height = 1;
 
-	uint32_t arrayDims = NextSquare( images.size() );
-
-	canvasParams.sampler = makeParams.sampler;
-	GSetImageBuffer( canvasParams, maxDims.x * arrayDims, maxDims.y * arrayDims, 0 );
-
-	slotParams.width = maxDims.x;
-	slotParams.height = maxDims.y;
+	return std::move( origins );
 }
 
 void GenSubdivision( gTexture_t* tt,
@@ -311,53 +319,29 @@ void GenSubdivision( gTexture_t* tt,
 					 gTextureMakeParams_t& makeParams,
 					 const gImageParams_t& canvasParams,
 					 const gImageParams_t& slotParams,
-					 gImageParams_t* base,
-					 gImageParams_t* start,
-					 gImageParams_t* bound )
+					 const std::vector< atlasPositionMap_t >& map )
 {
-	const uint32_t stride = uint32_t( canvasParams.width / slotParams.width );
-	const uint32_t rows = uint32_t( canvasParams.height / slotParams.height );
-
-	float invSlotWidth = 1.0f / ( float ) slotParams.width;
-	float invSlotHeight = 1.0f / ( float ) slotParams.height;
-
-	float invStride = 1.0f / ( float ) stride;
-	float invRows = 1.0f / ( float ) rows;
-
-	tt->grids[ grid ].invStride = invStride;
-	tt->grids[ grid ].invRows = invRows;
+	UNUSED( canvasParams );
+	UNUSED( slotParams );
 
 	const gTexConfig_t& sampler = GetTexConfig( makeParams.sampler );
 
 	GL_CHECK( glBindTexture( tt->target, tt->grids[ grid ].handle ) );
 
-	uint32_t x = 0, y = 0;
-
-	for ( gImageParams_t* iImage = start; iImage != bound; ++iImage )
+	for ( const atlasPositionMap_t& atlasPos: map )
 	{
-		gImageParams_t& image = *iImage;
+		const gImageParams_t& image = *( atlasPos.image );
 
-		uint32_t yb = y * slotParams.height;
-		uint32_t xb = x * slotParams.width;
+		glm::vec2 offset( atlasPos.origin - glm::vec2( image.width, image.height ) * 0.5f );
 
-		GL_CHECK( glTexSubImage2D( tt->target, 0, xb, yb, image.width,
+		GL_CHECK( glTexSubImage2D( tt->target,
+								   0, ( int32_t )offset.x, ( int32_t )offset.y, image.width,
 			image.height, sampler.format, GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
 
-		float fxStart = ( float )xb * invSlotWidth * invStride;
-		float fyStart = ( float )yb * invSlotHeight * invRows;
-
-		float fxEnd = fxStart + ( float )image.width * invSlotWidth * invStride;
-		float fyEnd = fyStart + ( float )image.height * invSlotHeight * invRows;
-
+		/*
 		gTextureImage_t data;
 
-		data.stOffsetStart = glm::vec2( fxStart, fyStart );
-		data.stOffsetEnd = glm::vec2( fxEnd, fyEnd );
-		data.imageScaleRatio =
-				glm::vec2( ( float ) image.width * invSlotWidth, ( float ) image.height * invSlotHeight );
-		data.dims = glm::vec2( ( float ) image.width, ( float ) image.height );
-
-		uintptr_t slot = ( uintptr_t )( iImage - base );
+		uintptr_t slot = ( uintptr_t )( i );
 
 		if ( tt->keyMapped )
 		{
@@ -367,14 +351,9 @@ void GenSubdivision( gTexture_t* tt,
 		{
 			tt->imageSlots[ slot ] = data;
 		}
+		*/
 
-		uint32_t next = ( x + 1 ) % rows;
-
-		if ( next == 0 )
-			y++;
-
-		image.data.clear();
-		x = next;
+		// image.data.clear();
 	}
 
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
@@ -384,7 +363,8 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 {
 	gImageParams_t canvasParams, slotParams;
 
-	CalcGridDimensions( canvasParams, slotParams, makeParams, makeParams.images );
+	std::vector< atlasPositionMap_t > origins =
+			CalcGridDimensions( canvasParams, slotParams, makeParams, makeParams.images );
 
 	gTexture_t* tt = new gTexture_t();
 	tt->target = GL_TEXTURE_2D;
@@ -401,11 +381,9 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 	for ( uint32_t i = 0; i < tt->numGrids; ++i )
 	{
 		GenSubdivision( tt, i,
-					   makeParams,
-					   canvasParams, slotParams,
-					   &makeParams.images[ 0 ],
-					   &makeParams.images[ i ],
-					   &makeParams.images[ makeParams.images.size() - 1 ] );
+						makeParams,
+						canvasParams, slotParams,
+						origins );
 	}
 
 	return tt;

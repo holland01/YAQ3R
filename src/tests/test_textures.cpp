@@ -14,6 +14,16 @@ TTextureTest::~TTextureTest( void )
 {
 }
 
+void TTextureTest::SetupVertexData( void )
+{
+
+}
+
+void TTextureTest::SetupProgram( void )
+{
+
+}
+
 void TTextureTest::Run( void )
 {
 	camera->Update();
@@ -43,8 +53,8 @@ void TTextureTest::Load( void )
 	GEnableDepthBuffer();
 
 	const std::string vertex = R"(
-		layout(location = 0) in vec3 position;
-		layout(location = 1) in vec2 tex0;
+		in vec3 position;
+		in vec2 tex0;
 
 		uniform mat4 modelToView;
 		uniform mat4 viewToClip;
@@ -76,10 +86,10 @@ void TTextureTest::Load( void )
 	)";
 
 	prog.reset( new Program( vertex, fragment,
-		{ "modelToView", "viewToClip", 
-							//"imageTransform", 
-							//"imageScaleRatio", 
-							"sampler" 
+		{ "modelToView", "viewToClip",
+							//"imageTransform",
+							//"imageScaleRatio",
+							"sampler"
 		},
 		{ "position", "tex0" } ) );
 
@@ -88,14 +98,15 @@ void TTextureTest::Load( void )
 	prog->LoadInt( "sampler", 0 );
 	prog->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
-	float size = 100.0f;
+	float x = 512.0f;
+	float y = 4096.0f;
 
 	std::vector< glm::vec3 > vertices =
 	{
-		glm::vec3( size, -size, 0.0f ),
-		glm::vec3( size, size, 0.0f ),
-		glm::vec3( -size, -size, 0.0f ),
-		glm::vec3( -size, size, 0.0f ),
+		glm::vec3( x, 0.0f, 0.0f ),
+		glm::vec3( x, y, 0.0f ),
+		glm::vec3( 0.0f, 0.0f, 0.0f ),
+		glm::vec3( 0.0f, y, 0.0f ),
 	};
 
 	std::vector< glm::vec2 > texCoords =
@@ -122,4 +133,6 @@ void TTextureTest::Load( void )
 
 	sampler = GMakeSampler();
 	texture = GU_LoadShaderTextures( map, sampler );
+
+	MLOG_INFO( "hrhr" );
 }
