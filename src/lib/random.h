@@ -1,6 +1,7 @@
 #pragma once
 
 #include <random>
+#include "common.h"
 
 template < class Tnum >
 class Random
@@ -25,3 +26,31 @@ public:
 		return dist( engine );
 	}
 };
+
+static INLINE glm::u8vec4 RandUniqueColor( Random< uint8_t >& colorGen,
+						std::vector< glm::u8vec4 >& table )
+{
+	while ( true )
+	{
+		glm::u8vec4 c( colorGen(), colorGen(), colorGen(), 255 );
+
+		bool found = false;
+
+		for ( const glm::u8vec4& color: table )
+		{
+			if ( c == color )
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if ( !found )
+		{
+			table.push_back( c );
+			return c;
+		}
+	}
+
+	return glm::u8vec4( 0 ); // <___<
+}
