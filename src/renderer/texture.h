@@ -91,4 +91,8 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle );
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 
+uint16_t GTextureMegaWidth( const gTextureHandle_t& handle );
+
+uint16_t GTextureMegaHeight( const gTextureHandle_t& handle );
+
 void GFreeTexture( gTextureHandle_t& handle );

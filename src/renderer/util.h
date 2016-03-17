@@ -38,7 +38,9 @@ static INLINE void GU_MultiDrawElements( GLenum mode, const guBufferOffsetList_t
 
 class Q3BspMap;
 
-gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t handle );
+gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler );
+
+gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler );
 
 using guImmPosList_t = std::vector< glm::vec3 >;
 

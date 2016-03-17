@@ -4,42 +4,16 @@
 
 TTextureTest::TTextureTest( void )
 	: Test( 1366, 768, false ),
-	  prog( nullptr ),
-	  camera( new InputCamera() )
+	  atlasProg( nullptr ),
+	  camera( new InputCamera() ),
+	  drawAtlas( true ),
+	  imageIndex( 0 )
 {
 	this->camPtr = camera.get();
 }
 
 TTextureTest::~TTextureTest( void )
 {
-}
-
-void TTextureTest::SetupVertexData( void )
-{
-
-}
-
-void TTextureTest::SetupProgram( void )
-{
-
-}
-
-void TTextureTest::Run( void )
-{
-	camera->Update();
-
-	GBindTexture( texture );
-
-	prog->LoadMat4( "modelToView", camera->ViewData().transform );
-
-	prog->Bind();
-	GBindVertexBuffer( vbo );
-
-	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
-
-	GReleaseVertexBuffer();
-
-	prog->Release();
 }
 
 void TTextureTest::Load( void )
@@ -52,7 +26,11 @@ void TTextureTest::Load( void )
 
 	GEnableDepthBuffer();
 
-	const std::string vertex = R"(
+	camera->SetViewOrigin( glm::vec3( 0.0f, 0.0f, 3.0f ) );
+	camera->moveStep = 1.0f;
+	camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 1.0f, 1000.0f );
+
+	std::string vertex = R"(
 		in vec3 position;
 		in vec2 tex0;
 
@@ -68,7 +46,7 @@ void TTextureTest::Load( void )
 		}
 	)";
 
-	const std::string fragment = R"(
+	std::string fragment = R"(
 		smooth in vec2 frag_TexCoords;
 
 		//uniform vec4 imageTransform;
@@ -85,28 +63,91 @@ void TTextureTest::Load( void )
 		}
 	)";
 
-	prog.reset( new Program( vertex, fragment,
-		{ "modelToView", "viewToClip",
-							//"imageTransform",
-							//"imageScaleRatio",
-							"sampler"
-		},
-		{ "position", "tex0" } ) );
+	atlasProg.reset( MakeProgram( vertex, fragment ) );
 
-	camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 1.0f, 1000.0f );
+	fragment = R"(
+		smooth in vec2 frag_TexCoords;
 
-	prog->LoadInt( "sampler", 0 );
-	prog->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+		uniform vec4 imageTransform;
+		uniform vec2 imageScaleRatio;
+		uniform sampler2D sampler;
 
-	float x = 512.0f;
-	float y = 4096.0f;
+		out vec4 out_Color;
 
+		void main(void)
+		{
+			vec2 st = frag_TexCoords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
+
+			out_Color = texture( sampler, st );
+		}
+	)";
+
+	textureProg.reset( MakeProgram( vertex, fragment, { "imageTransform", "imageScaleRatio" } ) );
+
+	map.Read( "asset/stockmaps/maps/Railgun_Arena.bsp", 1 );
+
+	sampler = GMakeSampler();
+	texture = GU_LoadMainTextures( map, sampler );
+
+	atlasQuad = MakeQuadVbo( GTextureMegaWidth( texture ), GTextureMegaHeight( texture ) );
+	textureQuad = MakeQuadVbo( 2.0f, 2.0f );
+
+	GL_CHECK( glDisable( GL_CULL_FACE ) );
+
+	GBindVertexBuffer( atlasQuad );
+	atlasProg->LoadDefaultAttribProfiles();
+	GReleaseVertexBuffer();
+
+	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
+
+	MLOG_INFO( "hrhr" );
+}
+
+void TTextureTest::OnInputEvent( SDL_Event* e )
+{
+	Test::OnInputEvent( e );
+
+	if ( e->type == SDL_KEYDOWN )
+	{
+		switch ( e->key.keysym.sym )
+		{
+			case SDLK_UP:
+				drawAtlas = !drawAtlas;
+				break;
+			case SDLK_RIGHT:
+				//imageIndex = ( imageIndex + 1 ) %
+				break;
+		}
+	}
+}
+
+Program * TTextureTest::MakeProgram( const std::string& vertex,
+									 const std::string& fragment,
+									 const std::vector< std::string >& additionalUnifs )
+{
+	std::vector< std::string > unifs = { "modelToView","viewToClip",
+										 "sampler" };
+
+	unifs.insert( unifs.end(), additionalUnifs.begin(), additionalUnifs.end() );
+
+	Program* p = new Program( vertex, fragment,
+		unifs,
+		{ "position", "tex0" } );
+
+	p->LoadInt( "sampler", 0 );
+	p->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+
+	return p;
+}
+
+gVertexBufferHandle_t TTextureTest::MakeQuadVbo( float width, float height )
+{
 	std::vector< glm::vec3 > vertices =
 	{
-		glm::vec3( x, 0.0f, 0.0f ),
-		glm::vec3( x, y, 0.0f ),
+		glm::vec3( width, 0.0f, 0.0f ),
+		glm::vec3( width, height, 0.0f ),
 		glm::vec3( 0.0f, 0.0f, 0.0f ),
-		glm::vec3( 0.0f, y, 0.0f ),
+		glm::vec3( 0.0f, height, 0.0f ),
 	};
 
 	std::vector< glm::vec2 > texCoords =
@@ -117,22 +158,33 @@ void TTextureTest::Load( void )
 		glm::vec2( 0.0f, 1.0f )
 	};
 
-	camera->SetViewOrigin( glm::vec3( 0.0f, 0.0f, 3.0f ) );
+	return GMakeVertexBuffer( vertices, texCoords );
+}
 
-	vbo = GMakeVertexBuffer( vertices, texCoords );
+void TTextureTest::Draw( Program& program, gVertexBufferHandle_t vbo )
+{
+	program.LoadMat4( "modelToView", camera->ViewData().transform );
 
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
-
+	program.Bind();
 	GBindVertexBuffer( vbo );
-	prog->LoadDefaultAttribProfiles();
+
+	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
+
 	GReleaseVertexBuffer();
+	program.Release();
+}
 
-	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
+void TTextureTest::Run( void )
+{
+	camera->Update();
 
-	map.Read( "asset/stockmaps/maps/q3tourney2.bsp", 1 );
+	if ( drawAtlas )
+	{
+		GBindTexture( texture );
+		Draw( *atlasProg, atlasQuad );
+	}
+	else
+	{
 
-	sampler = GMakeSampler();
-	texture = GU_LoadShaderTextures( map, sampler );
-
-	MLOG_INFO( "hrhr" );
+	}
 }

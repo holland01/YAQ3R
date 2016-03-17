@@ -60,6 +60,72 @@ gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler 
 	return GMakeTexture( makeParams );
 }
 
+gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
+{
+	//---------------------------------------------------------------------
+	// Load Textures:
+	// This is just a hack to brute force load assets which don't belong in shaders.
+	// Now, we find and generate the textures. We first start with the image files.
+	//---------------------------------------------------------------------
+
+	const char* validImgExt[] =
+	{
+		".jpg", ".png", ".tga", ".tiff", ".bmp"
+	};
+
+	gImageParamList_t textures;
+	std::vector< gTextureMakeParams_t::key_t > indices;
+
+	for ( int32_t t = 0; t < map.data.numShaders; t++ )
+	{
+		// We pre-initialize these before needing them because of the goto.
+		std::string fname( map.data.shaders[ t ].name );
+		const std::string& texPath = map.data.basePath + fname;
+
+		gImageParams_t texture;
+		texture.sampler = sampler;
+
+		bool success = false;
+
+		// No use in allocating tex memory if this is meant to be used with a shader
+		if ( map.GetShaderInfo( map.data.shaders[ t ].name ) )
+		{
+			MLOG_INFO( "Shader found for: \'%s\'; skipping.", map.data.shaders[ t ].name );
+			continue;
+		}
+
+		// If we don't have a file extension appended in the name,
+		// try to find one for it which is valid
+		{
+			for ( int32_t i = 0; i < SIGNED_LEN( validImgExt ); ++i )
+			{
+				const std::string& str = texPath + std::string( validImgExt[ i ] );
+
+				if ( GLoadImageFromFile( str, texture ) )
+				{
+					success = true;
+					indices.push_back( t );
+					textures.push_back( texture );
+					break;
+				}
+			}
+		}
+
+		if ( !success )
+		{
+			MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
+		}
+	}
+
+	{
+		// We want to maintain a one->one mapping with the texture indices in the bsp file,
+		// so we ensure the indices are properly mapped
+		gTextureMakeParams_t makeParams( textures, sampler, G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+		makeParams.keyMaps = std::move( indices );
+		return GMakeTexture( makeParams );
+	}
+}
+
 void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj )
 {
 	GL_CHECK( glUseProgram( 0 ) );

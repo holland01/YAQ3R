@@ -28,13 +28,16 @@ struct gTexture_t
 
 	bool keyMapped;
 	GLenum target;
-	gSamplerHandle_t sampler;
+	glm::ivec2 megaDims;
 	gGrid_t* grids;
+	gSamplerHandle_t sampler;
 	uint8_t numGrids;
+
 
 	gTexture_t( void )
 		: invRowPitch( 0.0f ),
 		  keyMapped( false ),
+		  megaDims( 0 ),
 		  grids( nullptr ),
 		  numGrids( 0 )
 	{
@@ -328,6 +331,8 @@ void GenSubdivision( gTexture_t* tt,
 		data.dims.x = image.width;
 		data.dims.y = image.height;
 		data.stOffsetEnd = ( atlasPos.origin + data.dims ) * invPitchStride;
+		data.imageScaleRatio.x = 1.0f;
+		data.imageScaleRatio.y = 1.0f;
 
 		uintptr_t slot = ( uintptr_t )( y * square + x );
 
@@ -347,7 +352,7 @@ void GenSubdivision( gTexture_t* tt,
 			y++;
 		}
 
-		x++;
+		x = next;
 	}
 
 	GL_CHECK( glBindTexture( tt->target, 0 ) );
@@ -364,6 +369,7 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 
 	tt->target = GL_TEXTURE_2D;
 	tt->keyMapped = !!( makeParams.flags & G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+	tt->megaDims = glm::ivec2( canvasParams.width, canvasParams.height );
 
 	if ( !tt->keyMapped )
 	{
@@ -560,6 +566,20 @@ glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 	gGrid_t* grid = GridFromSlot( handle, gSlotStage );
 
 	return glm::vec2( grid->invStride, grid->invPitch );
+}
+
+uint16_t GTextureMegaWidth( const gTextureHandle_t& handle )
+{
+	MLOG_ASSERT( handle.id < gTextureMap.size(), "Bad texture handle received: %i", handle.id );
+
+	return gTextureMap[ handle.id ]->megaDims.x;
+}
+
+uint16_t GTextureMegaHeight( const gTextureHandle_t& handle )
+{
+	MLOG_ASSERT( handle.id < gTextureMap.size(), "Bad texture handle received: %i", handle.id );
+
+	return gTextureMap[ handle.id ]->megaDims.y;
 }
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )

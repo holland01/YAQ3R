@@ -221,3 +221,32 @@ Despite being useful in the original unit test, this now is actually completely 
 in the GenSubdivision call, these half width/height offsets are removed, placing the origin
 back where it originally was - these may as well be ditched altogether.
 
+
+**3/17/15**
+
+Fixed issues with texture dimensions and the atlas layout for lightmaps.
+
+Also refactored out BSPRenderer::LoadMainImages() into its own GU_LoadMainTextures function, which resides alongside GU_LoadShaderTextures.
+
+The problem is that, even though the renderer runs without any errors, the sampling itself (which is being performed in the fragment shader) appears
+to be relying on improperly computed texture coordinates. The end result, regardless of the cause, is incorrect.
+
+Some theories as to why this is happening:
+
+	- something is being missed in the sampling calculations (unlikely, but it can't be ruled out).
+	- BSP texture indices aren't properly mapped to the texture module's internal structure (definitely possible).
+	- Floating point issues with computing the proper offsets (unlikely, but it can't be ruled out).
+	- the Main texture images aren't being properly bound; as a result, only lightmaps are being rendered (???).
+
+TODO ( in order, starting from the first ):
+
+	- In the test_textures module, you want to write out the necessary subroutines so that you can switch between rendering the entire atlas
+	or an individual image from that atlas, using the up key. The left and right keys can scroll through individual images; we simply use an index
+	which me modify per left/right keypress. Examine the results of these individual renders, as they may provide some significant insight.
+
+	- In the actual renderer, double check the BSP texture indices and how they're mapped to the internal texture/atlas structure.
+
+	- In the actual renderer, double check the render path (from the very top, in BSPRenderer::RenderPass()) and verify that the correct textures are being bound,
+	along with things like expected blend modes, etc. being properly set.
+
+

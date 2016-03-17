@@ -59,7 +59,7 @@ struct drawSurface_t
 
 	guBufferOffsetList_t			bufferOffsets;
 	guBufferRangeList_t				bufferRanges;
-	
+
 	std::vector< int32_t >			drawFaceIndices;
 
 	std::vector< int32_t >			faceIndices; // for vertex deformations
@@ -206,8 +206,6 @@ private:
 	void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage ) const;
 
 	void				LoadVertexData( void );
-
-	void				LoadMainImages( void );
 
 	void				LoadLightmaps( void );
 
