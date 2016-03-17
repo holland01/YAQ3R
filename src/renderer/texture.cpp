@@ -279,28 +279,18 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 {
 	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images );
 
-	glm::vec2 maxPoint( std::numeric_limits< float >::min() ), minPoint( std::numeric_limits< float >::max() );
-	float maxLength = glm::length( maxPoint ), minLength = glm::length( minPoint );
+	glm::vec2 maxDims( std::numeric_limits< float >::min() ), minDims( std::numeric_limits< float >::max() );
 
 	for ( const atlasPositionMap_t& am: origins )
 	{
-		float length = glm::length( am.origin );
-
-		if ( length > maxLength )
-		{
-			maxPoint = am.origin;
-			maxLength = length;
-		}
-
-		if ( length < minLength )
-		{
-			minPoint = am.origin;
-			minLength = length;
-		}
+		if ( am.origin.x > maxDims.x ) maxDims.x = am.origin.x;
+		if ( am.origin.y > maxDims.y ) maxDims.y = am.origin.y;
+		if ( am.origin.x < minDims.x ) minDims.x = am.origin.x;
+		if ( am.origin.y < minDims.y ) minDims.y = am.origin.y;
 	}
 
-	canvasParams.width = NextPower2( ( int32_t )( maxPoint.x - minPoint.x ) << 1 );
-	canvasParams.height = NextPower2( ( int32_t )( maxPoint.y - minPoint.y ) );
+	canvasParams.width = NextPower2( ( int32_t )( maxDims.x - minDims.x ) << 1 );
+	canvasParams.height = NextPower2( ( int32_t )( maxDims.y - minDims.y ) );
 	canvasParams.sampler = sampler;
 
 	return std::move( origins );
@@ -328,18 +318,16 @@ void GenSubdivision( gTexture_t* tt,
 	{
 		const gImageParams_t& image = *( atlasPos.image );
 
-		glm::vec2 offset( atlasPos.origin - glm::vec2( image.width, image.height ) * 0.5f );
-
 		GL_CHECK( glTexSubImage2D( tt->target,
-								   0, ( int32_t )offset.x, ( int32_t )offset.y, image.width,
+								   0, ( int32_t )atlasPos.origin.x, ( int32_t )atlasPos.origin.y, image.width,
 			image.height, sampler.format, GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
 
 		gTextureImage_t data;
 
-		data.stOffsetStart = offset * invPitchStride;
+		data.stOffsetStart = atlasPos.origin * invPitchStride;
 		data.dims.x = image.width;
 		data.dims.y = image.height;
-		data.stOffsetEnd = ( offset + data.dims ) * invPitchStride;
+		data.stOffsetEnd = ( atlasPos.origin + data.dims ) * invPitchStride;
 
 		uintptr_t slot = ( uintptr_t )( y * square + x );
 

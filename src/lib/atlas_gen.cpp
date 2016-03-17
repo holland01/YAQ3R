@@ -2,6 +2,7 @@
 #include "atlas_gen.h"
 #include "stats.h"
 #include "renderer/texture.h"
+#include "math.h"
 #include <memory>
 #include <utility>
 
@@ -196,14 +197,13 @@ void TreePoint( atlasTree_t& t, atlasPositionMap_t& map )
 			map.origin.y += ( float )curr->val * ( float )( curr->ReadOffset() );
 		}
 
-		map.origin.x += map.image->width * 0.5f;
-		map.origin.y += map.image->height * 0.5f;
+		//map.origin.x += map.image->width * 0.5f;
+		//map.origin.y += map.image->height * 0.5f;
 	}
 }
 
-} // end namespace
-
-std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImageParams_t >& params )
+// For lists of images which have varying sizes
+std::vector< atlasPositionMap_t > AtlasGenVariedOrigins( const std::vector< gImageParams_t >& params )
 {
 	atlasTree_t rootTree;
 	median_t< uint16_t > widths;
@@ -232,4 +232,51 @@ std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImagePara
 	}
 
 	return std::move( posMap );
+}
+
+// For lists of images which all have the same dimensions
+std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gImageParams_t >& params )
+{
+	uint16_t square = NextSquare( params.size() );
+
+	std::vector< atlasPositionMap_t > posMap;
+
+	for ( uint16_t y = 0; y < square; ++y )
+	{
+		for ( uint16_t x = 0; x < square; ++x )
+		{
+			uint16_t slot = y * square + x;
+
+			if ( slot >= params.size() )
+			{
+				break;
+			}
+
+			atlasPositionMap_t map;
+			map.image = &params[ slot ];
+			map.origin = glm::vec2( x * params[ slot ].width, y * params[ slot ].height );
+			posMap.push_back( map );
+		}
+	}
+
+	return std::move( posMap );
+}
+
+} // end namespace
+
+std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImageParams_t >& params )
+{
+	// Determine our atlas layout
+	for ( uint16_t i = 1; i < params.size(); ++i )
+	{
+		// If true, we know that there is at least one image with differing
+		// dimensions from the rest, so we take that into account...
+		if ( params[ i - 1 ].width != params[ i ].width
+			 || params[ i - 1 ].height != params[ i ].height )
+		{
+			return std::move( AtlasGenVariedOrigins( params ) );
+		}
+	}
+
+	return std::move( AtlasGenUniformOrigins( params ) );
 }
