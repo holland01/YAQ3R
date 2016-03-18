@@ -73,7 +73,6 @@ Product {
     files: [
         "../Makefile",
         "../bspviewer.js",
-        "../random_notes.md",
         "../src/aabb.cpp",
         "../src/aabb.h",
         "../src/bsp_data.cpp",
