@@ -8,12 +8,11 @@ It's a fun thing: despite Quake III's file format being written circa 1999, and 
 Current Focuses:
 
 - Performance
-
-        * Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
+    * Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
 
 - WebGL support
-
-	* This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
+    
+    * This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
 	though, I'm finding that it's worth it to focus on improving the performance instead.
 
 - Vertex deformation (effect shader)
