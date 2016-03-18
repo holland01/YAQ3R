@@ -1,4 +1,4 @@
-bspviewer
+YAQ3R
 =========
 
 Pretty simple: just view a BSP map. This is really more of a project for educational/portfolio purposes than anything else.
@@ -7,10 +7,21 @@ It's a fun thing: despite Quake III's file format being written circa 1999, and 
 
 Current Focuses:
 
+- Performance
+        * Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
+
 - WebGL support
-	* This is at the top of the list, because it's much easier to show something off via the web.
+	* This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
+	though, I'm finding that it's worth it to focus on improving the performance instead.
+
 - Vertex deformation (effect shader)
 - Texcoord mod functions (effect shader)
+
+Some examples:
+
+![q3ctf1](https://cloud.githubusercontent.com/assets/911971/13871702/989cf3ac-eca1-11e5-9779-de9393ea7f4c.png)
+
+![railgun_arena1](https://cloud.githubusercontent.com/assets/911971/13871700/989ae08a-eca1-11e5-8cd4-2fd1862234fa.png)
 
 ##Credits
 
