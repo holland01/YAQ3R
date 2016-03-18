@@ -2,10 +2,10 @@
 #include "glutil.h"
 #include "lib/math.h"
 #include "lib/atlas_gen.h"
-#include <unordered_map>
 #include <memory>
 #include <algorithm>
 #include "render_data.h"
+#include <unordered_map>
 
 namespace {
 
@@ -18,12 +18,12 @@ struct gGrid_t
 	float invPitch;
 };
 
+using gTextureKeySlotMap_t = std::unordered_map< gTextureImageKey_t, gTextureImage_t >;
+
 struct gTexture_t
 {
 	std::vector< gTextureImage_t > imageSlots;
-	std::unordered_map<
-		gTextureMakeParams_t::key_t,
-		gTextureImage_t > keyMapSlots;
+	gTextureKeySlotMap_t keyMapSlots;
 	glm::vec2 invRowPitch;
 
 	bool keyMapped;
@@ -57,7 +57,7 @@ struct gTexture_t
 	{
 		if ( keyMapped )
 		{
-			return keyMapSlots.at( ( gTextureMakeParams_t::key_t ) slot );
+			return keyMapSlots.at( ( gTextureImageKey_t ) slot );
 		}
 		else
 		{
@@ -111,6 +111,9 @@ INLINE const gTexture_t* GetTexture( gTextureHandle_t handle )
 {
 	if ( handle.id >= gTextureMap.size() )
 	{
+		MLOG_WARNING( "Bad texture handle. ID received is %i. Returning dummy instead.",
+					  handle.id );
+
 		return gDummy.get();
 	}
 	else
@@ -244,6 +247,8 @@ INLINE void TryAllocDummy( void )
 
 		gDummy->imageSlots.push_back( data );
 
+		gDummy->megaDims = glm::ivec2( params.width, params.height );
+
 		gDummy->invRowPitch = glm::vec2( 1.0f, 1.0f );
 	}
 }
@@ -338,7 +343,7 @@ void GenSubdivision( gTexture_t* tt,
 
 		if ( tt->keyMapped )
 		{
-			tt->keyMapSlots[ makeParams.keyMaps[ ( gTextureMakeParams_t::key_t ) slot ] ] = data;
+			tt->keyMapSlots[ makeParams.keyMaps[ ( gTextureImageKey_t ) slot ] ] = data;
 		}
 		else
 		{
@@ -460,6 +465,17 @@ int8_t GSamplerBPP( const gSamplerHandle_t& sampler )
 	return 0;
 }
 
+void GStageSlot( gTexSlot_t slot )
+{
+	gSlotStage = slot;
+}
+
+void GUnstageSlot( void )
+{
+	gSlotStage = (gTexSlot_t ) G_UNSPECIFIED;
+}
+
+
 gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams )
 {
 	TryAllocDummy();
@@ -489,16 +505,6 @@ void GFreeTexture( gTextureHandle_t& handle )
 	}
 
 	handle.id = G_UNSPECIFIED;
-}
-
-void GStageSlot( gTexSlot_t slot )
-{
-	gSlotStage = slot;
-}
-
-void GUnstageSlot( void )
-{
-	gSlotStage = (gTexSlot_t ) G_UNSPECIFIED;
 }
 
 void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
@@ -537,8 +543,6 @@ void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )
 {
-	assert( handle.id < gTextureMap.size() );
-
 	const gTexture_t* t = GetTexture( handle );
 
 	// Ensure we don't have something like a negative texture index
@@ -557,10 +561,50 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle )
 	return GTextureImage( handle, gSlotStage );
 }
 
+uint16_t GTextureImageCount( const gTextureHandle_t& handle )
+{
+	const gTexture_t* tex = GetTexture( handle );
+
+	if ( tex->keyMapped )
+	{
+		return tex->keyMapSlots.size();
+	}
+	else
+	{
+		return tex->imageSlots.size();
+	}
+}
+
+gTextureImageKeyList_t GTextureImageKeys( const gTextureHandle_t& handle )
+{
+	const gTexture_t* tex = GetTexture( handle );
+
+	gTextureImageKeyList_t keyList;
+
+	if ( tex->keyMapped )
+	{
+		keyList.reserve( tex->keyMapSlots.size() );
+
+		for ( const auto& kv: tex->keyMapSlots )
+		{
+			keyList.push_back( kv.first );
+		}
+	}
+	else
+	{
+		keyList.reserve( tex->imageSlots.size() );
+
+		for ( uint32_t i = 0; i < tex->imageSlots.size(); ++i )
+		{
+			keyList.push_back( i );
+		}
+	}
+
+	return std::move( keyList );
+}
+
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 {
-	assert( handle.id < gTextureMap.size() );
-
 	MLOG_ASSERT( !G_VNULL( gSlotStage ), "No slot stage lroaded for handle: %i", handle.id );
 
 	gGrid_t* grid = GridFromSlot( handle, gSlotStage );
@@ -570,16 +614,12 @@ glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 
 uint16_t GTextureMegaWidth( const gTextureHandle_t& handle )
 {
-	MLOG_ASSERT( handle.id < gTextureMap.size(), "Bad texture handle received: %i", handle.id );
-
-	return gTextureMap[ handle.id ]->megaDims.x;
+	return GetTexture( handle )->megaDims.x;
 }
 
 uint16_t GTextureMegaHeight( const gTextureHandle_t& handle )
 {
-	MLOG_ASSERT( handle.id < gTextureMap.size(), "Bad texture handle received: %i", handle.id );
-
-	return gTextureMap[ handle.id ]->megaDims.y;
+	return GetTexture( handle )->megaDims.y;
 }
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )

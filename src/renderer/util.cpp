@@ -74,7 +74,7 @@ gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	};
 
 	gImageParamList_t textures;
-	std::vector< gTextureMakeParams_t::key_t > indices;
+	std::vector< gTextureImageKey_t > indices;
 
 	for ( int32_t t = 0; t < map.data.numShaders; t++ )
 	{

@@ -7,7 +7,7 @@ TTextureTest::TTextureTest( void )
 	  atlasProg( nullptr ),
 	  camera( new InputCamera() ),
 	  drawAtlas( true ),
-	  imageIndex( 0 )
+	  currImageKey( 0 )
 {
 	this->camPtr = camera.get();
 }
@@ -28,7 +28,7 @@ void TTextureTest::Load( void )
 
 	camera->SetViewOrigin( glm::vec3( 0.0f, 0.0f, 3.0f ) );
 	camera->moveStep = 1.0f;
-	camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 1.0f, 1000.0f );
+	camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 1.0f, 10000.0f );
 
 	std::string vertex = R"(
 		in vec3 position;
@@ -51,7 +51,7 @@ void TTextureTest::Load( void )
 
 		//uniform vec4 imageTransform;
 		//uniform vec2 imageScaleRatio;
-		uniform sampler2D sampler;
+		uniform sampler2D sampler0;
 
 		out vec4 out_Color;
 
@@ -59,7 +59,7 @@ void TTextureTest::Load( void )
 		{
 			vec2 st = frag_TexCoords; //frag_TexCoords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 
-			out_Color = texture( sampler, st );
+			out_Color = texture( sampler0, st );
 		}
 	)";
 
@@ -70,7 +70,7 @@ void TTextureTest::Load( void )
 
 		uniform vec4 imageTransform;
 		uniform vec2 imageScaleRatio;
-		uniform sampler2D sampler;
+		uniform sampler2D sampler0;
 
 		out vec4 out_Color;
 
@@ -78,7 +78,7 @@ void TTextureTest::Load( void )
 		{
 			vec2 st = frag_TexCoords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
 
-			out_Color = texture( sampler, st );
+			out_Color = texture( sampler0, st );
 		}
 	)";
 
@@ -88,9 +88,11 @@ void TTextureTest::Load( void )
 
 	sampler = GMakeSampler();
 	texture = GU_LoadMainTextures( map, sampler );
+	imageKeys = GTextureImageKeys( texture );
+	MLOG_ASSERT( imageKeys.size() > 0, "imageKeys member is empty..." );
 
 	atlasQuad = MakeQuadVbo( GTextureMegaWidth( texture ), GTextureMegaHeight( texture ) );
-	textureQuad = MakeQuadVbo( 2.0f, 2.0f );
+	textureQuad = MakeQuadVbo( 100.0f, 100.0f );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
@@ -100,7 +102,7 @@ void TTextureTest::Load( void )
 
 	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
 
-	MLOG_INFO( "hrhr" );
+	//MLOG_INFO( "hrhr" );
 }
 
 void TTextureTest::OnInputEvent( SDL_Event* e )
@@ -115,7 +117,17 @@ void TTextureTest::OnInputEvent( SDL_Event* e )
 				drawAtlas = !drawAtlas;
 				break;
 			case SDLK_RIGHT:
-				//imageIndex = ( imageIndex + 1 ) %
+				currImageKey = ( currImageKey + 1 ) % imageKeys.size();
+				break;
+			case SDLK_LEFT:
+				if ( currImageKey == 0 )
+				{
+					currImageKey = imageKeys.size() - 1;
+				}
+				else
+				{
+					currImageKey--;
+				}
 				break;
 		}
 	}
@@ -126,7 +138,7 @@ Program * TTextureTest::MakeProgram( const std::string& vertex,
 									 const std::vector< std::string >& additionalUnifs )
 {
 	std::vector< std::string > unifs = { "modelToView","viewToClip",
-										 "sampler" };
+										 "sampler0" };
 
 	unifs.insert( unifs.end(), additionalUnifs.begin(), additionalUnifs.end() );
 
@@ -134,7 +146,7 @@ Program * TTextureTest::MakeProgram( const std::string& vertex,
 		unifs,
 		{ "position", "tex0" } );
 
-	p->LoadInt( "sampler", 0 );
+	p->LoadInt( "sampler0", 0 );
 	p->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
 
 	return p;
@@ -167,6 +179,7 @@ void TTextureTest::Draw( Program& program, gVertexBufferHandle_t vbo )
 
 	program.Bind();
 	GBindVertexBuffer( vbo );
+	program.LoadDefaultAttribProfiles();
 
 	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
 
@@ -185,6 +198,7 @@ void TTextureTest::Run( void )
 	}
 	else
 	{
-
+		GU_SetupTexParams( *textureProg, nullptr, texture, imageKeys[ currImageKey ], 0 );
+		Draw( *textureProg, textureQuad );
 	}
 }

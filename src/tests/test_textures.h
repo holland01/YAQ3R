@@ -26,7 +26,8 @@ private:
 
 	bool drawAtlas;
 
-	uint8_t imageIndex;
+	gTextureImageKey_t currImageKey;
+	gTextureImageKeyList_t imageKeys;
 
 	void SetupVertexData( void );
 

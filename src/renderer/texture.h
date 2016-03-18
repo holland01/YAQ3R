@@ -37,12 +37,13 @@ struct gTextureImage_t
 	glm::vec2 dims;
 };
 
+using gTextureImageKey_t = uint8_t;
+
 struct gTextureMakeParams_t
 {
-	using key_t = uint8_t;
 
 	gImageParamList_t& images;
-	std::vector< key_t > keyMaps; // specify G_TEXTURE_STORAGE_KEY_MAPPED
+	std::vector< gTextureImageKey_t > keyMaps; // specify G_TEXTURE_STORAGE_KEY_MAPPED
 	gSamplerHandle_t sampler;
 	gTextureFlags_t flags;
 
@@ -53,6 +54,8 @@ struct gTextureMakeParams_t
 	{
 	}
 };
+
+using gTextureImageKeyList_t = std::vector< gTextureImageKey_t >;
 
 gSamplerHandle_t GMakeSampler(
 	int8_t bpp = G_INTERNAL_BPP,
@@ -70,7 +73,7 @@ bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint
 
 // Sets the given destImage's data to sourceData's, in a manner which follows the user-specified
 // image bpp.
-// fetchChannel is only relevant if destImage.bpp ==
+// fetchChannel is only relevant if destImage.bpp == 1
 void GSetAlignedImageData( gImageParams_t& destImage,
 							uint8_t* sourceData,
 							int8_t sourceBPP,
@@ -88,6 +91,10 @@ void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle );
+
+uint16_t GTextureImageCount( const gTextureHandle_t& handle );
+
+gTextureImageKeyList_t GTextureImageKeys( const gTextureHandle_t& handle );
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 
