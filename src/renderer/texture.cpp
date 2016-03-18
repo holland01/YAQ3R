@@ -271,13 +271,28 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 	}
 
 	const gTexture_t* t = GetTexture( handle );
-	const gTextureImage_t& data = GTextureImage( handle, slotIndex );
+
+
+	if ( t->numGrids == 1 )
+	{
+		return t->grids;
+	}
+
+	MLOG_ASSERT( t->numGrids == 1, "You need to test this search routine now,"\
+						"considering that the grid count has actually exceeded 1."\
+						"Hint: stOffsetEnd/stOffsetStart are computed in texture space,"
+						"not in texel space, so you'll need to actually convert one to the other"
+						"in the commented loop." );
 
 	// TODO: If this slot has a good relationship with the layout of the
 	// grids, then we can make this more intelligent. (geometrically,
 	// the slot should map to rectangle in a grid of grids - each grid
 	// maps to its own set of x,y ranges; the slot is likely to have a corresponding
 	// relationship with these x,y ranges.)
+	/*
+
+	const gTextureImage_t& data = GTextureImage( handle, slotIndex );
+
 	for ( uint8_t i = 0; i < t->numGrids; ++i )
 	{
 		if ( data.stOffsetStart.x < t->grids[ i ].xStart ) continue;
@@ -288,6 +303,7 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 
 		return t->grids + i;
 	}
+	*/
 
 	return nullptr;
 }
@@ -346,7 +362,7 @@ void GenSubdivision( gTexture_t* tt,
 		data.dims.x = image.width;
 		data.dims.y = image.height;
 		data.stOffsetEnd = ( atlasPos.origin + data.dims ) * invPitchStride;
-		data.imageScaleRatio.x = data.dims.x;
+		data.imageScaleRatio.x = data.dims.x; // necessary, for
 		data.imageScaleRatio.y = data.dims.y;
 
 		uintptr_t slot = ( uintptr_t )( y * square + x );
