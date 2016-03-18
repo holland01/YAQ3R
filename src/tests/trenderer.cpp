@@ -1,13 +1,10 @@
 #include "trenderer.h"
 #include "../glutil.h"
 
-static const char* gTitle = "I am a floating camera";
-static const char* railgunArena = "asset/stockmaps/maps/q3tourney2.bsp";
-
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),
 	  renderer( nullptr ),
-	  mapFilepath( railgunArena )
+	  mapFilepath( "asset/stockmaps/maps/q3tourney2.bsp" )
 {
 }
 
@@ -25,7 +22,7 @@ void TRenderer::Run( void )
 
 void TRenderer::Load( void )
 {
-	if ( !Test::Load( gTitle ) )
+	if ( !Test::Load( "I am a floating camera" ) )
 	{
 		MLOG_ERROR( "Could not initialize the necessary rendering prerequisites." );
 		return;
