@@ -225,9 +225,7 @@ back where it originally was - these may as well be ditched altogether.
 **3/17/15**
 
 Fixed issues with texture dimensions and the atlas layout for lightmaps.
-
 Also refactored out BSPRenderer::LoadMainImages() into its own GU_LoadMainTextures function, which resides alongside GU_LoadShaderTextures.
-
 The problem is that, even though the renderer runs without any errors, the sampling itself (which is being performed in the fragment shader) appears
 to be relying on improperly computed texture coordinates. The end result, regardless of the cause, is incorrect.
 
