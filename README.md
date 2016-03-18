@@ -405,3 +405,18 @@ _____________________________________
 * Total Texels: 11,010,048
 
 * Total Bytes: 44,040,192
+__________________________________
+
+**3/18/16**
+
+Just tested q3dm1.bsp, and...crash! Atlas generation hits over 16K in height, so it looks like
+
+there will need to be some other spacial optimizing modifications made as well. A few to start out with:
+
+- Pass in the max dimension size which is queried from GL; if either the width or the height hits this value during generation,
+add another column or row as a means to shorten the offending dimension.
+
+- Check to see if the second-to-largest dimension is half or less than the largest. If this this the case, even things out
+by throwing the largest dimension category in another column or row.
+
+These should help.
