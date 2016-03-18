@@ -296,13 +296,23 @@ So, in short, the first theory was correct (it's good it wasn't ruled out...).
 
 Ultimately, though, this method is much more memory efficient in comparison to the older method.
 
+This map would cause the renderer to crash when generating the texture data:
+
+![atlas2](https://cloud.githubusercontent.com/assets/911971/13870664/f380d77c-ec9a-11e5-9745-207ee8741b2a.png)
+
 However, there's still at least one issue: the support for NPOT images is non-existent, and this seems to
 
 cause problems in some maps which heavily rely on NPOT images. The issue can be seen through
 
 two separate entries in the texture atlas for q3tourney2.bsp: one image has dimensions 256 x 1553.
 
-This image in particular overlaps another image, which has POT dimensions.
+This image in particular overlaps other images, which has POT dimensions:
+
+![atlas](https://cloud.githubusercontent.com/assets/911971/13870666/f3821a92-ec9a-11e5-8fee-081cabe2e503.png)
+
+And here are the results in action:
+
+![atlas_wtf](https://cloud.githubusercontent.com/assets/911971/13870665/f38171be-ec9a-11e5-9fad-6a2460082d34.png)
 
 So, if the issue is the result of NPOT images being used, it may be a good idea to store two
 
@@ -316,7 +326,7 @@ So, pack both dimensions in 4 bytes; and make two separate integers: one for GL 
 whatever else. The GL one will just be the next rounded up Power of Two.
 
 In the atlas generation tree (and possibly the uniform generation method as well), it will
-be important to sort the images by their GL dimensions, and not their original size metrics.
+be important to sort the images by their GL dimensions, and not their original sizes.
 
 However, in the glTexSubImage function, and in any other instance where the actual image data
 
