@@ -36,7 +36,7 @@ private:
 	Program* MakeProgram( const std::string& vertex, const std::string& fragment,
 						  const std::vector< std::string >& additionalUnifs = std::vector< std::string >() );
 
-	gVertexBufferHandle_t MakeQuadVbo( float width, float height );
+	gVertexBufferHandle_t MakeQuadVbo( float width, float height, float s = 1.0f, float t = 1.0f );
 
 	void Draw( Program& program, gVertexBufferHandle_t vbo );
 

@@ -20,6 +20,10 @@ struct gGrid_t
 
 using gTextureKeySlotMap_t = std::unordered_map< gTextureImageKey_t, gTextureImage_t >;
 
+struct gTexture_t;
+
+std::unique_ptr< gTexture_t > gDummy( nullptr );
+
 struct gTexture_t
 {
 	std::vector< gTextureImage_t > imageSlots;
@@ -32,7 +36,6 @@ struct gTexture_t
 	gGrid_t* grids;
 	gSamplerHandle_t sampler;
 	uint8_t numGrids;
-
 
 	gTexture_t( void )
 		: invRowPitch( 0.0f ),
@@ -57,7 +60,16 @@ struct gTexture_t
 	{
 		if ( keyMapped )
 		{
-			return keyMapSlots.at( ( gTextureImageKey_t ) slot );
+			auto keyed = keyMapSlots.find( ( gTextureImageKey_t ) slot );
+
+			if ( keyed != keyMapSlots.end() )
+			{
+				return keyed->second;
+			}
+
+			return gDummy->imageSlots[ 0 ];
+
+			//return keyMapSlots.at( ( gTextureImageKey_t ) slot );
 		}
 		else
 		{
@@ -82,8 +94,6 @@ using texturePointer_t = std::unique_ptr< gTexture_t >;
 std::vector< texturePointer_t > gTextureMap;
 
 gTexSlot_t gSlotStage = ( gTexSlot_t ) G_UNSPECIFIED;
-
-std::unique_ptr< gTexture_t > gDummy( nullptr );
 
 struct gTexConfig_t
 {
@@ -327,7 +337,7 @@ void GenSubdivision( gTexture_t* tt,
 		const gImageParams_t& image = *( atlasPos.image );
 
 		GL_CHECK( glTexSubImage2D( tt->target,
-								   0, ( int32_t )atlasPos.origin.x, ( int32_t )atlasPos.origin.y, image.width,
+			0, ( int32_t )atlasPos.origin.x, ( int32_t )atlasPos.origin.y, image.width,
 			image.height, sampler.format, GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
 
 		gTextureImage_t data;
@@ -336,8 +346,8 @@ void GenSubdivision( gTexture_t* tt,
 		data.dims.x = image.width;
 		data.dims.y = image.height;
 		data.stOffsetEnd = ( atlasPos.origin + data.dims ) * invPitchStride;
-		data.imageScaleRatio.x = 1.0f;
-		data.imageScaleRatio.y = 1.0f;
+		data.imageScaleRatio.x = data.dims.x;
+		data.imageScaleRatio.y = data.dims.y;
 
 		uintptr_t slot = ( uintptr_t )( y * square + x );
 
@@ -546,7 +556,7 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 	const gTexture_t* t = GetTexture( handle );
 
 	// Ensure we don't have something like a negative texture index
-	if ( t == gDummy.get() )
+	if ( t == gDummy.get() || ( int32_t )slot < 0 )
 	{
 		slot = 0;
 	}

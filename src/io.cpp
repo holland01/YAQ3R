@@ -27,6 +27,7 @@ void O_Log( const char* header, const char* priority, const char* fmt, ... )
 	va_start( arg, fmt );
 	fprintf( stdout, "\n[ %s | %s ]: ", header, priority );
 	vfprintf( stdout, fmt, arg );
+	fputs( "\n", stdout );
 	va_end( arg );
 }
 
@@ -35,8 +36,9 @@ void O_LogBuffer( const char* header, const char* priority, const char* fmt, ...
 	va_list arg;
 
 	va_start( arg, fmt );
-	fprintf( stdout, "\033[2J \033[H \n[ %s | %s ]: \n \033[H", header, priority );
+	fprintf( stdout, "\033[2J \033[H \n[ %s | %s ]: \n \033[H\n", header, priority );
 	vfprintf( stdout, fmt, arg );
+	fputs( "\n", stdout );
 	va_end( arg );
 }
 

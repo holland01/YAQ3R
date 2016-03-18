@@ -65,19 +65,37 @@ void TTextureTest::Load( void )
 
 	atlasProg.reset( MakeProgram( vertex, fragment ) );
 
+	vertex = R"(
+		in vec3 position;
+		in vec2 tex0;
+
+		uniform mat4 modelToView;
+		uniform mat4 viewToClip;
+
+		//uniform vec4 imageTransform;
+		//uniform vec2 imageScaleRatio;
+
+		smooth out vec2 frag_TexCoords;
+
+		void main(void)
+		{
+			gl_Position = viewToClip * modelToView * vec4(position, 1.0);
+			frag_TexCoords = tex0; //* imageTransform.zw * imageScaleRatio + imageTransform.xy;
+		}
+	)";
+
 	fragment = R"(
 		smooth in vec2 frag_TexCoords;
 
+		uniform sampler2D sampler0;
 		uniform vec4 imageTransform;
 		uniform vec2 imageScaleRatio;
-		uniform sampler2D sampler0;
 
 		out vec4 out_Color;
 
 		void main(void)
 		{
-			vec2 st = frag_TexCoords * imageTransform.zw * imageScaleRatio + imageTransform.xy;
-
+			vec2 st = frag_TexCoords * imageScaleRatio * imageTransform.zw + imageTransform.xy;
 			out_Color = texture( sampler0, st );
 		}
 	)";
@@ -89,10 +107,11 @@ void TTextureTest::Load( void )
 	sampler = GMakeSampler();
 	texture = GU_LoadMainTextures( map, sampler );
 	imageKeys = GTextureImageKeys( texture );
+
 	MLOG_ASSERT( imageKeys.size() > 0, "imageKeys member is empty..." );
 
 	atlasQuad = MakeQuadVbo( GTextureMegaWidth( texture ), GTextureMegaHeight( texture ) );
-	textureQuad = MakeQuadVbo( 100.0f, 100.0f );
+	textureQuad = MakeQuadVbo( 512.0f, 512.0f );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
@@ -152,7 +171,7 @@ Program * TTextureTest::MakeProgram( const std::string& vertex,
 	return p;
 }
 
-gVertexBufferHandle_t TTextureTest::MakeQuadVbo( float width, float height )
+gVertexBufferHandle_t TTextureTest::MakeQuadVbo( float width, float height, float s, float t )
 {
 	std::vector< glm::vec3 > vertices =
 	{
@@ -164,10 +183,10 @@ gVertexBufferHandle_t TTextureTest::MakeQuadVbo( float width, float height )
 
 	std::vector< glm::vec2 > texCoords =
 	{
-		glm::vec2( 1.0f, 0.0f ),
-		glm::vec2( 1.0f, 1.0f ),
+		glm::vec2( s,	 0.0f ),
+		glm::vec2( s,		t ),
 		glm::vec2( 0.0f, 0.0f ),
-		glm::vec2( 0.0f, 1.0f )
+		glm::vec2( 0.0f,	t )
 	};
 
 	return GMakeVertexBuffer( vertices, texCoords );

@@ -304,13 +304,18 @@ void BSPRenderer::LoadVertexData( void )
 	{
 		const bspFace_t* face = &map->data.faces[ i ];
 
-		if ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
+		if ( face->type == BSP_FACE_TYPE_PATCH )
+		{
+			glFaces[ i ].reset( new mapPatch_t() );
+		}
+		else // ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
 			glFaces[ i ].reset( new mapModel_t() );
 		}
-		else if ( face->type == BSP_FACE_TYPE_PATCH )
+
+		if  ( face->type == BSP_FACE_TYPE_BILLBOARD )
 		{
-			glFaces[ i ].reset( new mapPatch_t() );
+			__nop();
 		}
 
 		glFaces[ i ]->Generate( vertexData, map, i );
@@ -534,7 +539,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
-	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n",
+	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i",
 			   CalcFPS(),
 			   gCounts.numSolidEffect,
 			   gCounts.numSolidNormal,
