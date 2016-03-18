@@ -197,6 +197,8 @@ void TreePoint( atlasTree_t& t, atlasPositionMap_t& map )
 			map.origin.y += ( float )curr->val * ( float )( curr->ReadOffset() );
 		}
 
+		map.origin.x = map.image->width;
+
 		//map.origin.x += map.image->width * 0.5f;
 		//map.origin.y += map.image->height * 0.5f;
 	}
@@ -225,7 +227,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins( const std::vector< gIma
 	for ( const gImageParams_t& image: params )
 	{
 		atlasPositionMap_t pmap;
-		pmap.origin.x = image.width;
+		//pmap.origin.x = NextPower2( image.width );
 		pmap.image = &image;
 		TreePoint( rootTree, pmap );
 		posMap.push_back( pmap );

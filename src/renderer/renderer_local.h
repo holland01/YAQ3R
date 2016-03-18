@@ -3,7 +3,7 @@
 #include "common.h"
 #include <unordered_map>
 
-#define TEXNAME_CHAR_LIMIT 64
+#define G_TEXNAME_CHAR_LIMIT 64
 #define G_UNSPECIFIED 0xFFFFFFFF
 #define G_INTERNAL_BPP 4 // Just to let everyone know we only care really about RGBA... (most of the time)
 #define G_USE_GL_CORE
@@ -30,6 +30,10 @@
 
 #define G_MAG_FILTER GL_LINEAR
 #define G_MIPMAPPED false
+
+#define G_STATIC_NEAR_PLANE 5.0f
+
+#define G_STATIC_FAR_PLANE 5000.0f
 
 using gIndex_t = uint32_t;
 using gIndexBuffer_t = std::vector< gIndex_t >;

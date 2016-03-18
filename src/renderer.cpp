@@ -109,7 +109,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, viewWidth, viewHeight, 500.0f, 5000.0f );
+	camera->SetPerspective( 45.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -552,7 +552,7 @@ void BSPRenderer::Update( float dt )
 	camera->Update();
 
 	viewParams_t& view = camera->ViewDataMut();
-	SetNearFar( view.clipTransform, 500.0f, 5000.0f );
+	SetNearFar( view.clipTransform, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
 
 	frustum->Update( view, false );
 
