@@ -891,7 +891,7 @@ static INLINE std::string DeclCoreTransforms( void )
 
 static INLINE std::string DeclGammaConstant( void )
 {
-	return "const float gamma = 1.0 / 2.2;";
+	return "const float gamma = 1.0 / 3.3;";
 }
 
 static INLINE void DeclCoreTransforms(	std::vector< std::string >& destShaderSrc,

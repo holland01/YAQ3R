@@ -4,7 +4,7 @@
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),
 	  renderer( nullptr ),
-	  mapFilepath( "asset/stockmaps/maps/q3tourney2.bsp" )
+	  mapFilepath( "asset/stockmaps/maps/Railgun_Arena.bsp" )
 {
 }
 

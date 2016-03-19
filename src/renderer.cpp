@@ -109,7 +109,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
 
 	camera = new InputCamera( view, EuAng() );
-	camera->SetPerspective( 45.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
+	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -311,11 +311,6 @@ void BSPRenderer::LoadVertexData( void )
 		else // ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
 		{
 			glFaces[ i ].reset( new mapModel_t() );
-		}
-
-		if  ( face->type == BSP_FACE_TYPE_BILLBOARD )
-		{
-			__nop();
 		}
 
 		glFaces[ i ]->Generate( vertexData, map, i );

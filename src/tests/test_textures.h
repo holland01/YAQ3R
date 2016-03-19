@@ -38,7 +38,8 @@ private:
 
 	gVertexBufferHandle_t MakeQuadVbo( float width, float height, float s = 1.0f, float t = 1.0f );
 
-	void Draw( Program& program, gVertexBufferHandle_t vbo );
+	void Draw( Program& program, gVertexBufferHandle_t vbo,
+			   const glm::mat4& model = glm::mat4( 1.0f ) );
 
 	void Run( void );
 

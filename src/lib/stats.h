@@ -45,11 +45,10 @@ struct median_t
 		return store[ store.size() >> 1 ];
 	}
 
-	Tint SumToMedian( void ) const
+	Tint Sum( void ) const
 	{
-		uint16_t exclusive = store.size() >> 1;
-		uint16_t sum = 0;
-		for ( uint16_t i = 0; i < exclusive; ++i )
+		Tint sum = 0;
+		for ( uint16_t i = 0; i < store.size(); ++i )
 		{
 			sum += store[ i ];
 		}

@@ -1,5 +1,6 @@
 
 #include "atlas_gen.h"
+#include "io.h"
 #include "stats.h"
 #include "renderer/texture.h"
 #include "math.h"
@@ -46,14 +47,71 @@ struct atlasBucket_t
 	{
 		return ( uint8_t ) ( ( count >> 8 ) & 0xFF );
 	}
+
+	uint16_t TotalBuckets( void )
+	{
+		uint16_t thisCount = ReadCount();
+
+		if ( next )
+		{
+			thisCount += next->TotalBuckets();
+		}
+
+		return thisCount;
+	}
+
+	atlasBucket_t* At( uint16_t offset, uint16_t i = 0 )
+	{
+		i += ReadCount();
+
+		if ( i <= offset )
+		{
+			if ( next )
+			{
+				if ( offset < next->ReadCount() )
+				{
+					return this;
+				}
+
+				return next->At( offset, i );
+			}
+
+			return this;
+		}
+		else if ( next )
+		{
+			return next->At( offset, i );
+		}
+
+		return nullptr;
+	}
 };
 
 struct atlasTree_t
 {
 	uint16_t key;
-	std::unique_ptr< atlasBucket_t > first;
 	std::unique_ptr< atlasTree_t > left;
 	std::unique_ptr< atlasTree_t > right;
+
+	std::vector< std::unique_ptr< atlasBucket_t > > columns;
+
+	std::unique_ptr< atlasBucket_t >& First( void )
+	{
+		return columns[ 0 ];
+	}
+};
+
+struct slotMetrics_t
+{
+	uint16_t width;
+	uint16_t numBuckets;
+};
+
+struct atlasTreeMetrics_t
+{
+	slotMetrics_t highest;		// the width "slot" which holds the maximum height value
+	slotMetrics_t nextHighest;	// same thing, but the second largest
+	uint16_t base;					// each width category, summed
 };
 
 namespace {
@@ -68,21 +126,22 @@ void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p, uin
 	p->WriteCount( 1 );
 }
 
-// Insert height values in descending order
+// Insert height values in descending order ( largest value is at the bottom )
 void BucketInsert( atlasTree_t& t, uint16_t v )
 {
-	if ( !t.first )
+	if ( t.columns.empty() )
 	{
-		t.first.reset( new atlasBucket_t() );
-		t.first->val = v;
-		t.first->count = 1;
+		std::unique_ptr< atlasBucket_t > f( new atlasBucket_t() );
+		f->val = v;
+		f->count = 1;
+		t.columns.push_back( std::move( f ) );
 		return;
 	}
 
 	atlasBucket_t* prev, *p;
 
 	prev = nullptr;
-	p = t.first.get();
+	p = t.First().get();
 
 	while ( p && v < p->val )
 	{
@@ -125,19 +184,24 @@ std::unique_ptr< atlasTree_t > TreeMake( uint16_t k, uint16_t v )
 {
 	std::unique_ptr< atlasTree_t > t( new atlasTree_t() );
 	t->key = k;
-	t->first.reset( new atlasBucket_t() );
-	t->first->val = v;
-	t->first->WriteCount( 1 );
+
+	std::unique_ptr< atlasBucket_t > buck( new atlasBucket_t() );
+
+	buck->val = v;
+	buck->WriteCount( 1 );
+
+	t->columns.push_back( std::move( buck ) );
+
 	return t;
 }
 
-void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v );
+void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v, atlasTreeMetrics_t& metrics );
 
-void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v )
+void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v, atlasTreeMetrics_t& metrics )
 {
 	if ( t )
 	{
-		TreeInsert( *t, k, v );
+		TreeInsert( *t, k, v, metrics );
 	}
 	else
 	{
@@ -145,20 +209,78 @@ void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v )
 	}
 }
 
-void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v )
+void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v, atlasTreeMetrics_t& metrics )
 {
 	if ( k < t.key )
 	{
-		InsertOrMake( t.left, k, v );
+		InsertOrMake( t.left, k, v, metrics );
 	}
 	else if ( k > t.key )
 	{
-		InsertOrMake( t.right, k, v );
+		InsertOrMake( t.right, k, v, metrics );
 	}
 	else
 	{
 		BucketInsert( t, v );
+
+		uint16_t totalBuckets = t.First()->TotalBuckets();
+
+		if ( totalBuckets > metrics.highest.numBuckets )
+		{
+			metrics.highest.width = k;
+			metrics.highest.numBuckets = totalBuckets;
+		}
+		else if ( totalBuckets > metrics.nextHighest.numBuckets )
+		{
+			metrics.nextHighest.width = k;
+			metrics.nextHighest.numBuckets = totalBuckets;
+		}
 	}
+}
+
+bool TraverseColumn( atlasTree_t& t, atlasPositionMap_t& map, uint8_t index )
+{
+	map.origin.y = 0;
+
+	atlasBucket_t* curr = t.columns[ index ].get();
+
+	// offset our origin through the summation of all heights which
+	// are placed before the height section the owning image belongs to;
+	// take into account the amount of duplications for every height value
+	while ( curr && map.image->height < curr->val )
+	{
+		map.origin.y += ( float )curr->val * ( float )curr->ReadCount();
+		curr = curr->next.get();
+	}
+
+	// if curr != nullptr, we know that, by nature of the this structure,
+	// curr->val is implicitly == image.height
+	if ( curr && curr->ReadOffset() > 1 )
+	{
+		curr->SubOffset();
+		map.origin.y += ( float )curr->val * ( float )curr->ReadOffset();
+	}
+
+	return !!curr;
+}
+
+uint16_t SumBounds( const atlasTree_t* t, uint16_t target )
+{
+	uint16_t s = 0;
+
+	if ( t )
+	{
+		s += SumBounds( t->left.get(), target );
+
+		if ( t->key < target )
+		{
+			s += t->key * t->columns.size();
+		}
+
+		s += SumBounds( t->right.get(), target );
+	}
+
+	return s;
 }
 
 // The ReadCount and ReadOffset methods will initially return the same values. Things change, however,
@@ -166,46 +288,56 @@ void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v )
 // for each image which has a matching height value. The initial count bits will remain the same, to ensure
 // that images of different heights will not "invade" the space of the given image these parameters correspond
 // to.
-void TreePoint( atlasTree_t& t, atlasPositionMap_t& map )
+void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root )
 {
-	if ( map.image->width < t.key )
+	if ( t )
 	{
-		TreePoint( *( t.left ), map );
-	}
-	else if ( map.image->width > t.key )
-	{
-		TreePoint( *( t.right ), map );
-	}
-	else
-	{
-		atlasBucket_t* curr = t.first.get();
-
-		// offset our origin through the summation of all heights which
-		// are placed before the height section the owning image belongs to;
-		// take into account the amount of duplications for every height value
-		while ( curr && map.image->height < curr->val )
+		if ( map.image->width < t->key )
 		{
-			map.origin.y += ( float )curr->val * ( float )curr->ReadCount();
-			curr = curr->next.get();
+			TreePoint( t->left.get(), map, root );
 		}
-
-		// if curr != nullptr, we know that, by nature of the this structure,
-		// curr->val is implicitly == image.width
-		if ( curr && curr->ReadOffset() > 1 )
+		else if ( map.image->width > t->key )
 		{
-			curr->SubOffset();
-			map.origin.y += ( float )curr->val * ( float )( curr->ReadOffset() );
+			TreePoint( t->right.get(), map, root );
 		}
+		else
+		{
+			volatile bool found = false;
 
-		map.origin.x = map.image->width;
+			uint32_t i;
 
-		//map.origin.x += map.image->width * 0.5f;
-		//map.origin.y += map.image->height * 0.5f;
+			for ( i = 0; i < t->columns.size() && !found; ++i )
+			{
+				found = TraverseColumn( *t, map, i );
+			}
+
+			assert( found );
+
+			map.origin.x = SumBounds( root, t->key ) + i * t->key;
+		}
 	}
 }
 
+atlasTree_t* TreeFetch( atlasTree_t* t, uint16_t key )
+{
+	if ( t )
+	{
+		if ( key < t->key )
+		{
+			return TreeFetch( t->left.get(), key );
+		}
+		else if ( key > t->key )
+		{
+			return TreeFetch( t->right.get(), key );
+		}
+	}
+
+	return t;
+}
+
 // For lists of images which have varying sizes
-std::vector< atlasPositionMap_t > AtlasGenVariedOrigins( const std::vector< gImageParams_t >& params )
+std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
+		const std::vector< gImageParams_t >& params )
 {
 	atlasTree_t rootTree;
 	median_t< uint16_t > widths;
@@ -217,9 +349,36 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins( const std::vector< gIma
 
 	rootTree.key = widths.GetMedian();
 
+	atlasTreeMetrics_t metrics =
+	{
+		{ 0, 0 },
+		{ 0, 0 },
+		0
+	};
+
+	metrics.base = widths.Sum();
+
 	for ( const gImageParams_t& param: params )
 	{
-		TreeInsert( rootTree, param.width, param.height );
+		TreeInsert( rootTree, param.width, param.height, metrics );
+	}
+
+	// Check to see if our highest bucket count is two standard deviations
+	// from the nextHighest. If so, we should split any bucket groups which
+	// are significantly high into separate columns: this will significantly
+	// alleviate any potential problems with attempting a texture allocation
+	// which is larger than GL_MAX_TEXTURE_SIZE
+	if ( metrics.highest.numBuckets >= ( metrics.nextHighest.numBuckets << 1 ) )
+	{
+		atlasTree_t* t = TreeFetch( &rootTree, metrics.highest.width );
+
+		uint16_t cutoff = metrics.highest.numBuckets >> 1;
+
+		atlasBucket_t* columnPrev = t->First()->At( cutoff - 1 );
+
+		t->columns.push_back( std::move( columnPrev->next ) );
+
+		columnPrev->next.reset( nullptr );
 	}
 
 	std::vector< atlasPositionMap_t > posMap;
@@ -227,9 +386,8 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins( const std::vector< gIma
 	for ( const gImageParams_t& image: params )
 	{
 		atlasPositionMap_t pmap;
-		//pmap.origin.x = NextPower2( image.width );
 		pmap.image = &image;
-		TreePoint( rootTree, pmap );
+		TreePoint( &rootTree, pmap, &rootTree );
 		posMap.push_back( pmap );
 	}
 

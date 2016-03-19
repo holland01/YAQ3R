@@ -33,7 +33,7 @@
 
 #define G_STATIC_NEAR_PLANE 5.0f
 
-#define G_STATIC_FAR_PLANE 5000.0f
+#define G_STATIC_FAR_PLANE 50000.0f
 
 using gIndex_t = uint32_t;
 using gIndexBuffer_t = std::vector< gIndex_t >;

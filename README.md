@@ -11,7 +11,7 @@ Current Focuses:
     * Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
 
 - WebGL support
-    
+
     * This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
 	though, I'm finding that it's worth it to focus on improving the performance instead.
 
@@ -348,7 +348,7 @@ is being read, it should be obvious that the rounded GL dimensions can't be used
 
 Anyway, here's some quick benchmarks which compare the two atlas gen methods:
 
-####Branch: emscripten (old texture atlas generation)
+#### Branch: emscripten (old texture atlas generation)
 
 **Map: Railgun_Arena.bsp**
 _____________________________________
@@ -388,7 +388,7 @@ _____________________________________
 
 * Total Bytes: 301,989,888
 
-####Branch: atlas_improvements (new generation method)
+#### Branch: atlas_improvements (new generation method)
 
 **Map: Railgun_Arena.bsp**
 _____________________________________
@@ -434,3 +434,30 @@ add another column or row as a means to shorten the offending dimension.
 by throwing the largest dimension category in another column or row.
 
 These should help.
+
+**3/19/16**
+
+Column splitting at a very basic level is implemented. There needs to be some
+
+actual statistics used in determining when a column should be split, though. Incidentally,
+
+it appears that some of the images aren't in their proper order within the column...this
+
+is definitely odd. To make matters worse, there's a large amount of space between
+
+the columns when the offset is applied to width slots that hold more than one column;
+
+this will need to be corrected if it's to be used properly.
+
+TODO:
+
+    - Fix the spacing issues; there shouldn't be a gap between the image widths.
+    - Verify the ordering of the buckets - does the ordering get fucked up *after* the
+    column is split, for example?
+    - Add the statistics; one possible heuristic for determining when a width's column should
+    be split is when it's 2 or more deviations from the bucket count of the width
+    slot that is second highest to its own bucket count
+    (without aggregating bucket counts for multiple columns which belong to a single
+        width - the counts should be evaluated separately).
+    - Look more into images which involve dimensions that aren't powers of two, and
+    then figure out how to deal with them.

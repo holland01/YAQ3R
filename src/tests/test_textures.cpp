@@ -111,7 +111,7 @@ void TTextureTest::Load( void )
 	MLOG_ASSERT( imageKeys.size() > 0, "imageKeys member is empty..." );
 
 	atlasQuad = MakeQuadVbo( GTextureMegaWidth( texture ), GTextureMegaHeight( texture ) );
-	textureQuad = MakeQuadVbo( 512.0f, 512.0f );
+	textureQuad = MakeQuadVbo( 1.0f, 1.0f );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
@@ -192,9 +192,11 @@ gVertexBufferHandle_t TTextureTest::MakeQuadVbo( float width, float height, floa
 	return GMakeVertexBuffer( vertices, texCoords );
 }
 
-void TTextureTest::Draw( Program& program, gVertexBufferHandle_t vbo )
+void TTextureTest::Draw( Program& program, gVertexBufferHandle_t vbo,
+		const glm::mat4& model )
 {
-	program.LoadMat4( "modelToView", camera->ViewData().transform );
+	program.LoadMat4( "modelToView",
+		camera->ViewData().transform * model );
 
 	program.Bind();
 	GBindVertexBuffer( vbo );
@@ -217,7 +219,11 @@ void TTextureTest::Run( void )
 	}
 	else
 	{
+		const gTextureImage_t& img = GTextureImage( texture, imageKeys[ currImageKey ] );
+
+		glm::mat4 model( glm::scale( glm::mat4( 1.0f ), glm::vec3( img.dims, 1.0f ) ) );
+
 		GU_SetupTexParams( *textureProg, nullptr, texture, imageKeys[ currImageKey ], 0 );
-		Draw( *textureProg, textureQuad );
+		Draw( *textureProg, textureQuad, model );
 	}
 }
