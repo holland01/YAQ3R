@@ -60,27 +60,47 @@ struct atlasBucket_t
 		return thisCount;
 	}
 
-	atlasBucket_t* At( uint16_t offset, uint16_t i = 0 )
+	std::string Info( void )
 	{
-		i += ReadCount();
+		std::stringstream ss;
+		uint32_t c = ReadCount();
+		ss << "Height: " << val <<  "\nCount: " << c << "\n";
+
+		if ( next )
+		{
+			ss << next->Info();
+		}
+
+		std::string result ( ss.str() );
+
+		return result;
+	}
+
+	atlasBucket_t* FindRange( uint16_t offset, uint16_t i = 0/*, atlasBucket_t** prev*/ )
+	{
+		uint32_t upperBound = i + ReadCount();
 
 		if ( i <= offset )
 		{
 			if ( next )
 			{
-				if ( offset < next->ReadCount() )
+				if ( offset < upperBound )
 				{
 					return this;
 				}
 
-				return next->At( offset, i );
+				//*prev = this;
+
+				return next->FindRange( offset, upperBound/*, prev*/ );
 			}
 
 			return this;
 		}
 		else if ( next )
 		{
-			return next->At( offset, i );
+			//*prev = this;
+
+			return next->FindRange( offset, upperBound/*, prev*/ );
 		}
 
 		return nullptr;
@@ -111,10 +131,44 @@ struct atlasTreeMetrics_t
 {
 	slotMetrics_t highest;		// the width "slot" which holds the maximum height value
 	slotMetrics_t nextHighest;	// same thing, but the second largest
-	uint16_t base;					// each width category, summed
+	uint16_t base;				// each width category, summed
 };
 
 namespace {
+
+struct meta_t
+{
+	LogHandle log;
+
+	meta_t( void )
+		: log( "log/atlas_gen.txt", true )
+	{
+	}
+
+	void LogData( const atlasTreeMetrics_t& metrics, atlasTree_t& treeRoot )
+	{
+		O_LogF( log.ptr, "METRICS", "\n\thighest: %i\n\tnextHighest: %i\n\tbase: %i\n\n\n\n",
+				metrics.highest, metrics.nextHighest, metrics.base );
+
+		LogData_r( &treeRoot );
+	}
+
+	void LogData_r( atlasTree_t* t )
+	{
+		if ( t )
+		{
+			LogData_r( t->left.get() );
+
+			std::string info( t->First()->Info() );
+			O_LogF( log.ptr, "entry", "\nWidth: %i\n Bucket (Column) Count: %i\n Bucket Info: \n\n%s\n",
+					t->key, t->columns.size(), info.c_str() );
+
+			LogData_r( t->right.get() );
+		}
+	}
+};
+
+std::unique_ptr< meta_t > gMeta( new meta_t() );
 
 void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p, uint16_t v )
 {
@@ -306,9 +360,14 @@ void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root
 
 			uint32_t i;
 
-			for ( i = 0; i < t->columns.size() && !found; ++i )
+			for ( i = 0; i < t->columns.size() && !found; )
 			{
 				found = TraverseColumn( *t, map, i );
+
+				if ( !found )
+				{
+					++i;
+				}
 			}
 
 			assert( found );
@@ -374,11 +433,11 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 		uint16_t cutoff = metrics.highest.numBuckets >> 1;
 
-		atlasBucket_t* columnPrev = t->First()->At( cutoff - 1 );
+		atlasBucket_t* current = t->First()->FindRange( cutoff - 1 );
 
-		t->columns.push_back( std::move( columnPrev->next ) );
+		t->columns.push_back( std::move( current->next ) );
 
-		columnPrev->next.reset( nullptr );
+		current->next.reset( nullptr );
 	}
 
 	std::vector< atlasPositionMap_t > posMap;
@@ -390,6 +449,8 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		TreePoint( &rootTree, pmap, &rootTree );
 		posMap.push_back( pmap );
 	}
+
+	gMeta->LogData( metrics, rootTree );
 
 	return std::move( posMap );
 }

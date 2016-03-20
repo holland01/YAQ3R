@@ -45,6 +45,8 @@ typedef int ( *fileSystemTraversalFn_t )( const filedata_t data );
 
 void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
 
+FILE* File_Open( const std::string& path, const std::string& mode = "rb" );
+
 // Returns true if a trailing slash is needed in the path, otherwise false.
 // Either way, the default OS_PATH_SEPARATOR is thrown in outSlash,
 // or an alternative separator if the string already contains it (i.e., we're on Windows and
@@ -130,7 +132,7 @@ static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std
 		{
 			*outIndex = index;
 		}
-		
+
 		return true;
 	}
 
@@ -139,10 +141,10 @@ static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std
 
 static INLINE std::string File_StripPath( const std::string& path )
 {
-	// We check for both path separators, considering that having two separators simultaneously 
+	// We check for both path separators, considering that having two separators simultaneously
 	// is totally possible anywhere.
 	size_t slash = path.find_last_of( '/' );
-	size_t criminal = path.find_last_of( '\\' ); 
+	size_t criminal = path.find_last_of( '\\' );
 
 	size_t index = std::string::npos;
 	if ( slash != std::string::npos && criminal != std::string::npos )
@@ -236,3 +238,14 @@ static INLINE void Pixels_ToR( uint8_t* destination,
 		destination[ i ] = source[ i * sourceBPP + channel ];
 	}
 }
+
+class LogHandle
+{
+public:
+	FILE* ptr = nullptr;
+	bool enabled;
+
+	LogHandle( const std::string& path, bool _enabled );
+	~LogHandle( void );
+};
+

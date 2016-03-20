@@ -419,6 +419,18 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 #endif
 }
 
+FILE* File_Open( const std::string& path, const std::string& mode )
+{
+	FILE* f = fopen( path.c_str(), mode.c_str() );
+
+	if ( !f )
+	{
+		MLOG_ERROR( "Could not open \'%s\'", path.c_str() );
+	}
+
+	return f;
+}
+
 bool File_GetPixels( const std::string& filepath,
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight )
 {
@@ -437,4 +449,18 @@ bool File_GetPixels( const std::string& filepath,
 	stbi_image_free( imagePixels );
 
 	return true;
+}
+
+LogHandle::LogHandle( const std::string& path, bool _enabled )
+	: ptr( File_Open( path, "wb" ) ),
+	  enabled( _enabled )
+{
+}
+
+LogHandle::~LogHandle( void )
+{
+	if ( ptr )
+	{
+		fclose( ptr );
+	}
 }
