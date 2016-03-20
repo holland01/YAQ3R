@@ -496,4 +496,4 @@ column, considering that curr is != null ( which is what TraverseColumn's return
 
 parallel to).
 
-So, that's next on the TODO list: fix this bucket split issue
+So, that's next on the TODO list: fix this bucket split issue.
