@@ -8,11 +8,11 @@ It's a fun thing: despite Quake III's file format being written circa 1999, and 
 Current Focuses:
 
 - Performance
-    * Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
+	* Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
 
 - WebGL support
 
-    * This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
+	* This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
 	though, I'm finding that it's worth it to focus on improving the performance instead.
 
 - Vertex deformation (effect shader)
@@ -451,13 +451,49 @@ this will need to be corrected if it's to be used properly.
 
 TODO:
 
-    - Fix the spacing issues; there shouldn't be a gap between the image widths.
-    - Verify the ordering of the buckets - does the ordering get fucked up *after* the
-    column is split, for example?
-    - Add the statistics; one possible heuristic for determining when a width's column should
-    be split is when it's 2 or more deviations from the bucket count of the width
-    slot that is second highest to its own bucket count
-    (without aggregating bucket counts for multiple columns which belong to a single
-        width - the counts should be evaluated separately).
-    - Look more into images which involve dimensions that aren't powers of two, and
-    then figure out how to deal with them.
+	- ~~Fix the spacing issues; there shouldn't be a gap between the image widths.~~
+
+	- ~~Verify the ordering of the buckets - does the ordering get fucked up *after* the
+	column is split, for example?~~ (**update** ordering really isn't screwed up)
+
+- ~~Add the statistics; one possible heuristic for determining when a width's column should
+	be split is when it's 2 or more deviations from the bucket count of the width
+	slot that is second highest to its own bucket count
+	(without aggregating bucket counts for multiple columns which belong to a single
+		width - the counts should be evaluated separately).~~
+
+	- ~~Look more into images which involve dimensions that aren't powers of two, and~~
+	then figure out how to deal with them. (**update** there really isn't a need to worry
+	about this, considering that any NPOT images will be stored in a POT texture atlas
+	anyway).
+
+
+**3/20/16**
+
+The gaps are closed. Added the necessary statistics computations (zed-score, standard deviation, average, etc.)
+
+to get things up and running. The "nextCol" in the zHigh conditional isn't necessarily
+
+part of the algol, but it's there to see what happens when a bucket is "split" into two separate
+
+buckets (as opposed to just taking one bucket from a column and turning it into a new column).
+
+The bucket split maneuver doesn't quite work, because in TraverseColumn() there's an evaluation
+
+for ReadOffset() which checks to see if its value is > 1 before a y offset
+
+for that height is applied. Hypothesis: since the new ReadOffset value
+
+is initially half of what it would have been before the split, only half of the images
+
+of the original column are added...in a sense. What's really happening is that half of the images
+
+are being added, and then the next half are being painted over them. This seems to be because,
+
+after the first half of images are added, there's no reason to continue onto the next
+
+column, considering that curr is != null ( which is what TraverseColumn's return value is
+
+parallel to).
+
+So, that's next on the TODO list: fix this bucket split issue

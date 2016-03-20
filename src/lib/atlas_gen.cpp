@@ -76,7 +76,8 @@ struct atlasBucket_t
 		return result;
 	}
 
-	atlasBucket_t* FindRange( uint16_t offset, uint16_t i = 0/*, atlasBucket_t** prev*/ )
+	// Grab the height group with the range of indices containing the given offset index
+	atlasBucket_t* FindRange( uint16_t offset, atlasBucket_t** prev, uint16_t i = 0 )
 	{
 		uint32_t upperBound = i + ReadCount();
 
@@ -89,18 +90,18 @@ struct atlasBucket_t
 					return this;
 				}
 
-				//*prev = this;
+				*prev = this;
 
-				return next->FindRange( offset, upperBound/*, prev*/ );
+				return next->FindRange( offset, prev, upperBound );
 			}
 
 			return this;
 		}
 		else if ( next )
 		{
-			//*prev = this;
+			*prev = this;
 
-			return next->FindRange( offset, upperBound/*, prev*/ );
+			return next->FindRange( offset, prev, upperBound );
 		}
 
 		return nullptr;
@@ -132,6 +133,7 @@ struct atlasTreeMetrics_t
 	slotMetrics_t highest;		// the width "slot" which holds the maximum height value
 	slotMetrics_t nextHighest;	// same thing, but the second largest
 	uint16_t base;				// each width category, summed
+	stats_t< uint16_t > bucketCounts;
 };
 
 namespace {
@@ -249,13 +251,13 @@ std::unique_ptr< atlasTree_t > TreeMake( uint16_t k, uint16_t v )
 	return t;
 }
 
-void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v, atlasTreeMetrics_t& metrics );
+void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v );
 
-void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v, atlasTreeMetrics_t& metrics )
+void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v )
 {
 	if ( t )
 	{
-		TreeInsert( *t, k, v, metrics );
+		TreeInsert( *t, k, v );
 	}
 	else
 	{
@@ -263,32 +265,19 @@ void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v, at
 	}
 }
 
-void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v, atlasTreeMetrics_t& metrics )
+void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v )
 {
 	if ( k < t.key )
 	{
-		InsertOrMake( t.left, k, v, metrics );
+		InsertOrMake( t.left, k, v );
 	}
 	else if ( k > t.key )
 	{
-		InsertOrMake( t.right, k, v, metrics );
+		InsertOrMake( t.right, k, v );
 	}
 	else
 	{
 		BucketInsert( t, v );
-
-		uint16_t totalBuckets = t.First()->TotalBuckets();
-
-		if ( totalBuckets > metrics.highest.numBuckets )
-		{
-			metrics.highest.width = k;
-			metrics.highest.numBuckets = totalBuckets;
-		}
-		else if ( totalBuckets > metrics.nextHighest.numBuckets )
-		{
-			metrics.nextHighest.width = k;
-			metrics.nextHighest.numBuckets = totalBuckets;
-		}
 	}
 }
 
@@ -314,6 +303,12 @@ bool TraverseColumn( atlasTree_t& t, atlasPositionMap_t& map, uint8_t index )
 		curr->SubOffset();
 		map.origin.y += ( float )curr->val * ( float )curr->ReadOffset();
 	}
+	/*
+	else if ( index != t.columns.size() - 1 )
+	{
+		return false;
+	}
+	*/
 
 	return !!curr;
 }
@@ -329,12 +324,39 @@ uint16_t SumBounds( const atlasTree_t* t, uint16_t target )
 		if ( t->key < target )
 		{
 			s += t->key * t->columns.size();
+			s += SumBounds( t->right.get(), target );
 		}
-
-		s += SumBounds( t->right.get(), target );
 	}
 
 	return s;
+}
+
+void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
+{
+	if ( t )
+	{
+		CalcMetrics( t->left.get(), metrics );
+		CalcMetrics( t->right.get(), metrics );
+
+		// TODO: iterate over all of the root buckets
+		// within the tree; this is useful if we want to
+		// perform more analytics later (i.e., after more columns
+		// have been potentially added)
+		uint16_t totalBuckets = t->First()->TotalBuckets();
+
+		if ( totalBuckets > metrics.highest.numBuckets )
+		{
+			metrics.highest.width = t->key;
+			metrics.highest.numBuckets = totalBuckets;
+		}
+		else if ( totalBuckets > metrics.nextHighest.numBuckets )
+		{
+			metrics.nextHighest.width = t->key;
+			metrics.nextHighest.numBuckets = totalBuckets;
+		}
+
+		metrics.bucketCounts.InsertOrdered( totalBuckets );
+	}
 }
 
 // The ReadCount and ReadOffset methods will initially return the same values. Things change, however,
@@ -362,6 +384,11 @@ void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root
 
 			for ( i = 0; i < t->columns.size() && !found; )
 			{
+				if ( i == 2 )
+				{
+					__nop();
+				}
+
 				found = TraverseColumn( *t, map, i );
 
 				if ( !found )
@@ -399,14 +426,31 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		const std::vector< gImageParams_t >& params )
 {
 	atlasTree_t rootTree;
-	median_t< uint16_t > widths;
+	stats_t< uint16_t > widths;
 
 	for ( uint16_t i = 0; i < params.size(); ++i )
 	{
-		widths.Insert( params[ i ].width );
+		widths.InsertOrderedUnique( params[ i ].width );
 	}
 
+	// NOTE: if widths.size() is even,
+	// the median returned will be the traditional
+	// half of the sum of width's two middle values.
+	// If this happens, we'll likely get a
+	// NON POT value. The worst case scenario
+	// is that the root node effectively divides
+	// all images and stores no buckets itself.
+	// the end result will likely be a gap
+	// in the atlas of that median values
+	// texels - this is somewhat inefficient,
+	// but it would be worth seeing what exactly
+	// happens when the size is even to make sure.
 	rootTree.key = widths.GetMedian();
+
+	for ( const gImageParams_t& param: params )
+	{
+		TreeInsert( rootTree, param.width, param.height );
+	}
 
 	atlasTreeMetrics_t metrics =
 	{
@@ -417,27 +461,65 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 	metrics.base = widths.Sum();
 
-	for ( const gImageParams_t& param: params )
-	{
-		TreeInsert( rootTree, param.width, param.height, metrics );
-	}
+	CalcMetrics( &rootTree, metrics );
 
 	// Check to see if our highest bucket count is two standard deviations
 	// from the nextHighest. If so, we should split any bucket groups which
 	// are significantly high into separate columns: this will significantly
 	// alleviate any potential problems with attempting a texture allocation
 	// which is larger than GL_MAX_TEXTURE_SIZE
-	if ( metrics.highest.numBuckets >= ( metrics.nextHighest.numBuckets << 1 ) )
+
+	/*if ( metrics.highest.numBuckets >= ( metrics.nextHighest.numBuckets << 1 ) )
 	{
 		atlasTree_t* t = TreeFetch( &rootTree, metrics.highest.width );
 
 		uint16_t cutoff = metrics.highest.numBuckets >> 1;
 
-		atlasBucket_t* current = t->First()->FindRange( cutoff - 1 );
+		atlasBucket_t* prev = nullptr;
+		t->First()->FindRange( cutoff, &prev );
 
-		t->columns.push_back( std::move( current->next ) );
+		if ( prev )
+		{
+			t->columns.push_back( std::move( prev->next ) );
+			prev->next.reset( nullptr );
+		}
+	}
+	*/
 
-		current->next.reset( nullptr );
+	float stdDev, zHigh;
+	zHigh = metrics.bucketCounts.ZScore( metrics.highest.numBuckets, &stdDev );
+
+	if ( 2.0f <= zHigh )
+	{
+		atlasTree_t* t = TreeFetch( &rootTree, metrics.highest.width );
+
+		atlasBucket_t* phigh = nullptr;
+		atlasBucket_t* high = nullptr;
+		atlasBucket_t* p = nullptr;
+		atlasBucket_t* b = t->First().get();
+
+		while ( b )
+		{
+			if ( ( high && b->ReadCount() > high->ReadCount() ) || !high )
+			{
+				phigh = p;
+				high = b;
+			}
+
+			p = b;
+			b = b->next.get();
+		}
+
+		t->columns.push_back( std::move( phigh->next ) );
+		phigh->next.reset( nullptr );
+
+		uint32_t newCount = high->ReadCount() >> 1;
+
+		std::unique_ptr< atlasBucket_t > nextCol( new atlasBucket_t() );
+		nextCol->WriteCount( newCount + ( high->ReadCount() % 2 ) );
+		high->WriteCount( newCount );
+
+		t->columns.push_back( std::move( nextCol ) );
 	}
 
 	std::vector< atlasPositionMap_t > posMap;
