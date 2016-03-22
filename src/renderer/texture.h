@@ -102,4 +102,7 @@ uint16_t GTextureMegaWidth( const gTextureHandle_t& handle );
 
 uint16_t GTextureMegaHeight( const gTextureHandle_t& handle );
 
+bool GValidTextureDimensions( uint16_t width, uint16_t height );
+
 void GFreeTexture( gTextureHandle_t& handle );
+

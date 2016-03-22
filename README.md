@@ -497,3 +497,9 @@ column, considering that curr is != null ( which is what TraverseColumn's return
 parallel to).
 
 So, that's next on the TODO list: fix this bucket split issue.
+
+**3/22/16**
+
+Bucket splitting is taken care of. Going to work on grid splitting next, as a mechansim for
+
+working with generated atlasses which surpass GL_MAX_TEXTURE_SIZE in the width and/or height.

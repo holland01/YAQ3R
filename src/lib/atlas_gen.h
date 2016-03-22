@@ -10,5 +10,6 @@ struct atlasPositionMap_t
 	glm::vec2 origin;
 };
 
-std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImageParams_t >& params );
+std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImageParams_t >& params,
+												uint16_t maxTextureSize );
 

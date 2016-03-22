@@ -311,9 +311,13 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasParams,
 					gSamplerHandle_t sampler, gImageParamList_t& images )
 {
-	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images );
+	GLint maxTextureSize;
+	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSize ) );
 
-	glm::vec2 maxDims( std::numeric_limits< float >::min() ), minDims( std::numeric_limits< float >::max() );
+	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images, ( uint16_t )maxTextureSize );
+
+	glm::vec2 maxDims( std::numeric_limits< float >::min() ),
+			minDims( std::numeric_limits< float >::max() );
 
 	for ( const atlasPositionMap_t& am: origins )
 	{
@@ -323,9 +327,44 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 		if ( am.origin.y < minDims.y ) minDims.y = am.origin.y;
 	}
 
-	canvasParams.width = NextPower2( ( int32_t )( maxDims.x - minDims.x ) << 1 );
-	canvasParams.height = NextPower2( ( int32_t )( maxDims.y - minDims.y ) << 1 );
+	int32_t w = ( int32_t )( maxDims.x - minDims.x );
+	int32_t h = ( int32_t )( maxDims.y - minDims.y );
+	bool dw = false;
+	bool dh = false;
+
+	for ( const atlasPositionMap_t& am: origins )
+	{
+		if ( ( am.origin.x + am.image->width ) >= w )
+		{
+			dw = true;
+		}
+
+		if ( ( am.origin.y + am.image->height ) >= h )
+		{
+			dh = true;
+		}
+
+		if ( dh && dw )
+		{
+			break;
+		}
+	}
+
+	if ( dw )
+	{
+		w <<= 1;
+	}
+
+	if ( dh )
+	{
+		h <<= 1;
+	}
+
+	canvasParams.width = NextPower2( w );
+	canvasParams.height = NextPower2( h );
 	canvasParams.sampler = sampler;
+
+	GValidTextureDimensions( canvasParams.width, canvasParams.height );
 
 	return std::move( origins );
 }
@@ -646,6 +685,22 @@ uint16_t GTextureMegaWidth( const gTextureHandle_t& handle )
 uint16_t GTextureMegaHeight( const gTextureHandle_t& handle )
 {
 	return GetTexture( handle )->megaDims.y;
+}
+
+bool GValidTextureDimensions( uint16_t width, uint16_t height )
+{
+	GLint maxTextureSize;
+	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSize ) );
+
+	if ( width > maxTextureSize || height > maxTextureSize )
+	{
+		MLOG_INFO( "Texture Size is Invalid;"\
+			" (max value, desired width, desired height) => "\
+			" (%iu, %iu, %iu)", maxTextureSize, width, height );
+		return false;
+	}
+
+	return true;
 }
 
 bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )

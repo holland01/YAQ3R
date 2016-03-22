@@ -31,7 +31,7 @@ struct atlasBucket_t
 		WriteCount( c );
 	}
 
-	uint8_t ReadCount( void )
+	uint8_t ReadCount( void ) const
 	{
 		return ( uint8_t )( count & 0xFF );
 	}
@@ -43,12 +43,12 @@ struct atlasBucket_t
 		count = ( count & 0xFF ) | ( off << 8 );
 	}
 
-	uint8_t ReadOffset( void )
+	uint8_t ReadOffset( void ) const
 	{
 		return ( uint8_t ) ( ( count >> 8 ) & 0xFF );
 	}
 
-	uint16_t TotalBuckets( void )
+	uint16_t TotalBuckets( void ) const
 	{
 		uint16_t thisCount = ReadCount();
 
@@ -60,7 +60,7 @@ struct atlasBucket_t
 		return thisCount;
 	}
 
-	std::string Info( void )
+	std::string Info( void ) const
 	{
 		std::stringstream ss;
 		uint32_t c = ReadCount();
@@ -441,12 +441,86 @@ atlasTree_t* TreeFetch( atlasTree_t* t, uint16_t key )
 	return t;
 }
 
+void DuplicateColumn( atlasTree_t& dest, const atlasBucket_t* src, uint16_t count )
+{
+	if ( !count )
+	{
+		return;
+	}
+
+	std::unique_ptr< atlasBucket_t > nextCol( new atlasBucket_t() );
+	nextCol->val = src->val;
+	nextCol->WriteCount( count );
+	dest.columns.push_back( std::move( nextCol ) );
+}
+
+uint16_t CalcWidth( atlasTree_t* t )
+{
+	uint16_t w = 0;
+
+	if ( t )
+	{
+		w += CalcWidth( t->left.get() );
+		w += t->key * t->columns.size();
+		w += CalcWidth( t->right.get() );
+	}
+
+	return w;
+}
+
+uint16_t CalcHeight( const atlasTree_t* t )
+{
+	uint16_t h0, h1, h2;
+
+	h0 = h1 = h2 = 0;
+
+	if ( t )
+	{
+		h0 = CalcHeight( t->left.get() );
+
+		for ( const std::unique_ptr< atlasBucket_t >& b: t->columns )
+		{
+			uint16_t m = 0;
+			const atlasBucket_t* p = b.get();
+
+			while ( p )
+			{
+				m += p->val * p->ReadCount();
+				p = p->next.get();
+			}
+
+			if ( h1 < m )
+			{
+				h1 = m;
+			}
+		}
+
+		h2 = CalcHeight( t->right.get() );
+	}
+
+	return std::max( h0, std::max( h1, h2 ) );
+}
+
+INLINE bool ValidateDims( uint16_t width, uint16_t height, uint16_t maxTextureSize )
+{
+	bool good = width < maxTextureSize && height < maxTextureSize;
+
+	MLOG_ASSERT( good,
+				 "Width and Height exceed max GL texture size."\
+				 " (GL Max, width, height) => (%iu, %iu, %iu)",
+				 maxTextureSize, width, height );
+
+	return good;
+}
+
 // For lists of images which have varying sizes
 std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
-		const std::vector< gImageParams_t >& params )
+		const std::vector< gImageParams_t >& params,
+		uint16_t maxTextureSize )
 {
 	atlasTree_t rootTree;
 	stats_t< uint16_t > widths;
+	uint16_t width, height;
 
 	for ( uint16_t i = 0; i < params.size(); ++i )
 	{
@@ -490,24 +564,6 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 	// are significantly high into separate columns: this will significantly
 	// alleviate any potential problems with attempting a texture allocation
 	// which is larger than GL_MAX_TEXTURE_SIZE
-
-	/*if ( metrics.highest.numBuckets >= ( metrics.nextHighest.numBuckets << 1 ) )
-	{
-		atlasTree_t* t = TreeFetch( &rootTree, metrics.highest.width );
-
-		uint16_t cutoff = metrics.highest.numBuckets >> 1;
-
-		atlasBucket_t* prev = nullptr;
-		t->First()->FindRange( cutoff, &prev );
-
-		if ( prev )
-		{
-			t->columns.push_back( std::move( prev->next ) );
-			prev->next.reset( nullptr );
-		}
-	}
-	*/
-
 	float stdDev, zHigh;
 	zHigh = metrics.bucketCounts.ZScore( metrics.highest.numBuckets, &stdDev );
 
@@ -519,8 +575,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		atlasBucket_t* high = nullptr;
 		atlasBucket_t* p = nullptr;
 		atlasBucket_t* b = t->First().get();
-		std::unique_ptr< atlasBucket_t > nextCol( new atlasBucket_t() );
-		uint32_t newCount;
+		uint16_t newCount, counter, rem;
 
 		while ( b )
 		{
@@ -534,19 +589,37 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 			b = b->next.get();
 		}
 
-		newCount = high->ReadCount() >> 1;
-		nextCol->val = high->val;
+		uint16_t subDivisions = 1;
 
 		if ( phigh )
 		{
 			t->columns.push_back( std::move( phigh->next ) );
 			phigh->next.reset( nullptr );
 		}
+		else
+		{
+			subDivisions++;
+		}
 
-		nextCol->WriteCount( newCount + ( high->ReadCount() % 2 ) );
+		counter = newCount = high->ReadCount() >> subDivisions;
+		rem = high->ReadCount() % ( 1 << subDivisions );
+
+		while ( counter < high->ReadCount() )
+		{
+			DuplicateColumn( *t, high, newCount );
+			counter += newCount;
+		}
+
 		high->WriteCount( newCount );
+		DuplicateColumn( *t, high, rem );
+	}
 
-		t->columns.push_back( std::move( nextCol ) );
+	width = CalcWidth( &rootTree );
+	height = CalcHeight( &rootTree );
+
+	if ( !ValidateDims( width, height, maxTextureSize ) )
+	{
+		return std::move( posMap );
 	}
 
 	// Query the max value and send it in
@@ -565,11 +638,20 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 }
 
 // For lists of images which all have the same dimensions
-std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gImageParams_t >& params )
+std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gImageParams_t >& params,
+														uint16_t maxTextureSize )
 {
-	uint16_t square = NextSquare( params.size() );
-
 	std::vector< atlasPositionMap_t > posMap;
+	uint16_t square, width, height;
+
+	square = NextSquare( params.size() );
+	width = NextPower2( square * params[ 0 ].width );
+	height = NextPower2( square * params[ 0 ].height );
+
+	if ( !ValidateDims( width, height, maxTextureSize ) )
+	{
+		return std::move( posMap );
+	}
 
 	for ( uint16_t y = 0; y < square; ++y )
 	{
@@ -594,7 +676,9 @@ std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gIm
 
 } // end namespace
 
-std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImageParams_t >& params )
+std::vector< atlasPositionMap_t > AtlasGenOrigins(
+		const std::vector< gImageParams_t >& params,
+		uint16_t maxTextureSize )
 {
 	// Determine our atlas layout
 	for ( uint16_t i = 1; i < params.size(); ++i )
@@ -604,9 +688,9 @@ std::vector< atlasPositionMap_t > AtlasGenOrigins( const std::vector< gImagePara
 		if ( params[ i - 1 ].width != params[ i ].width
 			 || params[ i - 1 ].height != params[ i ].height )
 		{
-			return std::move( AtlasGenVariedOrigins( params ) );
+			return std::move( AtlasGenVariedOrigins( params, maxTextureSize ) );
 		}
 	}
 
-	return std::move( AtlasGenUniformOrigins( params ) );
+	return std::move( AtlasGenUniformOrigins( params, maxTextureSize ) );
 }

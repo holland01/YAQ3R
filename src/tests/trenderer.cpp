@@ -4,7 +4,7 @@
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),
 	  renderer( nullptr ),
-	  mapFilepath( "asset/stockmaps/maps/q3dm1.bsp" ),
+	  mapFilepath( "asset/stockmaps/maps/q3dm2.bsp" ),
 	  moveRateChangeRate( 0.3f )
 {
 }
