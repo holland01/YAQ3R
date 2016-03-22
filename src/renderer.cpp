@@ -125,41 +125,17 @@ BSPRenderer::~BSPRenderer( void )
 void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc, const std::string& fragSrc,
 		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
 {
-	/*
-	std::vector< char > vertex, fragment;
-
-	if ( !File_GetBuf( vertex, vertPath ) )
-	{
-		MLOG_ERROR( "Could not open vertex shader" );
-		return;
-	}
-
-	if ( !File_GetBuf( fragment, fragPath ) )
-	{
-		MLOG_ERROR( "Could not open fragment shader" );
-		return;
-	}
-	*/
-
 	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc, fragSrc, uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
 {
-	/*
-	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
-	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
-	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
-	GL_CHECK( glDepthMask( GL_TRUE ) );
-	*/
-
 	GEnableDepthBuffer();
 
 	GL_CHECK( glEnable( GL_BLEND ) );
 	GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
-	//GU_ClearDepth( 1.0f );
 
 	GL_CHECK( glGenBuffers( apiHandles.size(), &apiHandles[ 0 ] ) );
 
@@ -534,12 +510,13 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
-	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i",
+	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n Camera Move Speed: %f",
 			   CalcFPS(),
 			   gCounts.numSolidEffect,
 			   gCounts.numSolidNormal,
 			   gCounts.numTransEffect,
-			   gCounts.numTransNormal );
+			   gCounts.numTransNormal,
+			   camera->moveStep );
 }
 
 void BSPRenderer::Update( float dt )

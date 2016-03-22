@@ -114,6 +114,8 @@ struct atlasTree_t
 	std::unique_ptr< atlasTree_t > left;
 	std::unique_ptr< atlasTree_t > right;
 
+	std::unordered_map< uint16_t, bool > used;
+
 	std::vector< std::unique_ptr< atlasBucket_t > > columns;
 
 	std::unique_ptr< atlasBucket_t >& First( void )
@@ -161,9 +163,17 @@ struct meta_t
 		{
 			LogData_r( t->left.get() );
 
-			std::string info( t->First()->Info() );
-			O_LogF( log.ptr, "entry", "\nWidth: %i\n Bucket (Column) Count: %i\n Bucket Info: \n\n%s\n",
-					t->key, t->columns.size(), info.c_str() );
+			if ( t->columns.empty() )
+			{
+				O_LogF( log.ptr, "entry", "\nWidth: %i\n Bucket (Column) Count: %i\n ( No Buckets/Columns )",
+						t->key, t->columns.size() );
+			}
+			else
+			{
+				std::string info( t->First()->Info() );
+				O_LogF( log.ptr, "entry", "\nWidth: %i\n Bucket (Column) Count: %i\n Bucket Info: \n\n%s\n",
+						t->key, t->columns.size(), info.c_str() );
+			}
 
 			LogData_r( t->right.get() );
 		}
@@ -185,6 +195,8 @@ void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p, uin
 // Insert height values in descending order ( largest value is at the bottom )
 void BucketInsert( atlasTree_t& t, uint16_t v )
 {
+	t.used[ v ] = false;
+
 	if ( t.columns.empty() )
 	{
 		std::unique_ptr< atlasBucket_t > f( new atlasBucket_t() );
@@ -298,17 +310,22 @@ bool TraverseColumn( atlasTree_t& t, atlasPositionMap_t& map, uint8_t index )
 
 	// if curr != nullptr, we know that, by nature of the this structure,
 	// curr->val is implicitly == image.height
-	if ( curr && curr->ReadOffset() > 1 )
+	if ( curr )
 	{
-		curr->SubOffset();
-		map.origin.y += ( float )curr->val * ( float )curr->ReadOffset();
+		if ( curr->ReadOffset() >= 1 )
+		{
+			curr->SubOffset();
+			map.origin.y += ( float )curr->val * ( float )curr->ReadOffset();
+		}
+		else if ( t.used[ curr->val ] )
+		{
+			return false;
+		}
+		else
+		{
+			t.used[ curr->val ] = true;
+		}
 	}
-	/*
-	else if ( index != t.columns.size() - 1 )
-	{
-		return false;
-	}
-	*/
 
 	return !!curr;
 }
@@ -342,20 +359,23 @@ void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
 		// within the tree; this is useful if we want to
 		// perform more analytics later (i.e., after more columns
 		// have been potentially added)
-		uint16_t totalBuckets = t->First()->TotalBuckets();
-
-		if ( totalBuckets > metrics.highest.numBuckets )
+		if ( !t->columns.empty() )
 		{
-			metrics.highest.width = t->key;
-			metrics.highest.numBuckets = totalBuckets;
-		}
-		else if ( totalBuckets > metrics.nextHighest.numBuckets )
-		{
-			metrics.nextHighest.width = t->key;
-			metrics.nextHighest.numBuckets = totalBuckets;
-		}
+			uint16_t totalBuckets = t->First()->TotalBuckets();
 
-		metrics.bucketCounts.InsertOrdered( totalBuckets );
+			if ( totalBuckets > metrics.highest.numBuckets )
+			{
+				metrics.highest.width = t->key;
+				metrics.highest.numBuckets = totalBuckets;
+			}
+			else if ( totalBuckets > metrics.nextHighest.numBuckets )
+			{
+				metrics.nextHighest.width = t->key;
+				metrics.nextHighest.numBuckets = totalBuckets;
+			}
+
+			metrics.bucketCounts.InsertOrdered( totalBuckets );
+		}
 	}
 }
 
@@ -384,7 +404,7 @@ void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root
 
 			for ( i = 0; i < t->columns.size() && !found; )
 			{
-				if ( i == 2 )
+				if ( t->key == 256 )
 				{
 					__nop();
 				}
@@ -459,6 +479,8 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		0
 	};
 
+	std::vector< atlasPositionMap_t > posMap;
+
 	metrics.base = widths.Sum();
 
 	CalcMetrics( &rootTree, metrics );
@@ -497,6 +519,8 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		atlasBucket_t* high = nullptr;
 		atlasBucket_t* p = nullptr;
 		atlasBucket_t* b = t->First().get();
+		std::unique_ptr< atlasBucket_t > nextCol( new atlasBucket_t() );
+		uint32_t newCount;
 
 		while ( b )
 		{
@@ -510,19 +534,22 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 			b = b->next.get();
 		}
 
-		t->columns.push_back( std::move( phigh->next ) );
-		phigh->next.reset( nullptr );
+		newCount = high->ReadCount() >> 1;
+		nextCol->val = high->val;
 
-		uint32_t newCount = high->ReadCount() >> 1;
+		if ( phigh )
+		{
+			t->columns.push_back( std::move( phigh->next ) );
+			phigh->next.reset( nullptr );
+		}
 
-		std::unique_ptr< atlasBucket_t > nextCol( new atlasBucket_t() );
 		nextCol->WriteCount( newCount + ( high->ReadCount() % 2 ) );
 		high->WriteCount( newCount );
 
 		t->columns.push_back( std::move( nextCol ) );
 	}
 
-	std::vector< atlasPositionMap_t > posMap;
+	// Query the max value and send it in
 
 	for ( const gImageParams_t& image: params )
 	{

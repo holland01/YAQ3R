@@ -324,7 +324,7 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 	}
 
 	canvasParams.width = NextPower2( ( int32_t )( maxDims.x - minDims.x ) << 1 );
-	canvasParams.height = NextPower2( ( int32_t )( maxDims.y - minDims.y ) );
+	canvasParams.height = NextPower2( ( int32_t )( maxDims.y - minDims.y ) << 1 );
 	canvasParams.sampler = sampler;
 
 	return std::move( origins );
