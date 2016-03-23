@@ -164,6 +164,17 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 	return true;
 }
 
+INLINE bool InRange( const gGrid_t& grid, const atlasPositionMap_t& map )
+{
+	glm::vec2 gridOrigin( grid.xStart, grid.yStart );
+	glm::vec2 gridBound( grid.xEnd, grid.yEnd );
+	glm::vec2 mapBound( map.origin.x + map.image->width,
+		map.origin.y + map.image->height );
+
+	return glm::all( glm::lessThanEqual( gridOrigin, map.origin ) )
+		&& glm::all( glm::lessThan( mapBound, gridBound ) );
+}
+
 void GenGridTexture( GLenum target,
 					gGrid_t* grid,
 					const gTexConfig_t& sampler,
@@ -187,25 +198,232 @@ void GenGridTexture( GLenum target,
 	GL_CHECK( glBindTexture( target, 0 ) );
 }
 
-bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
+bool TryAlignBoundry( atlasPositionMap_t& map, glm::ivec2& result, const glm::vec2& scale,
+	const glm::vec2& baseDims, const glm::vec2& offsetDims )
 {
-	if ( !tt )
+	glm::vec2 min( scale * baseDims );
+	glm::vec2 max( min + offsetDims );
+
+	bool inside = glm::all( glm::lessThanEqual( min, map.origin ) )
+			&& glm::all( glm::lessThan( map.origin, max ) );
+
+	if ( inside )
 	{
-		return false;
+		float xEnd = map.origin.x + map.image->width;
+		if ( xEnd > max.x )
+		{
+			max.x += 1 + xEnd - max.x;
+		}
+
+		float yEnd = map.origin.y + map.image->height;
+		if ( yEnd > max.y )
+		{
+			max.y += 1 + yEnd - max.y;
+		}
+
+		result = glm::ivec2( NextPower2( uint16_t( max.x - min.x ) ),
+			NextPower2( uint16_t( max.y - min.y ) ) );
 	}
 
-	const gTexConfig_t& sampler = GetTexConfig( params.sampler );
+	return inside;
+}
 
+void CalcProjBounds( uint8_t offset, glm::vec2& min, glm::vec2& max,
+	const glm::mat2& axes, const std::array< glm::vec2, 8 >& p )
+{
+	//glm::mat2 invAxes( glm::inverse( axes ) );
+
+	uint8_t end = offset + ( p.size() >> 1 );
+	for ( uint8_t j = offset; j < end; ++j )
+	{
+		glm::vec2 proj( glm::dot( p[ j ], axes[ 1 ] ) * axes[ 1 ] );
+
+		glm::vec2 cmpProj( proj );
+		glm::vec2 cmpMin( glm::dot( min, axes[ 1 ] ) * axes[ 1 ] );
+		glm::vec2 cmpMax( glm::dot( max, axes[ 1 ] ) * axes[ 1 ] );
+
+		if ( glm::all( glm::lessThanEqual( cmpProj, cmpMin ) ) )
+		{
+			min = proj;
+		}
+
+		if ( glm::all( glm::greaterThanEqual( cmpProj, cmpMax ) ) )
+		{
+			max = proj;
+		}
+	}
+}
+
+void ResolveConflict( glm::vec2& aMin, glm::vec2& aMax,
+				glm::vec2& bMin, glm::vec2& bMax )
+{
+	std::array< glm::vec2, 8 > p =
+	{{
+		glm::vec2( aMin.x, aMin.y ),
+		glm::vec2( aMin.x, aMax.y ),
+		glm::vec2( aMax.x, aMax.y ),
+		glm::vec2( aMax.x, aMin.y ),
+
+		glm::vec2( bMin.x, bMin.y ),
+		glm::vec2( bMin.x, bMax.y ),
+		glm::vec2( bMax.x, bMax.y ),
+		glm::vec2( bMax.x, bMin.y )
+	}};
+
+	float smallest = std::numeric_limits< float >::max();
+	glm::vec2 resolve( std::numeric_limits< float >::max() );
+	uint8_t h = 0;
+
+	for ( uint8_t i = 0; i < p.size() - 1; i++ )
+	{
+		if ( i == 3 )
+		{
+			i = 4;
+		}
+
+		glm::vec2 side( p[ i + 1 ] - p[ i ] );
+
+		// Normal: perpendicular to side
+		glm::vec2 n( -side.y, side.x );
+		n = glm::normalize( n );
+
+		glm::mat2 axes( glm::normalize( side ), n );
+
+		// ( s, t ) => ( min, max ); ( u, v ) follows same suite
+		glm::vec2 s( std::numeric_limits< float >::max() ), t( -std::numeric_limits< float >::min() );
+		CalcProjBounds( 0, s, t, axes, p );
+
+		glm::vec2 u( std::numeric_limits< float >::max() ), v( -std::numeric_limits< float >::min() );
+		CalcProjBounds( p.size() >> 1, u, v, axes, p );
+
+		// If the distance from one's max to the other's min is greater than the sum of both
+		// object's projected lengths, we know there isn't an intersection
+		glm::vec2 lengths( glm::length( t - s ), glm::length( v - u ) );
+
+		float x = glm::distance( t, u );
+		float y = glm::distance( v, s );
+		float k = lengths.x + lengths.y;
+
+		// We choose the max distance, since there easily could be a max/min
+		// distance combo which is less than k
+		if ( glm::max( x, y ) > k )
+		{
+			return;
+		}
+
+		// Check for shortest route to resolution
+		if ( glm::min( x, y ) < smallest )
+		{
+			smallest = glm::min( x, y );
+			if ( smallest == x )
+			{
+				h = 0;
+				resolve = u - t;
+			}
+			else
+			{
+				h = 1;
+				resolve = s - v;
+			}
+		}
+	}
+
+	// Resolve
+	if ( h == 1 )
+	{
+		bMax += resolve;
+		bMin += resolve;
+	}
+	else
+	{
+		aMax += resolve;
+		aMax += resolve;
+	}
+}
+
+void CorrectOrigins( const glm::ivec2& gridDims, const glm::ivec2& originalDims,
+	std::vector< atlasPositionMap_t >& origins,
+	std::vector< glm::ivec2 >& gridSlotDims, )
+{
+	for ( atlasPositionMap_t& m: origins )
+	{
+		bool found = false;
+		uint16_t i = 0;
+		for ( uint16_t y = 0; y < gridDims.y && !found; ++y )
+		{
+			for ( uint16_t x = 0; x < gridDims.x && !found; ++x )
+			{
+				found = TryAlignBoundry( m, gridSlotDims[ i ],
+							glm::ivec2( x, y ), originalDims,
+							gridSlotDims[ i ] );
+
+				++i;
+			}
+		}
+	}
+
+	uint16_t x0 = 0, y0 = 0;
+	for ( uint16_t i = 0; i < gridSlotDims.size(); ++i )
+	{
+		glm::vec2 min0( x0 * originalDims.x, y0 * originalDims.y );
+		glm::vec2 max0( min0 + glm::vec2( gridSlotDims[ i ].x,
+									gridSlotDims[ i ].y ) );
+
+		uint16_t next = i + 1;
+		uint16_t y1 = next / gridDims.x;
+		uint16_t x1 = next - y1 * gridDims.x;
+		glm::vec2 start( max0.x * !!x1, max0.y * !!x1 );
+		for ( uint16_t j = next; j < gridSlotDims.size(); ++j )
+		{
+			glm::vec2 min1( start );
+			glm::vec2 max1( min1 + glm::vec2( gridSlotDims[ j ].x,
+					gridSlotDims[ j ].y ) );
+
+			ResolveConflict( min0, max0, min1, max1 );
+
+			// Note: how do we know that gridSlotDims[ i ] won't just
+			// collide with a different element? At most, we're granted
+			// two collision passes and resolutions, which could easily
+			// not be enough
+			gridSlotDims[ i ] = max0 - min0;
+
+			x1 = ( x1 + 1 ) % gridDims.x;
+
+			if ( x1 == 0 )
+			{
+				y1++;
+			}
+		}
+
+		x0 = ( x0 + 1 ) % gridDims.x;
+		if ( x0 == 0 )
+		{
+			y0++;
+		}
+	}
+}
+
+std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& canvasParams,
+	std::vector< atlasPositionMap_t >& origins )
+{
+	std::vector< glm::ivec2 > dimensions;
+
+	if ( !tt )
+	{
+		return dimensions;
+	}
+
+	const gTexConfig_t& sampler = GetTexConfig( canvasParams.sampler );
+
+	uint16_t xDivide = 0, yDivide = 0;
 	{
 		gImageParams_t subdivision;
-		subdivision.width = params.width;
-		subdivision.height = params.height;
-		subdivision.data = std::move( params.data );
+		subdivision.width = canvasParams.width;
+		subdivision.height = canvasParams.height;
+		subdivision.data = canvasParams.data;
 
 		GLint gpuMaxDims;
 		GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &gpuMaxDims ) );
-
-		uint32_t xDivide = 0, yDivide = 0;
 
 		while ( !ValidateTexture( subdivision, sampler ) )
 		{
@@ -224,14 +442,39 @@ bool GenTextureData( gTexture_t* tt, const gImageParams_t& params )
 
 		tt->numGrids = 1 << ( xDivide + yDivide );
 		tt->grids = new gGrid_t[ tt->numGrids ]();
+
+		dimensions.resize( tt->numGrids,
+			glm::ivec2( subdivision.width,
+				subdivision.height ) );
+
+		// Realign images so they exist on appropriate boundries
+		if ( tt->numGrids > 1 )
+		{
+			CorrectOrigins( glm::ivec2( xDivide + 1, yDivide + 1 ),
+				glm::ivec2( subdivision.width, subdivision.height ),
+				origins, dimensions );
+		}
+
 		tt->grids[ 0 ].xStart = tt->grids[ 0 ].yStart = 0;
-		tt->grids[ 0 ].xEnd = params.width;
-		tt->grids[ 0 ].yEnd = params.height;
+		tt->grids[ 0 ].xEnd = dimensions[ 0 ].x;
+		tt->grids[ 0 ].yEnd = dimensions[ 0 ].y;
+
+		for ( uint16_t i = 1; i < tt->numGrids; ++i )
+		{
+			tt->grids[ i ].xStart = tt->grids[ i - 1 ].xEnd;
+			tt->grids[ i ].yStart = tt->grids[ i - 1 ].yEnd;
+			tt->grids[ i ].xEnd = tt->grids[ i ].xStart + dimensions[ i ].x;
+			tt->grids[ i ].yEnd = tt->grids[ i ].yStart + dimensions[ i ].y;
+		}
 	}
 
-	GenGridTexture( tt->target, tt->grids, sampler, &params.data[ 0 ] );
+	// Provide the number of horizontal/vertical subdivisions, for
+	// grid iteration
+	dimensions.push_back( glm::ivec2( xDivide, yDivide ) );
 
-	return true;
+	GenGridTexture( tt->target, tt->grids, sampler, &canvasParams.data[ 0 ] );
+
+	return std::move( dimensions );
 }
 
 INLINE void TryAllocDummy( void )
@@ -247,7 +490,8 @@ INLINE void TryAllocDummy( void )
 		gDummy->target = GL_TEXTURE_2D;
 		gDummy->sampler.id = 0;
 
-		GenTextureData( gDummy.get(), params );
+		std::vector< atlasPositionMap_t > dummy;
+		GenTextureData( gDummy.get(), params, dummy );
 
 		gTextureImage_t data;
 		data.dims = glm::vec2( ( float ) params.width, ( float ) params.height );
@@ -278,32 +522,32 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 		return t->grids;
 	}
 
+	/*
 	MLOG_ASSERT( t->numGrids == 1, "You need to test this search routine now,"\
 						"considering that the grid count has actually exceeded 1."\
 						"Hint: stOffsetEnd/stOffsetStart are computed in texture space,"
 						"not in texel space, so you'll need to actually convert one to the other"
 						"in the commented loop." );
+						*/
 
 	// TODO: If this slot has a good relationship with the layout of the
 	// grids, then we can make this more intelligent. (geometrically,
 	// the slot should map to rectangle in a grid of grids - each grid
 	// maps to its own set of x,y ranges; the slot is likely to have a corresponding
 	// relationship with these x,y ranges.)
-	/*
 
 	const gTextureImage_t& data = GTextureImage( handle, slotIndex );
 
 	for ( uint8_t i = 0; i < t->numGrids; ++i )
 	{
-		if ( data.stOffsetStart.x < t->grids[ i ].xStart ) continue;
-		if ( data.stOffsetEnd.x > t->grids[ i ].xEnd ) continue;
+		if ( data.gridLocation.x < t->grids[ i ].xStart ) continue;
+		if ( data.gridLocation.x + data.dims.x >= t->grids[ i ].xEnd ) continue;
 
-		if ( data.stOffsetStart.y < t->grids[ i ].yStart ) continue;
-		if ( data.stOffsetEnd.y > t->grids[ i ].yEnd ) continue;
+		if ( data.gridLocation.y < t->grids[ i ].yStart ) continue;
+		if ( data.gridLocation.y + data.dims.y >= t->grids[ i ].yEnd ) continue;
 
 		return t->grids + i;
 	}
-	*/
 
 	return nullptr;
 }
@@ -370,11 +614,17 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 }
 
 void GenSubdivision( gTexture_t* tt,
-	uint32_t grid, const gTextureMakeParams_t& makeParams,
+	uint16_t gridX,
+	uint16_t gridY,
+	uint16_t stride,
+	const glm::ivec2& slotDims,
+	const gTextureMakeParams_t& makeParams,
 	const gImageParams_t& canvasParams,
 	const std::vector< atlasPositionMap_t >& map )
 {
 	const gTexConfig_t& sampler = GetTexConfig( makeParams.sampler );
+
+	uint8_t grid = gridY * stride + gridX;
 
 	GL_CHECK( glBindTexture( tt->target, tt->grids[ grid ].handle ) );
 
@@ -389,14 +639,22 @@ void GenSubdivision( gTexture_t* tt,
 
 	for ( const atlasPositionMap_t& atlasPos: map )
 	{
+		if ( !InRange( tt->grids[ grid ], atlasPos ) )
+		{
+			continue;
+		}
+
 		const gImageParams_t& image = *( atlasPos.image );
 
 		GL_CHECK( glTexSubImage2D( tt->target,
-			0, ( int32_t )atlasPos.origin.x, ( int32_t )atlasPos.origin.y, image.width,
-			image.height, sampler.format, GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
+			0, ( int32_t )( atlasPos.origin.x - gridX * slotDims.x ),
+			( int32_t )( atlasPos.origin.y - gridY * slotDims.y ), image.width,
+			image.height, sampler.format,
+			GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
 
 		gTextureImage_t data;
 
+		data.gridLocation = atlasPos.origin;
 		data.stOffsetStart = atlasPos.origin * invPitchStride;
 		data.dims.x = image.width;
 		data.dims.y = image.height;
@@ -446,12 +704,18 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 		tt->imageSlots.resize( canvasParams.width * canvasParams.height );
 	}
 
-	GenTextureData( tt, canvasParams );
+	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams, origins );
 
-	for ( uint32_t i = 0; i < tt->numGrids; ++i )
+	const glm::ivec2& d = dims[ dims.size() - 1 ];
+
+	for ( uint16_t y = 0; y < ( 1 << d.y ); ++y )
 	{
-		GenSubdivision( tt, i,
-			makeParams, canvasParams, origins );
+		for ( uint16_t x = 0; x < ( 1 << d.x ); ++x )
+		{
+			GenSubdivision( tt, x, y, ( 1 << d.x ),
+				dims[ y * ( 1 << d.x ) + x ],
+				makeParams, canvasParams, origins );
+		}
 	}
 
 	return tt;

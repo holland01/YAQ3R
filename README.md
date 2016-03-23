@@ -503,3 +503,26 @@ So, that's next on the TODO list: fix this bucket split issue.
 Bucket splitting is taken care of. Going to work on grid splitting next, as a mechansim for
 
 working with generated atlasses which surpass GL_MAX_TEXTURE_SIZE in the width and/or height.
+
+**3/23/16**
+
+The good is that we have the following taken care of:
+
+* Grids are partitioned, and are capable of generating textures without killing the GL.
+
+* Grids are searchable.
+
+The bad news:
+
+* Shit looks fucked up for grids with quantities > 1. Basically, undefined behavior.
+
+So, what to do? After writing overlap tests and resolution methods (to ensure that
+images which are in certain locations are adjust so that there's no overlap
+between two grids, while at the same time preventing overlap with neighboring
+images), it seems like the initial locations which are being searched may be somewhat off,
+considering that the resolution/collision routine doesn't seem doing much
+with the current data set.
+
+So, the positioning and initial locations need to be investigated further. Definitely
+continuing to test the atlasses in TTextureTest will be useful; it would be handy
+to implement a mechanism which allows one to view the images on a grid-by-grid basis.

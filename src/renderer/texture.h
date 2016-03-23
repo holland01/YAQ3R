@@ -31,6 +31,7 @@ using gImageParamList_t = std::vector< gImageParams_t >;
 
 struct gTextureImage_t
 {
+	glm::vec2 gridLocation;
 	glm::vec2 stOffsetStart;
 	glm::vec2 stOffsetEnd;
 	glm::vec2 imageScaleRatio;
