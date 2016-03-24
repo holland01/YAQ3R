@@ -24,10 +24,12 @@ private:
 
 	Q3BspMap map;
 
-	bool drawAtlas;
+	bool drawAtlas, drawGrid;
 
-	gTextureImageKey_t currImageKey;
+	gTextureImageKey_t currImageKey, currGridKey;
 	gTextureImageKeyList_t imageKeys;
+
+	size_t numGrids;
 
 	void SetupVertexData( void );
 

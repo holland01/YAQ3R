@@ -343,7 +343,7 @@ void ResolveConflict( glm::vec2& aMin, glm::vec2& aMax,
 
 void CorrectOrigins( const glm::ivec2& gridDims, const glm::ivec2& originalDims,
 	std::vector< atlasPositionMap_t >& origins,
-	std::vector< glm::ivec2 >& gridSlotDims, )
+	std::vector< glm::ivec2 >& gridSlotDims )
 {
 	for ( atlasPositionMap_t& m: origins )
 	{
@@ -427,13 +427,13 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& 
 
 		while ( !ValidateTexture( subdivision, sampler ) )
 		{
-			if ( subdivision.width >= gpuMaxDims )
+			if ( subdivision.width > gpuMaxDims )
 			{
 				subdivision.width >>= 1;
 				xDivide++;
 			}
 
-			if ( subdivision.height >= gpuMaxDims )
+			if ( subdivision.height > gpuMaxDims )
 			{
 				subdivision.height >>= 1;
 				yDivide++;
@@ -447,12 +447,14 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& 
 			glm::ivec2( subdivision.width,
 				subdivision.height ) );
 
+		UNUSED( origins );
+
 		// Realign images so they exist on appropriate boundries
 		if ( tt->numGrids > 1 )
 		{
-			CorrectOrigins( glm::ivec2( xDivide + 1, yDivide + 1 ),
-				glm::ivec2( subdivision.width, subdivision.height ),
-				origins, dimensions );
+			//CorrectOrigins( glm::ivec2( xDivide + 1, yDivide + 1 ),
+				//glm::ivec2( subdivision.width, subdivision.height ),
+				//origins, dimensions );
 		}
 
 		tt->grids[ 0 ].xStart = tt->grids[ 0 ].yStart = 0;
@@ -622,6 +624,8 @@ void GenSubdivision( gTexture_t* tt,
 	const gImageParams_t& canvasParams,
 	const std::vector< atlasPositionMap_t >& map )
 {
+	UNUSED( canvasParams );
+
 	const gTexConfig_t& sampler = GetTexConfig( makeParams.sampler );
 
 	uint8_t grid = gridY * stride + gridX;
@@ -631,8 +635,8 @@ void GenSubdivision( gTexture_t* tt,
 	uint16_t x = 0, y = 0;
 	uint16_t square = NextSquare( map.size() );
 
-	glm::vec2 invPitchStride( 1.0f / ( float ) canvasParams.width,
-							  1.0f / ( float ) canvasParams.height );
+	glm::vec2 invPitchStride( 1.0f / ( float ) slotDims.x,
+							  1.0f / ( float ) slotDims.y );
 
 	tt->grids[ grid ].invStride = invPitchStride.x;
 	tt->grids[ grid ].invPitch = invPitchStride.y;
@@ -643,16 +647,20 @@ void GenSubdivision( gTexture_t* tt,
 		{
 			continue;
 		}
-
 		const gImageParams_t& image = *( atlasPos.image );
+		gTextureImage_t data;
+		uint16_t slot, next;
+
+		if ( atlasPos.image->width == 384 && atlasPos.image->height == 856 )
+		{
+			__nop();
+		}
 
 		GL_CHECK( glTexSubImage2D( tt->target,
 			0, ( int32_t )( atlasPos.origin.x - gridX * slotDims.x ),
 			( int32_t )( atlasPos.origin.y - gridY * slotDims.y ), image.width,
 			image.height, sampler.format,
 			GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
-
-		gTextureImage_t data;
 
 		data.gridLocation = atlasPos.origin;
 		data.stOffsetStart = atlasPos.origin * invPitchStride;
@@ -662,7 +670,7 @@ void GenSubdivision( gTexture_t* tt,
 		data.imageScaleRatio.x = data.dims.x; // necessary, for
 		data.imageScaleRatio.y = data.dims.y;
 
-		uintptr_t slot = ( uintptr_t )( y * square + x );
+		slot = ( uintptr_t )( y * square + x );
 
 		if ( tt->keyMapped )
 		{
@@ -673,7 +681,7 @@ void GenSubdivision( gTexture_t* tt,
 			tt->imageSlots[ slot ] = data;
 		}
 
-		uint16_t next = ( x + 1 ) % square;
+		next = ( x + 1 ) % square;
 
 		if ( next == 0 )
 		{
@@ -870,6 +878,17 @@ void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset )
 	GL_CHECK( glBindTexture( t->target, 0 ) );
 }
 
+void GBindGrid( const gTextureHandle_t& handle, uint32_t grid, uint32_t offset )
+{
+	const gTexture_t* t = GetTexture( handle );
+
+	if ( t && grid < t->numGrids )
+	{
+		GL_CHECK( glActiveTexture( GL_TEXTURE0 + offset ) );
+		GL_CHECK( glBindTexture( t->target, t->grids[ grid ].handle ) );
+	}
+}
+
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )
 {
 	const gTexture_t* t = GetTexture( handle );
@@ -894,14 +913,19 @@ uint16_t GTextureImageCount( const gTextureHandle_t& handle )
 {
 	const gTexture_t* tex = GetTexture( handle );
 
-	if ( tex->keyMapped )
+	if ( tex )
 	{
-		return tex->keyMapSlots.size();
+		if ( tex->keyMapped )
+		{
+			return tex->keyMapSlots.size();
+		}
+		else
+		{
+			return tex->imageSlots.size();
+		}
 	}
-	else
-	{
-		return tex->imageSlots.size();
-	}
+
+	return ( uint16_t ) G_UNSPECIFIED;
 }
 
 gTextureImageKeyList_t GTextureImageKeys( const gTextureHandle_t& handle )
@@ -931,6 +955,19 @@ gTextureImageKeyList_t GTextureImageKeys( const gTextureHandle_t& handle )
 
 	return std::move( keyList );
 }
+
+uint16_t GTextureGridCount( const gTextureHandle_t& handle )
+{
+	const gTexture_t* tex = GetTexture( handle );
+
+	if ( tex )
+	{
+		return tex->numGrids;
+	}
+
+	return ( uint16_t ) G_UNSPECIFIED;
+}
+
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle )
 {

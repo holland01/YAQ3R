@@ -6,8 +6,9 @@ TTextureTest::TTextureTest( void )
 	: Test( 1366, 768, false ),
 	  atlasProg( nullptr ),
 	  camera( new InputCamera() ),
-	  drawAtlas( true ),
-	  currImageKey( 0 )
+	  drawAtlas( true ), drawGrid( false ),
+	  currImageKey( 0 ), currGridKey( 0 ),
+	  numGrids( 0 )
 {
 	this->camPtr = camera.get();
 }
@@ -107,6 +108,7 @@ void TTextureTest::Load( void )
 	sampler = GMakeSampler();
 	texture = GU_LoadMainTextures( map, sampler );
 	imageKeys = GTextureImageKeys( texture );
+	numGrids = GTextureGridCount( texture );
 
 	MLOG_ASSERT( imageKeys.size() > 0, "imageKeys member is empty..." );
 
@@ -124,6 +126,23 @@ void TTextureTest::Load( void )
 	//MLOG_INFO( "hrhr" );
 }
 
+static void DecKey( gTextureImageKey_t& k, const size_t max )
+{
+	if ( k == 0 )
+	{
+		k = max - 1;
+	}
+	else
+	{
+		k--;
+	}
+}
+
+static void IncKey( gTextureImageKey_t& k, const size_t max )
+{
+	k = ( k + 1 ) % max;
+}
+
 void TTextureTest::OnInputEvent( SDL_Event* e )
 {
 	Test::OnInputEvent( e );
@@ -132,20 +151,30 @@ void TTextureTest::OnInputEvent( SDL_Event* e )
 	{
 		switch ( e->key.keysym.sym )
 		{
+			case SDLK_g:
+				drawGrid = !drawGrid;
+				break;
 			case SDLK_UP:
 				drawAtlas = !drawAtlas;
 				break;
 			case SDLK_RIGHT:
-				currImageKey = ( currImageKey + 1 ) % imageKeys.size();
-				break;
-			case SDLK_LEFT:
-				if ( currImageKey == 0 )
+				if ( drawGrid )
 				{
-					currImageKey = imageKeys.size() - 1;
+					IncKey( currGridKey, numGrids );
 				}
 				else
 				{
-					currImageKey--;
+					IncKey( currImageKey, imageKeys.size() );
+				}
+				break;
+			case SDLK_LEFT:
+				if ( drawGrid )
+				{
+					DecKey( currGridKey, numGrids );
+				}
+				else
+				{
+					DecKey( currImageKey, imageKeys.size() );
 				}
 				break;
 		}
@@ -214,7 +243,15 @@ void TTextureTest::Run( void )
 
 	if ( drawAtlas )
 	{
-		GBindTexture( texture );
+		if ( drawGrid )
+		{
+			GBindGrid( texture, currGridKey );
+		}
+		else
+		{
+			GBindTexture( texture );
+		}
+
 		Draw( *atlasProg, atlasQuad );
 	}
 	else

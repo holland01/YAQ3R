@@ -89,6 +89,8 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
+void GBindGrid( const gTextureHandle_t& handle, uint32_t grid, uint32_t offset = 0 );
+
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle );
@@ -96,6 +98,8 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle );
 uint16_t GTextureImageCount( const gTextureHandle_t& handle );
 
 gTextureImageKeyList_t GTextureImageKeys( const gTextureHandle_t& handle );
+
+uint16_t GTextureGridCount( const gTextureHandle_t& handle );
 
 glm::vec2 GTextureInverseRowPitch( const gTextureHandle_t& handle );
 
