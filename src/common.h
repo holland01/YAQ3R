@@ -26,6 +26,7 @@
 #	include <GLES2/gl2.h>
 #	include <GLES2/gl2ext.h>
 #	include <EGL/egl.h>
+#	define DEBUG
 #else
 #	include <GL/glew.h>
 #endif

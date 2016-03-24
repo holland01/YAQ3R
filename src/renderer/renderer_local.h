@@ -6,7 +6,7 @@
 #define G_TEXNAME_CHAR_LIMIT 64
 #define G_UNSPECIFIED 0xFFFFFFFF
 #define G_INTERNAL_BPP 4 // Just to let everyone know we only care really about RGBA... (most of the time)
-#define G_USE_GL_CORE
+
 #define G_INDEX_BYTE_STRIDE 4
 
 // if 1, we don't use GL_ELEMENT_ARRAY_BUFFER, we just send the indices directly through the draw call itself.
@@ -52,5 +52,8 @@ static bool G_VNULL( Tint v )
 using programDataMap_t = std::unordered_map< std::string, GLint >;
 
 #ifdef EMSCRIPTEN
-#   define glClearDepth glClearDepthf
+#	define glClearDepth glClearDepthf
+#	define glDepthRange glDepthRangef
+#else
+#	define G_USE_GL_CORE
 #endif

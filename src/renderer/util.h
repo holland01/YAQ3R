@@ -44,6 +44,7 @@ gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler );
 
 using guImmPosList_t = std::vector< glm::vec3 >;
 
+#ifndef EMSCRIPTEN
 void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj );
 
 void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj );
@@ -59,6 +60,7 @@ void GU_ImmDrawLine( const glm::vec3& origin,
 					 const glm::vec4& color,
 					 const glm::mat4& view,
 					 const glm::mat4& proj );
+#endif
 
 struct pushBlend_t
 {

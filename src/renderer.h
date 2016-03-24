@@ -52,6 +52,7 @@ struct drawSurface_t
 	// Every face within a given surface must
 	// have the same following 4 values
 
+	bool					transparent;
 	int32_t					textureIndex;
 	int32_t					lightmapIndex;
 	int32_t					faceType;
@@ -65,7 +66,8 @@ struct drawSurface_t
 	std::vector< int32_t >			faceIndices; // for vertex deformations
 
 			drawSurface_t( void )
-				:	textureIndex( 0 ),
+				:	transparent( false ),
+					textureIndex( 0 ),
 					lightmapIndex( 0 ),
 					faceType( 0 ),
 					shader( nullptr )
@@ -83,6 +85,8 @@ using surfMapTier1_t = std::unordered_map< surfKeyTier1_t, surfMapTier2_t >;
 
 using surfaceContainer_t = std::array< surfMapTier1_t, 4 >;
 
+struct drawPass_t;
+
 struct drawSurfaceList_t
 {
 	surfaceContainer_t surfaces, effectSurfaces;
@@ -90,7 +94,7 @@ struct drawSurfaceList_t
 
 struct drawPass_t
 {
-	bool isSolid: 1;
+	bool isSolid;
 	bool envmap: 1;
 
 	int faceIndex, viewLeafIndex;
@@ -135,8 +139,12 @@ class BSPRenderer
 {
 private:
 
-	// last two integers are textureIndex and lightmapIndex, respectively. the const void* is an optional parameter
-	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t >;
+	// [0] void* -> surface/face data to render
+	// [1] shaderInfo_t* -> relevant shader information
+	// [2] int32_t -> texture index
+	// [3] int32_t -> lightmap index
+	// [4] bool -> true if solid, false if not
+	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t, bool >;
 
 	gSamplerHandle_t				mainSampler; // also used by lightmaps
 
@@ -210,6 +218,7 @@ private:
 	void				LoadLightmaps( void );
 
 public:
+	bool			alwaysWriteDepth;
 	Q3BspMap*       map;
 	InputCamera*	camera;
 	Frustum*		frustum;

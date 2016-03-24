@@ -4,7 +4,7 @@
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),
 	  renderer( nullptr ),
-	  mapFilepath( "asset/stockmaps/maps/q3dm2.bsp" ),
+	  mapFilepath( "asset/stockmaps/maps/Railgun_Arena.bsp" ),
 	  moveRateChangeRate( 0.3f )
 {
 }
@@ -61,6 +61,9 @@ void TRenderer::OnInputEvent( SDL_Event* e )
 					break;
 				case SDLK_LEFT:
 					moveRateChangeRate -= 0.1f;
+					break;
+				case SDLK_k:
+					renderer->alwaysWriteDepth = !renderer->alwaysWriteDepth;
 					break;
 				default:
 					break;

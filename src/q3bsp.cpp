@@ -2,6 +2,7 @@
 #include "aabb.h"
 #include "io.h"
 #include "effect_shader.h"
+#include "lib/cstring_util.h"
 
 using namespace std;
 
@@ -64,7 +65,7 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 		*/
 		//if ( !it->second.glslMade )
 			//return nullptr;
-		
+
 
 
 		return &it->second;
@@ -77,7 +78,7 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 {
 	const bspFace_t* face = data.faces + faceIndex;
 	const shaderInfo_t* shader = nullptr;
-	
+
 	if ( face->shader != -1 )
 	{
 		shader = GetShaderInfo( data.shaders[ face->shader ].name );
@@ -91,13 +92,13 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 	return shader;
 }
 
-bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const 
-{ 
+bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
+{
 	const std::string shadername( File_StripExt( File_StripPath( shaderPath ) ) );
 
 	return shadername == name;
 }
-	
+
 void Q3BspMap::DestroyMap( void )
 {
 	if ( mapAllocated )
@@ -109,14 +110,74 @@ void Q3BspMap::DestroyMap( void )
 	}
 }
 
-void Q3BspMap::Read( const std::string& filepath, const int scale )
+mapEntity_t Q3BspMap::Read( const std::string& filepath, const int scale )
 {
 	if ( IsAllocated() )
 		DestroyMap();
 
+	mapEntity_t ret;
+
 	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 	ReadFile( filepath, scale );
 	mapAllocated = true;
+
+	const char* pInfo = data.entities.infoString;
+
+	while ( *pInfo )
+	{
+		char tok[ 64 ];
+		memset( tok, 0, sizeof( tok ) );
+
+		pInfo = StrReadToken( &tok[ 0 ], pInfo );
+
+		if ( strcmp( tok, "{" ) == 0 )
+		{
+			memset( tok, 0, sizeof( tok ) );
+			pInfo = StrReadToken( tok, pInfo );
+
+			glm::vec3 origin;
+			bool found = false;
+
+			while ( strcmp( tok, "}" ) != 0 )
+			{
+				if ( strcmp( tok, "\"classname\"" ) == 0 )
+				{
+					char newTok[ 64 ];
+					memset( newTok, 0, sizeof( newTok ) );
+					pInfo = StrReadToken( newTok, pInfo );
+					if ( strcmp( newTok, "\"info_player_deathmatch\"" ) == 0
+						 || strcmp( newTok, "\"info_player_start\"" ) == 0 )
+					{
+						found = true;
+					}
+
+					goto end_iteration;
+				}
+
+				if ( strcmp( tok, "\"origin\"" ) == 0 )
+				{
+					pInfo = StrNextNumber( pInfo );
+
+					origin[ 0 ] = StrReadFloat( pInfo );
+					origin[ 1 ] = StrReadFloat( pInfo );
+					origin[ 2 ] = StrReadFloat( pInfo );
+				}
+
+end_iteration:
+				memset( tok, 0, sizeof( tok ) );
+				pInfo = StrReadToken( tok, pInfo );
+			}
+
+			if ( found )
+			{
+				ret.origin = origin;
+				SwizzleCoords( ret.origin );
+				break;
+			}
+		}
+	}
+
+	return ret;
 }
 
 void Q3BspMap::WriteLumpToFile( uint32_t lump )

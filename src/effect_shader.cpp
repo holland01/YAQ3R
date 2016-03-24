@@ -4,14 +4,13 @@
 #include "shader.h"
 #include "glutil.h"
 #include "renderer/texture.h"
+#include "lib/cstring_util.h"
 #include <sstream>
 
 //#define G_DUPLICATE_PROGRAMS
 
 static INLINE GLsizei GL_EnumFromStr( const char* str );
 static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
-static float ReadFloat( const char*& buffer );
-static const char* ReadToken( char* out, const char* buffer );
 
 namespace {
 
@@ -82,7 +81,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( theStage );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "nodamage" ) == 0 )
 			{
@@ -123,7 +122,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( theStage );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "wave" ) == 0 )
 			{
@@ -146,10 +145,10 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			switch ( outInfo->deformCmd )
 			{
 			case VERTEXDEFORM_CMD_WAVE:
-				outInfo->deformParms.data.wave.spread = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.spread = StrReadFloat( buffer );
 
 				ZEROTOK( token );
-				buffer = ReadToken( token, buffer );
+				buffer = StrReadToken( token, buffer );
 
 				if ( strcmp( token, "triangle" ) == 0 )
 				{
@@ -172,16 +171,16 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
 				}
 
-				outInfo->deformParms.data.wave.base = ReadFloat( buffer );
-				outInfo->deformParms.data.wave.amplitude = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.base = StrReadFloat( buffer );
+				outInfo->deformParms.data.wave.amplitude = StrReadFloat( buffer );
 
 				// Normal command has no phase translation
 				if ( outInfo->deformCmd == VERTEXDEFORM_CMD_WAVE )
 				{
-					outInfo->deformParms.data.wave.phase = ReadFloat( buffer );
+					outInfo->deformParms.data.wave.phase = StrReadFloat( buffer );
 				}
 
-				outInfo->deformParms.data.wave.frequency = ReadFloat( buffer );
+				outInfo->deformParms.data.wave.frequency = StrReadFloat( buffer );
 
 				outInfo->deform = true;
 				break;
@@ -203,7 +202,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( theStage );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "back" ) == 0 )
 			{
@@ -242,7 +241,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( token );
 			UNUSED( theStage );
 
-			outInfo->tessSize = ReadFloat( buffer );
+			outInfo->tessSize = StrReadFloat( buffer );
 			return true;
 		}
 	},
@@ -253,7 +252,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( token );
 			UNUSED( theStage );
 
-			outInfo->tessSize = ReadFloat( buffer );
+			outInfo->tessSize = StrReadFloat( buffer );
 			return true;
 		}
 	},
@@ -264,7 +263,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
+			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
 			theStage.mapCmd = MAP_CMD_CLAMPMAP;
 			theStage.mapType = MAP_TYPE_IMAGE;
 			return true;
@@ -277,7 +276,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = ReadToken( &theStage.texturePath[ 0 ], buffer );
+			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
 			theStage.mapCmd = MAP_CMD_MAP;
 
 			// TODO: add support for this
@@ -304,7 +303,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 		{
 			UNUSED( outInfo );
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "add" ) == 0 )
 			{
@@ -332,7 +331,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				theStage.blendSrc = ( GLenum ) blendFactor;
 
 				ZEROTOK( token );
-				buffer = ReadToken( token, buffer );
+				buffer = StrReadToken( token, buffer );
 
 				blendFactor = GL_EnumFromStr( token );
 				if ( blendFactor == -1 )
@@ -354,7 +353,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "ge128" ) == 0 )
 			{
@@ -383,7 +382,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "vertex" ) == 0 )
 			{
@@ -411,7 +410,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 		{
 			UNUSED( outInfo );
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "environment" ) == 0 )
 			{
@@ -440,7 +439,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			if ( strcmp( token, "scale" ) == 0 )
 			{
@@ -448,8 +447,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 				op.name = "tcModScale";
 
-				float s = ReadFloat( buffer );
-				float t = ReadFloat( buffer );
+				float s = StrReadFloat( buffer );
+				float t = StrReadFloat( buffer );
 
 				/*
 				NOTE: a scale may imply a division by the value, versus a multiplication. I'm not sure...
@@ -475,10 +474,10 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 				op.name = "tcModTurb";
 
-				op.data.wave.base = ReadFloat( buffer );
-				op.data.wave.amplitude = ReadFloat( buffer );
-				op.data.wave.phase = ReadFloat( buffer );
-				op.data.wave.frequency = ReadFloat( buffer );
+				op.data.wave.base = StrReadFloat( buffer );
+				op.data.wave.amplitude = StrReadFloat( buffer );
+				op.data.wave.phase = StrReadFloat( buffer );
+				op.data.wave.frequency = StrReadFloat( buffer );
 
 				theStage.effects.push_back( op );
 			}
@@ -488,8 +487,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 				op.name = "tcModScroll";
 
-				op.data.xyzw[ 0 ] = ReadFloat( buffer );
-				op.data.xyzw[ 1 ] = ReadFloat( buffer );
+				op.data.xyzw[ 0 ] = StrReadFloat( buffer );
+				op.data.xyzw[ 1 ] = StrReadFloat( buffer );
 
 				theStage.effects.push_back( op );
 			}
@@ -499,7 +498,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 				op.name = "tcModRotate";
 
-				float angRad = glm::radians( ReadFloat( buffer ) );
+				float angRad = glm::radians( StrReadFloat( buffer ) );
 
 				op.data.rotation2D.transform[ 0 ][ 0 ] =  glm::cos( angRad );
 				op.data.rotation2D.transform[ 0 ][ 1 ] = -glm::sin( angRad );
@@ -524,7 +523,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 
 			ZEROTOK( token );
-			buffer = ReadToken( token, buffer );
+			buffer = StrReadToken( token, buffer );
 
 			GLsizei depthf = GL_DepthFuncFromStr( token );
 
@@ -549,13 +548,6 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			return true;
 		}
 	}
-};
-
-enum tokType_t
-{
-	TOKTYPE_VALID = 0,
-	TOKTYPE_GENERIC, // newlines, indents, whitespace, etc.
-	TOKTYPE_COMMENT
 };
 
 static INLINE GLsizei GL_EnumFromStr( const char* str )
@@ -594,77 +586,7 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str )
 	return GL_EnumFromStr( str );
 }
 
-static INLINE tokType_t Token( const char* c )
-{
-	static const char syms[] =
-	{
-		'\t', ' ', '\n', '\r',
-		'*', '[', ']', '(', ')'
-	};
 
-#ifdef DEBUG
-	if ( *c == '\n' )
-		gMeta->currLineCount++;
-#endif
-
-	// If we have an indent, space, newline, or a comment, then the token is invalid
-	if ( *c == '/' && *( c + 1 ) == '/' )
-		return TOKTYPE_COMMENT;
-
-	for ( int i = 0; i < SIGNED_LEN( syms ); ++i )
-		if ( *c == syms[ i ] )
-			return TOKTYPE_GENERIC;
-
-	return TOKTYPE_VALID;
-}
-
-static INLINE const char* NextLine( const char* buffer )
-{
-	while ( *buffer != '\n' )
-		buffer++;
-
-	return buffer;
-}
-
-static INLINE const char* SkipInvalid( const char* buffer )
-{
-	tokType_t tt;
-	while ( ( tt = Token( buffer ) ) != TOKTYPE_VALID )
-	{
-		if ( tt == TOKTYPE_COMMENT )
-			buffer = NextLine( buffer );
-		else
-			buffer++;
-	}
-
-	return buffer;
-}
-
-static const char* ReadToken( char* out, const char* buffer )
-{
-	buffer = SkipInvalid( buffer );
-
-	// Parse token
-	char* pOut = out;
-	while ( Token( buffer ) == TOKTYPE_VALID )
-	{
-		if ( !*buffer )
-		{
-			break;
-		}
-
-		*pOut++ = tolower( *buffer++ );
-	}
-
-	return buffer;
-}
-
-static float ReadFloat( const char*& buffer )
-{
-	char f[ 12 ] = {};
-	buffer = ReadToken( f, buffer );
-	return ( float ) strtod( f, NULL );
-}
 
 static bool ShaderUsed( const char* header, const Q3BspMap* map )
 {
@@ -734,7 +656,7 @@ static const char* ParseEntry(
 	{
 		memset( token, 0, sizeof( token ) );
 
-		if ( !*( buffer = ReadToken( token, buffer ) ) )
+		if ( !*( buffer = StrReadToken( token, buffer ) ) )
 		{
 			break;
 		}
@@ -975,8 +897,6 @@ static INLINE void WriteTexture(
 
 	fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
 }
-
-
 
  // Quick subroutine enabling the calculation of environment map;
 // uses a simple form of displacement mapping to achieve desired results.

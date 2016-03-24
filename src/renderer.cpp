@@ -57,7 +57,7 @@ drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData
 
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
-	:   mainSampler( { G_UNSPECIFIED } ),
+	:	mainSampler( { G_UNSPECIFIED } ),
 		glEffects( {
 			{
 				"tcModTurb",
@@ -100,15 +100,14 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 		apiHandles( {{ 0, 0 }} ),
 		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
+		alwaysWriteDepth( false ),
 		map ( new Q3BspMap() ),
 		camera( nullptr ),
 		frustum( new Frustum() ),
 		curView( VIEW_MAIN )
 {
-	viewParams_t view;
-	view.origin = glm::vec3( -131.291901f, -61.794476f, -163.203659f ); /// debug position which doesn't kill framerate
-
-	camera = new InputCamera( view, EuAng() );
+	camera = new InputCamera();
+	camera->moveStep = 1.0f;
 	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
 }
 
@@ -133,7 +132,6 @@ void BSPRenderer::Prep( void )
 	GEnableDepthBuffer();
 
 	GL_CHECK( glEnable( GL_BLEND ) );
-	GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
 
 	GL_CHECK( glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) );
 
@@ -203,7 +201,9 @@ void BSPRenderer::Load( const std::string& filepath )
 {
 	MLOG_INFO( "Loading file %s....\n", filepath.c_str() );
 
-	map->Read( filepath, 1 );
+	mapEntity_t position = map->Read( filepath, 1 );
+
+	camera->SetViewOrigin( position.origin );
 
 	if ( G_HNULL( mainSampler ) )
 		mainSampler = GMakeSampler();
@@ -284,7 +284,7 @@ void BSPRenderer::LoadVertexData( void )
 		{
 			glFaces[ i ].reset( new mapPatch_t() );
 		}
-		else // ( face->type == BSP_FACE_TYPE_MESH || face->type == BSP_FACE_TYPE_POLYGON )
+		else
 		{
 			glFaces[ i ].reset( new mapModel_t() );
 		}
@@ -338,6 +338,9 @@ void BSPRenderer::Render( void )
 
 void BSPRenderer::DrawDebugFace( uint32_t index )
 {
+#ifdef EMSCRIPTEN
+	UNUSED( index );
+#else
 	pushBlend_t b( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 	const bspFace_t& f = map->data.faces[ index ];
@@ -385,6 +388,7 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 						glDebugFaces[ index ].color,
 						viewLineY, proj );
 	}
+#endif
 }
 
 void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
@@ -505,18 +509,19 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	GL_CHECK( glFrontFace( GL_CW ) );
 
 	TraverseDraw( pass, true );
-
 	TraverseDraw( pass, false );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
-	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n Camera Move Speed: %f",
-			   CalcFPS(),
-			   gCounts.numSolidEffect,
-			   gCounts.numSolidNormal,
-			   gCounts.numTransEffect,
-			   gCounts.numTransNormal,
-			   camera->moveStep );
+	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n"\
+				"Camera Move Speed: %f\n Depth Write ALWAYS Enabled: %s",
+				CalcFPS(),
+				gCounts.numSolidEffect,
+				gCounts.numSolidNormal,
+				gCounts.numTransEffect,
+				gCounts.numTransNormal,
+				camera->moveStep,
+				alwaysWriteDepth ? "true": "false" );
 }
 
 void BSPRenderer::Update( float dt )
@@ -660,6 +665,7 @@ void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex,
 	surf.lightmapIndex = face->lightmapIndex;
 	surf.textureIndex = face->shader;
 	surf.faceType = face->type;
+	surf.transparent = IsTransFace( faceIndex, shader );
 
 	AddSurfaceData( surf, faceIndex, glFaces );
 
@@ -722,6 +728,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 {
 	const shaderInfo_t* shader = std::get< 1 >( data );
 	int lightmapIndex = std::get< 3 >( data );
+	bool isSolid = std::get< 4 >( data );
 
 	// Each effect pass is allowed only one texture, so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
@@ -755,6 +762,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		}
 	}
 
+	if ( alwaysWriteDepth )
+	{
+		GL_CHECK( glDepthMask( GL_TRUE ) );
+	}
+
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
@@ -764,6 +776,18 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
+
+		if ( !alwaysWriteDepth )
+		{
+			if ( isSolid || ( stage.depthPass && !( stage.blendSrc == GL_ONE && stage.blendDest == GL_ZERO ) ) )
+			{
+				GL_CHECK( glDepthMask( GL_TRUE ) );
+			}
+			else
+			{
+				GL_CHECK( glDepthMask( GL_FALSE ) );
+			}
+		}
 
 		// TODO: use correct dimensions for texture
 		glm::vec2 texDims( 64.0f );
@@ -798,6 +822,13 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		GReleaseTexture( handle );
 	}
 
+	// No need to change state here unless there's the possibility
+	// we've modified it
+	if ( !alwaysWriteDepth )
+	{
+		GL_CHECK( glDepthMask( GL_TRUE ) );
+	}
+
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
 	// Did we bother checking earlier?
@@ -827,7 +858,7 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	{
 		case PASS_DRAW_EFFECT:
 		{
-			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->shader, pass.face->lightmapIndex );
+			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->shader, pass.face->lightmapIndex, pass.isSolid );
 
 			DrawEffectPass( data, [ &pass, this ]( const void* param, const Program& prog, const shaderStage_t* stage )
 			{
@@ -880,7 +911,8 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 
 					if ( surf.shader )
 					{
-						drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex, surf.lightmapIndex );
+						drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex,
+							surf.lightmapIndex, solid );
 						DrawEffectPass( tuple, LEffectCallback );
 					}
 					else

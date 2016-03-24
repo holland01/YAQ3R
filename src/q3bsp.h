@@ -73,6 +73,12 @@ struct mapData_t
 	std::string			basePath; // root directory of the map
 };
 
+struct mapEntity_t
+{
+	glm::vec3 origin;
+	std::string className;
+};
+
 class Q3BspMap
 {
 private:
@@ -95,7 +101,7 @@ public:
 
 	mapData_t					data;
 
-	void						Read( const std::string& filepath, const int scale );
+	mapEntity_t					Read( const std::string& filepath, const int scale );
 
 	void						WriteLumpToFile( uint32_t lump );
 

@@ -526,3 +526,15 @@ with the current data set.
 So, the positioning and initial locations need to be investigated further. Definitely
 continuing to test the atlasses in TTextureTest will be useful; it would be handy
 to implement a mechanism which allows one to view the images on a grid-by-grid basis.
+
+**3/24/16**
+
+Grid issue is fixed. Added support for viewing individual
+grids in the texture unit test. Also fixed an issue which required disabling depth writes
+for transparent surfaces (unless otherwise specified).
+
+#### todo
+
+- Get Emscripten build re-up and running
+- Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
+- Work on sky effects

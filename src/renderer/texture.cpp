@@ -134,6 +134,12 @@ INLINE const gTexture_t* GetTexture( gTextureHandle_t handle )
 
 INLINE bool ValidateTexture( const gImageParams_t& params, const gTexConfig_t& sampler )
 {
+#ifdef EMSCRIPTEN
+	GLint maxSize;
+	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxSize ) );
+
+	return params.width <= maxSize && params.height <= maxSize;
+#else
 	std::vector< uint8_t > zeroOut( params.width * sampler.bpp * params.height, 0 );
 
 	GL_CHECK( glTexImage2D( GL_PROXY_TEXTURE_2D, 0,  sampler.internalFormat,
@@ -148,6 +154,7 @@ INLINE bool ValidateTexture( const gImageParams_t& params, const gTexConfig_t& s
 	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &testHeight ) );
 
 	return testWidth && testHeight;
+#endif
 }
 
 INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )

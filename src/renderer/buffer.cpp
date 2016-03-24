@@ -61,6 +61,9 @@ void GEnableDepthBuffer( void )
 	GL_CHECK( glEnable( GL_DEPTH_TEST ) );
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glDepthMask( GL_TRUE ) );
+#ifndef EMSCRIPTEN
+	GL_CHECK( glEnable( GL_DEPTH_CLAMP ) );
+#endif
 	GL_CHECK( glDepthRange( 0.0f, 1.0f ) );
 	GL_CHECK( glClearDepth( 1.0f ) );
 }

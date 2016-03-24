@@ -126,6 +126,7 @@ gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	}
 }
 
+#ifndef EMSCRIPTEN
 void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj )
 {
 	GL_CHECK( glUseProgram( 0 ) );
@@ -180,4 +181,5 @@ void GU_ImmDrawLine( const glm::vec3& origin,
 	glVertex3fv( glm::value_ptr( dir ) );
 	GU_ImmEnd();
 }
+#endif // EMSCRIPTEN
 
