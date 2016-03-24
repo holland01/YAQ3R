@@ -41,7 +41,7 @@ else
   LDO = -O2
 endif
 
-CFLAGS = $(COMMONFLAGS) -std=c99
+CFLAGS = $(COMMONFLAGS) -std=c++14
 CXXFLAGS = $(COMMONFLAGS) -std=c++14
 
 DEPDIR = deps
@@ -55,7 +55,7 @@ ifneq ($(filter-out clean, $(MAKECMDGOALS)),)
 -include Makefile.dep
 endif
 
-CC = emcc -v
+CC = em++ -v
 CXX = em++ -v
 CXXO = -O2
 
