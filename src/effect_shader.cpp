@@ -828,6 +828,15 @@ static INLINE void DeclCoreTransforms(	std::vector< std::string >& destShaderSrc
 	);
 }
 
+static INLINE std::string DeclPrecision( void )
+{
+#ifdef G_USE_GL_CORE
+	return "\n";
+#else
+	return "precision highp float;";
+#endif
+}
+
 static INLINE std::string GammaCorrect( const std::string& colorVec )
 {
 	std::stringstream ss;
@@ -988,9 +997,7 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	// Unspecified alphaGen implies a default 1.0 alpha channel
 	std::vector< std::string > fragmentSrc =
 	{
-#ifndef G_USE_GL_CORE
-		"precision highp float;",
-#endif
+		DeclPrecision(),
 		"const float gamma = 1.0 / 2.2;",
 		DeclTransferVar( "frag_Tex", "vec2", "in" ),
 #ifdef G_USE_GL_CORE
@@ -1251,6 +1258,7 @@ std::string S_MainFragmentShader( void )
 {
 	std::vector< std::string > sourceLines =
 	{
+		DeclPrecision(),
 		DeclGammaConstant(),
 		DeclTransferVar( "frag_Color", "vec4", "in" ),
 		DeclTransferVar( "frag_Tex", "vec2", "in" ),

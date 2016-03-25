@@ -102,8 +102,6 @@ bool Test::Load( const char* winName )
 
 	InitSysLog();
 
-
-
 	return true;
 }
 

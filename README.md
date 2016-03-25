@@ -533,8 +533,17 @@ Grid issue is fixed. Added support for viewing individual
 grids in the texture unit test. Also fixed an issue which required disabling depth writes
 for transparent surfaces (unless otherwise specified).
 
+**3/25/16**
+
 #### todo
 
-- Get Emscripten build re-up and running
+- Get Emscripten build re-up and running. (in progress):
+
+Almost finished; in the process of properly packaging the asset files to reduce
+memory overhead from browser limitations. What's left to do is figure out
+exactly how these separately packaged files can be automatically included in the compiled
+version. For example, does one specify a flag for preloading asset bundles during
+compilation? 
+
 - Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
 - Work on sky effects
