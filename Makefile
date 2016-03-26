@@ -87,7 +87,7 @@ Makefile.dep: $(CFILES) $(CXXFILES)
 $(BINFILE): $(OFILES)
 	$(E) The Path is this: $PATH
 	$(E) Linking $@
-	$(Q)$(CXX) $(LDFLAGS) $(OFILES) $(LDO) ~/.emscripten_cache/ports-builds/sdl2/libsdl2.bc -o $@ --preload-file emscripten_asset@
+	$(Q)$(CXX) $(LDFLAGS) $(OFILES) $(LDO) ~/.emscripten_cache/ports-builds/sdl2/libsdl2.bc -o $@ --emrun
 clean:
 	$(E) Removing files
 	$(Q)rm -rf obj/
