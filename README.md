@@ -1,50 +1,54 @@
 YAQ3R
 =========
 
-Pretty simple: just view a BSP map. This is really more of a project for educational/portfolio purposes than anything else.
+Can you guess what the abbreviation stands for?
 
-It's a fun thing: despite Quake III's file format being written circa 1999, and therefore being extremely old, a lot of techniques with respect to computer graphics and optimization can be harnessed through a project like this.
+Functionally, it's pretty simple: just view a BSP map. This is really more of a project for educational/portfolio purposes than anything else.
+
+Despite Quake III's file format being written circa 1999, and therefore being extremely old, a lot of techniques with respect to computer graphics and optimization can be harnessed through a project like this.
 
 Current Focuses:
 
 - Performance
-	* Lots of shitty code has passed through this repo. It's definitely on its way to getting better.
+	* Lots of shitty code has passed through this repo.
+	* It's definitely on its way to getting better.
+	* It's improved significantly within the past month or so.
 
 - WebGL support
+	* It's much easier to show something off via the web.
+	* Emscripten is fantastic.
 
-	* This ~~is~~ was at the top of the list, because it's much easier to show something off via the web. Right now,
-	though, I'm finding that it's worth it to focus on improving the performance instead.
+- Effect Shaders
+	* More Vertex deformations.
+	* More Texcoord mod functions.
+	* Skybox stuff.
+	* Various other animations.
 
-- Vertex deformation (effect shader)
-- Texcoord mod functions (effect shader)
+# Examples
 
-Some examples:
+### ~200 FPS
 
 ![q3ctf1](https://cloud.githubusercontent.com/assets/911971/13871702/989cf3ac-eca1-11e5-9779-de9393ea7f4c.png)
 
-(the FPS is significantly lower here: it averages at about 50-60 on this map)
+### ~60 FPS
 
 ![railgun_arena1](https://cloud.githubusercontent.com/assets/911971/13871700/989ae08a-eca1-11e5-8cd4-2fd1862234fa.png)
 
-##Credits
-
-### Source Code Read
+# Resources
 ___
 
-* user **rohitnirma**l: https://github.com/rohitnirmal/q3-bsp-viewer?source=cc
-* user **leezh**: https://github.com/leezh/bspviewer
-* a programmer named **Paul**: http://www.paulsprojects.net/opengl/q3bsp/q3bsp.html
+#### Github Projects
 
-### Docs From teh Interwebz
-___
+* https://github.com/rohitnirmal/q3-bsp-viewer?source=cc
+* https://github.com/leezh/bspviewer
+* https://github.com/toji/webgl-quake3
+* https://github.com/id-Software/Quake-III-Arena
+
+#### Websites
+
+* **Paul's Projects**: http://www.paulsprojects.net/opengl/q3bsp/q3bsp.html
 * **Unofficial Quake 3 Map Specs**: http://www.mralligator.com/q3/
 * **Rendering Quake 3 Maps**: http://graphics.cs.brown.edu/games/quake/quake3.html
-
-### Further
-___
-  * The original Quake III engine source code on Github.
-  * Various other blog posts by the multitudes of others who have done this before I :)
-
 
 # Journal
 
@@ -539,11 +543,11 @@ for transparent surfaces (unless otherwise specified).
 
 - Get Emscripten build re-up and running. (in progress):
 
-Almost finished; in the process of properly packaging the asset files to reduce
-memory overhead from browser limitations. What's left to do is figure out
-exactly how these separately packaged files can be automatically included in the compiled
-version. For example, does one specify a flag for preloading asset bundles during
-compilation? 
+Rewrote a lot of the post-generation functionality to append the relevant
+path files directly in the source. So far, so good. Still need to actually
+test the asset loading and make sure everything is good, though.
+
+That's next on the list.
 
 - Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
 - Work on sky effects
