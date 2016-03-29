@@ -5,10 +5,7 @@
 #include "effect_shader.h"
 #include <glm/gtx/string_cast.hpp>
 #include <SDL2/SDL.h>
-
-#ifdef EMSCRIPTEN
-#	include <emscripten.h>
-#endif
+#include "em_api.h"
 
 #ifdef _WIN32
 #	define OS_PATH_SEPARATOR '\\'
@@ -371,7 +368,15 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 	ftw( directory.c_str(), invoke, 3 );
 
 #elif defined( EMSCRIPTEN )
+	// std string will only return a constant version of its c-string,
+	// which won't be accepted by emscripten_call_worker. So, we just copy it...
+	size_t bsize = sizeof( char ) * directory.length();
+	char* buffer = ( char* ) alloca( bsize + 1 );
+	memset( buffer, 0, bsize + 1 );
+	memcpy( buffer, directory.data(), bsize );
 
+	emscripten_call_worker( gFileWebWorker.handle, "Traverse", buffer, bsize,
+		callback, nullptr );
 
 	//MLOG_ERROR( "This needs Emscripten support..." );
 #endif

@@ -541,13 +541,37 @@ for transparent surfaces (unless otherwise specified).
 
 #### todo
 
-- Get Emscripten build re-up and running. (in progress):
+- ~~Get Emscripten build re-up and running. (in progress):~~
 
 Rewrote a lot of the post-generation functionality to append the relevant
 path files directly in the source. So far, so good. Still need to actually
 test the asset loading and make sure everything is good, though.
 
 That's next on the list.
+
+- Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
+- Work on sky effects
+
+**3/28/16**
+
+#### todo
+
+- Find a more efficient means of loading asset data.
+
+The browser requires a certain amount of memory to load the asset files.
+Currently, the upper bound I'm using is 1 GB for the total memory which is allocated
+by Emscripten. So, I'm working towards getting that down as much as possible.
+
+I've created a web worker which should help with this: apparently, mounting
+the WORKERFS instead of the MEMFS in the virtual filesystem allows for one to
+take a more "piecemeal" approach to memory allocation as far as disk data is concerned.
+
+At the moment, though, an exception is thrown on init, because the filesystem attempts
+to find /tmp, which for some reason fails.
+
+It could be that I need to specify the packages in WORKERFS manually, using the opt
+argument.
+The example, [here](https://kripken.github.io/emscripten-site/docs/api_reference/Filesystem-API.html#FS.mount), should provide a good starting point.
 
 - Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
 - Work on sky effects

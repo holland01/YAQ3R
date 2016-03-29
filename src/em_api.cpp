@@ -1,9 +1,9 @@
 #ifdef  EMSCRIPTEN
 
 #include "em_api.h"
-
-#include <emscripten.h>
 #include <html5.h>
+
+worker_t gFileWebWorker( "worker/file_traverse.js" );
 
 #define SET_CALLBACK_RESULT( expr )\
 	do\
@@ -41,8 +41,8 @@ void EM_UnmountFS( void )
 	if ( gMounted )
 	{
 		EM_ASM(
-			FS.unmount('/working');
-			FS.rmdir('/working');
+			//FS.unmount('/working');
+			//FS.rmdir('/working');
 		);
 		gMounted = false;
 	}
@@ -53,9 +53,9 @@ void EM_MountFS( void )
 	if ( !gMounted )
 	{
 		EM_ASM(
-			FS.mkdir('/working');
-			FS.mount(MEMFS, {}, '/working');
-			console.log(FS.stat("asset/stockmaps/maps/Railgun_Arena.bsp"));
+			//FS.mkdir('/working');
+			//FS.mount(WORKERFS, {}, '/working');
+			//console.log(FS.stat("asset/stockmaps/maps/Railgun_Arena.bsp"));
 		);
 		gMounted = true;
 	}
@@ -68,6 +68,5 @@ void EM_MountFS( void )
 	SET_CALLBACK_RESULT( emscripten_set_mousedown_callback( "#canvas", nullptr, 1, ( em_mouse_callback_func )&MouseDownFunc ) );
 	*/
 }
-
 
 #endif // EMSCRIPTEN

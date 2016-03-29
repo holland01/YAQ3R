@@ -15,9 +15,12 @@
 #	define _DEBUG_USE_GL_GET_ERR
 #endif
 
+#include <alloca.h>
+
 #if defined(_WIN32)
 #	include <Windows.h>
 #	define GL_PROC APIENTRY
+#	define alloca _alloca
 #else
 #	define GL_PROC
 #endif

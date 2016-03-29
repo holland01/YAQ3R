@@ -52,4 +52,12 @@ public:
 	virtual void OnInputEvent( SDL_Event* e );
 };
 
+class IOTest
+{
+public:
+	IOTest( void ) {}
+	virtual ~IOTest( void ) {}
+	virtual int operator()( void ) = 0;
+};
+
 extern Test* gAppTest;

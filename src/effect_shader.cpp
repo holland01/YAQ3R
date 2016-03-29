@@ -1136,6 +1136,15 @@ struct parseArgs_t
 {
 	static Q3BspMap* map;
 
+#ifdef EMSCRIPTEN
+	static void ReadShaderFile( filedata_t data, int size, void* arg )
+	{
+		if ( data )
+		{
+			MLOG_INFO( "WEB WORKER TEST: %s\n", data );
+		}
+	}
+#else
 	static int ReadShaderFile( const filedata_t data )
 	{
 		// Something's probably wrong if there's no data,
@@ -1206,6 +1215,7 @@ struct parseArgs_t
 
 		return FILE_CONTINUE_TRAVERSAL;
 	}
+#endif // EMSCRIPTEN
 };
 
 Q3BspMap* parseArgs_t::map = nullptr;

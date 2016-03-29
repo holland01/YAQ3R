@@ -3,6 +3,7 @@
 #include "io.h"
 #include "tests/trenderer.h"
 #include "tests/test_textures.h"
+#include "tests/testiowebworker.h"
 #include "tests/test_atlas_struct.h"
 #include "renderer/buffer.h"
 
@@ -15,9 +16,12 @@
 // Is global
 void FlagExit( void )
 {
-	delete gAppTest;
-	gAppTest = NULL;
-//	system( "pause" );
+	if ( gAppTest )
+	{
+		delete gAppTest;
+		gAppTest = nullptr;
+	}
+
 #ifdef EMSCRIPTEN
 	emscripten_force_exit( 0 );
 #else
@@ -27,12 +31,19 @@ void FlagExit( void )
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
 
+#define IOTEST
+
 int main( void )
 {
 	static_assert( sizeof( glm::vec3 ) == sizeof( float ) * 3, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
+#ifdef IOTEST
+	IOTestWebWorker test;
+
+	return test();
+#else
 	gAppTest = new TRenderer();
 	gAppTest->Load();
 
@@ -41,4 +52,5 @@ int main( void )
 	FlagExit();
 
 	return code;
+#endif
 }

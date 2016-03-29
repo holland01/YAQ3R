@@ -4,9 +4,9 @@
 
 void ReadFile( unsigned char* path )
 {
-	const char* strpath = ( const char* )path;
+	char* strpath = ( char* )path;
 
-	emscripten_respond_provisionally( strpath, strlen( strpath ) );
+	emscripten_worker_respond_provisionally( strpath, strlen( strpath ) );
 }
 
 extern "C" {
@@ -17,6 +17,15 @@ void Traverse( char* directory, int size )
 	memset( errorMsg, 0, sizeof( errorMsg ) );
 
 	int ret = EM_ASM_ARGS( {
+		// TODO: make sure this is only mounted once; there's
+		// a good chance this function will be called multiple times.
+		// NOTE: you can probably use a global boolean:
+		// if (typeof(window.filesmounted) == "undefined") {
+		// 		window.filesmounted = true;
+		//		// do mounting here...
+		//}
+		FS.mkdir('/working');
+		FS.mount(WORKERFS, {}, '/working');
 
 		var path = UTF8ToString($0);
 		var lookup = FS.lookupPath(path);
@@ -55,7 +64,9 @@ void Traverse( char* directory, int size )
 	}, directory, ReadFile, errorMsg );
 
 	if ( !ret )
-		MLOG_ERROR( "%s", errorMsg );
+		printf( "[WORKER ERROR]: %s\n", errorMsg );
+
+	emscripten_worker_respond( NULL, 0 );
 }
 
 } // extern "C"
