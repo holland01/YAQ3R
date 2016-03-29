@@ -1294,6 +1294,7 @@ std::string S_MainFragmentShader( void )
 /*!
    Main API for the effect shaders. In theory, the user should only have to call this function.
 */
+
 glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures )
 {
 	std::string shaderRootDir( map->data.basePath );

@@ -1,5 +1,6 @@
 #include "trenderer.h"
-#include "../glutil.h"
+#include "glutil.h"
+#include "em_api.h"
 
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),
@@ -29,9 +30,15 @@ void TRenderer::Load( void )
 		return;
 	}
 
+#ifdef EMSCRIPTEN
+	EM_MountFS();
+#endif
 	renderer = new BSPRenderer( ( float ) width, ( float ) height );
 	renderer->Prep();
 	renderer->Load( mapFilepath );
+#ifdef EMSCRIPTEN
+	EM_UnmountFS();
+#endif
 	camPtr = renderer->camera;
 }
 

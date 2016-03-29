@@ -111,8 +111,6 @@ int Test::Exec( void )
 		return 1;
 
 #ifdef EMSCRIPTEN
-	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
-	EM_Init();
 	emscripten_set_main_loop( FrameIteration, 0, 1 );
 #else
 	float lastTime = 0.0f;

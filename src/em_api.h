@@ -4,7 +4,9 @@
 
 #include "common.h"
 
-void EM_Init( void );
+void EM_UnmountFS( void );
+
+void EM_MountFS( void );
 
 #endif // EMSCRIPTEN
 

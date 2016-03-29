@@ -34,14 +34,31 @@ INLINE std::string EmscriptenResultFromEnum( int32_t result )
 	return "EMSCRIPTEN_RESULT_UNDEFINED";
 }
 
+static bool gMounted = false;
 
-void EM_Init( void )
+void EM_UnmountFS( void )
 {
-	EM_ASM(
-		FS.mkdir('/working');
-		FS.mount(MEMFS, {}, '/working');
-		console.log(FS.stat("asset/stockmaps/maps/Railgun_Arena.bsp"));
-	);
+	if ( gMounted )
+	{
+		EM_ASM(
+			FS.unmount('/working');
+			FS.rmdir('/working');
+		);
+		gMounted = false;
+	}
+}
+
+void EM_MountFS( void )
+{
+	if ( !gMounted )
+	{
+		EM_ASM(
+			FS.mkdir('/working');
+			FS.mount(MEMFS, {}, '/working');
+			console.log(FS.stat("asset/stockmaps/maps/Railgun_Arena.bsp"));
+		);
+		gMounted = true;
+	}
 
 	/*
 	int32_t ret;
