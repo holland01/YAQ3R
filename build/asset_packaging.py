@@ -105,6 +105,7 @@ def package_list(list, target_prefix, path_origin_prefix, path_alias_prefix):
         args.append('--preload')
         args.append(os.path.join(path_origin_prefix, path + '@' + path_alias_prefix, path))
         args.append('--no-heap-copy')
+        args.append('--separate-metadata')
         args.append('--js-output=' + os.path.join(target_prefix, f['name'] + '.js'))
         if f['compress']:
             args.append('--lz4')
