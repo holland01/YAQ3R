@@ -575,3 +575,25 @@ The example, [here](https://kripken.github.io/emscripten-site/docs/api_reference
 
 - Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
 - Work on sky effects
+
+
+**3/29/16**
+
+A much more in-depth issue appears to be popping up with the asset loading. The file
+packages each define their own routines using Ajax requests which rely on functions from
+the Module object. The problem is that these functions are defined when the actual program
+.js file (bspviewer.js, in this case) is run. The intention here seems to be that the
+async calls themselves will be finished after the functions have been defined.
+
+Unfortunately, this isn't always the case. In fact, on the current system I'm testing on,
+this never seems to be the case.
+
+The catch-22 is that the bundle JavaScript files need to be executed before the main
+file is loaded, given that the main file relies on asset data which is only accessible
+through the file packages. So, the idea is that, by queing up these requests, everything
+should be resolved in time.
+
+Some interesting insight is provided [here](https://github.com/kripken/emscripten/issues/1992).
+
+The run() function is defined in postamble.js, on line 174. There  may be worthy
+information in preamble as well.

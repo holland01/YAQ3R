@@ -41,8 +41,8 @@ void EM_UnmountFS( void )
 	if ( gMounted )
 	{
 		EM_ASM(
-			//FS.unmount('/working');
-			//FS.rmdir('/working');
+			FS.unmount('/memfs');
+			FS.rmdir('/memfs');
 		);
 		gMounted = false;
 	}
@@ -53,8 +53,8 @@ void EM_MountFS( void )
 	if ( !gMounted )
 	{
 		EM_ASM(
-			//FS.mkdir('/working');
-			//FS.mount(WORKERFS, {}, '/working');
+			FS.mkdir('/memfs');
+			FS.mount(MEMFS, {}, '/memfs');
 			//console.log(FS.stat("asset/stockmaps/maps/Railgun_Arena.bsp"));
 		);
 		gMounted = true;

@@ -21,7 +21,6 @@ void FlagExit( void )
 		delete gAppTest;
 		gAppTest = nullptr;
 	}
-
 #ifdef EMSCRIPTEN
 	emscripten_force_exit( 0 );
 #else
