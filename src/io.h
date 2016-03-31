@@ -40,13 +40,10 @@ enum fileCommand_t
 
 // This is a bit dirty, I know, but it's a simple method for integrating
 // support for web workers.
-#ifdef EMSCRIPTEN
-
+#ifdef EM_USE_WORKER_THREAD
 using filedata_t = char*;
 typedef void ( *fileSystemTraversalFn_t )( filedata_t data, int size, void* arg );
-
 #else
-
 using filedata_t = uint8_t*;
 // A return value of true (1) means "keep iterating, unless we're at the end";
 // false will terminate the iteration

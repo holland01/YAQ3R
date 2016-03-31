@@ -34,6 +34,10 @@
 #	include <GL/glew.h>
 #endif
 
+#if defined( EMSCRIPTEN ) && defined( ASYNC_FILE_TRAVERSAL )
+#	define EM_USE_WORKER_THREAD
+#endif
+
 #ifdef __linux__
 #   include <ftw.h>
 #endif

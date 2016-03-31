@@ -367,7 +367,7 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
 	ftw( directory.c_str(), invoke, 3 );
 
-#elif defined( EMSCRIPTEN )
+#elif defined( EM_USE_WORKER_THREAD )
 	// std string will only return a constant version of its c-string,
 	// which won't be accepted by emscripten_call_worker. So, we just copy it...
 	size_t bsize = sizeof( char ) * directory.length();
@@ -377,8 +377,18 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
 	emscripten_call_worker( gFileWebWorker.handle, "Traverse", buffer, bsize,
 		callback, nullptr );
+#else // Emscripten, without worker threads
+	char errorMsg[ 256 ];
+	memset( errorMsg, 0, sizeof( errorMsg ) );
 
-	//MLOG_ERROR( "This needs Emscripten support..." );
+	int ret = EM_ASM_ARGS( {
+		return Module['GFUNC_WALKDIR']($0, $1, $2);
+	}, directory.c_str(), callback, errorMsg );
+
+	if ( !ret )
+	{
+		printf( "[WORKER ERROR]: %s\n", errorMsg );
+	}
 #endif
 }
 

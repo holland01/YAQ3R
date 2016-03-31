@@ -24,7 +24,7 @@ OFILES := $(OBJFILES:%=obj/%.$(LFORMAT))
 BINFILE = bspviewer.html
 
 COMMONFLAGS = -O2 -Wall -Wextra -pedantic -Werror \
- -Isrc -Isrc/extern -s SAFE_HEAP=1 -s ALLOW_MEMORY_GROWTH=1 \
+ -Isrc -Isrc/extern -s SAFE_HEAP=1 -s ALLOW_MEMORY_GROWTH=1
 
 DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
@@ -32,13 +32,14 @@ DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-parameter
 
 LDFLAGS = --emrun
-LDO = -O0
+LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912
 
 ifdef DEBUG
-  COMMONFLAGS := $(COMMONFLAGS) -g4 -s DEMANGLE_SUPPORT=1
+  COMMONFLAGS := $(COMMONFLAGS) -g4
   COMMONFLAGS := $(COMMONFLAGS) $(DEBUGFLAGS)
+  LDO := $(LDO) -O0
 else
-  LDO = -O2
+  LDO := $(LDO) -O2
 endif
 
 CFLAGS = $(COMMONFLAGS) -std=c++14

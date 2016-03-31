@@ -1136,7 +1136,7 @@ struct parseArgs_t
 {
 	static Q3BspMap* map;
 
-#ifdef EMSCRIPTEN
+#ifdef EM_USE_WORKER_THREAD
 	static void ReadShaderFile( filedata_t data, int size, void* arg )
 	{
 		if ( data )
@@ -1215,7 +1215,7 @@ struct parseArgs_t
 
 		return FILE_CONTINUE_TRAVERSAL;
 	}
-#endif // EMSCRIPTEN
+#endif // EM_USE_WORKER_THREAD
 };
 
 Q3BspMap* parseArgs_t::map = nullptr;

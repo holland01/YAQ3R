@@ -3,7 +3,9 @@
 #include "em_api.h"
 #include <html5.h>
 
+#ifdef EM_USE_WORKER_THREAD
 worker_t gFileWebWorker( "worker/file_traverse.js" );
+#endif
 
 #define SET_CALLBACK_RESULT( expr )\
 	do\
@@ -41,8 +43,8 @@ void EM_UnmountFS( void )
 	if ( gMounted )
 	{
 		EM_ASM(
-			FS.unmount('/memfs');
-			FS.rmdir('/memfs');
+			FS.unmount(Module['GDEF']['FILE_MEMFS_DIR']);
+			FS.rmdir(Module['GDEF']['FILE_MEMFS_DIR']);
 		);
 		gMounted = false;
 	}
@@ -53,9 +55,50 @@ void EM_MountFS( void )
 	if ( !gMounted )
 	{
 		EM_ASM(
-			FS.mkdir('/memfs');
-			FS.mount(MEMFS, {}, '/memfs');
-			//console.log(FS.stat("asset/stockmaps/maps/Railgun_Arena.bsp"));
+			if (!Module['GDEF']) {
+				Module['GDEF'] = {};
+			}
+			Module['GDEF']['FILE_MEMFS_DIR'] = '/memory';
+
+			Module['GFUNC_WALKDIR'] = function(directory, callback, error) {
+				var path = UTF8ToString(directory);
+				var lookup = FS.lookupPath(path);
+				if (!lookup) {
+					stringToUTF8('Path given ' + path + ' could not be found.', error, 128);
+					return 0;
+				}
+
+				var root = lookup.node;
+				var iterate = true;
+
+				function traverse(node) {
+					if (!iterate) return;
+
+					var path = FS.getPath(node);
+					var stat = FS.stat(path);
+					if (FS.isFile(stat.mode)) {
+						return;
+					}
+
+					for (var n in node.contents) {
+						traverse(node.contents[n]);
+						var p = FS.getPath(node.contents[n]);
+						var u8buf = intArrayFromString(p);
+						var pbuf = Module._malloc(u8buf.length);
+						Module.writeArrayToMemory(u8buf, pbuf);
+						var stack = Runtime.stackSave();
+						iterate = !!Runtime.dynCall('ii', callback, [pbuf]);
+						Runtime.stackRestore(stack);
+						Module._free(pbuf);
+					}
+				}
+
+				traverse(root);
+				return 1;
+			}
+
+			FS.mkdir('/memory');
+			FS.mount(MEMFS, {}, '/memory');
 		);
 		gMounted = true;
 	}

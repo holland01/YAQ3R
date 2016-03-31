@@ -554,9 +554,9 @@ That's next on the list.
 
 **3/28/16**
 
-#### todo
 
-- Find a more efficient means of loading asset data.
+
+
 
 The browser requires a certain amount of memory to load the asset files.
 Currently, the upper bound I'm using is 1 GB for the total memory which is allocated
@@ -573,10 +573,6 @@ It could be that I need to specify the packages in WORKERFS manually, using the 
 argument.
 The example, [here](https://kripken.github.io/emscripten-site/docs/api_reference/Filesystem-API.html#FS.mount), should provide a good starting point.
 
-- Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
-- Work on sky effects
-
-
 **3/29/16**
 
 A much more in-depth issue appears to be popping up with the asset loading. The file
@@ -590,10 +586,26 @@ this never seems to be the case.
 
 The catch-22 is that the bundle JavaScript files need to be executed before the main
 file is loaded, given that the main file relies on asset data which is only accessible
-through the file packages. So, the idea is that, by queing up these requests, everything
+through the file packages. So, the idea is that, by queuing up these requests, everything
 should be resolved in time.
 
 Some interesting insight is provided [here](https://github.com/kripken/emscripten/issues/1992).
 
 The run() function is defined in postamble.js, on line 174. There  may be worthy
 information in preamble as well.
+
+**3/30/16**
+
+A hack in shell.html gets around the removeRunDependency issue.
+However, when running only the IO Worker test, I've noticed that there are some exceptions
+which are thrown when there's an attempt by emscripten to mount a number of different
+folders like '/home', '/tmp', etc. I have a feeling this is normal, but nonetheless,
+I should test this while the renderer is running to make sure the same thing isn't happening.
+
+Additionally, one of the devs on the IRC noted that the premature removeRunDependency
+call sounded like a legitimate bug, so I should come up with a test case when time allows...
+
+#### todo
+- Find a more efficient means of loading asset data.
+- Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
+- Work on sky effects

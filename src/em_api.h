@@ -27,6 +27,8 @@ void EM_UnmountFS( void );
 
 void EM_MountFS( void );
 
+#ifdef EM_USE_WORKER_THREAD
 extern worker_t gFileWebWorker;
+#endif
 
 #endif // EMSCRIPTEN
