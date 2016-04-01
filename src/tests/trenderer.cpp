@@ -32,6 +32,7 @@ void TRenderer::Load( void )
 
 #ifdef EMSCRIPTEN
 	EM_MountFS();
+	//EM_AwaitReady();
 #endif
 	renderer = new BSPRenderer( ( float ) width, ( float ) height );
 	renderer->Prep();

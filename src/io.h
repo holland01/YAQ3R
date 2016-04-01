@@ -99,7 +99,7 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 		}                                       \
 		while( 0 )
 #else
-#	define MLOG_ASSERT( condition, ... ) ()
+#	define MLOG_ASSERT( condition, ... )
 #endif
 
 template < typename T >

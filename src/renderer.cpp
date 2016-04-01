@@ -36,7 +36,7 @@ struct counts_t
 	uint32_t numTransNormal;
 };
 
-static counts_t gCounts = { 0 };
+static counts_t gCounts = { 0, 0, 0, 0 };
 static uint64_t frameCount = 0;
 
 //--------------------------------------------------------------

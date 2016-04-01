@@ -19,6 +19,7 @@ FILE* gBspDataLog = NULL;
 
 void O_Log( const char* header, const char* priority, const char* fmt, ... )
 {
+#ifdef DEBUG
 	va_list arg;
 
 	va_start( arg, fmt );
@@ -26,10 +27,16 @@ void O_Log( const char* header, const char* priority, const char* fmt, ... )
 	vfprintf( stdout, fmt, arg );
 	fputs( "\n", stdout );
 	va_end( arg );
+#else
+	UNUSED( header );
+	UNUSED( priority );
+	UNUSED( fmt );
+#endif
 }
 
 void O_LogBuffer( const char* header, const char* priority, const char* fmt, ... )
 {
+#ifdef DEBUG
 	va_list arg;
 
 	va_start( arg, fmt );
@@ -37,10 +44,16 @@ void O_LogBuffer( const char* header, const char* priority, const char* fmt, ...
 	vfprintf( stdout, fmt, arg );
 	fputs( "\n", stdout );
 	va_end( arg );
+#else
+	UNUSED( header );
+	UNUSED( priority );
+	UNUSED( fmt );
+#endif
 }
 
 void O_LogF( FILE* f, const char* header, const char* fmt, ... )
 {
+#ifdef DEBUG
 	va_list arg;
 
 	va_start( arg, fmt );
@@ -48,6 +61,11 @@ void O_LogF( FILE* f, const char* header, const char* fmt, ... )
 	vfprintf( f, fmt, arg );
 	fprintf( f, "\n\n}\n\n" );
 	va_end( arg );
+#else
+	UNUSED( f );
+	UNUSED( header );
+	UNUSED( fmt );
+#endif
 }
 
 void MyDateTime( const char* format, char* outBuffer, int length )
@@ -381,9 +399,9 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 	char errorMsg[ 256 ];
 	memset( errorMsg, 0, sizeof( errorMsg ) );
 
-	int ret = EM_ASM_ARGS( {
-		return Module['GFUNC_WALKDIR']($0, $1, $2);
-	}, directory.c_str(), callback, errorMsg );
+	int ret = EM_ASM_ARGS(
+		return Module.walkFileDirectory($0, $1, $2);
+	, directory.c_str(), callback, errorMsg );
 
 	if ( !ret )
 	{

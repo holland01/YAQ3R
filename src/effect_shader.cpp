@@ -816,6 +816,7 @@ static INLINE std::string DeclGammaConstant( void )
 	return "const float gamma = 1.0 / 3.3;";
 }
 
+/*
 static INLINE void DeclCoreTransforms(	std::vector< std::string >& destShaderSrc,
 											 std::vector< std::string >& uniforms,
 											 size_t offset )
@@ -827,6 +828,7 @@ static INLINE void DeclCoreTransforms(	std::vector< std::string >& destShaderSrc
 		{ "uniform mat4 modelToView;", "uniform mat4 viewToClip;" }
 	);
 }
+*/
 
 static INLINE std::string DeclPrecision( void )
 {

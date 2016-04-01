@@ -602,8 +602,36 @@ which are thrown when there's an attempt by emscripten to mount a number of diff
 folders like '/home', '/tmp', etc. I have a feeling this is normal, but nonetheless,
 I should test this while the renderer is running to make sure the same thing isn't happening.
 
-Additionally, one of the devs on the IRC noted that the premature removeRunDependency
+Additionally, one of the emscripten devs on the IRC noted that the premature removeRunDependency
 call sounded like a legitimate bug, so I should come up with a test case when time allows...
+
+**3/31/16**
+
+You still need to find a good workaround for defining Module.walkFileDirectory
+so that it can be referenced by other inline JS snippets.
+
+Afterward, click "pause on exceptions" in the debugger and see if there's problems
+with it mounting the file system. According to Emscripten, as long as the app is being
+served via Node, mounting NODEFS will provide access to the local filesystem, so these
+attempts to read from different directories could actually be due to that.
+
+**4/1/16**
+
+Ran some tests after finding a means to get Module.walkFileDirectory defined correctly.
+
+The renderer's up and running, and it turns out that most of hte performance hit
+was due to the insane amount of IO which was occurring throughout every frame.
+
+After testing debug and release, it seems like the majority of the time spent per frame
+is taken up by the bounds tests for the view frustum. There's still a lot to figure out,
+here, but this is at least a start.
+
+Either way, the original exceptions being thrown by the file system were indeed
+NODEFS related, and were happening because NODEFS wasn't mounted - it likely won't be
+used for this project.
+
+Now what's left to do is to just use worker threads to get the bundles properly loaded
+in a way so they don't take up nearly as much memory.
 
 #### todo
 - Find a more efficient means of loading asset data.

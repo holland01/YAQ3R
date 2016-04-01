@@ -1,5 +1,4 @@
 VERBOSE=1
-DEBUG=1
 EM_ASSERTIONS=1
 
 ifdef VERBOSE
@@ -23,7 +22,8 @@ OFILES := $(OBJFILES:%=obj/%.$(LFORMAT))
 
 BINFILE = bspviewer.html
 
-COMMONFLAGS = -O2 -Wall -Wextra -pedantic -Werror \
+COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
+ -Wno-dollar-in-identifier-extension \
  -Isrc -Isrc/extern -s SAFE_HEAP=1 -s ALLOW_MEMORY_GROWTH=1
 
 DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
@@ -32,14 +32,18 @@ DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-parameter
 
 LDFLAGS = --emrun
-LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912
+LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368
+
+ifdef PRELOAD_ASSETS
+	LDFLAGS := $(LDFLAGS) --preload-file emscripten_asset@
+endif
 
 ifdef DEBUG
-  COMMONFLAGS := $(COMMONFLAGS) -g4
-  COMMONFLAGS := $(COMMONFLAGS) $(DEBUGFLAGS)
+  COMMONFLAGS := $(COMMONFLAGS) -g4 -O0 $(DEBUGFLAGS)
   LDO := $(LDO) -O0
 else
   LDO := $(LDO) -O2
+  COMMONFLAGS := $(COMMONFLAGS) -O2
 endif
 
 CFLAGS = $(COMMONFLAGS) -std=c++14
@@ -85,10 +89,11 @@ Makefile.dep: $(CFILES) $(CXXFILES)
 	#$(E)Depend
 	#$(Q)for i in $(^); do $(CXX) $(CXXFLAGS) -MM "$${i}" -MT obj/`basename $${i%.*}`.$(LFORMAT); done > $@
 
+
 $(BINFILE): $(OFILES)
 	$(E) The Path is this: $PATH
 	$(E) Linking $@
-	$(Q)$(CXX) $(LDFLAGS) $(OFILES) $(LDO) ~/.emscripten_cache/ports-builds/sdl2/libsdl2.bc -o $@ --emrun
+	$(Q)$(CXX) $(LDFLAGS) $(OFILES) $(LDO) ~/.emscripten_cache/ports-builds/sdl2/libsdl2.bc -o $@ $(LDFLAGS)
 clean:
 	$(E) Removing files
 	$(Q)rm -rf obj/

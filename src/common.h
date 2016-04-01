@@ -29,7 +29,7 @@
 #	include <GLES2/gl2.h>
 #	include <GLES2/gl2ext.h>
 #	include <EGL/egl.h>
-#	define DEBUG
+//#	define DEBUG
 #else
 #	include <GL/glew.h>
 #endif
@@ -89,8 +89,9 @@
 #ifndef _WIN32
 #	define TRUE 1
 #	define FALSE 0
-
+#	ifdef DEBUG
 static void __nop(void) {}
+#	endif
 #endif
 
 #define INDEX_UNDEFINED -1

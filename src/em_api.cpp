@@ -1,12 +1,14 @@
 #ifdef  EMSCRIPTEN
 
 #include "em_api.h"
+#include "io.h"
 #include <html5.h>
 
 #ifdef EM_USE_WORKER_THREAD
 worker_t gFileWebWorker( "worker/file_traverse.js" );
 #endif
 
+/*
 #define SET_CALLBACK_RESULT( expr )\
 	do\
 	{\
@@ -35,6 +37,7 @@ INLINE std::string EmscriptenResultFromEnum( int32_t result )
 
 	return "EMSCRIPTEN_RESULT_UNDEFINED";
 }
+*/
 
 static bool gMounted = false;
 
@@ -43,8 +46,10 @@ void EM_UnmountFS( void )
 	if ( gMounted )
 	{
 		EM_ASM(
-			FS.unmount(Module['GDEF']['FILE_MEMFS_DIR']);
-			FS.rmdir(Module['GDEF']['FILE_MEMFS_DIR']);
+			//FS.unmount(Module['GDEF']['FILE_MEMFS_DIR']);
+			//FS.rmdir(Module['GDEF']['FILE_MEMFS_DIR']);
+			FS.unmount('/memory');
+			FS.rmdir('/memory');
 		);
 		gMounted = false;
 	}
@@ -54,62 +59,48 @@ void EM_MountFS( void )
 {
 	if ( !gMounted )
 	{
+		const char* script =
+		   "Module.walkFileDirectory = function($0, $1, $2) {\n"
+				"var path = UTF8ToString($0);\n"
+				"var lookup = FS.lookupPath(path);\n"
+				"if (!lookup) {\n"
+					"stringToUTF8('Path given ' + path + ' could not be found.', $2, 128);\n"
+					"return 0;\n"
+				"}\n"
+				"var root = lookup.node;\n"
+				"var iterate = true;\n"
+				"function traverse(node) {\n"
+					"if (!iterate) {\n"
+						"return;\n"
+					"}\n"
+					"var path = FS.getPath(node);\n"
+					"var stat = FS.stat(path);\n"
+					"if (FS.isFile(stat.mode)) {\n"
+						"return;\n"
+					"}\n"
+					"for (var n in node.contents) {\n"
+						"traverse(node.contents[n]);\n"
+						"var p = FS.getPath(node.contents[n]);\n"
+						"var u8buf = intArrayFromString(p);\n"
+						"var pbuf = Module._malloc(u8buf.length);\n"
+						"Module.writeArrayToMemory(u8buf, pbuf);\n"
+						"var stack = Runtime.stackSave();\n"
+						"iterate = !!Runtime.dynCall('ii', $1, [pbuf]);\n"
+						"Runtime.stackRestore(stack);\n"
+						"Module._free(pbuf);\n"
+					"}\n"
+				"}\n"
+				"traverse(root);\n"
+				"return 1;\n"
+			"};";
+
+		emscripten_run_script( script );
 		EM_ASM(
-			if (!Module['GDEF']) {
-				Module['GDEF'] = {};
-			}
-			Module['GDEF']['FILE_MEMFS_DIR'] = '/memory';
-
-			Module['GFUNC_WALKDIR'] = function(directory, callback, error) {
-				var path = UTF8ToString(directory);
-				var lookup = FS.lookupPath(path);
-				if (!lookup) {
-					stringToUTF8('Path given ' + path + ' could not be found.', error, 128);
-					return 0;
-				}
-
-				var root = lookup.node;
-				var iterate = true;
-
-				function traverse(node) {
-					if (!iterate) return;
-
-					var path = FS.getPath(node);
-					var stat = FS.stat(path);
-					if (FS.isFile(stat.mode)) {
-						return;
-					}
-
-					for (var n in node.contents) {
-						traverse(node.contents[n]);
-						var p = FS.getPath(node.contents[n]);
-						var u8buf = intArrayFromString(p);
-						var pbuf = Module._malloc(u8buf.length);
-						Module.writeArrayToMemory(u8buf, pbuf);
-						var stack = Runtime.stackSave();
-						iterate = !!Runtime.dynCall('ii', callback, [pbuf]);
-						Runtime.stackRestore(stack);
-						Module._free(pbuf);
-					}
-				}
-
-				traverse(root);
-				return 1;
-			}
-
 			FS.mkdir('/memory');
 			FS.mount(MEMFS, {}, '/memory');
 		);
 		gMounted = true;
 	}
-
-	/*
-	int32_t ret;
-	SET_CALLBACK_RESULT( emscripten_set_keydown_callback( nullptr, nullptr, 0, ( em_key_callback_func )&KeyInputFunc< &input_client::EvalKeyPress > ) );
-	SET_CALLBACK_RESULT( emscripten_set_keyup_callback( nullptr, nullptr, 0, ( em_key_callback_func )&KeyInputFunc< &input_client::EvalKeyRelease > ) );
-	SET_CALLBACK_RESULT( emscripten_set_mousemove_callback( "#canvas", nullptr, 1, ( em_mouse_callback_func )&MouseMoveFunc ) );
-	SET_CALLBACK_RESULT( emscripten_set_mousedown_callback( "#canvas", nullptr, 1, ( em_mouse_callback_func )&MouseDownFunc ) );
-	*/
 }
 
 #endif // EMSCRIPTEN

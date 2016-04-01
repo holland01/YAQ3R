@@ -84,14 +84,16 @@ extern "C" {
 
 void Traverse( char* directory, int size )
 {
+	( void )size;
+
 	CheckFilesMounted();
 
 	char errorMsg[ 128 ];
 	memset( errorMsg, 0, sizeof( errorMsg ) );
 
-	int ret = EM_ASM_ARGS( {
+	int ret = EM_ASM_ARGS(
 		return Module['GFUNC_WALKDIR']($0, $1, $2);
-	}, directory, ReadFile, errorMsg );
+	, directory, ReadFile, errorMsg );
 
 	if ( !ret )
 		printf( "[WORKER ERROR]: %s\n", errorMsg );

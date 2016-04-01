@@ -180,7 +180,7 @@ struct meta_t
 	}
 };
 
-std::unique_ptr< meta_t > gMeta( new meta_t() );
+std::unique_ptr< meta_t > gMeta( nullptr );
 
 void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p, uint16_t v )
 {
@@ -404,11 +404,6 @@ void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root
 
 			for ( i = 0; i < t->columns.size() && !found; )
 			{
-				if ( t->key == 256 )
-				{
-					__nop();
-				}
-
 				found = TraverseColumn( *t, map, i );
 
 				if ( !found )
@@ -550,7 +545,8 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 	{
 		{ 0, 0 },
 		{ 0, 0 },
-		0
+		0,
+		{}
 	};
 
 	std::vector< atlasPositionMap_t > posMap;
@@ -619,7 +615,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 	if ( !ValidateDims( width, height, maxTextureSize ) )
 	{
-		return std::move( posMap );
+		return posMap;
 	}
 
 	// Query the max value and send it in
@@ -634,7 +630,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 	gMeta->LogData( metrics, rootTree );
 
-	return std::move( posMap );
+	return posMap;
 }
 
 // For lists of images which all have the same dimensions
@@ -650,7 +646,7 @@ std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gIm
 
 	if ( !ValidateDims( width, height, maxTextureSize ) )
 	{
-		return std::move( posMap );
+		return posMap;
 	}
 
 	for ( uint16_t y = 0; y < square; ++y )
@@ -671,7 +667,7 @@ std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gIm
 		}
 	}
 
-	return std::move( posMap );
+	return posMap;
 }
 
 } // end namespace
@@ -680,6 +676,11 @@ std::vector< atlasPositionMap_t > AtlasGenOrigins(
 		const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
+	if ( !gMeta )
+	{
+		gMeta.reset( new meta_t() );
+	}
+
 	// Determine our atlas layout
 	for ( uint16_t i = 1; i < params.size(); ++i )
 	{
@@ -688,9 +689,9 @@ std::vector< atlasPositionMap_t > AtlasGenOrigins(
 		if ( params[ i - 1 ].width != params[ i ].width
 			 || params[ i - 1 ].height != params[ i ].height )
 		{
-			return std::move( AtlasGenVariedOrigins( params, maxTextureSize ) );
+			return AtlasGenVariedOrigins( params, maxTextureSize );
 		}
 	}
 
-	return std::move( AtlasGenUniformOrigins( params, maxTextureSize ) );
+	return AtlasGenUniformOrigins( params, maxTextureSize );
 }

@@ -135,6 +135,7 @@ INLINE const gTexture_t* GetTexture( gTextureHandle_t handle )
 INLINE bool ValidateTexture( const gImageParams_t& params, const gTexConfig_t& sampler )
 {
 #ifdef EMSCRIPTEN
+	UNUSED( sampler );
 	GLint maxSize;
 	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxSize ) );
 
@@ -205,6 +206,7 @@ void GenGridTexture( GLenum target,
 	GL_CHECK( glBindTexture( target, 0 ) );
 }
 
+/*
 bool TryAlignBoundry( atlasPositionMap_t& map, glm::ivec2& result, const glm::vec2& scale,
 	const glm::vec2& baseDims, const glm::vec2& offsetDims )
 {
@@ -234,7 +236,9 @@ bool TryAlignBoundry( atlasPositionMap_t& map, glm::ivec2& result, const glm::ve
 
 	return inside;
 }
+*/
 
+/*
 void CalcProjBounds( uint8_t offset, glm::vec2& min, glm::vec2& max,
 	const glm::mat2& axes, const std::array< glm::vec2, 8 >& p )
 {
@@ -260,7 +264,9 @@ void CalcProjBounds( uint8_t offset, glm::vec2& min, glm::vec2& max,
 		}
 	}
 }
+*/
 
+/*
 void ResolveConflict( glm::vec2& aMin, glm::vec2& aMax,
 				glm::vec2& bMin, glm::vec2& bMax )
 {
@@ -347,7 +353,9 @@ void ResolveConflict( glm::vec2& aMin, glm::vec2& aMax,
 		aMax += resolve;
 	}
 }
+*/
 
+/*
 void CorrectOrigins( const glm::ivec2& gridDims, const glm::ivec2& originalDims,
 	std::vector< atlasPositionMap_t >& origins,
 	std::vector< glm::ivec2 >& gridSlotDims )
@@ -409,6 +417,7 @@ void CorrectOrigins( const glm::ivec2& gridDims, const glm::ivec2& originalDims,
 		}
 	}
 }
+*/
 
 std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& canvasParams,
 	std::vector< atlasPositionMap_t >& origins )
@@ -483,7 +492,7 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& 
 
 	GenGridTexture( tt->target, tt->grids, sampler, &canvasParams.data[ 0 ] );
 
-	return std::move( dimensions );
+	return dimensions;
 }
 
 INLINE void TryAllocDummy( void )
@@ -619,7 +628,7 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 
 	GValidTextureDimensions( canvasParams.width, canvasParams.height );
 
-	return std::move( origins );
+	return origins;
 }
 
 void GenSubdivision( gTexture_t* tt,
@@ -657,11 +666,6 @@ void GenSubdivision( gTexture_t* tt,
 		const gImageParams_t& image = *( atlasPos.image );
 		gTextureImage_t data;
 		uint16_t slot, next;
-
-		if ( atlasPos.image->width == 384 && atlasPos.image->height == 856 )
-		{
-			__nop();
-		}
 
 		GL_CHECK( glTexSubImage2D( tt->target,
 			0, ( int32_t )( atlasPos.origin.x - gridX * slotDims.x ),
@@ -960,7 +964,7 @@ gTextureImageKeyList_t GTextureImageKeys( const gTextureHandle_t& handle )
 		}
 	}
 
-	return std::move( keyList );
+	return keyList;
 }
 
 uint16_t GTextureGridCount( const gTextureHandle_t& handle )
