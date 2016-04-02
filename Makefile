@@ -26,7 +26,7 @@ COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
  -Wno-dollar-in-identifier-extension \
  -Isrc -Isrc/extern -s SAFE_HEAP=1 -s ALLOW_MEMORY_GROWTH=1
 
-DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
+DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
   -Wno-unused-parameter
@@ -34,8 +34,11 @@ DEBUGFLAGS = -Wno-unused-function -Wno-unused-variable\
 LDFLAGS = --emrun
 LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368
 
-ifdef PRELOAD_ASSETS
-	LDFLAGS := $(LDFLAGS) --preload-file emscripten_asset@
+ifdef PRELOAD_ALL_ASSETS
+	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_all@
+else
+	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_log@
+	COMMONFLAGS := $(COMMONFLAGS) -DASYNC_FILE_TRAVERSAL
 endif
 
 ifdef DEBUG

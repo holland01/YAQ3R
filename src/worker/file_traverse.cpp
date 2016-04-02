@@ -1,8 +1,9 @@
 #include <emscripten.h>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
-void ReadFile( unsigned char* path )
+void TestFile( unsigned char* path )
 {
 	char* strpath = ( char* )path;
 
@@ -16,20 +17,14 @@ static void CheckFilesMounted( void )
 	if ( !gFilesMounted )
 	{
 		EM_ASM( {
+			console.log( 'Loading bundles...' );
 			var names = [
-				'bspData',
-				'shader_gen',
 				'sprites',
-				'atlas_gen',
 				'gfx',
-				'q3bsp_texgen',
 				'scripts',
-				'gl',
 				'maps',
-				'texgen_effect_shader',
 				'textures',
-				'env',
-				'drawLog'
+				'env'
 			];
 			var packages = [];
 			var xhr = null;
@@ -50,6 +45,7 @@ static void CheckFilesMounted( void )
 			+ '\nXHR Status: ' + xhr.status);
 				if (xhr.readyState === XMLHttpRequest.DONE) {
 					if (xhr.status === 200) {
+						console.log( 'status 200; writing...' );
 						param[extName['param']] = xhr.request;
 					}
 				}
@@ -60,10 +56,10 @@ static void CheckFilesMounted( void )
 					extName = n;
 					xhr = new XMLHttpRequest();
 					var url = 'http://localhost:6931/bundle/' + names[i] + n;
+					console.log( 'Loading ', url, '...' );
 					xhr.open('GET', url, false);
 					xhr.responseType = exts[extName['type']];
 					xhr.setRequestHeader('Access-Control-Allow-Origin', 'http://localhost:6931');
-					//xhr.setRequestHeader('Content-Type', exts[n]);
 					xhr.addEventListener('load', getData);
 					xhr.send();
 				}
@@ -82,8 +78,30 @@ static void CheckFilesMounted( void )
 
 extern "C" {
 
+void ReadFile( char* path, int size )
+{
+	puts( "Worker: ReadFile entering" );
+
+	CheckFilesMounted();
+
+	FILE* f = fopen( path, "rb" );
+
+	fseek( f, 0, SEEK_END );
+	size_t count = ftell( f );
+	fseek( f, 0, SEEK_SET );
+
+	std::vector< unsigned char > buffer( ( count + 1 ) * sizeof( unsigned char ), 0 );
+	fread( &buffer[ 0 ], sizeof( unsigned char ), count, f );
+	fclose( f );
+
+	emscripten_worker_respond( ( char* ) &buffer[ 0 ],
+		buffer.size() * sizeof( buffer[ 0 ] ) );
+}
+
 void Traverse( char* directory, int size )
 {
+	puts( "Worker: Traverse entering" );
+
 	( void )size;
 
 	CheckFilesMounted();
@@ -92,8 +110,13 @@ void Traverse( char* directory, int size )
 	memset( errorMsg, 0, sizeof( errorMsg ) );
 
 	int ret = EM_ASM_ARGS(
-		return Module['GFUNC_WALKDIR']($0, $1, $2);
-	, directory, ReadFile, errorMsg );
+		try {
+			return Module.walkFileDirectory($0, $1, $2);
+		} catch (e) {
+			console.log(e);
+			throw e;
+		}
+	, directory, TestFile, errorMsg );
 
 	if ( !ret )
 		printf( "[WORKER ERROR]: %s\n", errorMsg );

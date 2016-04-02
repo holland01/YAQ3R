@@ -10,8 +10,6 @@
 #include <random>
 #include <algorithm>
 
-
-
 struct config_t
 {
 	bool drawFacesOnly: 1;

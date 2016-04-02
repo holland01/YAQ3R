@@ -6,6 +6,15 @@
 
 #ifdef EM_USE_WORKER_THREAD
 worker_t gFileWebWorker( "worker/file_traverse.js" );
+
+void EM_FWW_Copy( char* data, int byteSize, void* destVector )
+{
+	std::vector< unsigned char >& v = *( ( std::vector< unsigned char >* )destVector );
+
+	v.resize( byteSize, 0 );
+	memcpy( &v[ 0 ], data, byteSize );
+}
+
 #endif
 
 /*
@@ -46,8 +55,6 @@ void EM_UnmountFS( void )
 	if ( gMounted )
 	{
 		EM_ASM(
-			//FS.unmount(Module['GDEF']['FILE_MEMFS_DIR']);
-			//FS.rmdir(Module['GDEF']['FILE_MEMFS_DIR']);
 			FS.unmount('/memory');
 			FS.rmdir('/memory');
 		);
@@ -59,6 +66,9 @@ void EM_MountFS( void )
 {
 	if ( !gMounted )
 	{
+		// Load a global definition
+		// which can be used from inline javascript
+		// snippets
 		const char* script =
 		   "Module.walkFileDirectory = function($0, $1, $2) {\n"
 				"var path = UTF8ToString($0);\n"
@@ -102,5 +112,4 @@ void EM_MountFS( void )
 		gMounted = true;
 	}
 }
-
 #endif // EMSCRIPTEN

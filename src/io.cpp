@@ -5,7 +5,6 @@
 #include "effect_shader.h"
 #include <glm/gtx/string_cast.hpp>
 #include <SDL2/SDL.h>
-#include "em_api.h"
 
 #ifdef _WIN32
 #	define OS_PATH_SEPARATOR '\\'
@@ -395,6 +394,8 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
 	emscripten_call_worker( gFileWebWorker.handle, "Traverse", buffer, bsize,
 		callback, nullptr );
+
+	emscripten_sleep_with_yield( 10000 );
 #else // Emscripten, without worker threads
 	char errorMsg[ 256 ];
 	memset( errorMsg, 0, sizeof( errorMsg ) );

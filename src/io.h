@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "em_api.h"
 
 struct bspFace_t;
 struct bspMeshVertex_t;
@@ -105,6 +106,14 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 template < typename T >
 INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 {
+#ifdef EM_USE_WORKER_THREAD
+	// const c_str() is forced :/
+	char* dupPath = strdup( fpath.c_str() );
+	gFileWebWorker.Await( EM_FWW_Copy, "ReadFile", dupPath, strlen( dupPath ),
+		( void* ) &outBuffer );
+	free( dupPath );
+	return true;
+#else
 	FILE* f = fopen( fpath.c_str(), "rb" );
 	if ( !f )
 	{
@@ -118,6 +127,7 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 	outBuffer.resize( count + 1, 0 );
 	fread( &outBuffer[ 0 ], sizeof( T ), count, f );
 	fclose( f );
+#endif
 
 	return true;
 }
@@ -128,7 +138,8 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
 	for the rare case that we want to do something specific in the same
 	location. It's totally optional though
 */
-static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex, const std::string& filename  )
+static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex,
+	const std::string& filename  )
 {
 	// Second condition is to ensure we actually have a file extension we can use
 	size_t index = filename.find_last_of( '.' );

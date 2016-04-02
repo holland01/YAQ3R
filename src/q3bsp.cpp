@@ -206,20 +206,46 @@ void Q3BspMap::WriteLumpToFile( uint32_t lump )
 
 void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 {
-	// Open file, verify it if we succeed
-	FILE* file = fopen( filepath.c_str(), "rb" );
-
-	if ( !file )
+	// TODO: refactor data.buffer into a std::vector,
+	// and replace redundant file processing code (in the case that EM_USE_WORKER_THREAD)
+	// isn't defined with File_Open/File_GetData (we're doing that only) if worker threads
+	// are used right *now* because it's far simpler to test and time is short.
+#ifdef EM_USE_WORKER_THREAD
 	{
-		MLOG_ERROR( "Failed to open %s\n", filepath.c_str() );
+		std::vector< unsigned char > tmp;
+		File_GetBuf( tmp, filepath );
+		data.buffer = new byte[ tmp.size() ]();
+		memcpy( data.buffer, &tmp[ 0 ], tmp.size() );
 	}
+#else
+	// Open file, verify it if we succeed
+    {
+		FILE* file = fopen( filepath.c_str(), "rb" );
 
-	fseek( file, 0, SEEK_END );
-	size_t fsize = ftell( file );
-	data.buffer = new byte[ fsize ]();
-	fseek( file, 0, SEEK_SET );
-	fread( data.buffer, fsize, 1, file );
-	rewind( file );
+		if ( !file )
+		{
+			MLOG_ERROR( "Failed to open %s\n", filepath.c_str() );
+		}
+
+		fseek( file, 0, SEEK_END );
+		size_t fsize = ftell( file );
+		data.buffer = new byte[ fsize ]();
+		fseek( file, 0, SEEK_SET );
+		fread( data.buffer, fsize, 1, file );
+		rewind( file );
+
+		// Reading the last portion of the data from the file directly has appeared to produce better results.
+		// Not quite sure why, admittedly. See: http://stackoverflow.com/questions/27653440/mapping-data-to-an-offset-of-a-byte-buffer-allocated-for-an-entire-file-versus-r
+		// for the full story
+		fseek( file, data.header->directories[ BSP_LUMP_VISDATA ].offset + sizeof( int ) * 2, SEEK_SET );
+
+		int size = data.visdata->numVectors * data.visdata->sizeVector;
+		data.visdata->bitsets = new byte[ size ]();
+		fread( data.visdata->bitsets, size, 1, file );
+
+		fclose( file );
+	}
+#endif
 
 	data.header = ( bspHeader_t* )data.buffer;
 
@@ -287,17 +313,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	data.visdata = ( bspVisdata_t* )( data.buffer + data.header->directories[ BSP_LUMP_VISDATA ].offset );
 	data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;
 
-	// Reading the last portion of the data from the file directly has appeared to produce better results.
-	// Not quite sure why, admittedly. See: http://stackoverflow.com/questions/27653440/mapping-data-to-an-offset-of-a-byte-buffer-allocated-for-an-entire-file-versus-r
-	// for the full story
-	fseek( file, data.header->directories[ BSP_LUMP_VISDATA ].offset + sizeof( int ) * 2, SEEK_SET );
-
-	int size = data.visdata->numVectors * data.visdata->sizeVector;
-	data.visdata->bitsets = new byte[ size ]();
-	fread( data.visdata->bitsets, size, 1, file );
-
-	fclose( file );
-
 	//
 	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis. Also scale anything as necessary (or desired)
 	//
@@ -362,9 +377,11 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
+#ifndef EM_USE_WORKER_THREAD
 	LogBSPData( BSP_LUMP_SHADERS, ( void* ) data.shaders, data.numShaders );
 	LogBSPData( BSP_LUMP_FOGS, ( void* ) ( data.fogs ), data.numFogs );
 	LogBSPData( BSP_LUMP_ENTITIES, ( void *) ( data.entities.infoString ), -1 );
+#endif 
 
 	name = File_StripExt( File_StripPath( filepath ) );
 }
@@ -417,4 +434,3 @@ bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 
 	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }
-

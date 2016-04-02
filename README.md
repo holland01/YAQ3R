@@ -637,3 +637,20 @@ in a way so they don't take up nearly as much memory.
 - Find a more efficient means of loading asset data.
 - Optimize program data uploads ( see *Shader Programs* entry for **3/7**)
 - Work on sky effects
+
+**4/2/16**
+
+- worker thread functions should be exported (may want to double check the syntax
+	in gen_workers.sh)
+- getting memory error, which could either be due to a) the logging of the bsp data, b)
+the amount of copying required in the worker thread and its communication with the
+main thread, or c) both.
+
+- appears that file read is successful, considering that exception is thrown at the end
+of Q3BspMap::ReadFile for LogBspData. However, the following is worth noting:
+  	- There is no return false in  File_GetBuf
+	- Not seeing any indication that XHR is actually being loaded, given that there's
+	no output to the screen as there should be.
+
+So, it probably isn't successful. Also, try recommenting in ghetto await that loop, seeing as
+how it may still work.
