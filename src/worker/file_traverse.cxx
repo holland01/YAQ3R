@@ -58,7 +58,7 @@ static void CheckFilesMounted( void )
 					var url = 'http://localhost:6931/bundle/' + names[i] + n;
 					console.log( 'Loading ', url, '...' );
 					xhr.open('GET', url, false);
-					xhr.responseType = exts[extName['type']];
+					xhr.responseType = exts[extName]['type'];
 					xhr.setRequestHeader('Access-Control-Allow-Origin', 'http://localhost:6931');
 					xhr.addEventListener('load', getData);
 					xhr.send();

@@ -24,15 +24,16 @@ BINFILE = bspviewer.html
 
 COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
  -Wno-dollar-in-identifier-extension \
- -Isrc -Isrc/extern -s SAFE_HEAP=1 -s ALLOW_MEMORY_GROWTH=1
+ -Isrc -Isrc/extern -s SAFE_HEAP=1
 
 DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
-  -Wno-unused-parameter
+  -Wno-unused-parameter -g2
 
-LDFLAGS = --emrun
-LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368
+LDFLAGS = --emrun --profiling-funcs
+LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368 -s EMTERPRETIFY=1 \
+ -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST='["_main"]' -s 'EMTERPRETIFY_FILE="code.dat"'
 
 ifdef PRELOAD_ALL_ASSETS
 	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_all@
@@ -42,8 +43,8 @@ else
 endif
 
 ifdef DEBUG
-  COMMONFLAGS := $(COMMONFLAGS) -g4 -O0 $(DEBUGFLAGS)
-  LDO := $(LDO) -O0
+  COMMONFLAGS := $(COMMONFLAGS) -Oz $(DEBUGFLAGS)
+  LDO := $(LDO) -Oz
 else
   LDO := $(LDO) -O2
   COMMONFLAGS := $(COMMONFLAGS) -O2
@@ -70,7 +71,7 @@ CXXO = -O2
 DEPFLAGS= -s USE_SDL=2
 
 ifdef EM_ASSERTIONS
-  COMMONFLAGS := $(COMMONFLAGS) -s ASSERTIONS=2
+  COMMONFLAGS := $(COMMONFLAGS) -s ASSERTIONS=1
 endif
 
 -include Makefile.local

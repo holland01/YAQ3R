@@ -5,6 +5,28 @@
 #include <html5.h>
 
 #ifdef EM_USE_WORKER_THREAD
+
+worker_t::worker_t( const char* name )
+	: handle( emscripten_create_worker( name ) )
+{
+}
+
+worker_t::~worker_t( void )
+{
+	emscripten_destroy_worker( handle );
+}
+
+void worker_t::Await( em_worker_callback_func callback, const char* func, char* data, int size,
+	void* param ) const
+{
+//	MLOG_ASSERT( callback, "null callback isn't allowed; it's required for "\
+//		"determining the size of the work queue - pass a dummy if necessary." );
+	MLOG_INFO( "Calling Worker ID %i\n", handle );
+	int prevQueueSize = emscripten_get_worker_queue_size( handle );
+	emscripten_call_worker( handle, func, data, size, callback, param );
+	emscripten_sleep_with_yield( 5000 );
+}
+
 worker_t gFileWebWorker( "worker/file_traverse.js" );
 
 void EM_FWW_Copy( char* data, int byteSize, void* destVector )

@@ -654,3 +654,19 @@ of Q3BspMap::ReadFile for LogBspData. However, the following is worth noting:
 
 So, it probably isn't successful. Also, try recommenting in ghetto await that loop, seeing as
 how it may still work.
+
+**4/3/16**
+
+- main problem is figuring out why Emtrepreter.Async.handle or whatever is failing
+on assertion.
+	- based on the error message, it seems like something is undefined.
+
+	- minification is preventing you from being able to step through before the error
+	actually happens; this is because there's just too much damn memory in that js file.
+
+	- should compile/link with -O0 to avoid the minification bullshit that's
+	preventing you from stepping through.
+
+- Emterpreter is needed for emscripten_sleep_with_yield; you want this so you can
+mount the bundles in a worker and wait until they're finished before continuing
+execution on the main "thread"
