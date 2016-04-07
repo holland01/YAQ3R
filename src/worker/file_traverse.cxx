@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include "../js/global_func.h"
 
 void TestFile( unsigned char* path )
 {
@@ -10,12 +11,18 @@ void TestFile( unsigned char* path )
 	emscripten_worker_respond_provisionally( strpath, strlen( strpath ) );
 }
 
-static bool gFilesMounted = false;
+static bool gInitialized = false;
 
-static void CheckFilesMounted( void )
+static void InitSystem( void )
 {
-	if ( !gFilesMounted )
+	if ( !gInitialized )
 	{
+		const char* globalDef =
+			EM_FUNC_WALK_FILE_DIRECTORY
+			"self.walkFileDirectory = walkFileDirectory;";
+
+		emscripten_run_script( globalDef );
+
 		EM_ASM( {
 			console.log( 'Loading bundles...' );
 			var names = [
@@ -39,28 +46,23 @@ static void CheckFilesMounted( void )
 					'param': 'metadata'
 				}
 			};
-			var param = {};
-			function getData(evt) {
-				console.log('XHR Ready State: ' + xhr.readyState
-			+ '\nXHR Status: ' + xhr.status);
-				if (xhr.readyState === XMLHttpRequest.DONE) {
-					if (xhr.status === 200) {
-						console.log( 'status 200; writing...' );
-						param[extName['param']] = xhr.request;
-					}
-				}
-			}
-
 			for (var i = 0; i < names.length; ++i) {
+				var param = {};
 				for (var n in exts) {
-					extName = n;
-					xhr = new XMLHttpRequest();
+					var xhr = new XMLHttpRequest();
 					var url = 'http://localhost:6931/bundle/' + names[i] + n;
 					console.log( 'Loading ', url, '...' );
 					xhr.open('GET', url, false);
-					xhr.responseType = exts[extName]['type'];
+					xhr.responseType = exts[n]['type'];
 					xhr.setRequestHeader('Access-Control-Allow-Origin', 'http://localhost:6931');
-					xhr.addEventListener('load', getData);
+					xhr.addEventListener('readystatechange', function(evt) {
+						console.log('XHR Ready State: ' + xhr.readyState
+							+ '\nXHR Status: ' + xhr.status);
+						if (xhr.readyState === XMLHttpRequest.DONE) {
+							console.log( 'status 200; writing...' );
+							param[exts[n]['param']] = xhr.response;
+						}
+					});
 					xhr.send();
 				}
 				packages.push(param);
@@ -72,7 +74,7 @@ static void CheckFilesMounted( void )
 			}, '/working');
 		} );
 
-		gFilesMounted = true;
+		gInitialized = true;
 	}
 }
 
@@ -82,20 +84,27 @@ void ReadFile( char* path, int size )
 {
 	puts( "Worker: ReadFile entering" );
 
-	CheckFilesMounted();
+	InitSystem();
 
 	FILE* f = fopen( path, "rb" );
 
-	fseek( f, 0, SEEK_END );
-	size_t count = ftell( f );
-	fseek( f, 0, SEEK_SET );
+	if ( f )
+	{
+		fseek( f, 0, SEEK_END );
+		size_t count = ftell( f );
+		fseek( f, 0, SEEK_SET );
 
-	std::vector< unsigned char > buffer( ( count + 1 ) * sizeof( unsigned char ), 0 );
-	fread( &buffer[ 0 ], sizeof( unsigned char ), count, f );
-	fclose( f );
+		std::vector< unsigned char > buffer( ( count + 1 ) * sizeof( unsigned char ), 0 );
+		fread( &buffer[ 0 ], sizeof( unsigned char ), count, f );
+		fclose( f );
 
-	emscripten_worker_respond( ( char* ) &buffer[ 0 ],
-		buffer.size() * sizeof( buffer[ 0 ] ) );
+		emscripten_worker_respond( ( char* ) &buffer[ 0 ],
+			buffer.size() * sizeof( buffer[ 0 ] ) );
+	}
+	else
+	{
+		emscripten_worker_respond( nullptr, 0 );
+	}
 }
 
 void Traverse( char* directory, int size )
@@ -104,18 +113,20 @@ void Traverse( char* directory, int size )
 
 	( void )size;
 
-	CheckFilesMounted();
+	InitSystem();
 
 	char errorMsg[ 128 ];
 	memset( errorMsg, 0, sizeof( errorMsg ) );
 
 	int ret = EM_ASM_ARGS(
+		console.log('Does this work lol: ', self.walkFileDirectory);
 		try {
-			return Module.walkFileDirectory($0, $1, $2);
+			return self.walkFileDirectory($0, $1, $2);
 		} catch (e) {
 			console.log(e);
 			throw e;
 		}
+		return 0;
 	, directory, TestFile, errorMsg );
 
 	if ( !ret )

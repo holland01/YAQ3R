@@ -222,7 +222,8 @@ static INLINE std::string File_StripExt( const std::string& name )
 }
 
 bool File_GetPixels( const std::string& filepath,
-	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );
+	std::vector< uint8_t >& outBuffer,
+	int32_t& outBpp, int32_t& outWidth, int32_t& outHeight );
 
 /// Convert a buffer with an arbitrary bytes per pixel into an RGBA equivalent
 /// buffer. Any  RGB channels NOT included in the source pixel format are zerod out,

@@ -392,10 +392,11 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 	memset( buffer, 0, bsize + 1 );
 	memcpy( buffer, directory.data(), bsize );
 
-	emscripten_call_worker( gFileWebWorker.handle, "Traverse", buffer, bsize,
-		callback, nullptr );
+	//emscripten_call_worker( gFileWebWorker.handle, "Traverse", buffer, bsize,
+	//	callback, nullptr );
 
-	emscripten_sleep_with_yield( 10000 );
+	gFileWebWorker.Await( callback, "Traverse", buffer, bsize, nullptr );
+
 #else // Emscripten, without worker threads
 	char errorMsg[ 256 ];
 	memset( errorMsg, 0, sizeof( errorMsg ) );
@@ -428,7 +429,8 @@ bool File_GetPixels( const std::string& filepath,
 {
 	// Load image
 	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
-	uint8_t* imagePixels = stbi_load( filepath.c_str(), &outWidth, &outHeight, &outBpp, STBI_default );
+	uint8_t* imagePixels = stbi_load( filepath.c_str(), &outWidth, &outHeight, &outBpp,
+		STBI_default );
 
 	if ( !imagePixels )
 	{

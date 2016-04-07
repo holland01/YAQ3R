@@ -2,6 +2,7 @@
 
 #include "em_api.h"
 #include "io.h"
+#include "js/global_func.h"
 #include <html5.h>
 
 #ifdef EM_USE_WORKER_THREAD
@@ -19,12 +20,24 @@ worker_t::~worker_t( void )
 void worker_t::Await( em_worker_callback_func callback, const char* func, char* data, int size,
 	void* param ) const
 {
-//	MLOG_ASSERT( callback, "null callback isn't allowed; it's required for "\
-//		"determining the size of the work queue - pass a dummy if necessary." );
+	EM_ASM({
+		Module.bspFilesLoaded = false;
+	});
+
 	MLOG_INFO( "Calling Worker ID %i\n", handle );
 	int prevQueueSize = emscripten_get_worker_queue_size( handle );
 	emscripten_call_worker( handle, func, data, size, callback, param );
-	emscripten_sleep_with_yield( 5000 );
+
+	EM_ASM({
+		while (!Module.bspFilesLoaded) {
+			if (Module.bspFilesLoaded) {
+				console.log('BREAK!');
+				break;
+			}
+		}
+	});
+
+	MLOG_INFO( "Mother fucking break." );
 }
 
 worker_t gFileWebWorker( "worker/file_traverse.js" );
@@ -35,6 +48,24 @@ void EM_FWW_Copy( char* data, int byteSize, void* destVector )
 
 	v.resize( byteSize, 0 );
 	memcpy( &v[ 0 ], data, byteSize );
+
+	EM_ASM({
+		Module.bspFilesLoaded = true;
+	});
+
+	puts( "Thy will is done" );
+}
+
+void EM_FWW_Dummy( char* data, int byteSize, void* destVector )
+{
+	UNUSED( data );
+	UNUSED( destVector );
+
+	MLOG_INFO( "Worker finished. Byte size of data returned is %i", byteSize );
+
+	EM_ASM({
+		Module.bspFilesLoaded = true;
+	});
 }
 
 #endif
@@ -92,39 +123,9 @@ void EM_MountFS( void )
 		// which can be used from inline javascript
 		// snippets
 		const char* script =
-		   "Module.walkFileDirectory = function($0, $1, $2) {\n"
-				"var path = UTF8ToString($0);\n"
-				"var lookup = FS.lookupPath(path);\n"
-				"if (!lookup) {\n"
-					"stringToUTF8('Path given ' + path + ' could not be found.', $2, 128);\n"
-					"return 0;\n"
-				"}\n"
-				"var root = lookup.node;\n"
-				"var iterate = true;\n"
-				"function traverse(node) {\n"
-					"if (!iterate) {\n"
-						"return;\n"
-					"}\n"
-					"var path = FS.getPath(node);\n"
-					"var stat = FS.stat(path);\n"
-					"if (FS.isFile(stat.mode)) {\n"
-						"return;\n"
-					"}\n"
-					"for (var n in node.contents) {\n"
-						"traverse(node.contents[n]);\n"
-						"var p = FS.getPath(node.contents[n]);\n"
-						"var u8buf = intArrayFromString(p);\n"
-						"var pbuf = Module._malloc(u8buf.length);\n"
-						"Module.writeArrayToMemory(u8buf, pbuf);\n"
-						"var stack = Runtime.stackSave();\n"
-						"iterate = !!Runtime.dynCall('ii', $1, [pbuf]);\n"
-						"Runtime.stackRestore(stack);\n"
-						"Module._free(pbuf);\n"
-					"}\n"
-				"}\n"
-				"traverse(root);\n"
-				"return 1;\n"
-			"};";
+		   EM_FUNC_WALK_FILE_DIRECTORY"\n"
+		   "Module.bspFilesLoaded = false;\n"
+		   "Module.walkFileDirectory = walkFileDirectory;\n";
 
 		emscripten_run_script( script );
 		EM_ASM(

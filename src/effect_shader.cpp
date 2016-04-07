@@ -1145,6 +1145,14 @@ struct parseArgs_t
 		{
 			MLOG_INFO( "WEB WORKER TEST: %s\n", data );
 		}
+		else
+		{
+			MLOG_INFO( "WEB WORKER TEST: NO DATA" );
+		}
+
+		EM_ASM({
+			Module.bspFilesLoaded = true;
+		});
 	}
 #else
 	static int ReadShaderFile( const filedata_t data )

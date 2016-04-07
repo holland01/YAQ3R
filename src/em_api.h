@@ -27,6 +27,7 @@ extern worker_t gFileWebWorker;
 
 // void* destVector is expected to be a std::vector< unsgined char >*
 void EM_FWW_Copy( char* data, int size, void* destVector );
+void EM_FWW_Dummy( char* data, int size, void* destVector );
 #endif
 
 #endif // EMSCRIPTEN

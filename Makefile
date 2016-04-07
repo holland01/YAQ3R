@@ -32,7 +32,7 @@ DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-parameter -g2
 
 LDFLAGS = --emrun --profiling-funcs
-LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368 -s EMTERPRETIFY=1 \
+LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368 #-s EMTERPRETIFY=1 \
  -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST='["_main"]' -s 'EMTERPRETIFY_FILE="code.dat"'
 
 ifdef PRELOAD_ALL_ASSETS
@@ -43,8 +43,8 @@ else
 endif
 
 ifdef DEBUG
-  COMMONFLAGS := $(COMMONFLAGS) -Oz $(DEBUGFLAGS)
-  LDO := $(LDO) -Oz
+  COMMONFLAGS := $(COMMONFLAGS) -O0 $(DEBUGFLAGS)
+  LDO := $(LDO) -O0
 else
   LDO := $(LDO) -O2
   COMMONFLAGS := $(COMMONFLAGS) -O2

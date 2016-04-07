@@ -670,3 +670,50 @@ on assertion.
 - Emterpreter is needed for emscripten_sleep_with_yield; you want this so you can
 mount the bundles in a worker and wait until they're finished before continuing
 execution on the main "thread"
+
+**4/5/16**
+Some things to keep note of:
+
+	- JS workers don't have access to Module
+
+	- The only way to simulate any semblance of decent blocking is to embed inline
+	JS into the C++ source (as shown in worker_t::Await()), unless it's actually possible
+	for the Emterpreter to get up and running (doubtful).
+
+	- ReadFile worker function appears to work; however, there are exceptions being thrown
+	when the Traversal worker function is used afterward. Traversal is used during effect
+	shader parsing...
+
+**4/6/16**
+
+It's become clear that this approach isn't worth it. A far better solution would be to
+pre-process the map data so that only what the map actually needs is accessible in
+memory. An RDBMS based solution would likely be the best approach for this. However,
+Emscripten doesn't seem to directly provide such a thing - apart from IDBMS. IDBMS
+may or may not actually be a viable solution.
+
+If IDBMS won't provide the necessary facilities, then modifying Emscripten directly
+may be necessary. Either way, for every map, it would be best to do the following for
+a given asset:
+
+- Define an entry for the asset. For example, an image asset would be represented
+in its entry form as a blob of its compressed binary data. Decompression could be accomplished
+at runtime, with a known format/compression method being a key component in the entry of the asset.
+Likewise, for effect shaders, the specific shader entries themselves would be considered an asset entry.
+
+- Create a table for each asset entry. Assign a unique index for each.
+
+As for the map files themselves:
+
+- Given a map file, assess which assets are necessary for the map to be loaded
+as intended. A list of indices for a type of asset may be possible, but its questionable
+whether or not this is a good fit for an RDBMS solution. Either way, every asset must be
+referred to from the map type itself.
+
+The "preprocessor" program should just read in every .bsp file and, using the above
+guidelines, create a new database with all of the data in a structured fashion.
+
+Technically speaking, it would be a good idea to incorporate some kind of detection
+mechanism which is capable of determining whether or not a .BSP map needs to be updated in
+an already existing database. However, for the sake of time, this should be considered
+low priority.
