@@ -22,7 +22,7 @@ OFILES := $(OBJFILES:%=obj/%.$(LFORMAT))
 
 BINFILE = bspviewer.html
 
-COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
+COMMONFLAGS = --separate-asm -Wall -Wextra -pedantic -Werror \
  -Wno-dollar-in-identifier-extension \
  -Isrc -Isrc/extern -s SAFE_HEAP=1
 

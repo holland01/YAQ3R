@@ -4,9 +4,67 @@
 
 #define EM_JS_SCRIPT(script) #script"\n"
 
+// Async execution to snag some data; is designed to
+// be ran in parallel with other requests
+#define EM_FUNC_XHR_SNAG_FROM_NAME \
+EM_JS_SCRIPT(\
+	function xhrSnagFromName(exts, key, name, next, param,\
+		packages) {\
+		var xhr = new XMLHttpRequest();\
+		var url = 'http://localhost:6931/bundle/' + name + key;\
+		console.log('Loading ', url, '...');\
+		xhr.open('GET', url);\
+		xhr.responseType = exts[key]['type'];\
+		xhr.setRequestHeader('Access-Control-Allow-Origin',\
+			'http://localhost:6931');\
+		xhr.addEventListener('readystatechange', function(evt) {\
+			console.log('XHR Ready State: ' + xhr.readyState\
+				+ '\nXHR Status: ' + xhr.status);\
+			if (xhr.readyState === XMLHttpRequest.DONE) {\
+				console.log('status 200; writing...');\
+				param[exts[key]['param']] = xhr.response;\
+				if (next.length > 0) {\
+					f = next.shift();\
+					f(next, exts, name, packages);\
+				}\
+			}\
+		});\
+		xhr.send();\
+	}\
+)
+
+
+// param will be written to once each xhr request
+// is finished; in addition, at the end of each request,
+// the first function in funcEvents is 'popped'
+// and then executed to signal a push of the param.
+// Eventually, we hit the last set of names,
+// and then call our finished return point which
+// updates its own data.
+#define EM_FUNC_FETCH_BUNDLE_ASYNC \
+EM_JS_SCRIPT(\
+	function fetchBundleAsync(names, finished, exts, packages) { \
+		console.log('Loading bundles with the following names: ', JSON.stringify(names)); \
+		for (var i = 0; i < names.length; ++i) { \
+			var param = {}; \
+			var funcEvents = [ \
+				function(next, exts, name, packcages) { \
+					xhrSnagFromName(exts, '.js.metadata', names[i], param, next, packages); \
+				}, \
+				function(next, exts, name, packages) { \
+					packages.push(param); \
+					if (i === names.length - 1) { \
+						finished(packages); \
+					} \
+				} \
+			]; \
+			xhrSnagFromName(exts, '.data', names[i], param, funcEvents, packages); \
+		} \
+	})
+
 #define EM_FUNC_WALK_FILE_DIRECTORY \
-EM_JS_SCRIPT( \
-	function walkFileDirectory($0, $1, $2) { \
+EM_JS_SCRIPT(\
+	(function walkFileDirectory($0, $1, $2) { \
 		 var path = UTF8ToString($0); \
 		 var lookup = FS.lookupPath(path); \
 		 if (!lookup) { \
@@ -40,6 +98,48 @@ EM_JS_SCRIPT( \
 		 } \
 		 traverse(root); \
 		 return 1; \
-	})
+	} \
+	function xhrSnagFromName(exts, key, name, next, param,\
+		packages) {\
+		var xhr = new XMLHttpRequest();\
+		var url = 'http://localhost:6931/bundle/' + name + key;\
+		console.log('Loading ', url, '...');\
+		xhr.open('GET', url);\
+		xhr.responseType = exts[key]['type'];\
+		xhr.setRequestHeader('Access-Control-Allow-Origin',\
+			'http://localhost:6931');\
+		xhr.addEventListener('readystatechange', function(evt) {\
+			console.log('XHR Ready State: ' + xhr.readyState\
+				+ '\nXHR Status: ' + xhr.status);\
+			if (xhr.readyState === XMLHttpRequest.DONE) {\
+				console.log('status 200; writing...');\
+				param[exts[key]['param']] = xhr.response;\
+				if (next.length > 0) { \
+					f = next.shift(); \
+					f(next, exts, name, packages); \
+				} \
+			} \
+		}); \
+		xhr.send(); \
+	} \
+	function fetchBundleAsync(names, finished, exts, packages) { \
+		console.log('Loading bundles with the following names: ', JSON.stringify(names)); \
+		for (var i = 0; i < names.length; ++i) { \
+			var param = {}; \
+			var funcEvents = [ \
+				function(next, exts, name, packcages) { \
+					xhrSnagFromName(exts, '.js.metadata', names[i], param, next, packages); \
+				}, \
+				function(next, exts, name, packages) { \
+					packages.push(param); \
+					if (i === names.length - 1) { \
+						finished(packages); \
+					} \
+				} \
+			]; \
+			xhrSnagFromName(exts, '.data', names[i], param, funcEvents, packages); \
+		} \
+	}) \
+)
 
 #endif // EMSCRIPTEN

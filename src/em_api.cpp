@@ -17,27 +17,14 @@ worker_t::~worker_t( void )
 	emscripten_destroy_worker( handle );
 }
 
+static bool gIsLoaded = false;
+
 void worker_t::Await( em_worker_callback_func callback, const char* func, char* data, int size,
 	void* param ) const
 {
-	EM_ASM({
-		Module.bspFilesLoaded = false;
-	});
-
 	MLOG_INFO( "Calling Worker ID %i\n", handle );
 	int prevQueueSize = emscripten_get_worker_queue_size( handle );
 	emscripten_call_worker( handle, func, data, size, callback, param );
-
-	EM_ASM({
-		while (!Module.bspFilesLoaded) {
-			if (Module.bspFilesLoaded) {
-				console.log('BREAK!');
-				break;
-			}
-		}
-	});
-
-	MLOG_INFO( "Mother fucking break." );
 }
 
 worker_t gFileWebWorker( "worker/file_traverse.js" );
@@ -45,15 +32,8 @@ worker_t gFileWebWorker( "worker/file_traverse.js" );
 void EM_FWW_Copy( char* data, int byteSize, void* destVector )
 {
 	std::vector< unsigned char >& v = *( ( std::vector< unsigned char >* )destVector );
-
 	v.resize( byteSize, 0 );
 	memcpy( &v[ 0 ], data, byteSize );
-
-	EM_ASM({
-		Module.bspFilesLoaded = true;
-	});
-
-	puts( "Thy will is done" );
 }
 
 void EM_FWW_Dummy( char* data, int byteSize, void* destVector )
@@ -62,10 +42,6 @@ void EM_FWW_Dummy( char* data, int byteSize, void* destVector )
 	UNUSED( destVector );
 
 	MLOG_INFO( "Worker finished. Byte size of data returned is %i", byteSize );
-
-	EM_ASM({
-		Module.bspFilesLoaded = true;
-	});
 }
 
 #endif

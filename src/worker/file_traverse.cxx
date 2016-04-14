@@ -11,31 +11,64 @@ void TestFile( unsigned char* path )
 	emscripten_worker_respond_provisionally( strpath, strlen( strpath ) );
 }
 
+typedef void ( *callback_t )( char* data, int size );
+
 static bool gInitialized = false;
 
-static void InitSystem( void )
+static bool InitSystem( callback_t proxy, char* data, int size )
 {
-	if ( !gInitialized )
+	if (!gInitialized)
 	{
 		const char* globalDef =
 			EM_FUNC_WALK_FILE_DIRECTORY
-			"self.walkFileDirectory = walkFileDirectory;";
+			"self.walkFileDirectory = walkFileDirectory;\n"\
+			"self.fetchBundleAsync = fetchBundleAsync;\n"\
+			"self.xhrSnagFromName = xhrSnagFromName;";
 
 		emscripten_run_script( globalDef );
 
-		EM_ASM( {
-			console.log( 'Loading bundles...' );
-			var names = [
-				'sprites',
-				'gfx',
-				'scripts',
-				'maps',
-				'textures',
-				'env'
+		/*var names = [
+			'sprites',
+			'gfx',
+			'scripts',
+			'maps',
+			'textures',
+			'env'
+		];*/
+
+		EM_ASM_ARGS({
+			// packagesRef refers to the local variable
+			// defined further down.
+			// We wait until we're finished with all of the package fetching
+			// before a file system mount
+			var lists = [
+				[ 'sprites', 'gfx' ], // two folders per fetch
+				[ 'scripts', 'maps' ],
+				[ 'textures', 'env']
 			];
-			var packages = [];
-			var xhr = null;
-			var extName = null;
+			var fetchCount = 0;
+			function onFinish(packagesRef) {
+				fetchCount++;
+				if (fetchCount === lists.length) {
+					FS.mkdir('/working');
+					FS.mount(WORKERFS,
+						{packages: packagesRef},
+					'/working');
+
+					// May need to duplicate string memory, but since
+					// it's already a pointer likely not...
+					//var u8buf = intArrayFromString(p);
+					//var pbuf = Module._malloc(u8buf.length);
+					Module.writeArrayToMemory(u8buf, pbuf);
+					var stack = Runtime.stackSave();
+					iterate = !!Runtime.dynCall('iii', $0, /*[pbuf]*/ [$1, $2]);
+					Runtime.stackRestore(stack);
+					Module._free(pbuf);
+				}
+			}
+
+			// Allocate extensions object here and here only,
+			// to avoid unnecessary GC allocations
 			var exts = {
 				'.data': {
 					'type': 'blob',
@@ -46,46 +79,23 @@ static void InitSystem( void )
 					'param': 'metadata'
 				}
 			};
-			for (var i = 0; i < names.length; ++i) {
-				var param = {};
-				for (var n in exts) {
-					var xhr = new XMLHttpRequest();
-					var url = 'http://localhost:6931/bundle/' + names[i] + n;
-					console.log( 'Loading ', url, '...' );
-					xhr.open('GET', url, false);
-					xhr.responseType = exts[n]['type'];
-					xhr.setRequestHeader('Access-Control-Allow-Origin', 'http://localhost:6931');
-					xhr.addEventListener('readystatechange', function(evt) {
-						console.log('XHR Ready State: ' + xhr.readyState
-							+ '\nXHR Status: ' + xhr.status);
-						if (xhr.readyState === XMLHttpRequest.DONE) {
-							console.log( 'status 200; writing...' );
-							param[exts[n]['param']] = xhr.response;
-						}
-					});
-					xhr.send();
-				}
-				packages.push(param);
-			}
 
-			FS.mkdir('/working');
-			FS.mount(WORKERFS, {
-				packages: packages
-			}, '/working');
-		} );
+			var packages = [];
+
+			for (var i = 0; i < lists.length; ++i) {
+				fetchBundleAsync(lists[i], exts, packages, lists.length - i);
+			}
+		}, proxy, data, size);
 
 		gInitialized = true;
+		return false;
 	}
+
+	return true;
 }
 
-extern "C" {
-
-void ReadFile( char* path, int size )
+static void ReadFile_Proxy( char* path, int size )
 {
-	puts( "Worker: ReadFile entering" );
-
-	InitSystem();
-
 	FILE* f = fopen( path, "rb" );
 
 	if ( f )
@@ -107,14 +117,28 @@ void ReadFile( char* path, int size )
 	}
 }
 
+extern "C" {
+
+void ReadFile( char* path, int size )
+{
+	puts( "Worker: ReadFile entering" );
+
+	if ( InitSystem( ReadFile_Proxy, path, size ) )
+	{
+		ReadFile_Proxy( path, size );
+	}
+}
+
 void Traverse( char* directory, int size )
 {
 	puts( "Worker: Traverse entering" );
 
 	( void )size;
 
-	InitSystem();
-
+	if( 0 )
+	{
+		InitSystem( nullptr, directory, size );
+	}
 	char errorMsg[ 128 ];
 	memset( errorMsg, 0, sizeof( errorMsg ) );
 
