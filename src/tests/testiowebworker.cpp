@@ -10,7 +10,11 @@
 static void FrameIteration( void )
 {
 	static volatile int k = 0;
-	MLOG_INFO( "Iteration: %i", k++ );
+	k++;
+	if ( k % 1000 == 0 )
+	{
+		MLOG_INFO( "Beep" );
+	}
 }
 
 static void ReadCallback( char* data, int size, void* param )
@@ -21,8 +25,6 @@ static void ReadCallback( char* data, int size, void* param )
 		*( ( std::vector< unsigned char >* )param );
 
 	MLOG_INFO( "Job's finished. Size: %i bytes", v.size() );
-
-	emscripten_set_main_loop( FrameIteration, 0, 1 );
 }
 
 IOTestWebWorker::IOTestWebWorker( void )
@@ -48,6 +50,8 @@ int IOTestWebWorker::operator()( void )
 
 	//map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1 );
 	//S_LoadShaders( &map, imageSampler, textures );
+
+	emscripten_set_main_loop( FrameIteration, 0, 1 );
 
 	return 0;
 }

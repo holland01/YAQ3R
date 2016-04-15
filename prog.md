@@ -644,3 +644,9 @@ specifically have to come from a callback function which is passed to the worker
 * Test the actual async IO before rendering anything; load up a unit test for this. Make sure
 the callback function is fired, and that all assets can be read from. Once that's in place,
 all will be good.
+
+**4/15/16**
+
+Script is executing as it should be in the worker thread. However, you need to figure out
+where the undefined error is occurring; could be just a reference to an undeclared
+variable or something.

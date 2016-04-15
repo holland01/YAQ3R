@@ -23,16 +23,16 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 			"function xhrSnagFromName(exts, key, name, next, param,\n"\
 				"packages) {\n"\
 				"var xhr = new XMLHttpRequest();\n"\
-				"var url = 'http://localhost:6931/bundle/' + name + key;\n"\
-				"console.log('Loading ', url, '...');\n"\
-				"xhr.open('GET', url);\n"\
-				"xhr.responseType = exts[key]['type'];\n"\
-				"xhr.setRequestHeader('Access-Control-Allow-Origin','http://localhost:6931');\n"\
-				"xhr.addEventListener('readystatechange', function(evt) {\n"\
-					"console.log('XHR Ready State: ' + xhr.readyState + '\nXHR Status: ' + xhr.status);\n"\
+				"var url = \'http://localhost:6931/bundle/\' + name + key;\n"\
+				"console.log(\'Loading \', url, \'...\');\n"\
+				"xhr.open(\'GET\', url);\n"\
+				"xhr.responseType = exts[key][\'type\'];\n"\
+				"xhr.setRequestHeader(\'Access-Control-Allow-Origin\',\'http://localhost:6931\');\n"\
+				"xhr.addEventListener(\'readystatechange\', function(evt) {\n"\
+					"console.log(\'XHR Ready State: \' + xhr.readyState + \'XHR Status: \' + xhr.status);\n"\
 					"if (xhr.readyState === XMLHttpRequest.DONE) {\n"\
-						"console.log('status 200; writing...');\n"\
-						"param[exts[key]['param']] = xhr.response;\n"\
+						"console.log(\'status 200; writing...\');\n"\
+						"param[exts[key][\'param\']] = xhr.response;\n"\
 						"if (next.length > 0) {\n"\
 							"f = next.shift();\n"\
 							"f(next, exts, name, packages);\n"\
@@ -42,12 +42,12 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 				"xhr.send();\n"\
 			"}\n"
 			"function fetchBundleAsync(names, finished, exts, packages) {\n" \
-				"console.log('Loading bundles with the following names: ', JSON.stringify(names));\n" \
+				"console.log(\'Loading bundles with the following names: \', JSON.stringify(names));\n" \
 				"for (var i = 0; i < names.length; ++i) \n{" \
 					"var param = {};\n" \
 					"var funcEvents = \n[" \
 						"function(next, exts, name, packcages) \n{" \
-							"xhrSnagFromName(exts, '.js.metadata', names[i], param, next, packages);\n" \
+							"xhrSnagFromName(exts, \'.js.metadata\', names[i], param, next, packages);\n" \
 						"},\n" \
 						"function(next, exts, name, packages) {\n" \
 							"packages.push(param);\n" \
@@ -56,30 +56,30 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 							"}\n" \
 						"}\n" \
 					"];\n" \
-					"xhrSnagFromName(exts, '.data', names[i], param, funcEvents, packages);\n" \
+					"xhrSnagFromName(exts, \'.data\', names[i], param, funcEvents, packages);\n" \
 				"}\n" \
 			"}\n" \
 			"function beginFetch(proxy, data, size) {\n" \
-				"var bundles = [['sprites', 'gfx'],['scripts', 'maps'],['textures', 'env']];\n" \
+				"var bundles = [[\'sprites\', \'gfx\'],[\'scripts\', \'maps\'],[\'textures\', \'env\']];\n" \
 				"var fetchCount = 0;\n" \
 				"function onFinish(packagesRef) {\n" \
 					"fetchCount++;\n" \
 					"if (fetchCount === bundles.length) {\n" \
-						"FS.mkdir('/working');\n" \
-						"FS.mount(WORKERFS, { packages: packagesRef }, '/working');\n" \
+						"FS.mkdir(\'/working\');\n" \
+						"FS.mount(WORKERFS, { packages: packagesRef }, \'/working\');\n" \
 						"var stack = Runtime.stackSave();\n" \
-						"Runtime.dynCall('vii', proxy, [data, size]);\n" \
+						"Runtime.dynCall(\'vii\', proxy, [data, size]);\n" \
 						"Runtime.stackRestore(stack);\n" \
 					"}\n" \
 				"}\n" \
 				"var exts = {\n" \
-					"'.data': {\n" \
-						"'type': 'blob',\n" \
-						"'param': 'blob'\n" \
+					"\'.data\': {\n" \
+						"\'type\': \'blob\',\n" \
+						"\'param\': \'blob\'\n" \
 					"},\n" \
-					"'.js.metadata': {\n" \
-						"'type': 'json',\n" \
-						"'param': 'metadata'\n" \
+					"\'.js.metadata\': {\n" \
+						"\'type\': \'json\',\n" \
+						"\'param\': \'metadata\'\n" \
 					"}\n" \
 				"};\n" \
 				"var packages = [];\n" \
