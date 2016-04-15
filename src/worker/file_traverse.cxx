@@ -21,46 +21,54 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 	{
 		const char* globalDef =
 			"function xhrSnagFromName(exts, key, name, next, param,\n"\
-				"packages) {\n"\
+				"packages, bundlePairIndex, threshold) {\n"\
 				"var xhr = new XMLHttpRequest();\n"\
 				"var url = \'http://localhost:6931/bundle/\' + name + key;\n"\
 				"console.log(\'Loading \', url, \'...\');\n"\
 				"xhr.open(\'GET\', url);\n"\
 				"xhr.responseType = exts[key][\'type\'];\n"\
-				"xhr.setRequestHeader(\'Access-Control-Allow-Origin\',\'http://localhost:6931\');\n"\
+				"xhr.setRequestHeader(\'Access-Control-Allow-Origin\',\n"
+					"\'http://localhost:6931\');\n"\
 				"xhr.addEventListener(\'readystatechange\', function(evt) {\n"\
-					"console.log(\'XHR Ready State: \' + xhr.readyState + \'XHR Status: \' + xhr.status);\n"\
+					"console.log(\'XHR Ready State: \' + xhr.readyState\n"\
+						"+ \'XHR Status: \' + xhr.status);\n"\
 					"if (xhr.readyState === XMLHttpRequest.DONE) {\n"\
 						"console.log(\'status 200; writing...\');\n"\
 						"param[exts[key][\'param\']] = xhr.response;\n"\
 						"if (next.length > 0) {\n"\
 							"f = next.shift();\n"\
-							"f(next, exts, name, packages);\n"\
+							"f(next, exts, name, packages, param, bundlePairIndex,\n"\
+							 	"threshold);\n"\
 						"}\n"\
 					"}\n"\
 				"});\n"\
 				"xhr.send();\n"\
 			"}\n"
 			"function fetchBundleAsync(names, finished, exts, packages) {\n" \
-				"console.log(\'Loading bundles with the following names: \', JSON.stringify(names));\n" \
-				"for (var i = 0; i < names.length; ++i) \n{" \
-					"var param = {};\n" \
-					"var funcEvents = \n[" \
-						"function(next, exts, name, packcages) \n{" \
-							"xhrSnagFromName(exts, \'.js.metadata\', names[i], param, next, packages);\n" \
-						"},\n" \
-						"function(next, exts, name, packages) {\n" \
-							"packages.push(param);\n" \
-							"if (i === names.length - 1) {\n" \
-								"finished(packages);\n" \
+				"console.log(\'Loading bundles with the following names: \',\n"\
+					"JSON.stringify(names));\n"\
+				"for (var i = 0; i < names.length; ++i) \n{"\
+					"var funcEvents = \n["\
+						"function(next, exts, name, packages, param, bpi, threshold)\n{"\
+							"xhrSnagFromName(exts, \'.js.metadata\', name, next, param,\n"\
+								"packages, bpi, threshold);\n"\
+						"},\n"\
+						"function(next, exts, name, packages, param, bpi, threshold) {\n"\
+							"packages.push(param);\n"\
+							"console.log('bpi: ', bpi, 'threshold: ', threshold);\n"\
+							"if (bpi === threshold) {\n"\
+								"console.log(\'the last is hit\');\n"\
+								"finished(packages);\n"\
 							"}\n" \
 						"}\n" \
 					"];\n" \
-					"xhrSnagFromName(exts, \'.data\', names[i], param, funcEvents, packages);\n" \
+					"xhrSnagFromName(exts, \'.data\', names[i], funcEvents, {},\n" \
+						"packages, i, names.length - 1);\n" \
 				"}\n" \
 			"}\n" \
 			"function beginFetch(proxy, data, size) {\n" \
-				"var bundles = [[\'sprites\', \'gfx\'],[\'scripts\', \'maps\'],[\'textures\', \'env\']];\n" \
+				"var bundles = [[\'sprites\', \'gfx\'],[\'scripts\', \'maps\'],\n" \
+					"[\'textures\', \'env\']];\n" \
 				"var fetchCount = 0;\n" \
 				"function onFinish(packagesRef) {\n" \
 					"fetchCount++;\n" \
@@ -84,7 +92,8 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 				"};\n" \
 				"var packages = [];\n" \
 				"for (var i = 0; i < bundles.length; ++i) {\n" \
-					"fetchBundleAsync(bundles[i], exts, packages, bundles.length - i);\n" \
+					"fetchBundleAsync(bundles[i], onFinish, exts, packages,"\
+						"bundles.length - i);\n" \
 				"}\n" \
 			"}\n" \
 			EM_FUNC_WALK_FILE_DIRECTORY \
