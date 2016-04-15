@@ -23,7 +23,6 @@ void worker_t::Await( em_worker_callback_func callback, const char* func, char* 
 	void* param ) const
 {
 	MLOG_INFO( "Calling Worker ID %i\n", handle );
-	int prevQueueSize = emscripten_get_worker_queue_size( handle );
 	emscripten_call_worker( handle, func, data, size, callback, param );
 }
 
@@ -100,7 +99,6 @@ void EM_MountFS( void )
 		// snippets
 		const char* script =
 		   EM_FUNC_WALK_FILE_DIRECTORY"\n"
-		   "Module.bspFilesLoaded = false;\n"
 		   "Module.walkFileDirectory = walkFileDirectory;\n";
 
 		emscripten_run_script( script );

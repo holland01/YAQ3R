@@ -10,7 +10,19 @@
 static void FrameIteration( void )
 {
 	static volatile int k = 0;
-	k++;
+	MLOG_INFO( "Iteration: %i", k++ );
+}
+
+static void ReadCallback( char* data, int size, void* param )
+{
+	EM_FWW_Copy( data, size, param );
+
+	const std::vector< unsigned char >& v =
+		*( ( std::vector< unsigned char >* )param );
+
+	MLOG_INFO( "Job's finished. Size: %i bytes", v.size() );
+
+	emscripten_set_main_loop( FrameIteration, 0, 1 );
 }
 
 IOTestWebWorker::IOTestWebWorker( void )
@@ -27,14 +39,15 @@ IOTestWebWorker::~IOTestWebWorker( void )
 
 int IOTestWebWorker::operator()( void )
 {
-	Q3BspMap map;
 	std::vector< gImageParams_t > textures;
 	gSamplerHandle_t imageSampler;
 
-	map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1 );
-	S_LoadShaders( &map, imageSampler, textures );
+	std::vector< unsigned char > buffer;
 
-	emscripten_set_main_loop( FrameIteration, 0, 1 );
+	File_GetBuf( buffer, "asset/stockmaps/maps/q3dm2.bsp", ReadCallback );
+
+	//map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1 );
+	//S_LoadShaders( &map, imageSampler, textures );
 
 	return 0;
 }

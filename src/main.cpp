@@ -30,7 +30,7 @@ void FlagExit( void )
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
 
-//#define IOTEST
+#define IOTEST
 
 int main( void )
 {

@@ -4,6 +4,7 @@
 
 #define EM_JS_SCRIPT(script) #script"\n"
 
+/*
 // Async execution to snag some data; is designed to
 // be ran in parallel with other requests
 #define EM_FUNC_XHR_SNAG_FROM_NAME \
@@ -62,9 +63,11 @@ EM_JS_SCRIPT(\
 		} \
 	})
 
+*/
+
 #define EM_FUNC_WALK_FILE_DIRECTORY \
 EM_JS_SCRIPT(\
-	(function walkFileDirectory($0, $1, $2) { \
+	function walkFileDirectory($0, $1, $2) { \
 		 var path = UTF8ToString($0); \
 		 var lookup = FS.lookupPath(path); \
 		 if (!lookup) { \
@@ -98,7 +101,9 @@ EM_JS_SCRIPT(\
 		 } \
 		 traverse(root); \
 		 return 1; \
-	} \
+	})
+
+/*
 	function xhrSnagFromName(exts, key, name, next, param,\
 		packages) {\
 		var xhr = new XMLHttpRequest();\
@@ -139,7 +144,8 @@ EM_JS_SCRIPT(\
 			]; \
 			xhrSnagFromName(exts, '.data', names[i], param, funcEvents, packages); \
 		} \
-	}) \
+	} \
 )
+*/
 
 #endif // EMSCRIPTEN

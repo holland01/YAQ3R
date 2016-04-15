@@ -104,12 +104,13 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 #endif
 
 template < typename T >
-INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
+INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath,
+	em_worker_callback_func cb = EM_FWW_Copy )
 {
 #ifdef EM_USE_WORKER_THREAD
 	// const c_str() is forced :/
 	char* dupPath = strdup( fpath.c_str() );
-	gFileWebWorker.Await( EM_FWW_Copy, "ReadFile", dupPath, strlen( dupPath ),
+	gFileWebWorker.Await( cb, "ReadFile", dupPath, strlen( dupPath ),
 		( void* ) &outBuffer );
 	free( dupPath );
 	return true;
