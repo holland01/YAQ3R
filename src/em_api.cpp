@@ -33,6 +33,8 @@ void EM_FWW_Copy( char* data, int byteSize, void* destVector )
 	std::vector< unsigned char >& v = *( ( std::vector< unsigned char >* )destVector );
 	v.resize( byteSize, 0 );
 	memcpy( &v[ 0 ], data, byteSize );
+	MLOG_INFO( "Job's finished. Vector Size: %i bytes. Source Size: %i bytes",
+		v.size(), byteSize );
 }
 
 void EM_FWW_Dummy( char* data, int byteSize, void* destVector )

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include <memory>
 #include "../js/global_func.h"
 
 void TestFile( unsigned char* path )
@@ -15,112 +16,60 @@ typedef void ( *callback_t )( char* data, int size );
 
 static bool gInitialized = false;
 
+struct asyncArgs_t
+{
+	callback_t proxy; // what to call after the asynchronous fetch is successful
+	char* data;
+	int size; // in bytes
+
+	asyncArgs_t( callback_t proxy_, char* data_, int size_ )
+		: proxy( proxy_ ),
+		  data( data_ ),
+		  size( size_ )
+	{}
+
+	~asyncArgs_t( void )
+	{
+		if ( data )
+		{
+			delete data;
+		}
+	}
+};
+
+static std::unique_ptr< asyncArgs_t > gTmpArgs( nullptr );
+
+static void OnError( void* arg )
+{
+	( void )arg;
+	puts( "emscripten_async_wget_data inject fetch failed" );
+}
+
+static void OnLoad( void* arg, void* data, int size )
+{
+	asyncArgs_t* args = ( asyncArgs_t* )arg;
+
+	std::vector< char > copyData( size + 1, 0 );
+	memcpy( &copyData[ 0 ], data, size );
+	emscripten_run_script( &copyData[ 0 ] );
+
+	EM_ASM_({
+		self.beginFetch($0, $1, $2);
+	}, args->proxy, args->data, args->size );
+}
+
 static bool InitSystem( callback_t proxy, char* data, int size )
 {
 	if (!gInitialized)
 	{
-		const char* globalDef =
-			"function xhrSnagFromName(exts, key, name, next, param,\n"\
-				"packages, bundlePairIndex, threshold) {\n"\
-				"var xhr = new XMLHttpRequest();\n"\
-				"var url = \'http://localhost:6931/bundle/\' + name + key;\n"\
-				"console.log(\'Loading \', url, \'...\');\n"\
-				"xhr.open(\'GET\', url);\n"\
-				"xhr.responseType = exts[key][\'type\'];\n"\
-				"xhr.setRequestHeader(\'Access-Control-Allow-Origin\',\n"
-					"\'http://localhost:6931\');\n"\
-				"xhr.addEventListener(\'readystatechange\', function(evt) {\n"\
-					"console.log(\'XHR Ready State: \' + xhr.readyState\n"\
-						"+ \'XHR Status: \' + xhr.status);\n"\
-					"if (xhr.readyState === XMLHttpRequest.DONE) {\n"\
-						"console.log(\'status 200; writing...\');\n"\
-						"param[exts[key][\'param\']] = xhr.response;\n"\
-						"if (next.length > 0) {\n"\
-							"f = next.shift();\n"\
-							"f(next, exts, name, packages, param, bundlePairIndex,\n"\
-							 	"threshold);\n"\
-						"}\n"\
-					"}\n"\
-				"});\n"\
-				"xhr.send();\n"\
-			"}\n"
-			"function fetchBundleAsync(names, finished, exts, packages) {\n" \
-				"console.log(\'Loading bundles with the following names: \',\n"\
-					"JSON.stringify(names));\n"\
-				"for (var i = 0; i < names.length; ++i) \n{"\
-					"var funcEvents = \n["\
-						"function(next, exts, name, packages, param, bpi, threshold)\n{"\
-							"xhrSnagFromName(exts, \'.js.metadata\', name, next, param,\n"\
-								"packages, bpi, threshold);\n"\
-						"},\n"\
-						"function(next, exts, name, packages, param, bpi, threshold) {\n"\
-							"packages.push(param);\n"\
-							"console.log('bpi: ', bpi, 'threshold: ', threshold);\n"\
-							"if (bpi === threshold) {\n"\
-								"console.log(\'the last is hit\');\n"\
-								"finished(packages);\n"\
-							"}\n" \
-						"}\n" \
-					"];\n" \
-					"xhrSnagFromName(exts, \'.data\', names[i], funcEvents, {},\n" \
-						"packages, i, names.length - 1);\n" \
-				"}\n" \
-			"}\n" \
-			"function beginFetch(proxy, data, size) {\n" \
-				"var bundles = [[\'sprites\', \'gfx\'],[\'scripts\', \'maps\'],\n" \
-					"[\'textures\', \'env\']];\n" \
-				"var fetchCount = 0;\n" \
-				"function onFinish(packagesRef) {\n" \
-					"fetchCount++;\n" \
-					"if (fetchCount === bundles.length) {\n" \
-						"FS.mkdir(\'/working\');\n" \
-						"FS.mount(WORKERFS, { packages: packagesRef }, \'/working\');\n" \
-						"var stack = Runtime.stackSave();\n" \
-						"Runtime.dynCall(\'vii\', proxy, [data, size]);\n" \
-						"Runtime.stackRestore(stack);\n" \
-					"}\n" \
-				"}\n" \
-				"var exts = {\n" \
-					"\'.data\': {\n" \
-						"\'type\': \'blob\',\n" \
-						"\'param\': \'blob\'\n" \
-					"},\n" \
-					"\'.js.metadata\': {\n" \
-						"\'type\': \'json\',\n" \
-						"\'param\': \'metadata\'\n" \
-					"}\n" \
-				"};\n" \
-				"var packages = [];\n" \
-				"for (var i = 0; i < bundles.length; ++i) {\n" \
-					"fetchBundleAsync(bundles[i], onFinish, exts, packages,"\
-						"bundles.length - i);\n" \
-				"}\n" \
-			"}\n" \
-			EM_FUNC_WALK_FILE_DIRECTORY \
-			"self.walkFileDirectory = walkFileDirectory;\n"\
-			"self.fetchBundleAsync = fetchBundleAsync;\n"\
-			"self.xhrSnagFromName = xhrSnagFromName;\n"\
-			"self.beginFetch = beginFetch;";
+		// see if we can figure out which bundle holds our data
+		char* dup = new char[ size + 1 ]();
+		memset( dup, 0, size + 1 );
+		memcpy( dup, data, size );
+		gTmpArgs.reset( new asyncArgs_t( proxy, dup, size ) );
+		emscripten_async_wget_data( "http://localhost:6931/js/fetch.js",
+		 	( void* ) gTmpArgs.get(), OnLoad, OnError );
 
-		emscripten_run_script( globalDef );
-
-		// packagesRef refers to the local variable
-		// defined further down.
-		// We wait until we're finished with all of the package fetching
-		// before a file system mount
-
-		// Allocate extensions object here and here only,
-		// to avoid unnecessary GC allocations
-
-		// two folders per fetch
-
-		// May need to duplicate string memory, but since
-		// it's already a pointer likely not...
-		//var u8buf = intArrayFromString(p);
-		//var pbuf = Module._malloc(u8buf.length);
-		EM_ASM_({
-			self.beginFetch($0, $1, $2);
-		}, proxy, data, size);
 		gInitialized = true;
 		return false;
 	}
@@ -132,8 +81,12 @@ static void ReadFile_Proxy( char* path, int size )
 {
 	FILE* f = fopen( path, "rb" );
 
+	printf("Path Received: %s\n", path);
+
 	if ( f )
 	{
+		printf( "fopen for \'%s\' succeeded\n", path );
+
 		fseek( f, 0, SEEK_END );
 		size_t count = ftell( f );
 		fseek( f, 0, SEEK_SET );
@@ -147,6 +100,7 @@ static void ReadFile_Proxy( char* path, int size )
 	}
 	else
 	{
+		printf( "fopen for \'%s\' failed\n", path );
 		emscripten_worker_respond( nullptr, 0 );
 	}
 }

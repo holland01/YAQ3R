@@ -46,7 +46,7 @@ int IOTestWebWorker::operator()( void )
 
 	std::vector< unsigned char > buffer;
 
-	File_GetBuf( buffer, "asset/stockmaps/maps/q3dm2.bsp", ReadCallback );
+	File_GetBuf( buffer, "/asset/stockmaps/maps/q3dm2.bsp", ReadCallback );
 
 	//map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1 );
 	//S_LoadShaders( &map, imageSampler, textures );

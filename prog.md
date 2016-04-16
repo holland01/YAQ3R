@@ -650,3 +650,63 @@ all will be good.
 Script is executing as it should be in the worker thread. However, you need to figure out
 where the undefined error is occurring; could be just a reference to an undeclared
 variable or something.
+
+**4/15/16**
+
+Threw the JavaScript in a separate source file, so it can be injected manually.
+
+If the blob's data is going to be parsed manually, it can be converted to an ArrayBuffer
+like so:
+
+```
+var arrayBuffer;
+var fileReader = new FileReader();
+fileReader.onload = function() {
+    arrayBuffer = this.result;
+};
+fileReader.readAsArrayBuffer(blob);
+```
+[Source](http://stackoverflow.com/a/15981017/763053)
+
+However, it's questionable whether or not this is a good route to take, because you
+don't understand the whole underlying mechanism. The idiomatic way to achieve this
+is still somewhat "cloudy".
+
+Here are some related questions worth finding answers to:
+
+* How is the WORKERFS expected to be accessed? Is fopen in a worker thread
+actually supposed to work with WORKERFS, or is that limited to NODEFS and/or MEMFS?
+
+* The cube example appears to use some kind of mechanism involving continuously
+pushing fetched blob data to an array that's tied to the Module object; is this a viable
+route for what you're trying to do?
+
+* Would it be realistic to consider storing the bundles in memory, without using WORKERFS,
+and copying data from them manually? In fact, could it be that this is the primary
+*intention* behind WORKERFS to be used?
+
+	- If this is the case, you'll want to load all of the packages in a global buffer,
+	and slice the appropriate copy of the binary blob from them using the metadata JSON.
+
+	- First thing is to just iterate over each metadata object and assess whether or not
+	the path is referenced in it. Once you find the correct reference, you can just
+	slice out a portion of memory from the corresponding blob. Note that this is going
+	to be slow, so once you get this working you *absolutely* must make this more
+	intelligent. For example, we know that the the blob and metadata bundle pairs each
+	refer to a specific BSP data folder; this can be extracted from the desired path
+	and used as a means of determining the bundle pair which holds the necessary file data.
+
+From reading library_workerfs.js in emscripten's source, it seems like all of the needed
+data for the packages option is provided. Yet, calling fopen using both bundle paths
+(e.g., bundles/maps.data, /bundles/maps.data, /maps.data, maps.data, etc.) as well as
+actual asset paths (e.g., /asset/stockmaps/maps/q3dm2.bsp) returns null file pointers.
+
+You know, though, that the data is being properly fetched from the server's URL: you've
+dumped the results in the console and seen them yourself. Furthermore, every blob
+which is fetched produces a legitimate size of the blob's data.
+
+So, maybe the problem is that it's compressed? You should create another bundle
+folder which holds strictly uncompressed BSP data, and try loading from that instead.
+
+Once you have this working properly, it would be beneficial to look more into
+decompressing the data.
