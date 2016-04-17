@@ -1,0 +1,3 @@
+#!/bin/bash
+
+emrun --browser=$1 --verbose bspviewer.html

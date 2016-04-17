@@ -710,3 +710,39 @@ folder which holds strictly uncompressed BSP data, and try loading from that ins
 
 Once you have this working properly, it would be beneficial to look more into
 decompressing the data.
+
+**4/16/16**
+
+Exploring the internal structure behind the file systems. It looks like the permissions
+given for all of the mounted files are supposed to be 0777, so it's doubtful that
+the inability to fopen them is related to permissions (which makes sense, considering
+that it's all virtualized).
+
+The reason why fopen doesn't work despite the filesystem being mounted could be
+related to something which is missing in the worker thread, specifically. In other words,
+it very well may be that the data being sent is perfectly valid, but the connection
+between the initial mount and fopen's function just isn't there.
+
+Remember, fopen() will call syscall5(), which in turn is sending the proper path data down
+the pipe. FS.open() itself is what fails. It could be that FS.open isn't actually
+linked properly to the internal node system in WORKERFS. If so, looking into the
+stream_ops section of WORKERFS should provide some alternatives; however, you'll
+have to perform the actual file read in JavaScript, for ReadFile_Proxy.
+
+Also, make sure that the FS.createNode function (which is called from WORKERFS.createNode),
+directly adds the newly created node to its own lookup store - if it does, that would
+increase the chance that FS.open should be able to access directories which are mounted
+to WORKERFS.
+
+Also, mounting '/' as opposed to '/working' may provide some further insight...
+
+So, the following is a TODO list. Don't make any judgements until you've completed
+all of the items.
+
+- Make sure that FS.createNode adds the created node to its own lookup system, and
+is more than just a constructor.
+
+- Dive into FS.open and use Module.printObj to analyze what you can.
+
+- Try mounting '/' as opposed to '/working'; just because '/working' is created via
+mkdir in the VFS does not necessarily imply that mount will succeed...
