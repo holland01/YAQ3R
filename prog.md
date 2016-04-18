@@ -746,3 +746,53 @@ is more than just a constructor.
 
 - Try mounting '/' as opposed to '/working'; just because '/working' is created via
 mkdir in the VFS does not necessarily imply that mount will succeed...
+
+**4/17/16**
+
+Ok. So, apparently the FS.lookup() call uses a node_ops method (i.e., a vtable for
+an inner lookup corresponding to a different file system). The funny thing is that
+this node_ops function calls into the memfs lookup variant. Yet, for some reason
+there hasn't been any indication that the mount via the workerfs will create nodes
+that actually bind to node_ops instances lying within the memfs module. In addition, memfs lookup
+(*and* its workerfs counterpart) are both stubbed. Whether or not this is yet-to-implemented
+func, or just stubbed for the sake of interface (assuming IDBFS and nodefs use it...),
+remains to be seen.
+
+The mystery continues...
+
+
+*Update*
+
+~~Well, I'm pretty certain this is it: there appears to be no individual hash for root folders
+that contain only one subdirectory. In this case, while "asset/stockmaps" is hashed,
+"asset" by itself isn't, because stockmaps is only the subdirectory mounted in the path.~~
+
+^^^At first it seemed like this was true. It's not...
+
+So, I think what's next on the agenda is examining the path which is being sent to
+FS.lookupNode: does it contain any slashes? (The answer is no: the parts array,
+	which is used in sending dir paths to FS.lookupNode, sends 'asset' as its first directory
+	lookup).
+
+lookupPath contains two print functions at the moment, which can be used to
+compare the state of the table around the time of earlier IO operations and
+when fopen attempts to read the bsp map file.
+
+There shouldn't be a reason for ReadFile_Proxy to *not* be a part of the worker. This
+is a pretty significant detail.
+
+Here are the functions you've added print statements to, so far. Remove them when
+you're done (and add to this list as necessary).
+
+FS.mount
+FS.open
+FS.lookupPath
+FS.lookupNode
+FS.lookup
+FS.hashAddNode
+SYSCALL.syscall5
+
+And the TODO list:
+
+- Dump the IO of the current build to a text file; the web console won't
+output everything. Keep investigating...
