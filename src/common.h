@@ -61,6 +61,8 @@
 #include <utility>
 #include <stack>
 
+#define ASSET_Q3_ROOT "asset"
+
 // If there's no native handler definition
 // which causes DEBUG to be defined for debug builds,
 // we define it through the build system directly.

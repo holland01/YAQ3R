@@ -5,7 +5,7 @@
 TRenderer::TRenderer( void )
 	: Test( 1920, 1080, false ),
 	  renderer( nullptr ),
-	  mapFilepath( "asset/stockmaps/maps/Railgun_Arena.bsp" ),
+	  mapFilepath( ASSET_Q3_ROOT"/maps/Railgun_Arena.bsp" ),
 	  moveRateChangeRate( 0.3f )
 {
 }

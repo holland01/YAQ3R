@@ -1,6 +1,7 @@
 #include <emscripten.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include <vector>
 #include <memory>
 #include "../js/global_func.h"
@@ -79,9 +80,19 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 
 static void ReadFile_Proxy( char* path, int size )
 {
-	FILE* f = fopen( path, "rb" );
+	std::string root( "/working" );
 
-	printf("Path Received: %s\n", path);
+	if ( path[ 0 ] != '/' )
+	{
+		root.append( 1, '/' );
+	}
+
+	std::string absp( root );
+	absp.append( path );
+
+	printf( "Path Received: %s\n", absp.c_str() );
+
+	FILE* f = fopen( absp.c_str(), "rb" );
 
 	if ( f )
 	{

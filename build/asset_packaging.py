@@ -1,7 +1,7 @@
 import os, shutil
 
-MAP_ORIGIN_PREFIX = os.path.join('..', 'emscripten_asset','asset','stockmaps')
-MAP_ALIAS_PREFIX = os.path.join('asset', 'stockmaps')
+MAP_ORIGIN_PREFIX = os.path.join('..', 'asset')
+MAP_ALIAS_PREFIX = os.path.join('asset')
 TARGET_PREFIX = os.path.join('..', 'bundle')
 
 if os.path.exists(TARGET_PREFIX):
@@ -103,7 +103,7 @@ def package_list(list, target_prefix, path_origin_prefix, path_alias_prefix):
         args = ['python', FILE_PACKAGER]
         args.append(os.path.join(target_prefix, f['target']))
         args.append('--preload')
-        args.append(os.path.join(path_origin_prefix, path + '@' + path_alias_prefix, path))
+        args.append(os.path.join(path_origin_prefix, path))
         args.append('--no-heap-copy')
         args.append('--separate-metadata')
         args.append('--js-output=' + os.path.join(target_prefix, f['name'] + '.js'))
@@ -112,4 +112,4 @@ def package_list(list, target_prefix, path_origin_prefix, path_alias_prefix):
         subprocess.call(args)
 
 package_list(map_files, TARGET_PREFIX, MAP_ORIGIN_PREFIX, MAP_ALIAS_PREFIX)
-package_list(log_files, TARGET_PREFIX, LOG_ORIGIN_PREFIX, LOG_ALIAS_PREFIX)
+#package_list(log_files, TARGET_PREFIX, LOG_ORIGIN_PREFIX, LOG_ALIAS_PREFIX)

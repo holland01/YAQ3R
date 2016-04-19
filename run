@@ -1,3 +1,10 @@
 #!/bin/bash
 
-emrun --browser=$1 --verbose bspviewer.html
+
+if [ $1 = "nb" ]; then
+	BROWSER=--no_browser
+else
+	BROWSER=--browser=$1
+fi
+
+emrun ${BROWSER} --verbose bspviewer.html
