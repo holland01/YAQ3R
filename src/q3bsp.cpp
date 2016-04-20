@@ -118,7 +118,12 @@ mapEntity_t Q3BspMap::Read( const std::string& filepath, const int scale )
 	mapEntity_t ret;
 
 	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
-	ReadFile( filepath, scale );
+
+	if ( !ReadFile( filepath, scale ) )
+	{
+		return ret;
+	}
+
 	mapAllocated = true;
 
 	const char* pInfo = data.entities.infoString;
@@ -204,7 +209,49 @@ void Q3BspMap::WriteLumpToFile( uint32_t lump )
 	fprintf( f, "%s\n", mem );
 }
 
-void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
+bool Q3BspMap::Validate( void )
+{
+	if ( !data.buffer )
+	{
+		return false;
+	}
+
+	data.header = ( bspHeader_t* )data.buffer;
+
+	if ( data.header->id[ 0 ] != 'I' || data.header->id[ 1 ] != 'B'
+		|| data.header->id[ 2 ] != 'S' || data.header->id[ 3 ] != 'P' )
+	{
+		MLOG_ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n",
+			data.header->id );
+		return false;
+	}
+
+	if ( data.header->version != BSP_Q3_VERSION )
+	{
+		MLOG_ERROR( "Header version does NOT match %i. Version found is %i\n",
+			BSP_Q3_VERSION, data.header->version );
+		return false;
+	}
+
+	return true;
+}
+
+static void Q3BspMap_ReadChunk( char* data, int size, void* param )
+{
+	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
+}
+
+
+static void Q3BspMap_ReadBegin( char* data, int size, void* param )
+{
+	char bogus[] = "0x1337FEED";
+
+	gFileWebWorker.Await( Q3BspMap_ReadChunk, "ReadFile_Chunk", bogus,
+		strlen( bogus ), param );
+}
+
+
+bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 {
 	// TODO: refactor data.buffer into a std::vector,
 	// and replace redundant file processing code (in the case that EM_USE_WORKER_THREAD)
@@ -212,19 +259,16 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	// are used right *now* because it's far simpler to test and time is short.
 #ifdef EM_USE_WORKER_THREAD
 	{
-		std::vector< unsigned char > tmp;
-		File_GetBuf( tmp, filepath );
-		data.buffer = new byte[ tmp.size() ]();
-		memcpy( data.buffer, &tmp[ 0 ], tmp.size() );
+		File_QueryAsync( filepath, Q3BspMap_ReadBegin, this );
+		return false;
 	}
 #else
 	// Open file, verify it if we succeed
-    {
-		FILE* file = fopen( filepath.c_str(), "rb" );
-
+	{
+		FILE* file = File_Open( filepath );
 		if ( !file )
 		{
-			MLOG_ERROR( "Failed to open %s\n", filepath.c_str() );
+			return false;
 		}
 
 		fseek( file, 0, SEEK_END );
@@ -233,6 +277,15 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 		fseek( file, 0, SEEK_SET );
 		fread( data.buffer, fsize, 1, file );
 		rewind( file );
+
+		if ( !Validate() )
+		{
+			return false;
+		}
+
+		data.visdata = ( bspVisdata_t* )( data.buffer +
+			data.header->directories[ BSP_LUMP_VISDATA ].offset );
+		data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;
 
 		// Reading the last portion of the data from the file directly has appeared to produce better results.
 		// Not quite sure why, admittedly. See: http://stackoverflow.com/questions/27653440/mapping-data-to-an-offset-of-a-byte-buffer-allocated-for-an-entire-file-versus-r
@@ -246,18 +299,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 		fclose( file );
 	}
 #endif
-
-	data.header = ( bspHeader_t* )data.buffer;
-
-	if ( data.header->id[ 0 ] != 'I' || data.header->id[ 1 ] != 'B' || data.header->id[ 2 ] != 'S' || data.header->id[ 3 ] != 'P' )
-	{
-		MLOG_ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n", data.header->id );
-	}
-
-	if ( data.header->version != BSP_Q3_VERSION )
-	{
-		MLOG_ERROR( "Header version does NOT match %i. Version found is %i\n", BSP_Q3_VERSION, data.header->version );
-	}
 
 	//
 	// Read map data
@@ -309,9 +350,6 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
 	data.brushSides = ( bspBrushSide_t* )( data.buffer + data.header->directories[ BSP_LUMP_BRUSH_SIDES ].offset );
 	data.numBrushSides = data.header->directories[ BSP_LUMP_BRUSH_SIDES ].length / sizeof( bspBrushSide_t );
-
-	data.visdata = ( bspVisdata_t* )( data.buffer + data.header->directories[ BSP_LUMP_VISDATA ].offset );
-	data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;
 
 	//
 	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis. Also scale anything as necessary (or desired)
@@ -381,9 +419,11 @@ void Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	LogBSPData( BSP_LUMP_SHADERS, ( void* ) data.shaders, data.numShaders );
 	LogBSPData( BSP_LUMP_FOGS, ( void* ) ( data.fogs ), data.numFogs );
 	LogBSPData( BSP_LUMP_ENTITIES, ( void *) ( data.entities.infoString ), -1 );
-#endif 
+#endif
 
 	name = File_StripExt( File_StripPath( filepath ) );
+
+	return true;
 }
 
 bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )

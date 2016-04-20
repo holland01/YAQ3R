@@ -33,41 +33,11 @@ void InitLogBSPData( Q3BspMap* map );
 
 void KillSysLog( void );
 
-enum fileCommand_t
-{
-	FILE_CONTINUE_TRAVERSAL = 1,
-	FILE_STOP_TRAVERSAL = 0
-};
-
-// This is a bit dirty, I know, but it's a simple method for integrating
-// support for web workers.
-#ifdef EM_USE_WORKER_THREAD
-using filedata_t = char*;
-typedef void ( *fileSystemTraversalFn_t )( filedata_t data, int size, void* arg );
-#else
-using filedata_t = uint8_t*;
-// A return value of true (1) means "keep iterating, unless we're at the end";
-// false will terminate the iteration
-typedef int ( *fileSystemTraversalFn_t )( const filedata_t data );
-#endif
-
-void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
-
-FILE* File_Open( const std::string& path, const std::string& mode = "rb" );
-
 // Returns true if a trailing slash is needed in the path, otherwise false.
 // Either way, the default OS_PATH_SEPARATOR is thrown in outSlash,
 // or an alternative separator if the string already contains it (i.e., we're on Windows and
 // the path isn't using back slashes...)
 bool NeedsTrailingSlash( const std::string& path, char& outSlash );
-
-#ifdef __GNUC__
-#	define _FUNC_NAME_ __func__
-#	define _LINE_NUM_ __LINE__
-#elif defined (_MSC_VER)
-#	define _FUNC_NAME_ __FUNCTION__
-#	define _LINE_NUM_ __LINE__
-#endif
 
 // TODO: rewrite this so all log handlers call into this function; MLOG_ERROR would pass false to condition, where as
 // any other default would be "true". MLOG_ASSERT would pass strictly the condition specified by its caller, of course.
@@ -103,23 +73,37 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 #	define MLOG_ASSERT( condition, ... )
 #endif
 
-template < typename T >
-INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath,
-	em_worker_callback_func cb = EM_FWW_Copy )
+enum fileCommand_t
 {
+	FILE_CONTINUE_TRAVERSAL = 1,
+	FILE_STOP_TRAVERSAL = 0
+};
+
+// This is a bit dirty, I know, but it's a simple method for integrating
+// support for web workers.
 #ifdef EM_USE_WORKER_THREAD
-	// const c_str() is forced :/
-	char* dupPath = strdup( fpath.c_str() );
-	gFileWebWorker.Await( cb, "ReadFile", dupPath, strlen( dupPath ),
-		( void* ) &outBuffer );
-	free( dupPath );
-	return true;
+void File_QueryAsync( const std::string& fpath, em_worker_callback_func callback,
+	void* param );
+
+using filedata_t = char*;
+typedef void ( *fileSystemTraversalFn_t )( filedata_t data, int size, void* arg );
+
 #else
-	FILE* f = fopen( fpath.c_str(), "rb" );
-	if ( !f )
-	{
-		return false;
-	}
+using filedata_t = uint8_t*;
+// A return value of true (1) means "keep iterating, unless we're at the end";
+// false will terminate the iteration
+typedef int ( *fileSystemTraversalFn_t )( const filedata_t data );
+#endif
+
+void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
+
+FILE* File_Open( const std::string& path, const std::string& mode = "rb" );
+
+// This is still useful in Emscripten for synchronous file io.
+template < typename T >
+INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
+{
+	FILE* f = File_Open( fpath );
 
 	fseek( f, 0, SEEK_END );
 	size_t count = ftell( f ) / sizeof( T );
@@ -128,7 +112,6 @@ INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath,
 	outBuffer.resize( count + 1, 0 );
 	fread( &outBuffer[ 0 ], sizeof( T ), count, f );
 	fclose( f );
-#endif
 
 	return true;
 }

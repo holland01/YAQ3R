@@ -1141,18 +1141,11 @@ struct parseArgs_t
 #ifdef EM_USE_WORKER_THREAD
 	static void ReadShaderFile( filedata_t data, int size, void* arg )
 	{
-		if ( data )
-		{
-			MLOG_INFO( "WEB WORKER TEST: %s\n", data );
-		}
-		else
-		{
-			MLOG_INFO( "WEB WORKER TEST: NO DATA" );
-		}
+		UNUSED( data );
+		UNUSED( size );
+		UNUSED( arg );
 
-		EM_ASM({
-			Module.bspFilesLoaded = true;
-		});
+		MLOG_ERROR( "Function not implemented!!" );
 	}
 #else
 	static int ReadShaderFile( const filedata_t data )

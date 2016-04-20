@@ -29,7 +29,7 @@ COMMONFLAGS = --separate-asm -Wall -Wextra -pedantic -Werror \
 DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
-  -Wno-unused-parameter -g2
+  -Wno-unused-parameter -g2 -s ASSERTIONS=2
 
 LDFLAGS = --emrun --profiling-funcs
 LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368 #-s EMTERPRETIFY=1 \

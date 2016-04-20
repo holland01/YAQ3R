@@ -344,6 +344,15 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 	return location != path.length() - 1;
 }
 
+void File_QueryAsync( const std::string& fpath, em_worker_callback_func callback,
+	void* param )
+{
+	// const c_str() is forced :/
+	char* dupPath = strdup( fpath.c_str() );
+	gFileWebWorker.Await( callback, "ReadFile_Begin", dupPath, strlen( dupPath ), param );
+	free( dupPath );
+}
+
 void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback )
 {
 

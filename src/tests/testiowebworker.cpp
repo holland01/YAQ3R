@@ -41,14 +41,14 @@ IOTestWebWorker::~IOTestWebWorker( void )
 
 int IOTestWebWorker::operator()( void )
 {
+
 	std::vector< gImageParams_t > textures;
 	gSamplerHandle_t imageSampler;
 
 	std::vector< unsigned char > buffer;
 
-	File_GetBuf( buffer, ASSET_Q3_ROOT"/maps/q3dm2.bsp", ReadCallback );
-
-	//map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1 );
+	Q3BspMap map;
+	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1 );
 	//S_LoadShaders( &map, imageSampler, textures );
 
 	emscripten_set_main_loop( FrameIteration, 0, 1 );

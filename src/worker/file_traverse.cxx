@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "../js/global_func.h"
+#include <assert.h>
+#include "wapi.h"
+#include "../commondef.h"
 
 void TestFile( unsigned char* path )
 {
@@ -61,7 +63,7 @@ static void OnLoad( void* arg, void* data, int size )
 
 static bool InitSystem( callback_t proxy, char* data, int size )
 {
-	if (!gInitialized)
+	if ( !gInitialized )
 	{
 		// see if we can figure out which bundle holds our data
 		char* dup = new char[ size + 1 ]();
@@ -69,7 +71,7 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 		memcpy( dup, data, size );
 		gTmpArgs.reset( new asyncArgs_t( proxy, dup, size ) );
 		emscripten_async_wget_data( "http://localhost:6931/js/fetch.js",
-		 	( void* ) gTmpArgs.get(), OnLoad, OnError );
+			 ( void* ) gTmpArgs.get(), OnLoad, OnError );
 
 		gInitialized = true;
 		return false;
@@ -77,6 +79,51 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 
 	return true;
 }
+
+struct file_t
+{
+	FILE* ptr;
+
+	std::vector< unsigned char > contents;
+
+	file_t( const std::string& path )
+	:	ptr( fopen( path.c_str(), "rb" ) ),
+		contents( []( FILE* ptr ) -> std::vector< unsigned char >
+		{
+			assert( ptr != nullptr );
+
+			size_t sz = 0;
+			fseek( ptr, 0, SEEK_END );
+			size_t fsize = ftell( ptr );
+			rewind( ptr );
+
+			int align = WAPI_WORDSIZE - ( fsize % WAPI_WORDSIZE );
+			return std::vector< unsigned char >( fsize + align, 0 );
+		}( ptr ) )
+	{
+	}
+
+	operator bool ( void ) const
+	{
+		return !!ptr;
+	}
+
+	void ReadCur( size_t offset, size_t size, unsigned char* out )
+	{
+		fseek( ptr, offset, SEEK_CUR );
+		fread( out, size, 1, ptr );
+	}
+
+	~file_t( void )
+	{
+		if ( ptr )
+		{
+			fclose( ptr );
+		}
+	}
+};
+
+static std::unique_ptr< file_t > gFIOChain( nullptr );
 
 static void ReadFile_Proxy( char* path, int size )
 {
@@ -92,22 +139,11 @@ static void ReadFile_Proxy( char* path, int size )
 
 	printf( "Path Received: %s\n", absp.c_str() );
 
-	FILE* f = fopen( absp.c_str(), "rb" );
+	gFIOChain.reset( new file_t( absp ) );
 
-	if ( f )
+	if ( *gFIOChain )
 	{
-		printf( "fopen for \'%s\' succeeded\n", path );
-
-		fseek( f, 0, SEEK_END );
-		size_t count = ftell( f );
-		fseek( f, 0, SEEK_SET );
-
-		std::vector< unsigned char > buffer( ( count + 1 ) * sizeof( unsigned char ), 0 );
-		fread( &buffer[ 0 ], sizeof( unsigned char ), count, f );
-		fclose( f );
-
-		emscripten_worker_respond( ( char* ) &buffer[ 0 ],
-			buffer.size() * sizeof( buffer[ 0 ] ) );
+		wApiRespondPack( WAPI_READFILE_BEGIN );
 	}
 	else
 	{
@@ -118,7 +154,7 @@ static void ReadFile_Proxy( char* path, int size )
 
 extern "C" {
 
-void ReadFile( char* path, int size )
+void ReadFile_Begin( char* path, int size )
 {
 	puts( "Worker: ReadFile entering" );
 
@@ -126,6 +162,25 @@ void ReadFile( char* path, int size )
 	{
 		ReadFile_Proxy( path, size );
 	}
+}
+
+void ReadFile_Chunk( char* chunkinfo, int size )
+{
+	UNUSED( chunkinfo );
+	UNUSED( size );
+
+	if ( !gFIOChain || !( *gFIOChain ) )
+	{
+		puts( "No file initialized..." );
+	}
+	else
+	{
+		printf( "File initialized...info: %s\n", chunkinfo );
+	}
+
+	char response[] = "great success";
+
+	emscripten_worker_respond( response, strlen( response ) );
 }
 
 void Traverse( char* directory, int size )

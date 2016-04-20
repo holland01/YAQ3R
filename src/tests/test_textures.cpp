@@ -49,9 +49,6 @@ void TTextureTest::Load( void )
 
 	std::string fragment = R"(
 		smooth in vec2 frag_TexCoords;
-
-		//uniform vec4 imageTransform;
-		//uniform vec2 imageScaleRatio;
 		uniform sampler2D sampler0;
 
 		out vec4 out_Color;
@@ -72,9 +69,6 @@ void TTextureTest::Load( void )
 
 		uniform mat4 modelToView;
 		uniform mat4 viewToClip;
-
-		//uniform vec4 imageTransform;
-		//uniform vec2 imageScaleRatio;
 
 		smooth out vec2 frag_TexCoords;
 
