@@ -97,7 +97,7 @@ void TTextureTest::Load( void )
 
 	textureProg.reset( MakeProgram( vertex, fragment, { "imageTransform", "imageScaleRatio" } ) );
 
-	map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1 );
+	map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1, nullptr, nullptr );
 
 	sampler = GMakeSampler();
 	texture = GU_LoadMainTextures( map, sampler );

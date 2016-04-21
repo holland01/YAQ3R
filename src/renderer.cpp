@@ -199,7 +199,7 @@ void BSPRenderer::Load( const std::string& filepath )
 {
 	MLOG_INFO( "Loading file %s....\n", filepath.c_str() );
 
-	mapEntity_t position = map->Read( filepath, 1 );
+	mapEntity_t position = map->Read( filepath, 1, nullptr, nullptr );
 
 	camera->SetViewOrigin( position.origin );
 

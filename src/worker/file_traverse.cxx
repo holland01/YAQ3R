@@ -84,22 +84,10 @@ struct file_t
 {
 	FILE* ptr;
 
-	std::vector< unsigned char > contents;
+	std::vector< unsigned char > readBuff;
 
 	file_t( const std::string& path )
-	:	ptr( fopen( path.c_str(), "rb" ) ),
-		contents( []( FILE* ptr ) -> std::vector< unsigned char >
-		{
-			assert( ptr != nullptr );
-
-			size_t sz = 0;
-			fseek( ptr, 0, SEEK_END );
-			size_t fsize = ftell( ptr );
-			rewind( ptr );
-
-			int align = WAPI_WORDSIZE - ( fsize % WAPI_WORDSIZE );
-			return std::vector< unsigned char >( fsize + align, 0 );
-		}( ptr ) )
+	:	ptr( fopen( path.c_str(), "rb" ) )
 	{
 	}
 
@@ -108,10 +96,15 @@ struct file_t
 		return !!ptr;
 	}
 
-	void ReadCur( size_t offset, size_t size, unsigned char* out )
+	void Read( size_t offset, size_t size )
 	{
-		fseek( ptr, offset, SEEK_CUR );
-		fread( out, size, 1, ptr );
+		memset( &readBuff[ 0 ], 0, readBuff.size() * sizeof( unsigned char ) );
+		if ( readBuff.size() < size )
+		{
+			readBuff.resize( size, 0 );
+		}
+		fseek( ptr, offset, SEEK_SET );
+		fread( &readBuff[ 0 ], size, 1, ptr );
 	}
 
 	~file_t( void )
@@ -141,15 +134,18 @@ static void ReadFile_Proxy( char* path, int size )
 
 	gFIOChain.reset( new file_t( absp ) );
 
+	uint32_t m;
 	if ( *gFIOChain )
 	{
-		wApiRespondPack( WAPI_READFILE_BEGIN );
+		m = WAPI_TRUE;
 	}
 	else
 	{
 		printf( "fopen for \'%s\' failed\n", path );
-		emscripten_worker_respond( nullptr, 0 );
+		m = WAPI_FALSE;
 	}
+
+	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
 extern "C" {
@@ -164,23 +160,21 @@ void ReadFile_Begin( char* path, int size )
 	}
 }
 
-void ReadFile_Chunk( char* chunkinfo, int size )
+void ReadFile_Chunk( char* bcmd, int size )
 {
-	UNUSED( chunkinfo );
-	UNUSED( size );
-
 	if ( !gFIOChain || !( *gFIOChain ) )
 	{
 		puts( "No file initialized..." );
-	}
-	else
-	{
-		printf( "File initialized...info: %s\n", chunkinfo );
+		emscripten_worker_respond( nullptr, 0 );
+		return;
 	}
 
-	char response[] = "great success";
+	wApiChunkInfo_t* cmd =  ( wApiChunkInfo_t* )bcmd;
 
-	emscripten_worker_respond( response, strlen( response ) );
+	gFIOChain->Read( cmd->offset, cmd->size );
+
+	emscripten_worker_respond( ( char* )&( ( *gFIOChain ).readBuff[ 0 ] ) ), 
+		cmd->size );
 }
 
 void Traverse( char* directory, int size )

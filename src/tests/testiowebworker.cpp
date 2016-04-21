@@ -48,7 +48,7 @@ int IOTestWebWorker::operator()( void )
 	std::vector< unsigned char > buffer;
 
 	Q3BspMap map;
-	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1 );
+	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, nullptr, nullptr );
 	//S_LoadShaders( &map, imageSampler, textures );
 
 	emscripten_set_main_loop( FrameIteration, 0, 1 );

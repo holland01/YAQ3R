@@ -3,6 +3,7 @@
 #include "io.h"
 #include "effect_shader.h"
 #include "lib/cstring_util.h"
+#include "worker/wapi.h"
 
 using namespace std;
 
@@ -44,7 +45,9 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 //-------------------------------------------------------------------------------
 
 Q3BspMap::Q3BspMap( void )
-	 :	mapAllocated( false ),
+	 :	readFinishEvent( nullptr ),
+	 	readFinishParam( nullptr ),
+	 	mapAllocated( false ),
 		data( {} )
 {
 }
@@ -76,17 +79,17 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 {
-	const bspFace_t* face = data.faces + faceIndex;
+	const bspFace_t& face = data.faces[ faceIndex ];
 	const shaderInfo_t* shader = nullptr;
 
-	if ( face->shader != -1 )
+	if ( face.shader != -1 )
 	{
-		shader = GetShaderInfo( data.shaders[ face->shader ].name );
+		shader = GetShaderInfo( data.shaders[ face.shader ].name );
 	}
 
-	if ( face->fog != -1 && !shader )
+	if ( face.fog != -1 && !shader )
 	{
-		shader = GetShaderInfo( data.fogs[ face->fog ].name );
+		shader = GetShaderInfo( data.fogs[ face.fog ].name );
 	}
 
 	return shader;
@@ -103,17 +106,35 @@ void Q3BspMap::DestroyMap( void )
 {
 	if ( mapAllocated )
 	{
-		delete[] data.visdata->bitsets;
-		delete[] data.buffer;
-
+		data.nodes.clear();
+		data.leaves.clear();
+		data.leafBrushes.clear();
+		data.leafFaces.clear();
+		data.planes.clear();
+		data.vertexes.clear();
+		data.brushes.clear();
+		data.brushSides.clear();
+		data.shaders.clear();
+		data.models.clear();
+		data.fogs.clear();
+		data.faces.clear();
+		data.meshVertexes.clear();
+		data.lightmaps.clear();
+		data.lightvols.clear();
+		data.bitsetSrc.clear();
+		data.entitiesSrc.clear();
 		mapAllocated = false;
 	}
 }
 
-mapEntity_t Q3BspMap::Read( const std::string& filepath, const int scale )
+mapEntity_t Q3BspMap::Read( const std::string& filepath, int scale,
+	onReadFinish_t finishCallback, void* userParam )
 {
 	if ( IsAllocated() )
 		DestroyMap();
+
+	readFinishEvent = finishCallback;
+	readFinishParam = userParam;
 
 	mapEntity_t ret;
 
@@ -197,8 +218,8 @@ void Q3BspMap::WriteLumpToFile( uint32_t lump )
 	{
 		case BSP_LUMP_ENTITIES:
 			filepath = "log/entities.log";
-			mem = ( byte* ) data.entities.infoString;
-			numBytes = data.header->directories[ BSP_LUMP_ENTITIES ].length;
+			mem = ( unsigned char* ) data.entities.infoString;
+			numBytes = data.header.directories[ BSP_LUMP_ENTITIES ].length;
 			break;
 
 		default:
@@ -211,48 +232,66 @@ void Q3BspMap::WriteLumpToFile( uint32_t lump )
 
 bool Q3BspMap::Validate( void )
 {
-	if ( !data.buffer )
+	if ( data.header.id[ 0 ] != 'I' || data.header.id[ 1 ] != 'B'
+		|| data.header.id[ 2 ] != 'S' || data.header.id[ 3 ] != 'P' )
 	{
+		MLOG_WARNING( "Header ID does NOT match \'IBSP\'. ID read is: %s \n",
+			data.header.id );
 		return false;
 	}
 
-	data.header = ( bspHeader_t* )data.buffer;
-
-	if ( data.header->id[ 0 ] != 'I' || data.header->id[ 1 ] != 'B'
-		|| data.header->id[ 2 ] != 'S' || data.header->id[ 3 ] != 'P' )
+	if ( data.header.version != BSP_Q3_VERSION )
 	{
-		MLOG_ERROR( "Header ID does NOT match \'IBSP\'. ID read is: %s \n",
-			data.header->id );
-		return false;
-	}
-
-	if ( data.header->version != BSP_Q3_VERSION )
-	{
-		MLOG_ERROR( "Header version does NOT match %i. Version found is %i\n",
-			BSP_Q3_VERSION, data.header->version );
+		MLOG_WARNING( "Header version does NOT match %i. Version found is %i\n",
+			BSP_Q3_VERSION, data.header.version );
 		return false;
 	}
 
 	return true;
 }
 
+static int32_t gBspDesc = 0;
+
 static void Q3BspMap_ReadChunk( char* data, int size, void* param )
 {
-	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
-}
+	MLOG_INFO( "Entering ReadChunk..." );
+	Q3BspMap* map = ( Q3BspMap* )param;
 
+	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
+
+	wApiChunkInfo_t info;
+	switch ( gBspDesc )
+	{
+		case 0: // header received; validate and then send it off...
+			MLOG_INFO( "Validating...." );
+			memcpy( ( unsigned char* ) &map->data.header, ( unsigned char* ) data,
+				size );
+			if ( !map->Validate() )
+			{
+				MLOG_ERROR( "BSP Map \'%s\' is invalid.", map->GetFileName().c_str() );
+				return;
+			}
+			MLOG_INFO( "Validation successful" );
+		default:
+			break;
+	}
+}
 
 static void Q3BspMap_ReadBegin( char* data, int size, void* param )
 {
-	char bogus[] = "0x1337FEED";
-
-	gFileWebWorker.Await( Q3BspMap_ReadChunk, "ReadFile_Chunk", bogus,
-		strlen( bogus ), param );
+	MLOG_INFO( "Beginning header query..." );
+	wApiChunkInfo_t info;
+	info.offset = 0;
+	info.size = sizeof( bspHeader_t );
+	gFileWebWorker.Await( Q3BspMap_ReadChunk, "ReadFile_Chunk",
+		 ( char* ) &info, sizeof( info ), param );
 }
 
 
 bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 {
+	name = File_StripExt( File_StripPath( filepath ) );
+
 	// TODO: refactor data.buffer into a std::vector,
 	// and replace redundant file processing code (in the case that EM_USE_WORKER_THREAD)
 	// isn't defined with File_Open/File_GetData (we're doing that only) if worker threads
@@ -263,6 +302,7 @@ bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 		return false;
 	}
 #else
+/*
 	// Open file, verify it if we succeed
 	{
 		FILE* file = File_Open( filepath );
@@ -298,8 +338,9 @@ bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 
 		fclose( file );
 	}
+	*/
 #endif
-
+/*
 	//
 	// Read map data
 	//
@@ -354,7 +395,7 @@ bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	//
 	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis. Also scale anything as necessary (or desired)
 	//
-
+*/
 	for ( int i = 0; i < data.numNodes; ++i )
 	{
 		ScaleCoords( data.nodes[ i ].boxMax, scale );
@@ -415,14 +456,6 @@ bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-#ifndef EM_USE_WORKER_THREAD
-	LogBSPData( BSP_LUMP_SHADERS, ( void* ) data.shaders, data.numShaders );
-	LogBSPData( BSP_LUMP_FOGS, ( void* ) ( data.fogs ), data.numFogs );
-	LogBSPData( BSP_LUMP_ENTITIES, ( void *) ( data.entities.infoString ), -1 );
-#endif
-
-	name = File_StripExt( File_StripPath( filepath ) );
-
 	return true;
 }
 
@@ -463,14 +496,14 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {
-	if ( !data.visdata->bitsets || ( sourceCluster < 0 ) )
+	if ( !data.visdata.bitsets || ( sourceCluster < 0 ) )
 	{
 		return true;
 	}
 
-	int i = ( sourceCluster * data.visdata->sizeVector ) + ( testCluster >> 3 );
+	int i = ( sourceCluster * data.visdata.sizeVector ) + ( testCluster >> 3 );
 
-	byte visSet = data.visdata->bitsets[ i ];
+	unsigned char visSet = data.visdata.bitsets[ i ];
 
 	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }

@@ -236,7 +236,7 @@ struct bspFace_t
 
 struct bspLightmap_t
 {
-	byte map[ BSP_LIGHTMAP_WIDTH ][ BSP_LIGHTMAP_HEIGHT ][ 3 ]; // lightmap color data. RGB.
+	unsigned char map[ BSP_LIGHTMAP_WIDTH ][ BSP_LIGHTMAP_HEIGHT ][ 3 ]; // lightmap color data. RGB.
 };
 
 struct bspLightvol_t
@@ -251,42 +251,34 @@ struct bspVisdata_t
 	int     numVectors;
 	int     sizeVector;
 
-	byte*   bitsets;
+	unsigned char*   bitsets;
 };
 
 struct mapData_t
 {
-	byte* buffer;  // all file memory comes from this
+	bspHeader_t	header;
 
-	bspHeader_t*		header;
+	std::vector< bspNode_t > nodes;
+	std::vector< bspLeaf_t > leaves;
+	std::vector< bspLeafBrush_t > leafBrushes;
+	std::vector< bspLeafFace_t > leafFaces;
+	std::vector< bspPlane_t > planes;
+	std::vector< bspVertex_t > vertexes;
+	std::vector< bspBrush_t > brushes;
+	std::vector< bspBrushSide_t	> brushSides;
+	std::vector< bspShader_t > shaders;
+	std::vector< bspModel_t > models;
+	std::vector< bspFog_t > fogs;
+	std::vector< bspFace_t > faces;
+	std::vector< bspMeshVertex_t > meshVertexes;
+	std::vector< bspLightmap_t > lightmaps;
+	std::vector< bspLightvol_t > lightvols;
 
-	bspEntity_t         entities;
+	std::vector< unsigned char > bitsetSrc;
+	std::vector< char > entitiesSrc;
 
-	bspNode_t*          nodes;
-
-	bspLeaf_t*          leaves;
-	bspLeafBrush_t*		leafBrushes;
-	bspLeafFace_t*      leafFaces;
-
-	bspPlane_t*         planes;
-	bspVertex_t*        vertexes;
-
-	bspBrush_t*			brushes;
-	bspBrushSide_t*		brushSides;
-
-	bspShader_t*		shaders;
-	bspModel_t*         models;
-
-	bspFog_t*			fogs;
-
-	bspFace_t*			faces;
-
-	bspMeshVertex_t*    meshVertexes;
-
-	bspLightmap_t*		lightmaps;
-	bspLightvol_t*		lightvols;
-
-	bspVisdata_t*       visdata;
+	bspEntity_t entities;
+	bspVisdata_t visdata;
 
 	int                 entityStringLen;
 
