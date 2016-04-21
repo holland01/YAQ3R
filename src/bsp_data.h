@@ -258,24 +258,23 @@ struct mapData_t
 {
 	bspHeader_t	header;
 
+	std::vector< char > entitiesSrc;
+	std::vector< bspShader_t > shaders;
+	std::vector< bspPlane_t > planes;
 	std::vector< bspNode_t > nodes;
 	std::vector< bspLeaf_t > leaves;
-	std::vector< bspLeafBrush_t > leafBrushes;
 	std::vector< bspLeafFace_t > leafFaces;
-	std::vector< bspPlane_t > planes;
-	std::vector< bspVertex_t > vertexes;
+	std::vector< bspLeafBrush_t > leafBrushes;
+	std::vector< bspModel_t > models;
 	std::vector< bspBrush_t > brushes;
 	std::vector< bspBrushSide_t	> brushSides;
-	std::vector< bspShader_t > shaders;
-	std::vector< bspModel_t > models;
+	std::vector< bspVertex_t > vertexes;
+	std::vector< bspMeshVertex_t > meshVertexes;
 	std::vector< bspFog_t > fogs;
 	std::vector< bspFace_t > faces;
-	std::vector< bspMeshVertex_t > meshVertexes;
 	std::vector< bspLightmap_t > lightmaps;
 	std::vector< bspLightvol_t > lightvols;
-
 	std::vector< unsigned char > bitsetSrc;
-	std::vector< char > entitiesSrc;
 
 	bspEntity_t entities;
 	bspVisdata_t visdata;

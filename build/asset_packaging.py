@@ -9,36 +9,37 @@ if os.path.exists(TARGET_PREFIX):
 
 os.mkdir(TARGET_PREFIX)
 
+COMPRESS_MAPS = False
 map_files = [
     {
         'target':'maps.data',
         'name': 'maps',
-        'compress': True
+        'compress': COMPRESS_MAPS
     },
     {
         'target':'env.data',
         'name': 'env',
-        'compress': True
+        'compress': COMPRESS_MAPS
     },
     {
         'target':'gfx.data',
         'name': 'gfx',
-        'compress': True
+        'compress': COMPRESS_MAPS
     },
     {
         'target':'textures.data',
         'name': 'textures',
-        'compress': True
+        'compress': COMPRESS_MAPS
     },
     {
         'target':'sprites.data',
         'name': 'sprites',
-        'compress': True
+        'compress': COMPRESS_MAPS
     },
     {
         'target':'scripts.data',
         'name': 'scripts',
-        'compress': True
+        'compress': COMPRESS_MAPS
     },
 ]
 

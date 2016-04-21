@@ -796,3 +796,156 @@ And the TODO list:
 
 - Dump the IO of the current build to a text file; the web console won't
 output everything. Keep investigating...
+
+**4/19/16**
+
+It works. The source of the problem was here, in $EMSCRIPTEN/src/library_ws.js (line 11):
+
+```
+var createdParents = {};
+function ensureParent(path) {
+  // return the parent node, creating subdirs as necessary
+  var parts = path.split('/');
+  var parent = root;
+  for (var i = 0; i < parts.length-1; i++) {
+	var curr = parts.slice(0, i+1).join('/');
+	if (!createdParents[curr]) {
+	  createdParents[curr] = WORKERFS.createNode(parent, curr, parts[i], WORKERFS.DIR_MODE, 0);
+	}
+	parent = createdParents[curr];
+  }
+  return parent;
+}
+function base(path) {
+  var parts = path.split('/');
+  return parts[parts.length-1];
+}
+// We also accept FileList here, by using Array.prototype
+Array.prototype.forEach.call(mount.opts["files"] || [], function(file) {
+  WORKERFS.createNode(ensureParent(file.name), base(file.name), WORKERFS.FILE_MODE, 0, file, file.lastModifiedDate);
+});
+(mount.opts["blobs"] || []).forEach(function(obj) {
+  WORKERFS.createNode(ensureParent(obj["name"]), base(obj["name"]), WORKERFS.FILE_MODE, 0, obj["data"]);
+});
+(mount.opts["packages"] || []).forEach(function(pack) {
+  pack['metadata'].files.forEach(function(file) {
+	var name = file.filename.substr(1); // remove initial slash
+	WORKERFS.createNode(ensureParent(name), base(name), WORKERFS.FILE_MODE, 0, pack['blob'].slice(file.start, file.end));
+  });
+```
+
+In particular:
+
+```
+var parts = path.split('/');
+var parent = root;
+for (var i = 0; i < parts.length-1; i++) {
+  var curr = parts.slice(0, i+1).join('/');
+  if (!createdParents[curr]) {
+	createdParents[curr] = WORKERFS.createNode(parent, curr, WORKERFS.DIR_MODE, 0);
+  }
+  parent = createdParents[curr];
+}
+```
+
+Each time `curr` is calculated, the name of the node is given the full absolute path,
+as opposed to *just* the name of the folder itself that i represents. For example,
+say we're adding the file 'asset/scripts/somescript.shader'; we'll have the following
+parent nodes out of this:
+
+```
+"asset"
+"asset/scripts"
+```
+
+And one child name of "somsecript.shader"
+
+The thing is that any File System lookup that occurs through a call to FS.open has
+the potential to rely on a call into FS.lookupPath to attain the information it
+needs to continue. The FS lib (which WORKERFS implements as a
+	"sub-interface") depends heavily on a hash table that's used to employ
+	quick lookups in memory in the filesystem. If the item to be fetched isn't found
+	in that table, then a default lookup function is called, which will lean towards
+	a stubbed out MEMFS function (I haven't figured out why this is the case for
+	a path with a non-existent hash value yet - it's weird, because the function
+	which is stubbed is bound to a parent that can actually be part of the FS given
+	that its 'curr' path is only a single name). In my experience all that's happened
+	from this is a thrown exception (in the stub) which gets caught back in FS.open,
+	and then ignored.
+
+The fix was pretty simple, though.
+
+This,
+
+```
+if (!createdParents[curr]) {
+  createdParents[curr] = WORKERFS.createNode(parent, curr, WORKERFS.DIR_MODE, 0);
+}
+```
+
+becomes this:
+
+```
+if (!createdParents[curr]) {
+  createdParents[curr] = WORKERFS.createNode(parent, /*curr*/ parts[i], WORKERFS.DIR_MODE, 0);
+}
+```
+
+And this is provable: we still use curr to maintain consistency and ensure the correct
+parent is fetched in the table; since the newly created node is dependent
+on its path within the parent table, which is in turn dependent on the path itself,
+this doesn't break anything - it actually conforms to the standard the main FS module
+expects.
+
+
+**4/20/16**
+
+Fixed another problem in Emscripten involving worker respond/request chains:
+when a worker is called initially, and the callback supplied recalls
+the worker with a different function, passing in different data than what
+was passed before, if the new data has a size which is less than the first
+payload, the underlying buffer won't be reallocated, and thus there
+will be garbage output passed the buffer memory which exceeds the second
+data's size.
+
+(this occurs in postamble.js, and has been detailed more
+	[here](https://github.com/kripken/emscripten/issues/4258))
+
+Anyway, this was fixed because it's become clear that there needs to be
+an arbitrary IO/chain mechanism in place for reading files: simply just
+passing in an entire buffer of memory and then converting it to a struct
+is error-prone, due to unspecified behavior that's implementation dependent
+as far as C/C++ standards are concerned (a lot of this has to do with alignment).
+
+So, the solution is to do consecutive reads, one by one. In order for this to work,
+there has to be a chain mechanism setup, where the first function called
+in the worker opens the file, notifies the callback that the file is ready to be read,
+and then the callback invokes a different function in the same worker which
+handles reads as necessary.
+
+So, each BSP struct directory section will be read piece-meal.
+
+Need to think about how exactly to go about this.
+
+**4/21/16**
+
+Running into a problem with reading the header file. the ID which is returned contains
+the following char codes:
+15,
+90,
+0,
+2.
+
+Out of these four, only one of these (90) is a letter: Z. This is what the actual
+heap contains in the web worker thread, so there must be a problem with the file r
+ead itself, in file_t::Read() (maybe the buffer reallocation? read alignment? Hmm...).
+
+
+**4/21/16 (2)**
+
+- Going to need to rewrite the process so that the Renderer isn't initialized
+until the map is finished loading - since the Q3BspMap has an arbitrary
+finishing function to call after it's done reading the memory, the initialization
+of the renderer itself can be decoupled from the read. All data expected by
+the renderer from the map should be therefore passed to the renderer explicitly
+at this point.

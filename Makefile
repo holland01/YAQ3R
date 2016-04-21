@@ -32,14 +32,17 @@ DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-parameter -g2 -s ASSERTIONS=2
 
 LDFLAGS = --emrun --profiling-funcs
-LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368 #-s EMTERPRETIFY=1 \
- -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST='["_main"]' -s 'EMTERPRETIFY_FILE="code.dat"'
+LDO = -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=805306368
 
 ifdef PRELOAD_ALL_ASSETS
 	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_all@
 else
 	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_log@
 	COMMONFLAGS := $(COMMONFLAGS) -DASYNC_FILE_TRAVERSAL
+endif
+
+ifdef COMPRESS
+LDO := -s LZ4=1 $(LDO)
 endif
 
 ifdef DEBUG

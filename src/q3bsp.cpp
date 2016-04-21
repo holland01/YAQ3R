@@ -250,43 +250,182 @@ bool Q3BspMap::Validate( void )
 	return true;
 }
 
-static int32_t gBspDesc = 0;
+static int gBspDesc = -1;
 
-static void Q3BspMap_ReadChunk( char* data, int size, void* param )
+using q3BspAllocFn_t =
+	std::function< void( char* received, mapData_t& data, int length ) >;
+
+static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
+{{
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.entitiesSrc.resize( length / sizeof( char ) );
+		memcpy( &data.entitiesSrc[ 0 ], received, length );
+		data.entities.infoString = &data.entitiesSrc[ 0 ];
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.shaders.resize( length / sizeof( bspShader_t ) );
+		memcpy( &data.shaders[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.planes.resize( length / sizeof( bspPlane_t ) );
+		memcpy( &data.planes[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.nodes.resize( length / sizeof( bspNode_t ) );
+		memcpy( &data.nodes[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.leaves.resize( length / sizeof( bspLeaf_t ) );
+		memcpy( &data.leaves[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.leafFaces.resize( length / sizeof( bspLeafFace_t ) );
+		memcpy( &data.leafFaces[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.leafBrushes.resize( length / sizeof( bspLeafBrush_t ) );
+		memcpy( &data.leafBrushes[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.models.resize( length / sizeof( bspModel_t ) );
+		memcpy( &data.models[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.brushes.resize( length / sizeof( bspBrush_t ) );
+		memcpy( &data.brushes[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.brushSides.resize( length / sizeof( bspBrushSide_t ) );
+		memcpy( &data.brushSides[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.vertexes.resize( length / sizeof( bspVertex_t ) );
+		memcpy( &data.vertexes[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.meshVertexes.resize( length / sizeof( bspMeshVertex_t ) );
+		memcpy( &data.meshVertexes[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.fogs.resize( length / sizeof( bspFog_t ) );
+		memcpy( &data.fogs[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.faces.resize( length / sizeof( bspShader_t ) );
+		memcpy( &data.faces[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.lightmaps.resize( length / sizeof( bspLightmap_t ) );
+		memcpy( &data.lightmaps[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.lightvols.resize( length / sizeof( bspLightvol_t ) );
+		memcpy( &data.lightvols[ 0 ], received, length );
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.bitsetSrc.resize( length / sizeof( unsigned char ) );
+		memcpy( &data.bitsetSrc[ 0 ], received, length );
+		data.visdata.bitsets = &data.bitsetSrc[ 0 ];
+	}
+}};
+
+
+static void ReadChunk( char* data, int size, void* param );
+
+static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
+{
+	gFileWebWorker.Await( ReadChunk, "ReadFile_Chunk",
+		( char* )&info, sizeof( info ), param );
+}
+
+static void ReadChunk( char* data, int size, void* param )
 {
 	MLOG_INFO( "Entering ReadChunk..." );
-	Q3BspMap* map = ( Q3BspMap* )param;
 
+	if ( !data )
+	{
+		MLOG_ERROR( "Null Pointer received; bailing..." );
+		return;
+	}
+
+	Q3BspMap* map = ( Q3BspMap* )param;
 	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
 
-	wApiChunkInfo_t info;
 	switch ( gBspDesc )
 	{
-		case 0: // header received; validate and then send it off...
+		// Header received; validate and then send it off...
+		case -1:
 			MLOG_INFO( "Validating...." );
-			memcpy( ( unsigned char* ) &map->data.header, ( unsigned char* ) data,
-				size );
+			memcpy( &map->data.header, data, size );
 			if ( !map->Validate() )
 			{
 				MLOG_ERROR( "BSP Map \'%s\' is invalid.", map->GetFileName().c_str() );
 				return;
 			}
 			MLOG_INFO( "Validation successful" );
+			++gBspDesc;
+		// Grab any remaining lumps we need...
 		default:
+			// Check to see if the data received here is from a previous
+			// directory entry
+			if ( gBspDesc >= 0 )
+			{
+				gBspAllocTable[ gBspDesc ]( data, map->data, size );
+			}
+			MLOG_INFO( "Fall through; gBspDesc = %i", gBspDesc );
+			// Do we have any more requests to make?
+			if ( ++gBspDesc < ( int ) BSP_NUM_ENTRIES )
+			{
+				wApiChunkInfo_t info;
+				info.offset = map->data.header.directories[ gBspDesc ].offset;
+				info.size = map->data.header.directories[ gBspDesc ].length;
+				SendRequest( info, param );
+			}
 			break;
 	}
 }
 
-static void Q3BspMap_ReadBegin( char* data, int size, void* param )
+static void ReadBegin( char* data, int size, void* param )
 {
 	MLOG_INFO( "Beginning header query..." );
 	wApiChunkInfo_t info;
 	info.offset = 0;
 	info.size = sizeof( bspHeader_t );
-	gFileWebWorker.Await( Q3BspMap_ReadChunk, "ReadFile_Chunk",
-		 ( char* ) &info, sizeof( info ), param );
+	SendRequest( info, param );
 }
-
 
 bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 {
@@ -298,7 +437,7 @@ bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
 	// are used right *now* because it's far simpler to test and time is short.
 #ifdef EM_USE_WORKER_THREAD
 	{
-		File_QueryAsync( filepath, Q3BspMap_ReadBegin, this );
+		File_QueryAsync( filepath, ReadBegin, this );
 		return false;
 	}
 #else

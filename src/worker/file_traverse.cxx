@@ -96,15 +96,27 @@ struct file_t
 		return !!ptr;
 	}
 
-	void Read( size_t offset, size_t size )
+	bool Read( size_t offset, size_t size )
 	{
-		memset( &readBuff[ 0 ], 0, readBuff.size() * sizeof( unsigned char ) );
+		if ( !ptr )
+		{
+			return false;
+		}
+
+		if ( !readBuff.empty() )
+		{
+			memset( &readBuff[ 0 ], 0, readBuff.size() * sizeof( unsigned char ) );
+		}
+
 		if ( readBuff.size() < size )
 		{
 			readBuff.resize( size, 0 );
 		}
+
 		fseek( ptr, offset, SEEK_SET );
-		fread( &readBuff[ 0 ], size, 1, ptr );
+		fread( &readBuff[ 0 ], 1, size, ptr );
+
+		return true;
 	}
 
 	~file_t( void )
@@ -171,10 +183,15 @@ void ReadFile_Chunk( char* bcmd, int size )
 
 	wApiChunkInfo_t* cmd =  ( wApiChunkInfo_t* )bcmd;
 
-	gFIOChain->Read( cmd->offset, cmd->size );
-
-	emscripten_worker_respond( ( char* )&( ( *gFIOChain ).readBuff[ 0 ] ) ), 
-		cmd->size );
+	if ( gFIOChain->Read( cmd->offset, cmd->size ) )
+	{
+		emscripten_worker_respond( ( char* )&gFIOChain->readBuff[ 0 ], cmd->size );
+	}
+	else
+	{
+		uint32_t m = WAPI_FALSE;
+		emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
+	}
 }
 
 void Traverse( char* directory, int size )
