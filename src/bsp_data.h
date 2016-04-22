@@ -258,6 +258,7 @@ struct mapData_t
 {
 	bspHeader_t	header;
 
+	std::string	basePath; // root directory of the map
 	std::vector< char > entitiesSrc;
 	std::vector< bspShader_t > shaders;
 	std::vector< bspPlane_t > planes;
@@ -306,8 +307,6 @@ struct mapData_t
 	int					numLightvols;
 
 	int                 numVisdataVecs;
-
-	std::string			basePath; // root directory of the map
 };
 
 // --------------------------------------------------------

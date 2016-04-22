@@ -28,12 +28,12 @@ private:
 
 	void*							readFinishParam;
 
+	int								scaleFactor;
+
 	bool							mapAllocated;
 
 	std::string						name;
-
-	bool							ReadFile( const std::string& filepath, const int scale );
-
+	
 public:
 
 
@@ -57,11 +57,15 @@ public:
 
 	bool						IsAllocated( void ) const { return mapAllocated; }
 
+	void 						MakeAllocated( void ) { mapAllocated = true; }
+
 	const shaderInfo_t*			GetShaderInfo( const char* name ) const;
 
 	const shaderInfo_t*			GetShaderInfo( int faceIndex ) const;
 
 	const std::string&			GetFileName( void ) const { return name; }
+
+	int							GetScaleFactor( void ) const { return scaleFactor; }
 
 	bool						IsMapOnlyShader( const std::string& filepath ) const;
 

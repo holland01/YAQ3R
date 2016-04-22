@@ -7,6 +7,10 @@
 
 using namespace std;
 
+//-------------------------------------------------------------------------------
+// Data tweaking
+//-------------------------------------------------------------------------------
+
 static void SwizzleCoords( glm::vec3& v )
 {
 	float tmp = v.y;
@@ -43,11 +47,287 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 }
 
 //-------------------------------------------------------------------------------
+// Read Event Handling
+//-------------------------------------------------------------------------------
 
+static int gBspDesc = -1;
+
+using q3BspAllocFn_t =
+	std::function< void( char* received, mapData_t& data, int length ) >;
+
+static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
+{{
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.entitiesSrc.resize( length / sizeof( char ) );
+		data.entityStringLen = data.entitiesSrc.size();
+		memcpy( &data.entitiesSrc[ 0 ], received, length );
+		data.entities.infoString = &data.entitiesSrc[ 0 ];
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.shaders.resize( length / sizeof( bspShader_t ) );
+		memcpy( &data.shaders[ 0 ], received, length );
+		data.numShaders = data.shaders.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.planes.resize( length / sizeof( bspPlane_t ) );
+		memcpy( &data.planes[ 0 ], received, length );
+		data.numPlanes = data.planes.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.nodes.resize( length / sizeof( bspNode_t ) );
+		memcpy( &data.nodes[ 0 ], received, length );
+		data.numNodes = data.nodes.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.leaves.resize( length / sizeof( bspLeaf_t ) );
+		memcpy( &data.leaves[ 0 ], received, length );
+		data.numLeaves = data.leaves.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.leafFaces.resize( length / sizeof( bspLeafFace_t ) );
+		memcpy( &data.leafFaces[ 0 ], received, length );
+		data.numLeafFaces = data.leafFaces.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.leafBrushes.resize( length / sizeof( bspLeafBrush_t ) );
+		memcpy( &data.leafBrushes[ 0 ], received, length );
+		data.numLeafBrushes = data.leafBrushes.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.models.resize( length / sizeof( bspModel_t ) );
+		memcpy( &data.models[ 0 ], received, length );
+		data.numModels = data.models.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.brushes.resize( length / sizeof( bspBrush_t ) );
+		memcpy( &data.brushes[ 0 ], received, length );
+		data.numBrushes = data.brushes.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.brushSides.resize( length / sizeof( bspBrushSide_t ) );
+		memcpy( &data.brushSides[ 0 ], received, length );
+	    data.numBrushSides = data.brushSides.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.vertexes.resize( length / sizeof( bspVertex_t ) );
+		memcpy( &data.vertexes[ 0 ], received, length );
+		data.numVertexes = data.vertexes.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.meshVertexes.resize( length / sizeof( bspMeshVertex_t ) );
+		memcpy( &data.meshVertexes[ 0 ], received, length );
+		data.numMeshVertexes = data.meshVertexes.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.fogs.resize( length / sizeof( bspFog_t ) );
+		memcpy( &data.fogs[ 0 ], received, length );
+		data.numFogs = data.fogs.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.faces.resize( length / sizeof( bspShader_t ) );
+		memcpy( &data.faces[ 0 ], received, length );
+		data.numFaces = data.faces.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.lightmaps.resize( length / sizeof( bspLightmap_t ) );
+		memcpy( &data.lightmaps[ 0 ], received, length );
+		data.numLightmaps = data.lightmaps.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.lightvols.resize( length / sizeof( bspLightvol_t ) );
+		memcpy( &data.lightvols[ 0 ], received, length );
+		data.numLightvols = data.lightvols.size();
+	},
+
+	[]( char* received, mapData_t& data, int length )
+	{
+		data.bitsetSrc.resize( length / sizeof( unsigned char ) );
+		memcpy( &data.bitsetSrc[ 0 ], received, length );
+		data.visdata.bitsets = &data.bitsetSrc[ 0 ];
+		data.numVisdataVecs = length;
+	}
+}};
+
+static void ReadChunk( char* data, int size, void* param );
+
+static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
+{
+	gFileWebWorker.Await( ReadChunk, "ReadFile_Chunk",
+		( char* )&info, sizeof( info ), param );
+}
+
+static void ReadFin( Q3BspMap* map )
+{
+	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis.
+	// Also scale anything as necessary (or desired)
+
+	for ( size_t i = 0; i < map->data.nodes.size(); ++i )
+	{
+		ScaleCoords( map->data.nodes[ i ].boxMax, map->GetScaleFactor() );
+		ScaleCoords( map->data.nodes[ i ].boxMin, map->GetScaleFactor() );
+
+		SwizzleCoords( map->data.nodes[ i ].boxMax );
+		SwizzleCoords( map->data.nodes[ i ].boxMin );
+	}
+
+	for ( size_t i = 0; i < map->data.leaves.size(); ++i )
+	{
+		ScaleCoords( map->data.leaves[ i ].boxMax, map->GetScaleFactor() );
+		ScaleCoords( map->data.leaves[ i ].boxMin, map->GetScaleFactor() );
+
+		SwizzleCoords( map->data.leaves[ i ].boxMax );
+		SwizzleCoords( map->data.leaves[ i ].boxMin );
+	}
+
+	for ( size_t i = 0; i < map->data.planes.size(); ++i )
+	{
+		map->data.planes[ i ].distance *= map->GetScaleFactor();
+		ScaleCoords( map->data.planes[ i ].normal, ( float ) map->GetScaleFactor() );
+		SwizzleCoords( map->data.planes[ i ].normal );
+	}
+
+	for ( size_t i = 0; i < map->data.vertexes.size(); ++i )
+	{
+		ScaleCoords( map->data.vertexes[ i ].texCoords[ 0 ],
+			( float ) map->GetScaleFactor() );
+		ScaleCoords( map->data.vertexes[ i ].texCoords[ 1 ],
+			( float ) map->GetScaleFactor() );
+
+		ScaleCoords( map->data.vertexes[ i ].normal,
+			( float ) map->GetScaleFactor() );
+		ScaleCoords( map->data.vertexes[ i ].position,
+			( float ) map->GetScaleFactor() );
+
+		SwizzleCoords( map->data.vertexes[ i ].position );
+		SwizzleCoords( map->data.vertexes[ i ].normal );
+	}
+
+	for ( size_t i = 0; i < map->data.models.size(); ++i )
+	{
+		ScaleCoords( map->data.models[ i ].boxMax,
+			( float ) map->GetScaleFactor() );
+		ScaleCoords( map->data.models[ i ].boxMin,
+			( float ) map->GetScaleFactor() );
+
+		SwizzleCoords( map->data.models[ i ].boxMax );
+		SwizzleCoords( map->data.models[ i ].boxMin );
+	}
+
+	for ( size_t i = 0; i < map->data.faces.size(); ++i )
+	{
+		bspFace_t& face = map->data.faces[ i ];
+
+		ScaleCoords( face.normal, ( float ) map->GetScaleFactor() );
+		ScaleCoords( face.lightmapOrigin, ( float ) map->GetScaleFactor() );
+		ScaleCoords( face.lightmapStVecs[ 0 ], ( float ) map->GetScaleFactor() );
+		ScaleCoords( face.lightmapStVecs[ 1 ], ( float ) map->GetScaleFactor() );
+
+		SwizzleCoords( face.normal );
+		SwizzleCoords( face.lightmapOrigin );
+		SwizzleCoords( face.lightmapStVecs[ 0 ] );
+		SwizzleCoords( face.lightmapStVecs[ 1 ] );
+	}
+}
+
+static void ReadChunk( char* data, int size, void* param )
+{
+	MLOG_INFO( "Entering ReadChunk..." );
+
+	if ( !data )
+	{
+		MLOG_ERROR( "Null Pointer received; bailing..." );
+		return;
+	}
+
+	Q3BspMap* map = ( Q3BspMap* )param;
+	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
+
+	switch ( gBspDesc )
+	{
+		// Header received; validate and then send it off...
+		case -1:
+			MLOG_INFO( "Validating...." );
+			memcpy( &map->data.header, data, size );
+			if ( !map->Validate() )
+			{
+				MLOG_ERROR( "BSP Map \'%s\' is invalid.", map->GetFileName().c_str() );
+				return;
+			}
+			MLOG_INFO( "Validation successful" );
+		// Grab any remaining lumps we need...
+		default:
+			// Check to see if the data received here is from a previous
+			// directory entry
+			if ( gBspDesc >= 0 )
+			{
+				gBspAllocTable[ gBspDesc ]( data, map->data, size );
+			}
+			MLOG_INFO( "Fall through; gBspDesc = %i", gBspDesc );
+			// Do we have any more requests to make?
+			if ( ++gBspDesc < ( int ) BSP_NUM_ENTRIES )
+			{
+				wApiChunkInfo_t info;
+				info.offset = map->data.header.directories[ gBspDesc ].offset;
+				info.size = map->data.header.directories[ gBspDesc ].length;
+				SendRequest( info, param );
+			}
+			else
+			{
+				gBspDesc = -1;
+				ReadFin( map );
+			}
+			break;
+	}
+}
+
+static void ReadBegin( char* data, int size, void* param )
+{
+	MLOG_INFO( "Beginning header query..." );
+	wApiChunkInfo_t info;
+	info.offset = 0;
+	info.size = sizeof( bspHeader_t );
+	SendRequest( info, param );
+}
+
+//-------------------------------------------------------------------------------
+// Q3BspMap
+//-------------------------------------------------------------------------------
 Q3BspMap::Q3BspMap( void )
 	 :	readFinishEvent( nullptr ),
 	 	readFinishParam( nullptr ),
-	 	mapAllocated( false ),
+		scaleFactor( 1 ),
+		mapAllocated( false ),
 		data( {} )
 {
 }
@@ -68,8 +348,6 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 		*/
 		//if ( !it->second.glslMade )
 			//return nullptr;
-
-
 
 		return &it->second;
 	}
@@ -135,17 +413,14 @@ mapEntity_t Q3BspMap::Read( const std::string& filepath, int scale,
 
 	readFinishEvent = finishCallback;
 	readFinishParam = userParam;
+	scaleFactor = scale;
+	name = File_StripExt( File_StripPath( filepath ) );
 
 	mapEntity_t ret;
 
 	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
 
-	if ( !ReadFile( filepath, scale ) )
-	{
-		return ret;
-	}
-
-	mapAllocated = true;
+	File_QueryAsync( filepath, ReadBegin, this );
 
 	const char* pInfo = data.entities.infoString;
 
@@ -245,354 +520,6 @@ bool Q3BspMap::Validate( void )
 		MLOG_WARNING( "Header version does NOT match %i. Version found is %i\n",
 			BSP_Q3_VERSION, data.header.version );
 		return false;
-	}
-
-	return true;
-}
-
-static int gBspDesc = -1;
-
-using q3BspAllocFn_t =
-	std::function< void( char* received, mapData_t& data, int length ) >;
-
-static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
-{{
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.entitiesSrc.resize( length / sizeof( char ) );
-		memcpy( &data.entitiesSrc[ 0 ], received, length );
-		data.entities.infoString = &data.entitiesSrc[ 0 ];
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.shaders.resize( length / sizeof( bspShader_t ) );
-		memcpy( &data.shaders[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.planes.resize( length / sizeof( bspPlane_t ) );
-		memcpy( &data.planes[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.nodes.resize( length / sizeof( bspNode_t ) );
-		memcpy( &data.nodes[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.leaves.resize( length / sizeof( bspLeaf_t ) );
-		memcpy( &data.leaves[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.leafFaces.resize( length / sizeof( bspLeafFace_t ) );
-		memcpy( &data.leafFaces[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.leafBrushes.resize( length / sizeof( bspLeafBrush_t ) );
-		memcpy( &data.leafBrushes[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.models.resize( length / sizeof( bspModel_t ) );
-		memcpy( &data.models[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.brushes.resize( length / sizeof( bspBrush_t ) );
-		memcpy( &data.brushes[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.brushSides.resize( length / sizeof( bspBrushSide_t ) );
-		memcpy( &data.brushSides[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.vertexes.resize( length / sizeof( bspVertex_t ) );
-		memcpy( &data.vertexes[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.meshVertexes.resize( length / sizeof( bspMeshVertex_t ) );
-		memcpy( &data.meshVertexes[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.fogs.resize( length / sizeof( bspFog_t ) );
-		memcpy( &data.fogs[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.faces.resize( length / sizeof( bspShader_t ) );
-		memcpy( &data.faces[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.lightmaps.resize( length / sizeof( bspLightmap_t ) );
-		memcpy( &data.lightmaps[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.lightvols.resize( length / sizeof( bspLightvol_t ) );
-		memcpy( &data.lightvols[ 0 ], received, length );
-	},
-
-	[]( char* received, mapData_t& data, int length )
-	{
-		data.bitsetSrc.resize( length / sizeof( unsigned char ) );
-		memcpy( &data.bitsetSrc[ 0 ], received, length );
-		data.visdata.bitsets = &data.bitsetSrc[ 0 ];
-	}
-}};
-
-
-static void ReadChunk( char* data, int size, void* param );
-
-static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
-{
-	gFileWebWorker.Await( ReadChunk, "ReadFile_Chunk",
-		( char* )&info, sizeof( info ), param );
-}
-
-static void ReadChunk( char* data, int size, void* param )
-{
-	MLOG_INFO( "Entering ReadChunk..." );
-
-	if ( !data )
-	{
-		MLOG_ERROR( "Null Pointer received; bailing..." );
-		return;
-	}
-
-	Q3BspMap* map = ( Q3BspMap* )param;
-	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
-
-	switch ( gBspDesc )
-	{
-		// Header received; validate and then send it off...
-		case -1:
-			MLOG_INFO( "Validating...." );
-			memcpy( &map->data.header, data, size );
-			if ( !map->Validate() )
-			{
-				MLOG_ERROR( "BSP Map \'%s\' is invalid.", map->GetFileName().c_str() );
-				return;
-			}
-			MLOG_INFO( "Validation successful" );
-			++gBspDesc;
-		// Grab any remaining lumps we need...
-		default:
-			// Check to see if the data received here is from a previous
-			// directory entry
-			if ( gBspDesc >= 0 )
-			{
-				gBspAllocTable[ gBspDesc ]( data, map->data, size );
-			}
-			MLOG_INFO( "Fall through; gBspDesc = %i", gBspDesc );
-			// Do we have any more requests to make?
-			if ( ++gBspDesc < ( int ) BSP_NUM_ENTRIES )
-			{
-				wApiChunkInfo_t info;
-				info.offset = map->data.header.directories[ gBspDesc ].offset;
-				info.size = map->data.header.directories[ gBspDesc ].length;
-				SendRequest( info, param );
-			}
-			break;
-	}
-}
-
-static void ReadBegin( char* data, int size, void* param )
-{
-	MLOG_INFO( "Beginning header query..." );
-	wApiChunkInfo_t info;
-	info.offset = 0;
-	info.size = sizeof( bspHeader_t );
-	SendRequest( info, param );
-}
-
-bool Q3BspMap::ReadFile( const std::string& filepath, const int scale )
-{
-	name = File_StripExt( File_StripPath( filepath ) );
-
-	// TODO: refactor data.buffer into a std::vector,
-	// and replace redundant file processing code (in the case that EM_USE_WORKER_THREAD)
-	// isn't defined with File_Open/File_GetData (we're doing that only) if worker threads
-	// are used right *now* because it's far simpler to test and time is short.
-#ifdef EM_USE_WORKER_THREAD
-	{
-		File_QueryAsync( filepath, ReadBegin, this );
-		return false;
-	}
-#else
-/*
-	// Open file, verify it if we succeed
-	{
-		FILE* file = File_Open( filepath );
-		if ( !file )
-		{
-			return false;
-		}
-
-		fseek( file, 0, SEEK_END );
-		size_t fsize = ftell( file );
-		data.buffer = new byte[ fsize ]();
-		fseek( file, 0, SEEK_SET );
-		fread( data.buffer, fsize, 1, file );
-		rewind( file );
-
-		if ( !Validate() )
-		{
-			return false;
-		}
-
-		data.visdata = ( bspVisdata_t* )( data.buffer +
-			data.header->directories[ BSP_LUMP_VISDATA ].offset );
-		data.numVisdataVecs = data.header->directories[ BSP_LUMP_VISDATA ].length;
-
-		// Reading the last portion of the data from the file directly has appeared to produce better results.
-		// Not quite sure why, admittedly. See: http://stackoverflow.com/questions/27653440/mapping-data-to-an-offset-of-a-byte-buffer-allocated-for-an-entire-file-versus-r
-		// for the full story
-		fseek( file, data.header->directories[ BSP_LUMP_VISDATA ].offset + sizeof( int ) * 2, SEEK_SET );
-
-		int size = data.visdata->numVectors * data.visdata->sizeVector;
-		data.visdata->bitsets = new byte[ size ]();
-		fread( data.visdata->bitsets, size, 1, file );
-
-		fclose( file );
-	}
-	*/
-#endif
-/*
-	//
-	// Read map data
-	//
-	data.entities.infoString = ( char* )( data.buffer + data.header->directories[ BSP_LUMP_ENTITIES ].offset );
-	data.entityStringLen = data.header->directories[ BSP_LUMP_ENTITIES ].length / sizeof( char );
-
-	data.shaders = ( bspShader_t* )( data.buffer + data.header->directories[ BSP_LUMP_SHADERS ].offset );
-	data.numShaders = data.header->directories[ BSP_LUMP_SHADERS ].length / sizeof( bspShader_t );
-
-	data.nodes = ( bspNode_t* )( data.buffer + data.header->directories[ BSP_LUMP_NODES ].offset );
-	data.numNodes = data.header->directories[ BSP_LUMP_NODES ].length / sizeof( bspNode_t );
-
-	data.leaves = ( bspLeaf_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAVES ].offset );
-	data.numLeaves = data.header->directories[ BSP_LUMP_LEAVES ].length / sizeof( bspLeaf_t );
-
-	data.planes = ( bspPlane_t* )( data.buffer + data.header->directories[ BSP_LUMP_PLANES ].offset );
-	data.numPlanes = data.header->directories[ BSP_LUMP_PLANES ].length / sizeof( bspPlane_t );
-
-	data.vertexes = ( bspVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_VERTEXES ].offset );
-	data.numVertexes = data.header->directories[ BSP_LUMP_VERTEXES ].length / sizeof( bspVertex_t );
-
-	data.models = ( bspModel_t* )( data.buffer + data.header->directories[ BSP_LUMP_MODELS ].offset );
-	data.numModels = data.header->directories[ BSP_LUMP_MODELS ].length / sizeof( bspModel_t );
-
-	data.numFaces = data.header->directories[ BSP_LUMP_FACES ].length / sizeof( bspFace_t );
-	data.faces = ( bspFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_FACES ].offset );
-
-	data.leafFaces = ( bspLeafFace_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_FACES ].offset );
-	data.numLeafFaces = data.header->directories[ BSP_LUMP_LEAF_FACES ].length / sizeof( bspLeafFace_t );
-
-	data.leafBrushes = ( bspLeafBrush_t* )( data.buffer + data.header->directories[ BSP_LUMP_LEAF_BRUSHES ].offset );
-	data.numLeafBrushes = data.header->directories[ BSP_LUMP_LEAF_BRUSHES ].length / sizeof( bspLeafBrush_t );
-
-	data.meshVertexes = ( bspMeshVertex_t* )( data.buffer + data.header->directories[ BSP_LUMP_MESH_VERTEXES ].offset );
-	data.numMeshVertexes = data.header->directories[ BSP_LUMP_MESH_VERTEXES ].length / sizeof( bspMeshVertex_t );
-
-	data.fogs = ( bspFog_t* )( data.buffer + data.header->directories[ BSP_LUMP_FOGS ].offset );
-	data.numFogs = data.header->directories[ BSP_LUMP_FOGS ].length / sizeof( bspFog_t );
-
-	data.lightmaps = ( bspLightmap_t* )( data.buffer + data.header->directories[ BSP_LUMP_LIGHTMAPS ].offset );
-	data.numLightmaps = data.header->directories[ BSP_LUMP_LIGHTMAPS ].length / sizeof( bspLightmap_t );
-
-	data.lightvols = ( bspLightvol_t* )( data.buffer + data.header->directories[ BSP_LUMP_LIGHTVOLS ].offset );
-	data.numLightvols = data.header->directories[ BSP_LUMP_LIGHTVOLS ].length / sizeof( bspLightvol_t );
-
-	data.brushes = ( bspBrush_t* )( data.buffer + data.header->directories[ BSP_LUMP_BRUSHES ].offset );
-	data.numBrushes = data.header->directories[ BSP_LUMP_BRUSHES ].length / sizeof( bspBrush_t );
-
-	data.brushSides = ( bspBrushSide_t* )( data.buffer + data.header->directories[ BSP_LUMP_BRUSH_SIDES ].offset );
-	data.numBrushSides = data.header->directories[ BSP_LUMP_BRUSH_SIDES ].length / sizeof( bspBrushSide_t );
-
-	//
-	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis. Also scale anything as necessary (or desired)
-	//
-*/
-	for ( int i = 0; i < data.numNodes; ++i )
-	{
-		ScaleCoords( data.nodes[ i ].boxMax, scale );
-		ScaleCoords( data.nodes[ i ].boxMin, scale );
-
-		SwizzleCoords( data.nodes[ i ].boxMax );
-		SwizzleCoords( data.nodes[ i ].boxMin );
-	}
-
-	for ( int i = 0; i < data.numLeaves; ++i )
-	{
-		ScaleCoords( data.leaves[ i ].boxMax, scale );
-		ScaleCoords( data.leaves[ i ].boxMin, scale );
-
-		SwizzleCoords( data.leaves[ i ].boxMax );
-		SwizzleCoords( data.leaves[ i ].boxMin );
-	}
-
-	for ( int i = 0; i < data.numPlanes; ++i )
-	{
-		data.planes[ i ].distance *= scale;
-		ScaleCoords( data.planes[ i ].normal, ( float ) scale );
-		SwizzleCoords( data.planes[ i ].normal );
-	}
-
-	for ( int i = 0; i < data.numVertexes; ++i )
-	{
-		ScaleCoords( data.vertexes[ i ].texCoords[ 0 ], ( float )scale );
-		ScaleCoords( data.vertexes[ i ].texCoords[ 1 ], ( float )scale );
-		ScaleCoords( data.vertexes[ i ].normal, ( float ) scale );
-		ScaleCoords( data.vertexes[ i ].position, ( float ) scale );
-
-		SwizzleCoords( data.vertexes[ i ].position );
-		SwizzleCoords( data.vertexes[ i ].normal );
-	}
-
-	for ( int i = 0; i < data.numModels; ++i )
-	{
-		ScaleCoords( data.models[ i ].boxMax, ( float ) scale );
-		ScaleCoords( data.models[ i ].boxMin, ( float ) scale );
-
-		SwizzleCoords( data.models[ i ].boxMax );
-		SwizzleCoords( data.models[ i ].boxMin );
-	}
-
-	for ( int i = 0; i < data.numFaces; ++i )
-	{
-		bspFace_t& face = data.faces[ i ];
-
-		ScaleCoords( face.normal, ( float ) scale );
-		ScaleCoords( face.lightmapOrigin, ( float ) scale );
-		ScaleCoords( face.lightmapStVecs[ 0 ], ( float ) scale );
-		ScaleCoords( face.lightmapStVecs[ 1 ], ( float ) scale );
-
-		SwizzleCoords( face.normal );
-		SwizzleCoords( face.lightmapOrigin );
-		SwizzleCoords( face.lightmapStVecs[ 0 ] );
-		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
 	return true;
