@@ -1,10 +1,13 @@
 #pragma once
 
-#include "../common.h"
-#include "../input.h"
+#include "common.h"
+#include "input.h"
+#include "q3bsp.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_main.h>
+
+class Q3BspMap;
 
 class Test
 {
@@ -35,11 +38,14 @@ protected:
 	float			lastMouseX;
 	float			lastMouseY;
 
+	Q3BspMap 		map;
+
 public:
 
-	SDL_Window*		sdlWindow;
+	SDL_Window*	sdlWindow;
 
-	Test( int width, int height, bool fullscreen );
+	Test( int width, int height, bool fullscreen,
+	 	const char* readFilePath );
 
 	virtual ~Test( void );
 

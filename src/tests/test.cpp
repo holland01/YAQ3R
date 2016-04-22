@@ -3,20 +3,26 @@
 #include "../glutil.h"
 #include "renderer/buffer.h"
 
-#if defined(G_USE_GL_CORE)
+#if defined( G_USE_GL_CORE )
 #	define T_DEFAULT_PROFILE SDL_GL_CONTEXT_PROFILE_CORE
 #else
 #	define T_DEFAULT_PROFILE SDL_GL_CONTEXT_PROFILE_ES
 #endif
 
-#ifdef EMSCRIPTEN
+#if defined( EMSCRIPTEN )
 #	include <emscripten.h>
 #	include "em_api.h"
 #endif
 
 Test* gAppTest = nullptr;
 
-static void FrameIteration( void )
+static void OnMapReadFin( void )
+{
+	gAppTest->Load();
+	gAppTest->Exec();
+}
+
+static void OnFrameIteration( void )
 {
 	if ( !gAppTest )
 		return;
@@ -29,10 +35,13 @@ static void FrameIteration( void )
 
 	SDL_Event e;
 	while ( SDL_PollEvent( &e ) )
+	{
 		gAppTest->OnInputEvent( &e );
+	}
 }
 
-Test::Test( int w, int h, bool fullscreen_ )
+Test::Test( int w, int h, bool fullscreen_,
+	const char* bspFilePath )
 	: width( w ), height( h ),
 	  deltaTime( 0.0f ),
 	  fullscreen( fullscreen_ ),
@@ -49,6 +58,14 @@ Test::Test( int w, int h, bool fullscreen_ )
 	  lastMouseY( 0.0f ),
 	  sdlWindow( nullptr )
 {
+#if defined( EMSCRIPTEN )
+	EM_MountFS();
+#endif
+
+	if ( bspFilePath )
+	{
+		map.Read( std::string( bspFilePath ), 1, OnMapReadFin );
+	}
 }
 
 Test::~Test( void )
@@ -111,13 +128,13 @@ int Test::Exec( void )
 		return 1;
 
 #ifdef EMSCRIPTEN
-	emscripten_set_main_loop( FrameIteration, 0, 1 );
+	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
 #else
 	float lastTime = 0.0f;
 
 	while( running )
 	{
-		FrameIteration();
+		OnFrameIteration();
 
 		deltaTime = ( float )( GetTimeSeconds() - lastTime );
 		lastTime = GetTimeSeconds();

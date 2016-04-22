@@ -2,18 +2,16 @@
 #include "glutil.h"
 #include "em_api.h"
 
-TRenderer::TRenderer( void )
-	: Test( 1920, 1080, false ),
-	  renderer( nullptr ),
-	  mapFilepath( ASSET_Q3_ROOT"/maps/Railgun_Arena.bsp" ),
-	  moveRateChangeRate( 0.3f )
+TRenderer::TRenderer( const std::string& filepath )
+	: Test( 1366, 768, false, filepath.c_str() ),
+	  moveRateChangeRate( 0.3f ),
+	  renderer( nullptr )
 {
 }
 
 TRenderer::~TRenderer( void )
 {
 	camPtr = nullptr;
-	delete renderer;
 }
 
 void TRenderer::Run( void )
@@ -30,16 +28,16 @@ void TRenderer::Load( void )
 		return;
 	}
 
-#ifdef EMSCRIPTEN
-	EM_MountFS();
-#endif
-	renderer = new BSPRenderer( ( float ) width, ( float ) height );
+	renderer.reset( new BSPRenderer( ( float ) width,
+		( float ) height, map ) );
 	renderer->Prep();
-	renderer->Load( mapFilepath );
-#ifdef EMSCRIPTEN
-	EM_UnmountFS();
-#endif
-	camPtr = renderer->camera;
+	renderer->Load();
+
+	#ifdef EMSCRIPTEN
+		EM_UnmountFS();
+	#endif
+
+	camPtr = renderer->camera.get();
 }
 
 void TRenderer::OnInputEvent( SDL_Event* e )

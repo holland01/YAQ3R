@@ -7,7 +7,7 @@
 #include "renderer/texture.h"
 #include "effect_shader.h"
 
-static void FrameIteration( void )
+static void OnFrameIteration( void )
 {
 	static volatile int k = 0;
 	k++;
@@ -15,6 +15,11 @@ static void FrameIteration( void )
 	{
 		MLOG_INFO( "Beep" );
 	}
+}
+
+static void OnReadFinish( void )
+{
+	MLOG_INFO( "DONE!" );
 }
 
 static void ReadCallback( char* data, int size, void* param )
@@ -41,17 +46,15 @@ IOTestWebWorker::~IOTestWebWorker( void )
 
 int IOTestWebWorker::operator()( void )
 {
-
 	std::vector< gImageParams_t > textures;
 	gSamplerHandle_t imageSampler;
 
 	std::vector< unsigned char > buffer;
 
 	Q3BspMap map;
-	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, nullptr, nullptr );
-	//S_LoadShaders( &map, imageSampler, textures );
+	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, OnReadFinish );
 
-	emscripten_set_main_loop( FrameIteration, 0, 1 );
+	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
 
 	return 0;
 }

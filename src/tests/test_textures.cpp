@@ -3,7 +3,7 @@
 #include "renderer/util.h"
 
 TTextureTest::TTextureTest( void )
-	: Test( 1366, 768, false ),
+	: Test( 1366, 768, false, nullptr ),
 	  atlasProg( nullptr ),
 	  camera( new InputCamera() ),
 	  drawAtlas( true ), drawGrid( false ),
@@ -97,7 +97,7 @@ void TTextureTest::Load( void )
 
 	textureProg.reset( MakeProgram( vertex, fragment, { "imageTransform", "imageScaleRatio" } ) );
 
-	map.Read( "asset/stockmaps/maps/q3dm2.bsp", 1, nullptr, nullptr );
+	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, nullptr );
 
 	sampler = GMakeSampler();
 	texture = GU_LoadMainTextures( map, sampler );

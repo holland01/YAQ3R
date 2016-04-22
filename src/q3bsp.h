@@ -17,25 +17,22 @@ struct mapEntity_t
 class Q3BspMap
 {
 public:
-	typedef void ( *onReadFinish_t )( Q3BspMap& map, void* param );
+	typedef void ( *onReadFinish_t )( void );
 
 private:
 
 	Q3BspMap( const Q3BspMap& ) = delete;
 	Q3BspMap& operator=( Q3BspMap ) = delete;
 
-	onReadFinish_t					readFinishEvent;
-
-	void*							readFinishParam;
-
 	int								scaleFactor;
 
 	bool							mapAllocated;
 
 	std::string						name;
-	
+
 public:
 
+	onReadFinish_t					readFinishEvent;
 
 	std::unordered_map< std::string, shaderInfo_t > effectShaders;
 
@@ -44,10 +41,13 @@ public:
 
 	mapData_t					data;
 
+	// retrives the first spawn point found in the text file.
+	mapEntity_t					GetFirstSpawnPoint( void ) const;
+
 	bool						Validate( void );
 
-	mapEntity_t					Read( const std::string& filepath, int scale,
-	 								onReadFinish_t finishCallback, void* userParam );
+	void						Read( const std::string& filepath, int scale,
+	 								onReadFinish_t finishCallback );
 
 	void						WriteLumpToFile( uint32_t lump );
 

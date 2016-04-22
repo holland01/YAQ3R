@@ -7,11 +7,6 @@ class TRenderer : public Test
 {
 
 private:
-
-	BSPRenderer* renderer;
-
-	std::string mapFilepath;
-
 	glm::vec3 lightSamplerPos;
 
 	float moveRateChangeRate;
@@ -20,7 +15,11 @@ private:
 
 public:
 
-	TRenderer( void );
+	Q3BspMap map;
+
+	std::unique_ptr< BSPRenderer > renderer;
+
+	TRenderer( const std::string& mapFilepath );
 
 	~TRenderer( void );
 

@@ -117,7 +117,7 @@ struct drawPass_t
 	drawSurfaceList_t patches;
 	drawSurfaceList_t polymeshes;
 
-	drawPass_t( const Q3BspMap* const & map, const viewParams_t& viewData );
+	drawPass_t( const Q3BspMap& map, const viewParams_t& viewData );
 };
 
 struct effect_t;
@@ -159,6 +159,9 @@ private:
 	effectMap_t			glEffects;
 
 	const bspLeaf_t*    currLeaf;
+
+	Q3BspMap& map;
+	std::unique_ptr< Frustum > frustum;
 
 	std::array< GLuint, 2 >	apiHandles;
 
@@ -218,20 +221,20 @@ private:
 	void				LoadLightmaps( void );
 
 public:
-	bool			alwaysWriteDepth;
-	Q3BspMap*       map;
-	InputCamera*	camera;
-	Frustum*		frustum;
+	bool				alwaysWriteDepth;
+
+	std::unique_ptr< InputCamera > camera;
 
 	viewMode_t		curView;
 
-				BSPRenderer( float viewWidth, float viewHeight );
+				BSPRenderer( float viewWidth, float viewHeight,
+				 Q3BspMap& map );
 
 				~BSPRenderer( void );
 
 	void		Prep( void );
 
-	void		Load( const std::string& filepath );
+	void		Load( void );
 
 	void		Sample( void );
 
@@ -254,4 +257,3 @@ INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t
 		DrawFace( p );
 	}
 }
-

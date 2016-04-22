@@ -258,6 +258,11 @@ static void ReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 0 ] );
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
+
+	if ( map->readFinishEvent )
+	{
+		map->readFinishEvent();
+	}
 }
 
 static void ReadChunk( char* data, int size, void* param )
@@ -266,11 +271,17 @@ static void ReadChunk( char* data, int size, void* param )
 
 	if ( !data )
 	{
-		MLOG_ERROR( "Null Pointer received; bailing..." );
+		MLOG_ERROR( "Null data received; bailing..." );
+		return;
+	}
+	if ( !param )
+	{
+		MLOG_ERROR( "Null param received; bailing..." );
 		return;
 	}
 
 	Q3BspMap* map = ( Q3BspMap* )param;
+
 	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
 
 	switch ( gBspDesc )
@@ -313,6 +324,12 @@ static void ReadChunk( char* data, int size, void* param )
 
 static void ReadBegin( char* data, int size, void* param )
 {
+	int* result = ( int* )data;
+	if ( !result || !( *result ) )
+	{
+		MLOG_ERROR( "Bailing out; Worker ReadFile_Begin failed." );
+	}
+
 	MLOG_INFO( "Beginning header query..." );
 	wApiChunkInfo_t info;
 	info.offset = 0;
@@ -324,10 +341,9 @@ static void ReadBegin( char* data, int size, void* param )
 // Q3BspMap
 //-------------------------------------------------------------------------------
 Q3BspMap::Q3BspMap( void )
-	 :	readFinishEvent( nullptr ),
-	 	readFinishParam( nullptr ),
-		scaleFactor( 1 ),
+	 :	scaleFactor( 1 ),
 		mapAllocated( false ),
+		readFinishEvent( nullptr ),
 		data( {} )
 {
 }
@@ -405,22 +421,22 @@ void Q3BspMap::DestroyMap( void )
 	}
 }
 
-mapEntity_t Q3BspMap::Read( const std::string& filepath, int scale,
-	onReadFinish_t finishCallback, void* userParam )
+void Q3BspMap::Read( const std::string& filepath, int scale,
+	onReadFinish_t finishCallback )
 {
 	if ( IsAllocated() )
 		DestroyMap();
 
 	readFinishEvent = finishCallback;
-	readFinishParam = userParam;
 	scaleFactor = scale;
 	name = File_StripExt( File_StripPath( filepath ) );
-
-	mapEntity_t ret;
-
 	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
-
 	File_QueryAsync( filepath, ReadBegin, this );
+}
+
+mapEntity_t Q3BspMap::GetFirstSpawnPoint( void ) const
+{
+	mapEntity_t ret;
 
 	const char* pInfo = data.entities.infoString;
 

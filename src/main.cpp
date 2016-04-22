@@ -40,13 +40,16 @@ int main( void )
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
-#ifdef IOTEST
+#if defined( EMSCRIPTEN )
+#	if defined( IOTEST )
 	IOTestWebWorker test;
-
 	return test();
+#	else
+	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/q3dm2.bsp" );
+	return 0;
+#	endif // IOTEST
 #else
-	gAppTest = new TRenderer();
-	gAppTest->Load();
+	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/q3dm2.bsp" );
 
 	int code = gAppTest->Exec();
 

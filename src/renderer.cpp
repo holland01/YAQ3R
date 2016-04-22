@@ -38,7 +38,7 @@ static counts_t gCounts = { 0, 0, 0, 0 };
 static uint64_t frameCount = 0;
 
 //--------------------------------------------------------------
-drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData )
+drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 	: isSolid( true ),
 	  envmap( false ),
 	  faceIndex( 0 ), viewLeafIndex( 0 ),
@@ -50,11 +50,11 @@ drawPass_t::drawPass_t( const Q3BspMap* const& map, const viewParams_t& viewData
 	  shader( nullptr ),
 	  view( viewData )
 {
-	facesVisited.resize( map->data.numFaces, 0 );
+	facesVisited.resize( map.data.numFaces, 0 );
 }
 
 //--------------------------------------------------------------
-BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
+BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 	:	mainSampler( { G_UNSPECIFIED } ),
 		glEffects( {
 			{
@@ -95,34 +95,31 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight )
 			}
 		} ),
 		currLeaf( nullptr ),
+		map( map_ ), frustum( new Frustum() ),
 		apiHandles( {{ 0, 0 }} ),
 		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
 		alwaysWriteDepth( false ),
-		map ( new Q3BspMap() ),
-		camera( nullptr ),
-		frustum( new Frustum() ),
+		camera( new InputCamera() ),
 		curView( VIEW_MAIN )
 {
-	camera = new InputCamera();
 	camera->moveStep = 1.0f;
-	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
+	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE,
+		G_STATIC_FAR_PLANE );
 }
 
 BSPRenderer::~BSPRenderer( void )
 {
 	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
 	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
-
-	delete map;
-	delete frustum;
-	delete camera;
 }
 
-void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc, const std::string& fragSrc,
-		const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs )
+void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc,
+	const std::string& fragSrc, const std::vector< std::string >& uniforms,
+	const std::vector< std::string >& attribs )
 {
-	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc, fragSrc, uniforms, attribs ) );
+	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc, fragSrc,
+		uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
@@ -166,11 +163,11 @@ void BSPRenderer::Prep( void )
 bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
 {
 	UNUSED( shader );
-	const bspFace_t* face = &map->data.faces[ faceIndex ];
+	const bspFace_t* face = &map.data.faces[ faceIndex ];
 
 	if ( face && face->shader != -1 )
 	{
-		bspShader_t* s = &map->data.shaders[ face->shader ];
+		bspShader_t* s = &map.data.shaders[ face->shader ];
 
 		return !!( s->contentsFlags & ( BSP_CONTENTS_WATER | BSP_CONTENTS_TRANSLUCENT ) )
 			|| !!( s->surfaceFlags & ( BSP_SURFACE_NONSOLID ) );
@@ -181,9 +178,9 @@ bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) c
 
 void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t defaultPass ) const
 {
-	p.face = &map->data.faces[ face ];
+	p.face = &map.data.faces[ face ];
 	p.faceIndex = face;
-	p.shader = map->GetShaderInfo( face );
+	p.shader = map.GetShaderInfo( face );
 
 	if ( p.shader )
 	{
@@ -195,13 +192,9 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 	}
 }
 
-void BSPRenderer::Load( const std::string& filepath )
+void BSPRenderer::Load( void )
 {
-	MLOG_INFO( "Loading file %s....\n", filepath.c_str() );
-
-	mapEntity_t position = map->Read( filepath, 1, nullptr, nullptr );
-
-	camera->SetViewOrigin( position.origin );
+	camera->SetViewOrigin( map.GetFirstSpawnPoint().origin );
 
 	if ( G_HNULL( mainSampler ) )
 		mainSampler = GMakeSampler();
@@ -210,8 +203,8 @@ void BSPRenderer::Load( const std::string& filepath )
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	shaderTexHandle = GU_LoadShaderTextures( *map, mainSampler );
-	mainTexHandle = GU_LoadMainTextures( *map, mainSampler );
+	shaderTexHandle = GU_LoadShaderTextures( map, mainSampler );
+	mainTexHandle = GU_LoadMainTextures( map, mainSampler );
 
 	LoadLightmaps();
 
@@ -220,7 +213,7 @@ void BSPRenderer::Load( const std::string& filepath )
 	LoadVertexData();
 
 	// Basic program setup
-	for ( const auto& iShader: map->effectShaders )
+	for ( const auto& iShader: map.effectShaders )
 	{
 		for ( const shaderStage_t& stage: iShader.second.stageBuffer )
 		{
@@ -236,13 +229,13 @@ void BSPRenderer::LoadLightmaps( void )
 	gImageParamList_t lightmaps;
 
 	// And then generate all of the lightmaps
-	for ( int32_t l = 0; l < map->data.numLightmaps; ++l )
+	for ( int32_t l = 0; l < map.data.numLightmaps; ++l )
 	{
 		gImageParams_t image;
 		image.sampler = mainSampler;
 		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
 
-		GSetAlignedImageData( image, &map->data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, image.width * image.height );
+		GSetAlignedImageData( image, &map.data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, image.width * image.height );
 
 		lightmaps.push_back( image );
 	}
@@ -256,12 +249,12 @@ void BSPRenderer::LoadLightmaps( void )
 //---------------------------------------------------------------------
 void BSPRenderer::LoadVertexData( void )
 {
-	glFaces.resize( map->data.numFaces );
+	glFaces.resize( map.data.numFaces );
 
 	if ( gConfig.debugRender )
-		glDebugFaces.resize( map->data.numFaces );
+		glDebugFaces.resize( map.data.numFaces );
 
-	std::vector< bspVertex_t > vertexData( &map->data.vertexes[ 0 ], &map->data.vertexes[ map->data.numVertexes ] );
+	std::vector< bspVertex_t > vertexData( &map.data.vertexes[ 0 ], &map.data.vertexes[ map.data.numVertexes ] );
 
 #if !G_STREAM_INDEX_VALUES
 	std::vector< uint32_t > indexData;
@@ -274,9 +267,9 @@ void BSPRenderer::LoadVertexData( void )
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
-	for ( int32_t i = 0; i < map->data.numFaces; ++i )
+	for ( int32_t i = 0; i < map.data.numFaces; ++i )
 	{
-		const bspFace_t* face = &map->data.faces[ i ];
+		const bspFace_t* face = &map.data.faces[ i ];
 
 		if ( face->type == BSP_FACE_TYPE_PATCH )
 		{
@@ -287,8 +280,8 @@ void BSPRenderer::LoadVertexData( void )
 			glFaces[ i ].reset( new mapModel_t() );
 		}
 
-		glFaces[ i ]->Generate( vertexData, map, i );
-		glFaces[ i ]->CalcBounds( map->data );
+		glFaces[ i ]->Generate( vertexData, &map, i );
+		glFaces[ i ]->CalcBounds( map.data );
 
 #if G_STREAM_INDEX_VALUES
 		// Allocate the largest index buffer out of all models, so we can just
@@ -341,7 +334,7 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 #else
 	pushBlend_t b( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-	const bspFace_t& f = map->data.faces[ index ];
+	const bspFace_t& f = map.data.faces[ index ];
 
 	const glm::mat4& viewM = camera->ViewData().transform;
 	const glm::mat4& proj = camera->ViewData().clipTransform;
@@ -474,15 +467,15 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	memset( &gCounts, 0, sizeof( gCounts ) );
 
 	drawPass_t pass( map, view );
-	pass.leaf = map->FindClosestLeaf( pass.view.origin );
+	pass.leaf = map.FindClosestLeaf( pass.view.origin );
 
 	frustum->Update( pass.view, true );
 
 	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
 
-	for ( int32_t i = 1; i < map->data.numModels; ++i )
+	for ( int32_t i = 1; i < map.data.numModels; ++i )
 	{
-		bspModel_t* model = &map->data.models[ i ];
+		bspModel_t* model = &map.data.models[ i ];
 
 		AABB bounds( model->boxMax, model->boxMin );
 
@@ -539,9 +532,9 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 	if ( nodeIndex < 0 )
 	{
 		pass.viewLeafIndex = -( nodeIndex + 1 );
-		const bspLeaf_t* viewLeaf = &map->data.leaves[ pass.viewLeafIndex ];
+		const bspLeaf_t* viewLeaf = &map.data.leaves[ pass.viewLeafIndex ];
 
-		if ( !map->IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
+		if ( !map.IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
 		{
 			return;
 		}
@@ -557,12 +550,12 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
 			ProcessFace( pass,
-						map->data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+						map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
 	}
 	else
 	{
-		const bspNode_t* const node = &map->data.nodes[ nodeIndex ];
-		const bspPlane_t* const plane = &map->data.planes[ node->plane ];
+		const bspNode_t* const node = &map.data.nodes[ nodeIndex ];
+		const bspPlane_t* const plane = &map.data.planes[ node->plane ];
 
 		float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) );
 
@@ -655,7 +648,7 @@ namespace {
 
 void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
 {
-	const bspFace_t* face = &map->data.faces[ faceIndex ];
+	const bspFace_t* face = &map.data.faces[ faceIndex ];
 
 	drawSurface_t surf;
 
@@ -672,7 +665,7 @@ void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex,
 
 void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
 {
-	const bspFace_t* face = &map->data.faces[ faceIndex ];
+	const bspFace_t* face = &map.data.faces[ faceIndex ];
 
 	surfMapTier1_t& t1 = surfList[ face->type - 1 ];
 
@@ -1011,8 +1004,8 @@ void BSPRenderer::LoadLightVol( const drawPass_t& pass, const Program& prog ) co
 /*
 int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
 {
-	const glm::vec3& max = map->data.models[ 0 ].boxMax;
-	const glm::vec3& min = map->data.models[ 0 ].boxMin;
+	const glm::vec3& max = map.data.models[ 0 ].boxMax;
+	const glm::vec3& min = map.data.models[ 0 ].boxMin;
 
 	glm::vec3 input;
 	input.x = glm::abs( glm::floor( pass.view.origin.x * Inv64< float >() ) - glm::ceil( min.x * Inv64< float >() ) );
@@ -1029,6 +1022,6 @@ int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
 	// Performs an implicit cast from a vec3 to ivec3
 	glm::ivec3 dims( lightvolGrid );
 
-	return ( dindex.z * dims.x * dims.y + dims.x * dindex.y + dindex.x ) % map->data.numLightvols;
+	return ( dindex.z * dims.x * dims.y + dims.x * dindex.y + dindex.x ) % map.data.numLightvols;
 }
 */
