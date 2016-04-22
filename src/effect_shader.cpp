@@ -1132,22 +1132,87 @@ static void LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >
 	Considering that the result would compile down to something like this, anyway, though
 	we're probably not losing much overhead.
 */
+
+static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
+{
+	gMeta->currLineCount = 0;
+
+	bool isMapShader;
+
+	// Get the filepath using our delimiter; use
+	// the path to see if this shader is meant to be read
+	// only by the current map
+	const char* delim = strchr( buffer, '|' );
+	{
+		char tmp[ 1024 ];
+		memset( tmp, 0, sizeof( tmp ) );
+		memcpy( tmp, buffer, ( ptrdiff_t )( delim - buffer ) );
+		std::string path( tmp );
+
+		std::string ext;
+		bool res = File_GetExt( ext, nullptr, path );
+		if ( !res || ext != "shader" )
+		{
+			MLOG_INFO( "%s is not a shader file; skipping...", path.c_str() );
+			return;
+		}
+
+		isMapShader = map->IsMapOnlyShader( path );
+		MLOG_INFO( "%s", path.c_str() );
+	}
+
+
+
+	// Parse each entry. We use the range/difference method here,
+	// since pChar has a variable amount of incrementing
+	// happening
+	const char* pChar = &delim[ 1 ]; // = delim + 1
+	const char* end = ( const char* ) &buffer[ size - 1 ];
+	ptrdiff_t range = ( ptrdiff_t )( end - pChar );
+
+	while ( *pChar && range > 0 )
+	{
+		shaderInfo_t entry;
+
+		bool used = false;
+		entry.localLoadFlags = 0;
+		pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
+
+		if ( used )
+		{
+			map->effectShaders.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ],
+				strlen( &entry.name[ 0 ] ) ), entry ) );
+		}
+
+		range = ( ptrdiff_t )( end - pChar );
+	}
+}
+
+#if defined( EM_USE_WORKER_THREAD )
+static void OnShaderRead( char* buffer, int size, void* param )
+{
+	Q3BspMap* map = ( Q3BspMap* )param;
+
+	if ( buffer )
+	{
+		ParseShaderFile( map, buffer, size );
+	}
+	else
+	{
+		MLOG_INFO( "End of shader reading." );
+		if ( map->readFinishEvent )
+		{
+			map->readFinishEvent();
+		}
+	}
+}
+#else
 namespace {
 
 struct parseArgs_t
 {
 	static Q3BspMap* map;
 
-#ifdef EM_USE_WORKER_THREAD
-	static void ReadShaderFile( filedata_t data, int size, void* arg )
-	{
-		UNUSED( data );
-		UNUSED( size );
-		UNUSED( arg );
-
-		MLOG_ERROR( "Function not implemented!!" );
-	}
-#else
 	static int ReadShaderFile( const filedata_t data )
 	{
 		// Something's probably wrong if there's no data,
@@ -1194,36 +1259,14 @@ struct parseArgs_t
 			isMapShader = map->IsMapOnlyShader( filepath );
 		}
 
-		gMeta->currLineCount = 0;
-
-		const char* pChar = ( const char* ) &fileBuffer[ 0 ];
-		const char* end = ( const char* ) &fileBuffer[ fileBuffer.size() - 1 ];
-		ptrdiff_t range = ( ptrdiff_t )( end - pChar );
-
-		while ( *pChar && range > 0 )
-		{
-			shaderInfo_t entry;
-
-			bool used = false;
-			entry.localLoadFlags = 0;
-			pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
-
-			if ( used )
-			{
-				map->effectShaders.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ), entry ) );
-			}
-
-			range = ( ptrdiff_t )( end - pChar );
-		}
+		ParseShaderFile( map, ( char* ) &fileBuffer[ 0 ], fileBuffer.size() );
 
 		return FILE_CONTINUE_TRAVERSAL;
 	}
-#endif // EM_USE_WORKER_THREAD
-};
-
-Q3BspMap* parseArgs_t::map = nullptr;
-
 }
+Q3BspMap* parseArgs_t::map = nullptr;
+}
+#endif // EM_USE_WORKER_THREAD
 
 std::string S_GetGLSLHeader( void )
 {
@@ -1305,21 +1348,31 @@ std::string S_MainFragmentShader( void )
 }
 
 /*!
-   Main API for the effect shaders. In theory, the user should only have to call this function.
+   Main API for the effect shaders. In theory, the user should only have to call this
+   function.
 */
 
-glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, std::vector< gImageParams_t >& textures )
+void S_LoadShaders( Q3BspMap* map )
 {
-	std::string shaderRootDir( map->data.basePath );
-	shaderRootDir.append( "scripts/" );
+	std::string shaderRootDir( ASSET_Q3_ROOT );
+	shaderRootDir.append( "/scripts" );
 
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
+#if defined( EM_USE_WORKER_THREAD )
+	std::vector< char > dupe( shaderRootDir.size() + 1, 0 );
+	memcpy( &dupe[ 0 ], &shaderRootDir[ 0 ], shaderRootDir.size() );
+	gFileWebWorker.Await( OnShaderRead, "TraverseDirectory", &dupe[ 0 ], dupe.size(),
+		map );
+#else
 	{
 		parseArgs_t::map = map;
 		File_IterateDirTree( shaderRootDir, parseArgs_t::ReadShaderFile );
 		parseArgs_t::map = nullptr;
 	}
+#endif
+
+/*
 
 	for ( auto& entry: map->effectShaders )
 	{
@@ -1342,6 +1395,7 @@ glm::ivec2 S_LoadShaders( Q3BspMap* map, const gSamplerHandle_t& imageSampler, s
 	}
 
 	return maxDims;
+	*/
 }
 
 void S_GenPrograms( shaderInfo_t* shader )

@@ -203,7 +203,7 @@ void BSPRenderer::Load( void )
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	shaderTexHandle = GU_LoadShaderTextures( map, mainSampler );
+	//shaderTexHandle = GU_LoadShaderTextures( map, mainSampler );
 	mainTexHandle = GU_LoadMainTextures( map, mainSampler );
 
 	LoadLightmaps();

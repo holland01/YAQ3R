@@ -54,10 +54,16 @@ void GU_SetupTexParams( const Program& program,
 
 gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 {
+	UNUSED( map );
+	UNUSED( sampler );
+
+	/*
 	gImageParamList_t shaderTextures;
 	S_LoadShaders( &map, sampler, shaderTextures );
 	gTextureMakeParams_t makeParams( shaderTextures, sampler );
 	return GMakeTexture( makeParams );
+	*/
+	return gTextureHandle_t();
 }
 
 gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
@@ -182,4 +188,3 @@ void GU_ImmDrawLine( const glm::vec3& origin,
 	GU_ImmEnd();
 }
 #endif // EMSCRIPTEN
-

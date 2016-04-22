@@ -259,10 +259,7 @@ static void ReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-	if ( map->readFinishEvent )
-	{
-		map->readFinishEvent();
-	}
+	S_LoadShaders( map );
 }
 
 static void ReadChunk( char* data, int size, void* param )

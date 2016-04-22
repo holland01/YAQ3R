@@ -948,4 +948,32 @@ until the map is finished loading - since the Q3BspMap has an arbitrary
 finishing function to call after it's done reading the memory, the initialization
 of the renderer itself can be decoupled from the read. All data expected by
 the renderer from the map should be therefore passed to the renderer explicitly
-at this point.
+at this point. (this is pretty much done)
+
+- Even though the map read event chain is properly laid out, the shader parsing
+and reading still needs to be properly handled. This, too, should be taken care of
+in the worker fs. So, you'll need to make sure walkFileDirectory() in fetch.js
+has the right callback signature setup for itself. The model will be fairly simple:
+
+```
+(in worker thread)
+for each file in dir:
+ 	if ext(file) === 'shader':
+	 	read file into buffer;
+		send provisional response with data
+		(when the data is received on the other side, parse the entire shader
+			file)
+
+end worker (pass nullptr, which will signal that the traversal is finished to the response callback, which will then call its own "on finished" event function)
+```
+
+**4/22/16**
+
+- After finishing each shader read, you want to refactor the shader generation
+pipeline and its corresponding texture/sampler generation into its own
+module which is separate from the effect shader parser. The renderer
+shouldn't call S_LoadShaders; rather, it should call a function
+which takes the Q3BspMap and uses its (already generated) effect shader data to
+produce samplers/textures in an atlas, in addition to any relevant shader program
+handles (REMEMBER: the map only shader check is important, and will need
+	to occur before a shader is generated) 

@@ -8,3 +8,7 @@ else
 fi
 
 emrun ${BROWSER} --verbose bspviewer.html
+
+if [ $1 = "nb" ]; then
+	google-chrome --enable-logging:
+fi

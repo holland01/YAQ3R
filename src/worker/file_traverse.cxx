@@ -57,7 +57,7 @@ static void OnLoad( void* arg, void* data, int size )
 	emscripten_run_script( &copyData[ 0 ] );
 
 	EM_ASM_({
-		self.beginFetch($0, $1, $2);
+		self.beginFetch($0, $1, $2 );
 	}, args->proxy, args->data, args->size );
 }
 
@@ -114,7 +114,25 @@ struct file_t
 		}
 
 		fseek( ptr, offset, SEEK_SET );
-		fread( &readBuff[ 0 ], 1, size, ptr );
+		fread( &readBuff[ 0 ], size, 1, ptr );
+
+		return true;
+	}
+
+	bool Read( void )
+	{
+		if ( !ptr )
+		{
+			return false;
+		}
+
+		readBuff.clear();
+
+		fseek( ptr, 0, SEEK_END );
+		readBuff.resize( ftell( ptr ), 0 );
+		rewind( ptr );
+
+		fread( &readBuff[ 0 ], readBuff.size(), 1, ptr );
 
 		return true;
 	}
@@ -130,7 +148,8 @@ struct file_t
 
 static std::unique_ptr< file_t > gFIOChain( nullptr );
 
-static void ReadFile_Proxy( char* path, int size )
+
+static INLINE std::string FullPath( const char* path )
 {
 	std::string root( "/working" );
 
@@ -144,27 +163,86 @@ static void ReadFile_Proxy( char* path, int size )
 
 	printf( "Path Received: %s\n", absp.c_str() );
 
-	gFIOChain.reset( new file_t( absp ) );
+	return absp;
+}
 
-	uint32_t m;
+static INLINE void FailOpen( const char* path )
+{
+	uint32_t m = WAPI_FALSE;
+	printf( "fopen for \'%s\' failed\n", path );
+	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
+}
+
+static void ReadFile_Proxy( char* path, int size )
+{
+	gFIOChain.reset( new file_t( FullPath( path ) ) );
+
 	if ( *gFIOChain )
 	{
+		uint32_t m;
 		m = WAPI_TRUE;
+		emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 	}
 	else
 	{
-		printf( "fopen for \'%s\' failed\n", path );
-		m = WAPI_FALSE;
+		FailOpen( path );
+	}
+}
+
+static void TraverseDirectory_Read( char* path, int size )
+{
+	if ( !path )
+	{
+		emscripten_worker_respond( nullptr, 0 );
+		return;
 	}
 
-	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
+	gFIOChain.reset( new file_t( std::string( path ) ) );
+
+	if ( !gFIOChain->Read() )
+	{
+		FailOpen( path );
+		return;
+	}
+
+	// 'size' and readBuff.size() will each already
+	// include space for a null term, so we can expend
+	// one of them for a delimiter
+	std::vector< char > buffer( gFIOChain->readBuff.size() + size, 0 );
+	memcpy( &buffer[ 0 ], path, size );
+	memcpy( &buffer[ size ], &gFIOChain->readBuff[ 0 ],
+		gFIOChain->readBuff.size() );
+	buffer[ size ] = '|'; // <- delim
+
+	emscripten_worker_respond_provisionally( &buffer[ 0 ],
+	 	buffer.size() );
+}
+
+static void TraverseDirectory_Proxy( char* dir, int size )
+{
+	std::string mountDir( FullPath( dir ) );
+	char error[ 256 ];
+	memset( error, 0, sizeof( error ) );
+	int code = EM_ASM_ARGS({
+		try {
+			return self.walkFileDirectory($0, $1, $2);
+		} catch (e) {
+			console.log(e.message);
+			return 0;
+		}
+	}, mountDir.c_str(), TraverseDirectory_Read, error );
+
+	if ( !code )
+	{
+		printf( "Failed to traverse \'%s\'\n", dir );
+	}
 }
 
 extern "C" {
 
 void ReadFile_Begin( char* path, int size )
 {
-	puts( "Worker: ReadFile entering" );
+	puts( "Worker: ReadFile_Begin entering" );
 
 	if ( InitSystem( ReadFile_Proxy, path, size ) )
 	{
@@ -194,34 +272,14 @@ void ReadFile_Chunk( char* bcmd, int size )
 	}
 }
 
-void Traverse( char* directory, int size )
+void TraverseDirectory( char* dir, int size )
 {
-	puts( "Worker: Traverse entering" );
+	puts( "Worker: TraverseDirectory entering" );
 
-	( void )size;
-
-	if( 0 )
+	if ( InitSystem( TraverseDirectory_Proxy, dir, size ) )
 	{
-		InitSystem( nullptr, directory, size );
+		TraverseDirectory_Proxy( dir, size );
 	}
-	char errorMsg[ 128 ];
-	memset( errorMsg, 0, sizeof( errorMsg ) );
-
-	int ret = EM_ASM_ARGS(
-		console.log('Does this work lol: ', self.walkFileDirectory);
-		try {
-			return self.walkFileDirectory($0, $1, $2);
-		} catch (e) {
-			console.log(e);
-			throw e;
-		}
-		return 0;
-	, directory, TestFile, errorMsg );
-
-	if ( !ret )
-		printf( "[WORKER ERROR]: %s\n", errorMsg );
-
-	emscripten_worker_respond( NULL, 0 );
 }
 
 } // extern "C"
