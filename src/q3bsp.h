@@ -38,6 +38,10 @@ public:
 
 	mapData_t					data;
 
+	void 						OnShaderReadFinish( void );
+
+	static void 				OnShaderLoadTexturesFinish( void* );
+
 	// retrives the first spawn point found in the text file.
 	mapEntity_t					GetFirstSpawnPoint( void ) const;
 

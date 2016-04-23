@@ -747,10 +747,7 @@ static void OnShaderRead( char* buffer, int size, void* param )
 	else
 	{
 		MLOG_INFO( "End of shader reading." );
-		if ( map->readFinishEvent )
-		{
-			map->readFinishEvent();
-		}
+		map->OnShaderReadFinish();
 	}
 }
 #else

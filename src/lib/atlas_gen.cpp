@@ -379,11 +379,11 @@ void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
 	}
 }
 
-// The ReadCount and ReadOffset methods will initially return the same values. Things change, however,
-// when the image's height corresponds to a particular bucket: the offset portion will decrement
-// for each image which has a matching height value. The initial count bits will remain the same, to ensure
-// that images of different heights will not "invade" the space of the given image these parameters correspond
-// to.
+// The ReadCount and ReadOffset methods will initially return the same values.
+// Things change, however, when the image's height corresponds to a particular bucket:
+// the offset portion will decrement for each image which has a matching height value.
+// The initial count bits will remain the same, to ensure that images of different
+// heights will not "invade" the space of the given image these parameters correspond to.
 void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root )
 {
 	if ( t )

@@ -24,6 +24,14 @@ void worker_t::Await( em_worker_callback_func callback, const char* func, char* 
 	emscripten_call_worker( handle, func, data, size, callback, param );
 }
 
+void worker_t::Await( em_worker_callback_func callback, const char* func,
+	const std::string& strData, void* param ) const
+{
+	std::vector< char > dupe( strData.size() + 1, 0 );
+	memcpy( &dupe[ 0 ], strData.c_str(), strData.size() );
+	Await( callback, func, &dupe[ 0 ], dupe.size(), param );
+}
+
 worker_t gFileWebWorker( "worker/file_traverse.js" );
 
 void EM_FWW_Copy( char* data, int byteSize, void* destVector )

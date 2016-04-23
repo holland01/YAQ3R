@@ -2,6 +2,7 @@
 #include "aabb.h"
 #include "io.h"
 #include "effect_shader.h"
+#include "renderer/util.h"
 #include "lib/cstring_util.h"
 #include "worker/wapi.h"
 
@@ -272,13 +273,14 @@ static void ReadChunk( char* data, int size, void* param )
 		MLOG_ERROR( "Null data received; bailing..." );
 		return;
 	}
+
 	if ( !param )
 	{
 		MLOG_ERROR( "Null param received; bailing..." );
 		return;
 	}
 
-	Q3BspMap* map = ( Q3BspMap* )param;
+	Q3BspMap* map = ( Q3BspMap* ) param;
 
 	switch ( gBspDesc )
 	{
@@ -288,7 +290,8 @@ static void ReadChunk( char* data, int size, void* param )
 			memcpy( &map->data.header, data, size );
 			if ( !map->Validate() )
 			{
-				MLOG_ERROR( "BSP Map \'%s\' is invalid.", map->GetFileName().c_str() );
+				MLOG_ERROR( "BSP Map \'%s\' is invalid.",
+					map->GetFileName().c_str() );
 				return;
 			}
 			MLOG_INFO( "Validation successful" );
@@ -349,6 +352,16 @@ Q3BspMap::Q3BspMap( void )
 Q3BspMap::~Q3BspMap( void )
 {
 	DestroyMap();
+}
+
+void Q3BspMap::OnShaderReadFinish( void )
+{
+	GU_LoadShaderTextures( *this, GMakeSampler() );
+}
+
+void Q3BspMap::OnShaderLoadTexturesFinish( void* )
+{
+	
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
@@ -423,7 +436,9 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	onFinishEvent_t finishCallback )
 {
 	if ( IsAllocated() )
+	{
 		DestroyMap();
+	}
 
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;

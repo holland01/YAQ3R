@@ -68,12 +68,16 @@ int8_t GSamplerBPP( const gSamplerHandle_t& sampler );
 
 gTextureHandle_t GMakeTexture( gTextureMakeParams_t& makeParams );
 
+bool GLoadImageFromMemory( gImageParams_t& image, const std::vector< uint8_t >& buffer,
+ 	int32_t width, int32_t height, int32_t bpp );
+
 bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image );
 
-bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue );
+bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height,
+	uint8_t fillValue );
 
-// Sets the given destImage's data to sourceData's, in a manner which follows the user-specified
-// image bpp.
+// Sets the given destImage's data to sourceData's, in a manner which follows
+// the user-specified image bpp.
 // fetchChannel is only relevant if destImage.bpp == 1
 void GSetAlignedImageData( gImageParams_t& destImage,
 							uint8_t* sourceData,
@@ -110,4 +114,3 @@ uint16_t GTextureMegaHeight( const gTextureHandle_t& handle );
 bool GValidTextureDimensions( uint16_t width, uint16_t height );
 
 void GFreeTexture( gTextureHandle_t& handle );
-

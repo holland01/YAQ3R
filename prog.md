@@ -976,4 +976,17 @@ shouldn't call S_LoadShaders; rather, it should call a function
 which takes the Q3BspMap and uses its (already generated) effect shader data to
 produce samplers/textures in an atlas, in addition to any relevant shader program
 handles (REMEMBER: the map only shader check is important, and will need
-	to occur before a shader is generated) 
+	to occur before a shader is generated)
+
+**4/22/16 (2)**
+
+- Code path for loading texture images is mapped out. It's getting clear that
+attempting to support both desktop and browser is becoming pretty much pointless
+for this project, so the desktop support will likely be phased out in the process.
+
+- The code path for async image loading is only setup for the first tier of images (
+ those which correspond to the effect shaders directly ); the second tier, which
+ comprises of the shaders/textures lump (still not sure what the original intention
+ here is by the developers), still needs to be taken care of.
+
+- The first tier needs to be tested.

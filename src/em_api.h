@@ -21,6 +21,13 @@ struct worker_t
 
 	void Await( em_worker_callback_func callback, const char* func, char* data, int size,
 		void* param ) const;
+
+	// Useful for sending legit string data (as opposed to a struct or something):
+	// the emscripten function which calls into the worker requires non-const
+	// char* data, which std::string can't provide, so this wrapper duplicates
+	// the memory before sending it off
+	void Await( em_worker_callback_func callback, const char* func,
+		const std::string& strData, void* param ) const;
 };
 
 extern worker_t gFileWebWorker;

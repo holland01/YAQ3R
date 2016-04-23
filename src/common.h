@@ -67,7 +67,7 @@
 
 // generic function pointer handler for
 // async-oriented function calls
-typedef void ( *onFinishEvent_t )( void );
+typedef void ( *onFinishEvent_t )( void* param );
 
 using glHandleMap_t = std::map< std::string, GLint >;
 using glHandleMapEntry_t = std::pair< std::string, GLint >;

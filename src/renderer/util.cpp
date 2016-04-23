@@ -2,6 +2,7 @@
 #include "glutil.h"
 #include "effect_shader.h"
 #include "shader_gen.h"
+#include "lib/async_image_io.h"
 #include "q3bsp.h"
 
 void GU_SetupTexParams( const Program& program,
@@ -53,11 +54,36 @@ void GU_SetupTexParams( const Program& program,
 	GUnstageSlot();
 }
 
-gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler )
+static void PreInsert_Shader( void* param )
 {
-	gImageParamList_t shaderTextures;
+	UNUSED( param );
+	{
+		shaderStage_t* stage =
+			( shaderStage_t* )gImageTracker->
+				textureInfo[ gImageTracker->iterator ].param;
 
-	glm::ivec2 maxDims( 0 );
+		// This index will persist in the texture array it's going into
+		stage->textureIndex = gImageTracker->textures.size();
+	}
+	/*
+	// We need the highest dimensions out of all images for the texture array
+	{
+		const gImageParams_t* image = ( gImageParams_t* )param;
+
+		gImageTracker->maxDims.x = glm::max( image->width,
+			gImageTracker->maxDims.x );
+
+		gImageTracker->maxDims.y = glm::max( image->height,
+			gImageTracker->maxDims.y );
+	}
+	*/
+}
+
+void GU_LoadShaderTextures( Q3BspMap& map,
+	gSamplerHandle_t sampler )
+{
+	std::vector< gPathMap_t > paths;
+
 	for ( auto& entry: map.effectShaders )
 	{
 		GMakeProgramsFromEffectShader( entry.second );
@@ -65,14 +91,21 @@ gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler 
 
 	for ( auto& entry: map.effectShaders )
 	{
-		for ( int i = 0; i < entry.second.stageCount; ++i )
+		for ( shaderStage_t& stage: entry.second.stageBuffer )
 		{
-			GU_LoadStageTexture( maxDims, shaderTextures, entry.second, i, sampler );
+			if ( stage.mapType == MAP_TYPE_IMAGE )
+			{
+				gPathMap_t pathMap;
+				pathMap.path = std::string( &stage.texturePath[ 0 ] );
+				MLOG_INFO( "pathMap.path: %s\n", pathMap.path.c_str() );
+				pathMap.param = &stage;
+				paths.push_back( pathMap );
+			}
 		}
 	}
 
-	gTextureMakeParams_t makeParams( shaderTextures, sampler );
-	return GMakeTexture( makeParams );
+	AIIO_ReadImages( map, paths, sampler, Q3BspMap::OnShaderLoadTexturesFinish,
+		PreInsert_Shader );
 }
 
 gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
@@ -144,54 +177,7 @@ gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 void GU_LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images,
 	shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
 {
-	shaderStage_t& stage = info.stageBuffer[ i ];
 
-	if ( stage.mapType == MAP_TYPE_IMAGE )
-	{
-		gImageParams_t img;
-		img.sampler = sampler;
-
-		// If a texture atlas is being used as a substitute for a texture array,
-		// this won't matter.
-		std::string texFileRoot( ASSET_Q3_ROOT );
-
-		// texturePath is a char array, so it's simpler to just append
-		// the slash to texFileRoot (ASSET_Q3_ROOT has no trailing slash by design)
-		if ( stage.texturePath[ 0 ] != '/' )
-		{
-			texFileRoot.append( 1, '/' );
-		}
-
-		std::string texRelativePath( &stage.texturePath[ 0 ],
-			strlen( &stage.texturePath[ 0 ] ) );
-		texFileRoot.append( texRelativePath );
-
-		// If it's a tga file and we fail, then chances are there is a jpeg duplicate
-		// of it that we can fall back on
-		if ( !GLoadImageFromFile( texFileRoot.c_str(), img ) )
-		{
-			std::string ext;
-			size_t index;
-			if ( File_GetExt( ext, &index, texFileRoot ) && ext == "tga" )
-			{
-				texFileRoot.replace( index, 4, ".jpg" );
-				if ( !GLoadImageFromFile( texFileRoot, img ) )
-				{
-					// If we fail second try, just leave it: it will be rendered as a dummy
-					MLOG_WARNING( "TGA image asset request. Not found; tried jpeg as an alternative - no luck. File \"%s\"", texFileRoot.c_str() );
-					return;
-				}
-			}
-		}
-
-		// We need the highest dimensions out of all images for the texture array
-		maxDims.x = glm::max( img.width, maxDims.x );
-		maxDims.y = glm::max( img.height, maxDims.y );
-
-		// This index will persist in the texture array it's going into
-		stage.textureIndex = images.size();
-
-		images.push_back( img );
 	}
 }
 

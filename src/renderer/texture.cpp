@@ -576,7 +576,8 @@ std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasPara
 	GLint maxTextureSize;
 	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSize ) );
 
-	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images, ( uint16_t )maxTextureSize );
+	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images,
+		( uint16_t )maxTextureSize );
 
 	glm::vec2 maxDims( std::numeric_limits< float >::min() ),
 			minDims( std::numeric_limits< float >::max() );
@@ -663,6 +664,7 @@ void GenSubdivision( gTexture_t* tt,
 		{
 			continue;
 		}
+
 		const gImageParams_t& image = *( atlasPos.image );
 		gTextureImage_t data;
 		uint16_t slot, next;
@@ -820,7 +822,7 @@ void GStageSlot( gTexSlot_t slot )
 
 void GUnstageSlot( void )
 {
-	gSlotStage = (gTexSlot_t ) G_UNSPECIFIED;
+	gSlotStage = ( gTexSlot_t ) G_UNSPECIFIED;
 }
 
 
@@ -1047,33 +1049,41 @@ void GSetAlignedImageData( gImageParams_t& destImage,
 	}
 }
 
-bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
+bool GLoadImageFromMemory( gImageParams_t& image, const std::vector< uint8_t >& buffer,
+ 	int32_t width, int32_t height, int32_t bpp )
 {
-	int32_t width, height, bpp;
-
 	if ( image.sampler.id == G_UNSPECIFIED )
 	{
 		MLOG_WARNING( "image passed that\'s missing a sampler" );
 		return false;
 	}
 
-	std::vector< uint8_t > tmp;
-	if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
-		return false;
-
 	if ( bpp != gSamplers[ image.sampler.id ].bpp )
 	{
 		uint32_t numPixels = width * height;
 		image.data.resize( numPixels * gSamplers[ image.sampler.id ].bpp, 255 );
-		GSetAlignedImageData( image, &tmp[ 0 ], bpp, numPixels );
+		GSetAlignedImageData( image, &buffer[ 0 ], bpp, numPixels );
 	}
 	else
 	{
-		image.data = std::move( tmp );
+		image.data = std::move( buffer );
 	}
 
 	image.width = width;
 	image.height = height;
 
 	return true;
+}
+
+bool GLoadImageFromFile( const std::string& imagePath, gImageParams_t& image )
+{
+	int32_t width, height, bpp;
+
+	std::vector< uint8_t > tmp;
+	if ( !File_GetPixels( imagePath, tmp, bpp, width, height ) )
+	{
+		return false;
+	}
+
+	return GLoadImageFromMemory( image, tmp, width, height, bpp );
 }

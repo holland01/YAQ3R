@@ -16,8 +16,10 @@
 
 Test* gAppTest = nullptr;
 
-static void OnMapReadFin( void )
+static void OnMapReadFin( void* nullParam )
 {
+	UNUSED( nullParam );
+
 	gAppTest->Load();
 	gAppTest->Exec();
 }
