@@ -30,9 +30,11 @@ void FlagExit( void )
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
 
+/*
 #ifdef EMSCRIPTEN
 #	define IOTEST
 #endif
+*/
 
 int main( void )
 {
@@ -45,7 +47,7 @@ int main( void )
 	IOTestWebWorker test;
 	return test();
 #	else
-	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/q3dm2.bsp" );
+	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/Railgun_Arena.bsp" );
 	return 0;
 #	endif // IOTEST
 #else

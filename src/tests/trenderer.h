@@ -15,8 +15,6 @@ private:
 
 public:
 
-	Q3BspMap map;
-
 	std::unique_ptr< BSPRenderer > renderer;
 
 	TRenderer( const std::string& mapFilepath );

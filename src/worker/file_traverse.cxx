@@ -148,7 +148,6 @@ struct file_t
 
 static std::unique_ptr< file_t > gFIOChain( nullptr );
 
-
 static INLINE std::string FullPath( const char* path )
 {
 	std::string root( "/working" );

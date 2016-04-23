@@ -5,6 +5,7 @@
 #include "effect_shader.h"
 #include "deform.h"
 #include "model.h"
+#include "renderer/shader_gen.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
 #include <random>
@@ -156,7 +157,7 @@ void BSPRenderer::Prep( void )
 			"lightmapImageScaleRatio"
 		};
 
-		MakeProg( "main", S_MainVertexShader(), S_MainFragmentShader(), uniforms, attribs );
+		MakeProg( "main", GMakeMainVertexShader(), GMakeMainFragmentShader(), uniforms, attribs );
 	}
 }
 
@@ -176,7 +177,8 @@ bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) c
 	return false;
 }
 
-void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t defaultPass ) const
+void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
+	passDrawType_t defaultPass ) const
 {
 	p.face = &map.data.faces[ face ];
 	p.faceIndex = face;
@@ -192,19 +194,24 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face, passDrawType_t de
 	}
 }
 
-void BSPRenderer::Load( void )
+void BSPRenderer::Load( gTextureHandle_t main, gTextureHandle_t shader,
+ 	gSamplerHandle_t sampler )
 {
+	mainTexHandle = main;
+	shaderTexHandle = shader;
+	mainSampler = sampler;
+
 	camera->SetViewOrigin( map.GetFirstSpawnPoint().origin );
 
-	if ( G_HNULL( mainSampler ) )
-		mainSampler = GMakeSampler();
+	//if ( G_HNULL( mainSampler ) )
+	//	mainSampler = GMakeSampler();
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
 	//shaderTexHandle = GU_LoadShaderTextures( map, mainSampler );
-	mainTexHandle = GU_LoadMainTextures( map, mainSampler );
+	// mainTexHandle = GU_LoadMainTextures( map, mainSampler );
 
 	LoadLightmaps();
 
@@ -217,7 +224,8 @@ void BSPRenderer::Load( void )
 	{
 		for ( const shaderStage_t& stage: iShader.second.stageBuffer )
 		{
-			stage.GetProgram().LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+			stage.GetProgram().LoadMat4( "viewToClip",
+				camera->ViewData().clipTransform );
 		}
 	}
 
@@ -235,7 +243,8 @@ void BSPRenderer::LoadLightmaps( void )
 		image.sampler = mainSampler;
 		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
 
-		GSetAlignedImageData( image, &map.data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3, image.width * image.height );
+		GSetAlignedImageData( image, &map.data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3,
+			image.width * image.height );
 
 		lightmaps.push_back( image );
 	}
@@ -254,7 +263,8 @@ void BSPRenderer::LoadVertexData( void )
 	if ( gConfig.debugRender )
 		glDebugFaces.resize( map.data.numFaces );
 
-	std::vector< bspVertex_t > vertexData( &map.data.vertexes[ 0 ], &map.data.vertexes[ map.data.numVertexes ] );
+	std::vector< bspVertex_t > vertexData( &map.data.vertexes[ 0 ],
+		&map.data.vertexes[ map.data.numVertexes ] );
 
 #if !G_STREAM_INDEX_VALUES
 	std::vector< uint32_t > indexData;
@@ -265,7 +275,8 @@ void BSPRenderer::LoadVertexData( void )
 	size_t iboSize = 0;
 #endif
 
-	// cache the data already used for any polygon or mesh faces, so we don't have to iterate through their index/vertex mapping every frame. For faces
+	// cache the data already used for any polygon or mesh faces, so we don't have to
+	// iterate through their index/vertex mapping every frame. For faces
 	// which aren't of these two categories, we leave them be.
 	for ( int32_t i = 0; i < map.data.numFaces; ++i )
 	{
@@ -293,7 +304,8 @@ void BSPRenderer::LoadVertexData( void )
 #endif
 		if ( gConfig.debugRender )
 		{
-			MLOG_ASSERT( false, "gConfig.debugRender is true; you need to add the vertex data to the glDebugFaces member" );
+			MLOG_ASSERT( false, "gConfig.debugRender is true; you need to add the"\
+				" vertex data to the glDebugFaces member" );
 			std::random_device r;
 			std::default_random_engine e( r() );
 			std::uniform_real_distribution< float > urd( 0.0f, 1.0f );
@@ -305,14 +317,17 @@ void BSPRenderer::LoadVertexData( void )
 		}
 	}
 
-	// Allocate vertex data from map and store it all in a single vbo; we use dynamic draw as a hint,
-	// considering that vertex deforms require a buffer update
+	// Allocate vertex data from map and store it all in a single vbo;
+	// we use dynamic draw as a hint, considering that vertex deforms
+	// require a buffer update
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
-	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData[ 0 ] ) * vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
+	GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof( vertexData[ 0 ] )
+		* vertexData.size(), &vertexData[ 0 ], GL_DYNAMIC_DRAW ) );
 
 #if !G_STREAM_INDEX_VALUES
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
-	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( indexData[ 0 ] ) * indexData.size(), &indexData[ 0 ], GL_STATIC_DRAW ) );
+	GL_CHECK( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( indexData[ 0 ] )
+		* indexData.size(), &indexData[ 0 ], GL_STATIC_DRAW ) );
 #endif
 }
 
@@ -347,7 +362,8 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 		GU_ImmLoad( glDebugFaces[ index ].positions, w );
 		GU_ImmEnd();
 
-		glm::mat4 viewLine( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapOrigin ) );
+		glm::mat4 viewLine( camera->ViewData().transform * glm::translate(
+			glm::mat4( 1.0f ), f.lightmapOrigin ) );
 
 		GU_ImmDrawLine( glm::vec3( 0.0f ),
 						f.normal * 100.0f,
@@ -366,8 +382,10 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 					glFaces[ index ]->ToPatch()->trisPerRow );
 		glPrograms[ "debug" ]->Release();
 
-		glm::mat4 viewLineX( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapStVecs[ 0 ] ) );
-		glm::mat4 viewLineY( camera->ViewData().transform * glm::translate( glm::mat4( 1.0f ), f.lightmapStVecs[ 1 ] ) );
+		glm::mat4 viewLineX( camera->ViewData().transform * glm::translate(
+			glm::mat4( 1.0f ), f.lightmapStVecs[ 0 ] ) );
+		glm::mat4 viewLineY( camera->ViewData().transform * glm::translate(
+			glm::mat4( 1.0f ), f.lightmapStVecs[ 1 ] ) );
 
 		GU_ImmDrawLine( glm::vec3( 0.0f ),
 						f.normal * 100.0f,
@@ -504,6 +522,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 
+/*
 	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n"\
 				"Camera Move Speed: %f\n Depth Write ALWAYS Enabled: %s",
 				CalcFPS(),
@@ -513,6 +532,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 				gCounts.numTransNormal,
 				camera->moveStep,
 				alwaysWriteDepth ? "true": "false" );
+				*/
 }
 
 void BSPRenderer::Update( float dt )
@@ -577,7 +597,8 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 	}
 }
 
-void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& mainRef ) > callback )
+void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
+	std::function< void( const Program& mainRef ) > callback )
 {
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );

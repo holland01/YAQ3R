@@ -9,7 +9,8 @@
 
 #define G_INDEX_BYTE_STRIDE 4
 
-// if 1, we don't use GL_ELEMENT_ARRAY_BUFFER, we just send the indices directly through the draw call itself.
+// if 1, we don't use GL_ELEMENT_ARRAY_BUFFER, we just send
+// the indices directly through the draw call itself.
 #define G_STREAM_INDEX_VALUES 0
 
 #ifdef G_USE_GL_CORE

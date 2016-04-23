@@ -169,28 +169,39 @@ private:
 
 	double				frameTime;
 
-	void				LoadLightVol( const drawPass_t& pass, const Program& prog ) const;
+	void				LoadLightVol( const drawPass_t& pass,
+							const Program& prog ) const;
 
-	void                SortDrawSurfaces( std::vector< drawSurface_t >& surf, bool transparent );
+	void                SortDrawSurfaces( std::vector< drawSurface_t >& surf,
+							bool transparent );
 
-	void				DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const;
+	void				DeformVertexes( const mapModel_t& m,
+							const shaderInfo_t* shader ) const;
 
-	void				MakeProg( const std::string& name, const std::string& vertPath, const std::string& fragPath,
-							const std::vector< std::string >& uniforms, const std::vector< std::string >& attribs );
+	void				MakeProg( const std::string& name, const std::string& vertPath,
+							const std::string& fragPath,
+							const std::vector< std::string >& uniforms,
+							const std::vector< std::string >& attribs );
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
-	bool				IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const;
+	bool				IsTransFace( int32_t faceIndex,
+							const shaderInfo_t* shader ) const;
 
-	void				LoadPassParams( drawPass_t& pass, int32_t face, passDrawType_t defaultPass ) const;
+	void				LoadPassParams( drawPass_t& pass, int32_t face,
+							passDrawType_t defaultPass ) const;
 
-	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex, std::function< void( const Program& )> callback );
+	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
+							std::function< void( const Program& )> callback );
 
-	void				MakeAddSurface(const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList );
+	void				MakeAddSurface(const shaderInfo_t* shader, int32_t faceIndex,
+							surfaceContainer_t& surfList );
 
-	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList );
+	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex,
+							surfaceContainer_t& surfList );
 
-	void				ReflectFromTuple( const drawTuple_t& data, const drawPass_t& pass, const Program& program );
+	void				ReflectFromTuple( const drawTuple_t& data,
+							const drawPass_t& pass, const Program& program );
 
 	void				DrawSurface( const drawSurface_t& surface ) const;
 
@@ -214,7 +225,8 @@ private:
 
 	void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage ) const;
+	void				DrawFaceVerts( const drawPass_t& pass,
+							const shaderStage_t* stage ) const;
 
 	void				LoadVertexData( void );
 
@@ -234,7 +246,8 @@ public:
 
 	void		Prep( void );
 
-	void		Load( void );
+	void		Load( gTextureHandle_t main, gTextureHandle_t shader,
+	 	gSamplerHandle_t sampler );
 
 	void		Sample( void );
 

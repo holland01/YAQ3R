@@ -4,6 +4,7 @@
 #include "aabb.h"
 #include "renderer/texture.h"
 #include "effect_shader.h"
+#include "renderer/shader_gen.h"
 #include <algorithm>
 
 static inline void MapTexCoord( GLint location, intptr_t offset )
@@ -87,8 +88,8 @@ Program::Program( const std::string& vertexShader, const std::string& fragmentSh
 	: program( 0 ),
 	  stage( nullptr )
 {
-	std::string fullVertexShader( S_GetGLSLHeader() + "\n" + vertexShader );
-	std::string fullFragmentShader( S_GetGLSLHeader() + "\n" + fragmentShader );
+	std::string fullVertexShader( GGetGLSLHeader() + "\n" + vertexShader );
+	std::string fullFragmentShader( GGetGLSLHeader() + "\n" + fragmentShader );
 
 	GLuint shaders[] =
 	{

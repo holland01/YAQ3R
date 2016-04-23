@@ -11,14 +11,6 @@ class Q3BspMap;
 
 void S_LoadShaders( Q3BspMap* map );
 
-void S_GenPrograms( shaderInfo_t* shader );
-
-std::string S_GetGLSLHeader( void );
-
-std::string S_MainVertexShader( void );
-
-std::string S_MainFragmentShader( void );
-
 bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1,
 	const char* str2 );
 

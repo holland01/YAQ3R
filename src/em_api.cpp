@@ -17,8 +17,6 @@ worker_t::~worker_t( void )
 	emscripten_destroy_worker( handle );
 }
 
-static bool gIsLoaded = false;
-
 void worker_t::Await( em_worker_callback_func callback, const char* func, char* data,
 	int size, void* param ) const
 {

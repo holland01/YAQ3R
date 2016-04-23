@@ -42,6 +42,9 @@ gTextureHandle_t GU_LoadShaderTextures( Q3BspMap& map, gSamplerHandle_t sampler 
 
 gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler );
 
+void GU_LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images,
+	shaderInfo_t& info, int i, const gSamplerHandle_t& sampler );
+
 using guImmPosList_t = std::vector< glm::vec3 >;
 
 #ifndef EMSCRIPTEN
@@ -82,6 +85,3 @@ struct pushBlend_t
 		GL_CHECK( glBlendFuncSeparate( srcRGB, destRGB, srcAlpha, destAlpha ) );
 	}
 };
-
-
-

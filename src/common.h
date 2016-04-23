@@ -65,7 +65,9 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
+// generic function pointer handler for
+// async-oriented function calls
+typedef void ( *onFinishEvent_t )( void );
 
 using glHandleMap_t = std::map< std::string, GLint >;
 using glHandleMapEntry_t = std::pair< std::string, GLint >;

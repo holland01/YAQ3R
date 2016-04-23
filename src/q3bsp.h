@@ -16,9 +16,6 @@ struct mapEntity_t
 
 class Q3BspMap
 {
-public:
-	typedef void ( *onReadFinish_t )( void );
-
 private:
 
 	Q3BspMap( const Q3BspMap& ) = delete;
@@ -32,7 +29,7 @@ private:
 
 public:
 
-	onReadFinish_t					readFinishEvent;
+	onFinishEvent_t					readFinishEvent;
 
 	std::unordered_map< std::string, shaderInfo_t > effectShaders;
 
@@ -47,7 +44,7 @@ public:
 	bool						Validate( void );
 
 	void						Read( const std::string& filepath, int scale,
-	 								onReadFinish_t finishCallback );
+	 								onFinishEvent_t finishCallback );
 
 	void						WriteLumpToFile( uint32_t lump );
 

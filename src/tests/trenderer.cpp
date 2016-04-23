@@ -28,10 +28,14 @@ void TRenderer::Load( void )
 		return;
 	}
 
+	gSamplerHandle_t sampler = GMakeSampler();
+	gTextureHandle_t shader = GU_LoadShaderTextures( map, sampler );
+	gTextureHandle_t main = GU_LoadMainTextures( map, sampler );
+
 	renderer.reset( new BSPRenderer( ( float ) width,
 		( float ) height, map ) );
 	renderer->Prep();
-	renderer->Load();
+	renderer->Load( main, shader, sampler );
 
 	#ifdef EMSCRIPTEN
 		EM_UnmountFS();

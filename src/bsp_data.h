@@ -250,8 +250,6 @@ struct bspVisdata_t
 {
 	int     numVectors;
 	int     sizeVector;
-
-	unsigned char*   bitsets;
 };
 
 struct mapData_t

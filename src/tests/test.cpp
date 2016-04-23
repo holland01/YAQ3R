@@ -41,7 +41,7 @@ static void OnFrameIteration( void )
 }
 
 Test::Test( int w, int h, bool fullscreen_,
-	const char* bspFilePath )
+	const char* bspFilePath, onFinishEvent_t mapReadFinish )
 	: width( w ), height( h ),
 	  deltaTime( 0.0f ),
 	  fullscreen( fullscreen_ ),
@@ -61,10 +61,13 @@ Test::Test( int w, int h, bool fullscreen_,
 #if defined( EMSCRIPTEN )
 	EM_MountFS();
 #endif
-
 	if ( bspFilePath )
 	{
-		map.Read( std::string( bspFilePath ), 1, OnMapReadFin );
+		if ( !mapReadFinish )
+		{
+			mapReadFinish = OnMapReadFin;
+		}
+		map.Read( std::string( bspFilePath ), 1, mapReadFinish );
 	}
 }
 

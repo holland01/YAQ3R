@@ -172,9 +172,10 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 
 	[]( char* received, mapData_t& data, int length )
 	{
-		data.bitsetSrc.resize( length / sizeof( unsigned char ) );
-		memcpy( &data.bitsetSrc[ 0 ], received, length );
-		data.visdata.bitsets = &data.bitsetSrc[ 0 ];
+		memcpy( &data.visdata, received, sizeof( bspVisdata_t ) );
+		data.bitsetSrc.resize( data.visdata.numVectors * data.visdata.sizeVector, 0 );
+		memcpy( &data.bitsetSrc[ 0 ], received + sizeof( bspVisdata_t ),
+		 	length - sizeof( bspVisdata_t ) );
 		data.numVisdataVecs = length;
 	}
 }};
@@ -279,8 +280,6 @@ static void ReadChunk( char* data, int size, void* param )
 
 	Q3BspMap* map = ( Q3BspMap* )param;
 
-	MLOG_INFO( "Data Received: %s\n Size of data received: %i", data, size );
-
 	switch ( gBspDesc )
 	{
 		// Header received; validate and then send it off...
@@ -321,6 +320,8 @@ static void ReadChunk( char* data, int size, void* param )
 
 static void ReadBegin( char* data, int size, void* param )
 {
+	UNUSED( size );
+
 	int* result = ( int* )data;
 	if ( !result || !( *result ) )
 	{
@@ -419,7 +420,7 @@ void Q3BspMap::DestroyMap( void )
 }
 
 void Q3BspMap::Read( const std::string& filepath, int scale,
-	onReadFinish_t finishCallback )
+	onFinishEvent_t finishCallback )
 {
 	if ( IsAllocated() )
 		DestroyMap();
@@ -575,14 +576,20 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 
 bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 {
-	if ( !data.visdata.bitsets || ( sourceCluster < 0 ) )
+	if ( data.bitsetSrc.empty() || ( sourceCluster < 0 ) )
 	{
 		return true;
 	}
 
 	int i = ( sourceCluster * data.visdata.sizeVector ) + ( testCluster >> 3 );
 
-	unsigned char visSet = data.visdata.bitsets[ i ];
+	unsigned char visSet = data.bitsetSrc[ i ];
+
+/*
+	MLOG_INFO( "Visset Vector Size: %i\n Source Cluster: %i\n"\
+		" testCluster: %i\n visSet: %i", data.visdata.sizeVector, sourceCluster,
+	 	testCluster, visSet );
+*/
 
 	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }

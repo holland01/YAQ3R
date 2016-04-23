@@ -32,7 +32,7 @@ DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-parameter -g2 -s ASSERTIONS=2
 
 LDFLAGS = --emrun --profiling-funcs
-LDO = -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=33554432
+LDO = -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=734003200
 
 ifdef PRELOAD_ALL_ASSETS
 	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_all@

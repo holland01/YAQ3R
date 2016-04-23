@@ -22,16 +22,6 @@ static void OnReadFinish( void )
 	MLOG_INFO( "DONE!" );
 }
 
-static void ReadCallback( char* data, int size, void* param )
-{
-	EM_FWW_Copy( data, size, param );
-
-	const std::vector< unsigned char >& v =
-		*( ( std::vector< unsigned char >* )param );
-
-	MLOG_INFO( "Job's finished. Size: %i bytes", v.size() );
-}
-
 IOTestWebWorker::IOTestWebWorker( void )
 {
 	InitSysLog();
@@ -46,11 +36,6 @@ IOTestWebWorker::~IOTestWebWorker( void )
 
 int IOTestWebWorker::operator()( void )
 {
-	std::vector< gImageParams_t > textures;
-	gSamplerHandle_t imageSampler;
-
-	std::vector< unsigned char > buffer;
-
 	Q3BspMap map;
 	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, OnReadFinish );
 

@@ -45,7 +45,7 @@ public:
 	SDL_Window*	sdlWindow;
 
 	Test( int width, int height, bool fullscreen,
-	 	const char* readFilePath );
+	 	const char* readFilePath, onFinishEvent_t mapReadFinish = nullptr );
 
 	virtual ~Test( void );
 

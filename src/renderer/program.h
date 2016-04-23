@@ -10,7 +10,8 @@ struct gProgramHandle_t
 
 struct shaderStage_t;
 
-gProgramHandle_t GFindProgramByData( const programDataMap_t& attribs, const programDataMap_t& uniforms, const shaderStage_t* stage );
+gProgramHandle_t GFindProgramByData( const programDataMap_t& attribs,
+	const programDataMap_t& uniforms, const shaderStage_t* stage );
 
 class Program;
 
