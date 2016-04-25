@@ -4,6 +4,7 @@
 #include "effect_shader.h"
 #include "renderer/util.h"
 #include "lib/cstring_util.h"
+#include "lib/async_image_io.h"
 #include "worker/wapi.h"
 
 using namespace std;
@@ -356,12 +357,20 @@ Q3BspMap::~Q3BspMap( void )
 
 void Q3BspMap::OnShaderReadFinish( void )
 {
+	MLOG_INFO( "===============\n"\
+		"Loading images from effect shaders..."\
+		"\n===============" );
 	GU_LoadShaderTextures( *this, GMakeSampler() );
 }
 
-void Q3BspMap::OnShaderLoadTexturesFinish( void* )
+void Q3BspMap::OnShaderLoadTexturesFinish( void* param )
 {
-	MLOG_INFO( "DONE" );
+	const gImageLoadTracker_t* imageTracker = ( const gImageLoadTracker_t* )param;
+
+	MLOG_INFO( "===============\n"\
+		"Loading images not from effect shaders..."\
+		"\n===============" );
+	GU_LoadMainTextures( imageTracker->map, imageTracker->sampler );
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const

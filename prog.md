@@ -989,4 +989,21 @@ for this project, so the desktop support will likely be phased out in the proces
  comprises of the shaders/textures lump (still not sure what the original intention
  here is by the developers), still needs to be taken care of.
 
-- The first tier needs to be tested.
+- The first tier needs to be tested. However, the ReadImageFile function still needs
+to be implemented. Don't forget to prepend 8 bytes of metadata to the image buffer.
+This is the format:
+
+[0, 1] -> width
+[2, 3] -> height
+[4] -> bpp
+[5, 7] -> padding
+
+It may be beneficial to align the image data buffer if it isn't already as well;
+it's been some time since you've read about caching, so maybe read up on it some more or
+something.
+
+**4/25/16**
+
+- Loading the non-shader images leads to a crash (i.e., exception thrown). It looks
+like a bad memory access, coming from an index which exceeds what's available in the
+8-bit emscripten heap.

@@ -28,6 +28,9 @@ struct gImageLoadTracker_t
 	glm::ivec2 maxDims;
 
 	Q3BspMap& map;
+	std::vector< gTextureImageKey_t > indices; // in the event
+	// we wish to index textures by key, as opposed to a one->one lookup
+	// dictated by the amount of paths specified.
 	std::vector< gPathMap_t > textureInfo;
 	extFallbackBuff_t fallbackExts; // used for when an image fails
 	// to load due to path error; there's a chance that the same image exists,
@@ -52,6 +55,8 @@ struct gImageLoadTracker_t
 };
 
 extern std::unique_ptr< gImageLoadTracker_t > gImageTracker;
+
+gPathMap_t AIIO_MakeAssetPath( const char* path );
 
 void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
 	std::vector< std::string > fallbackExts, gSamplerHandle_t sampler,

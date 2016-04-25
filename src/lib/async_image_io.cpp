@@ -69,7 +69,7 @@ std::unique_ptr< gImageLoadTracker_t > gImageTracker( nullptr );
 	width, height, bpp, size, ( bufferSize ),\
 	gImageTracker->textureInfo[ gImageTracker->iterator ].path.c_str()
 
-// It's assumed that lightmaps are _not_ passed into this callback...
+// It's assumed that lightmaps aren't passed into this callback...
 
 // First 8 bytes follow this format:
 // 0, 1 -> width
@@ -127,6 +127,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 				DATA_FMT_STRING( imageData.size() ) );
 			return;
 		}
+
 		MLOG_INFO( DATA_FMT_STRING( imageData.size() ) );
 
 		if ( gImageTracker->insertEvent )
@@ -160,6 +161,29 @@ query_image:
 	}
 }
 #undef DATA_FMT_STRING
+
+gPathMap_t AIIO_MakeAssetPath( const char* path )
+{
+	gPathMap_t pm;
+
+	if ( !path )
+	{
+		return pm;
+	}
+
+	{
+		std::stringstream ss;
+		ss << ASSET_Q3_ROOT;
+		if ( path[ 0 ] != '/' )
+		{
+			ss << '/';
+		}
+		ss << path;
+		pm.path = ss.str();
+	}
+
+	return pm;
+}
 
 void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
 	std::vector< std::string > fallbackExts, gSamplerHandle_t sampler,

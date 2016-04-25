@@ -100,7 +100,9 @@ void TTextureTest::Load( void )
 	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, nullptr );
 
 	sampler = GMakeSampler();
-	texture = GU_LoadMainTextures( map, sampler );
+	// FIXME: recent interface changes for async image loading
+	// need attention here
+	//texture = GU_LoadMainTextures( map, sampler );
 	imageKeys = GTextureImageKeys( texture );
 	numGrids = GTextureGridCount( texture );
 

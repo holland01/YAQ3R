@@ -56,14 +56,14 @@ void GU_SetupTexParams( const Program& program,
 
 static void PreInsert_Shader( void* param )
 {
-	UNUSED( param );
+	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* )param;
 	{
 		shaderStage_t* stage =
-			( shaderStage_t* )gImageTracker->
-				textureInfo[ gImageTracker->iterator ].param;
+			( shaderStage_t* )imageTracker->
+				textureInfo[ imageTracker->iterator ].param;
 
 		// This index will persist in the texture array it's going into
-		stage->textureIndex = gImageTracker->textures.size();
+		stage->textureIndex = imageTracker->textures.size();
 	}
 	/*
 	// We need the highest dimensions out of all images for the texture array
@@ -95,16 +95,7 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
-				std::stringstream ss;
-				ss << ASSET_Q3_ROOT;
-				if ( stage.texturePath[ 0 ] != '/' )
-				{
-					ss << '/';
-				}
-				ss << &stage.texturePath[ 0 ];
-
-				gPathMap_t pathMap;
-				pathMap.path = ss.str();
+				gPathMap_t pathMap = AIIO_MakeAssetPath( &stage.texturePath[ 0 ] );
 				MLOG_INFO( "pathMap.path: %s\n", pathMap.path.c_str() );
 				pathMap.param = &stage;
 				paths.push_back( pathMap );
@@ -117,14 +108,39 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		PreInsert_Shader );
 }
 
-gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
+static void PreInsert_Main( void* param )
 {
+	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* )param;
+	imageTracker->indices.push_back( imageTracker->iterator );
+}
+
+void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
+{
+	std::vector< std::string > fallbackExts =
+	{
+		"jpg", "png", "tga", "tiff", "bmp"
+	};
+
+	std::vector< gPathMap_t > paths;
+	paths.reserve( map.data.shaders.size() );
+
+	int i = 0;
+	for ( auto& s: map.data.shaders )
+	{
+		paths.push_back( AIIO_MakeAssetPath( s.name ) );
+		i++;
+	}
+
+	AIIO_ReadImages( map, paths, { "jpeg", "jpg" },
+		sampler, Q3BspMap::OnShaderLoadTexturesFinish,
+		PreInsert_Main );
+
 	//---------------------------------------------------------------------
 	// Load Textures:
 	// This is just a hack to brute force load assets which don't belong in shaders.
 	// Now, we find and generate the textures. We first start with the image files.
 	//---------------------------------------------------------------------
-
+/*
 	const char* validImgExt[] =
 	{
 		".jpg", ".png", ".tga", ".tiff", ".bmp"
@@ -181,6 +197,7 @@ gTextureHandle_t GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		makeParams.keyMaps = std::move( indices );
 		return GMakeTexture( makeParams );
 	}
+	*/
 }
 
 void GU_LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images,
