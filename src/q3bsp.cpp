@@ -361,7 +361,7 @@ void Q3BspMap::OnShaderReadFinish( void )
 
 void Q3BspMap::OnShaderLoadTexturesFinish( void* )
 {
-	
+	MLOG_INFO( "DONE" );
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const

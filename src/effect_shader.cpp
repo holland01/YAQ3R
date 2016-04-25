@@ -824,10 +824,7 @@ void S_LoadShaders( Q3BspMap* map )
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
 #if defined( EM_USE_WORKER_THREAD )
-	std::vector< char > dupe( shaderRootDir.size() + 1, 0 );
-	memcpy( &dupe[ 0 ], &shaderRootDir[ 0 ], shaderRootDir.size() );
-	gFileWebWorker.Await( OnShaderRead, "TraverseDirectory", &dupe[ 0 ], dupe.size(),
-		map );
+	gFileWebWorker.Await( OnShaderRead, "TraverseDirectory", shaderRootDir, map );
 #else
 	{
 		parseArgs_t::map = map;

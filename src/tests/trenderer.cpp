@@ -2,6 +2,13 @@
 #include "glutil.h"
 #include "em_api.h"
 
+static void OnMapFinish( void* param )
+{
+	UNUSED( param );
+
+
+}
+
 TRenderer::TRenderer( const std::string& filepath )
 	: Test( 1366, 768, false, filepath.c_str() ),
 	  moveRateChangeRate( 0.3f ),
@@ -28,20 +35,24 @@ void TRenderer::Load( void )
 		return;
 	}
 
+	MLOG_INFO( "The Load Would happen here..." );
+
+/*
 	gSamplerHandle_t sampler = GMakeSampler();
-	gTextureHandle_t shader = GU_LoadShaderTextures( map, sampler );
-	gTextureHandle_t main = GU_LoadMainTextures( map, sampler );
+	gTextureHandle_t shader; GU_LoadShaderTextures( map, sampler );
+	gTextureHandle_t main; GU_LoadMainTextures( map, sampler );
 
 	renderer.reset( new BSPRenderer( ( float ) width,
 		( float ) height, map ) );
 	renderer->Prep();
 	renderer->Load( main, shader, sampler );
 
+	camPtr = renderer->camera.get();
+*/
+
 	#ifdef EMSCRIPTEN
 		EM_UnmountFS();
 	#endif
-
-	camPtr = renderer->camera.get();
 }
 
 void TRenderer::OnInputEvent( SDL_Event* e )

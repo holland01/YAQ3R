@@ -22,8 +22,6 @@ protected:
 					running,
 					useSRGBFramebuffer;
 
-	SDL_GLprofile	context;
-
 	InputCamera*    camPtr;
 
 	SDL_Renderer*	sdlRenderer;

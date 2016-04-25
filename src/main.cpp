@@ -30,11 +30,10 @@ void FlagExit( void )
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
 
-/*
+
 #ifdef EMSCRIPTEN
 #	define IOTEST
 #endif
-*/
 
 int main( void )
 {

@@ -95,8 +95,16 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
+				std::stringstream ss;
+				ss << ASSET_Q3_ROOT;
+				if ( stage.texturePath[ 0 ] != '/' )
+				{
+					ss << '/';
+				}
+				ss << &stage.texturePath[ 0 ];
+
 				gPathMap_t pathMap;
-				pathMap.path = std::string( &stage.texturePath[ 0 ] );
+				pathMap.path = ss.str();
 				MLOG_INFO( "pathMap.path: %s\n", pathMap.path.c_str() );
 				pathMap.param = &stage;
 				paths.push_back( pathMap );
@@ -104,7 +112,8 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		}
 	}
 
-	AIIO_ReadImages( map, paths, sampler, Q3BspMap::OnShaderLoadTexturesFinish,
+	AIIO_ReadImages( map, paths, { "jpeg", "jpg" },
+		sampler, Q3BspMap::OnShaderLoadTexturesFinish,
 		PreInsert_Shader );
 }
 
@@ -178,7 +187,6 @@ void GU_LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& im
 	shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
 {
 
-	}
 }
 
 #ifndef EMSCRIPTEN

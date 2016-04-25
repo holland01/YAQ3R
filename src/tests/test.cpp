@@ -2,12 +2,8 @@
 #include "../io.h"
 #include "../glutil.h"
 #include "renderer/buffer.h"
+#include "renderer/context_window.h"
 
-#if defined( G_USE_GL_CORE )
-#	define T_DEFAULT_PROFILE SDL_GL_CONTEXT_PROFILE_CORE
-#else
-#	define T_DEFAULT_PROFILE SDL_GL_CONTEXT_PROFILE_ES
-#endif
 
 #if defined( EMSCRIPTEN )
 #	include <emscripten.h>
@@ -50,7 +46,6 @@ Test::Test( int w, int h, bool fullscreen_,
 	  cursorVisible( true ),
 	  running( false ),
 	  useSRGBFramebuffer( true ),
-	  context( T_DEFAULT_PROFILE ),
 	  camPtr( nullptr ),
 	  sdlRenderer( nullptr ),
 	  sdlContext( nullptr ),
@@ -86,37 +81,11 @@ Test::~Test( void )
 
 bool Test::Load( const char* winName )
 {
-	SDL_Init( SDL_INIT_VIDEO );
-	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, G_API_MAJOR_VERSION );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, G_API_MINOR_VERSION );
-	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, context );
-
-	SDL_CreateWindowAndRenderer( width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE, &sdlWindow, &sdlRenderer );
-	SDL_SetWindowTitle( sdlWindow, winName );
-
-	sdlContext = SDL_GL_CreateContext( sdlWindow );
-
-	if ( !sdlContext )
+	if ( !GInitContextWindow( width, height, fullscreen, winName,
+	 	&sdlWindow, &sdlRenderer, &sdlContext ) )
 	{
-		MLOG_ERROR( "SDL_Error: %s", SDL_GetError() );
 		return false;
 	}
-
-#ifndef EMSCRIPTEN
-	glewExperimental = true;
-	GLenum glewErr = glewInit();
-	if ( glewErr != GLEW_OK )
-	{
-		MLOG_ERROR( "Could not initialize GLEW: %s", glewGetErrorString( glewErr ) );
-		return false;
-	}
-#endif
-
-	SDL_RenderPresent( sdlRenderer );
-	glGetError(); // HACK: error checking is impossible unless this happens; apparently an invalid enumaration exists - possibly
-	// in SDL or GLEW's initialization...
 
 	GLoadVao();
 

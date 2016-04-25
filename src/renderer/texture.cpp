@@ -1032,7 +1032,7 @@ bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint
 }
 
 void GSetAlignedImageData( gImageParams_t& destImage,
-							uint8_t* sourceData,
+							const uint8_t* sourceData,
 							int8_t sourceBPP,
 							uint32_t numPixels,
 							uint8_t fetchChannel )

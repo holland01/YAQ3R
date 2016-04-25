@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "wapi.h"
 #include "../commondef.h"
+#include <extern/stb_image.h>
 
 void TestFile( unsigned char* path )
 {
@@ -80,6 +81,11 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 	return true;
 }
 
+static int Ceil( int n )
+{
+	return n + 1;
+}
+
 struct file_t
 {
 	FILE* ptr;
@@ -89,11 +95,58 @@ struct file_t
 	file_t( const std::string& path )
 	:	ptr( fopen( path.c_str(), "rb" ) )
 	{
+		printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
 	}
 
 	operator bool ( void ) const
 	{
 		return !!ptr;
+	}
+
+	bool ReadImage( void )
+	{
+		int width, height, bpp; // bpp is in bytes...
+
+		stbi_uc* buf =
+			stbi_load_from_file( ptr, &width, &height, &bpp, STBI_default );
+
+		if ( !buf )
+		{
+			puts( "ERROR: could not load image" );
+			return false;
+		}
+
+		printf( "Image Read successful:\n"\
+	 			"width: %i, height: %i, bpp: %i\n",
+				width, height, bpp );
+
+		int target = width * height * bpp;
+
+		// Next level bit h4x so 1337 omg w0w
+		// (we just want a 32-bit word fetch; in all honesty this may or may
+		// not improve things since it's in a VM but w/e)
+		if ( ( ( target >> 2 ) << 2 ) != target )
+		{
+			int next = target & ( ~3 );
+			int upkeep = 1 + ( ( target - next ) / 4 );
+			next += 4 * upkeep;
+			target = next;
+		}
+
+		readBuff.resize( target + 8, 0 );
+		memcpy( &readBuff[ 8 ], buf, readBuff.size() );
+
+		// There's no way that we'll need more than 16 bits for each dimension.
+		// Remaining 3 bytes are for padding.
+		readBuff[ 0 ] = ( unsigned char )( width & 0xFF );
+		readBuff[ 1 ] = ( unsigned char )( ( width >> 8 ) & 0xFF );
+		readBuff[ 2 ] = ( unsigned char )( height & 0xFF );
+		readBuff[ 3 ] = ( unsigned char )( ( height >> 8 ) & 0xFF );
+		readBuff[ 4 ] = ( unsigned char )( bpp );
+
+		stbi_image_free( buf );
+
+		return true;
 	}
 
 	bool Read( size_t offset, size_t size )
@@ -135,6 +188,11 @@ struct file_t
 		fread( &readBuff[ 0 ], readBuff.size(), 1, ptr );
 
 		return true;
+	}
+
+	void Send( void ) const
+	{
+		emscripten_worker_respond( ( char* ) &readBuff[ 0 ], readBuff.size() );
 	}
 
 	~file_t( void )
@@ -237,6 +295,25 @@ static void TraverseDirectory_Proxy( char* dir, int size )
 	}
 }
 
+static void ReadImage_Proxy( char* path, int size )
+{
+	gFIOChain.reset( new file_t( FullPath( path ) ) );
+
+	if ( !( *gFIOChain ) )
+	{
+		FailOpen( path );
+		return;
+	}
+
+	if ( !gFIOChain->ReadImage() )
+	{
+		FailOpen( path );
+		return;
+	}
+
+	gFIOChain->Send();
+}
+
 extern "C" {
 
 void ReadFile_Begin( char* path, int size )
@@ -278,6 +355,16 @@ void TraverseDirectory( char* dir, int size )
 	if ( InitSystem( TraverseDirectory_Proxy, dir, size ) )
 	{
 		TraverseDirectory_Proxy( dir, size );
+	}
+}
+
+void ReadImage( char* path, int size )
+{
+	puts( "Worker: ReadImage entering" );
+
+	if ( InitSystem( ReadImage_Proxy, path, size ) )
+	{
+		ReadImage_Proxy( path, size );
 	}
 }
 
