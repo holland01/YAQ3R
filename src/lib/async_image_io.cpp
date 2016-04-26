@@ -83,7 +83,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 
 	// We may have an invalid path, or a path which exists but with
 	// a different extension
- 	if ( !WAPI_FetchInt( buffer, size ) )
+ 	if ( !WAPI_FetchBool( buffer, 0, size ) )
 	{
 		// If NextFallback is good, we can re-check the same image with its
 		// new extension
@@ -99,8 +99,8 @@ static void OnImageRead( char* buffer, int size, void* param )
 
 	// Grab image data that we need; copy it over.
 	{
-		int32_t width = ( int32_t ) buffer[ 0 ] | ( ( int32_t ) buffer[ 1 ] << 8 );
-		int32_t height = ( int32_t ) buffer[ 2 ] | ( ( int32_t ) buffer[ 3 ] << 8 );
+		int32_t width = WAPI_Fetch16( buffer, 0, size );
+		int32_t height = WAPI_Fetch16( buffer, 2, size );
 		int32_t bpp = ( int32_t ) buffer[ 4 ];
 
 		if ( !width || !height || !bpp )

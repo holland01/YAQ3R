@@ -1007,3 +1007,78 @@ something.
 - Loading the non-shader images leads to a crash (i.e., exception thrown). It looks
 like a bad memory access, coming from an index which exceeds what's available in the
 8-bit emscripten heap.
+
+(also, note that the paths being passed likely don't have any extension specified
+- there is a fail safe check for this in the image io module, but for some
+reason the desired message isn't output, so it's questionable whether or not the
+condition which raises that error in particular is caught when the exception is
+thrown)
+
+**4/26/16**
+
+Fixed last issue: the height/width check values in OnReadImage in the image
+async module were being fetched as integers, which blew things out of proportion.
+
+The "there is no file extension - weird" message is displaying, now. It's good
+that it doesn't actually kill the process, because it's left open another
+error which is happening in `_asm.free`:
+
+
+```
+$71 = ($45|0)==(0|0);
+   if ($71) {
+    $p$1 = $15;$psize$1 = $16;
+   } else {
+    $72 = ((($15)) + 28|0);
+    $73 = HEAP32[$72>>2]|0;
+    $74 = (7768 + ($73<<2)|0);
+    $75 = HEAP32[$74>>2]|0;
+    $76 = ($15|0)==($75|0);
+    if ($76) {
+     HEAP32[$74>>2] = $R$3;
+     $cond20 = ($R$3|0)==(0|0);
+     if ($cond20) {
+      $77 = 1 << $73;
+      $78 = $77 ^ -1;
+      $79 = HEAP32[(7468)>>2]|0;
+      $80 = $79 & $78;
+      HEAP32[(7468)>>2] = $80;
+      $p$1 = $15;$psize$1 = $16;
+      break;
+     }
+    } else {
+     $81 = HEAP32[(7480)>>2]|0;
+     $82 = ($45>>>0)<($81>>>0);
+     if ($82) {
+      _abort();
+      // unreachable;
+     }
+```
+
+$82 evaluates to true. The cause of it, though, is odd. Following the code
+path in the function up to this point, it's clear that $15 is a pretty
+significant player. Its value appears to represent a memory address
+which is computed by some value that's relevant to what memory
+is located 8 bytes behind the pointer to be freed. There's lots of comparisons
+between $15 and other memory locations which have been computed. What's not clear
+is these values, and the meaning behind the constant addresses. Examples of this
+include meaningful values attained from memory locations which are multiples of
+4 after $15. Addresses $15 + 8, $15 + 12, $15 + 16, $15 + 24, and $15 + 28 are
+evaluated (and possibly more).
+
+$15's value is computed as follows (in a nutshell):
+
+```
+$1 = $mem - 8
+$12 = HEAP32[$1 >> 2]
+$15 = ($1 - $12)
+ ```
+
+ So, whatever lies at $1 represents an apparent boundry. The offset computations mentioned
+ above might be some reference counting mechanism: there are situations where
+ memory locations derived from one of the offsets will refer to a value
+ that's equivalent to $15. This is just speculation, though.
+
+ The best thing to do would be to ask the folks at Emscripten about this. That is,
+ unless this function (before compilation) exists somewhere in the Emscripten src folder,
+ which it may very well not...
