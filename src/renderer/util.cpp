@@ -132,7 +132,7 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	}
 
 	AIIO_ReadImages( map, paths, { "jpeg", "jpg" },
-		sampler, Q3BspMap::OnShaderLoadTexturesFinish,
+		sampler, Q3BspMap::OnMainLoadTexturesFinish,
 		PreInsert_Main );
 
 	//---------------------------------------------------------------------
@@ -200,10 +200,15 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	*/
 }
 
-void GU_LoadStageTexture( glm::ivec2& maxDims, std::vector< gImageParams_t >& images,
-	shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
+void GU_LoadStageTexture( glm::ivec2& maxDims, 
+		std::vector< gImageParams_t >& images,
+		shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
 {
-
+	UNUSED(maxDims);
+	UNUSED(images);
+	UNUSED(info);
+	UNUSED(i);
+	UNUSED(sampler);
 }
 
 #ifndef EMSCRIPTEN

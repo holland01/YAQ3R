@@ -125,11 +125,10 @@ struct file_t
 		// Next level bit h4x so 1337 omg w0w
 		// (we just want a 32-bit word fetch; in all honesty this may or may
 		// not improve things since it's in a VM but w/e)
-		if ( ( ( target >> 2 ) << 2 ) != target )
+		if ( ( ( target >> 2 ) << 2 ) != target ) // same as target % 4 != 0
 		{
-			int next = target & ( ~3 );
-			int upkeep = 1 + ( ( target - next ) / 4 );
-			next += 4 * upkeep;
+			int next = target & ( ~3 );	
+			next += 4;
 			target = next;
 		}
 

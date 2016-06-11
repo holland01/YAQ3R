@@ -59,7 +59,7 @@ static void __nop(void) {}
 #define Mem_Alloc( s ) ( malloc( ( s ) ) )
 #define Mem_Free( ptr ) ( free( ( ptr ) ) )
 
-#define UNUSED( p ) ( void )p
+#define UNUSED( p ) ( ( void )( p ) )
 
 typedef unsigned int uint;
 typedef unsigned char byte;

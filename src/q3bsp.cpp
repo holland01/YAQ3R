@@ -368,9 +368,16 @@ void Q3BspMap::OnShaderLoadTexturesFinish( void* param )
 	const gImageLoadTracker_t* imageTracker = ( const gImageLoadTracker_t* )param;
 
 	MLOG_INFO( "===============\n"\
-		"Loading images not from effect shaders..."\
+		"Loading main images..."\
 		"\n===============" );
 	GU_LoadMainTextures( imageTracker->map, imageTracker->sampler );
+}
+
+void Q3BspMap::OnMainLoadTexturesFinish( void* param )
+{
+	UNUSED( param );
+
+	MLOG_INFO("Main images finished.");
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const

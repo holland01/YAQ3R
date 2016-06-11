@@ -40,8 +40,11 @@ public:
 
 	void 						OnShaderReadFinish( void );
 
-	static void 				OnShaderLoadTexturesFinish( void* );
+	static void 				OnShaderLoadTexturesFinish( void* param );
 
+
+	static void					OnMainLoadTexturesFinish( void* param );
+	
 	// retrives the first spawn point found in the text file.
 	mapEntity_t					GetFirstSpawnPoint( void ) const;
 

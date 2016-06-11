@@ -81,6 +81,8 @@ static void OnImageRead( char* buffer, int size, void* param )
 {
 	MLOG_ASSERT( !!gImageTracker, "gImageTracker is null" );
 
+	UNUSED(param);	
+
 	// We may have an invalid path, or a path which exists but with
 	// a different extension
  	if ( !WAPI_FetchBool( buffer, 0, size ) )
