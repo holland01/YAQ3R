@@ -1082,3 +1082,13 @@ $15 = ($1 - $12)
  The best thing to do would be to ask the folks at Emscripten about this. That is,
  unless this function (before compilation) exists somewhere in the Emscripten src folder,
  which it may very well not...
+
+**6/10/16**
+
+Decided to take a look at it from a higher level. So far, it looks like that, while
+the second-to-last image path fails, the OnImageRead function isn't called at all, 
+so it's not possible to recover via a fallback extension - this is also weird.
+
+So, what needs to be figured out is why OnImageRead isn't being called (the emscripten_worker_respond()
+function is called even for failures, so this shouldn't be it...
+

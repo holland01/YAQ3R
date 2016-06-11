@@ -85,12 +85,20 @@ static void OnImageRead( char* buffer, int size, void* param )
 
 	// We may have an invalid path, or a path which exists but with
 	// a different extension
- 	if ( !WAPI_FetchBool( buffer, 0, size ) )
+ 	
+	uint32_t wapiBool = WAPI_FetchBool( buffer, 0, size);
+	
+	MLOG_INFO( "Value from WAPI: %i\n", wapiBool );
+
+	if ( !wapiBool )
 	{
 		// If NextFallback is good, we can re-check the same image with its
 		// new extension
 		if ( gImageTracker->NextFallback() )
 		{
+			MLOG_ERROR("New fallback path: \'%s\'\n", 
+					gImageTracker->textureInfo[ gImageTracker->iterator ]
+					.path.c_str());
 			goto query_image;
 		}
 

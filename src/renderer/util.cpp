@@ -131,7 +131,7 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		i++;
 	}
 
-	AIIO_ReadImages( map, paths, { "jpeg", "jpg" },
+	AIIO_ReadImages( map, paths, /*{ "jpeg", "jpg" }*/ fallbackExts,
 		sampler, Q3BspMap::OnMainLoadTexturesFinish,
 		PreInsert_Main );
 
