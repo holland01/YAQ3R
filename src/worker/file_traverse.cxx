@@ -90,7 +90,7 @@ struct file_t
 {
 	FILE* ptr;
 
-	std::vector< unsigned char > readBuff;
+	std::vector< unsigned char > readBuff;	
 
 	file_t( const std::string& path )
 	:	ptr( fopen( path.c_str(), "rb" ) )
@@ -222,6 +222,25 @@ static INLINE std::string FullPath( const char* path )
 	return absp;
 }
 
+static INLINE std::string StripExt( const std::string& name )
+{
+	size_t index = name.find_last_of( '.' );
+
+	if ( index == std::string::npos )
+	{
+		return name;
+	}
+
+	return name.substr( 0, index );
+}
+
+static std::string ReplaceExt( const std::string& path, const std::string& ext )
+{
+	std::string f( StripExt( path ) );
+	f += ".jpg";
+	return f;	
+}
+
 static INLINE void FailOpen( const char* path )
 {
 	uint32_t m = WAPI_FALSE;
@@ -296,12 +315,26 @@ static void TraverseDirectory_Proxy( char* dir, int size )
 
 static void ReadImage_Proxy( char* path, int size )
 {
-	gFIOChain.reset( new file_t( FullPath( path ) ) );
+	std::string full( FullPath( path ) );
+
+	gFIOChain.reset( new file_t( full ) );
 
 	if ( !( *gFIOChain ) )
-	{
-		FailOpen( path );
-		return;
+	{	
+		full = ReplaceExt( full, ".jpg" );
+		gFIOChain.reset( new file_t( full ) );
+		
+		if ( !( *gFIOChain ) )
+		{
+			full = ReplaceExt( full, ".jpeg" );
+			gFIOChain.reset( new file_t( full ) );
+
+			if ( !( *gFIOChain ) )
+			{
+				FailOpen( path );
+				return;
+			}
+		}	
 	}
 
 	if ( !gFIOChain->ReadImage() )

@@ -1092,3 +1092,40 @@ so it's not possible to recover via a fallback extension - this is also weird.
 So, what needs to be figured out is why OnImageRead isn't being called (the emscripten_worker_respond()
 function is called even for failures, so this shouldn't be it...
 
+**6/11/16**
+
+The problem is that the actual fopen call in the web worker function (via gFIOChain)
+doesn't have any idea of a fallback extension mechanism incorporated for file paths which it can't
+initially find. So, this will need to be passed as part of the stream of data.
+
+The next step is to map a binary search into the find mechanism for the file format, 
+considering that it will actually prove much more useful that way. Each index of i "points"
+to an inner array of elements which will be 2^i in length. 
+
+**Update**
+
+Added a quick fix to see whether or not the issue was solely based on lack of falling back to jpeg. 
+It did indeed help, quite a bit. There's _still_ some major free issues going on, though.
+
+The free function fails at a comparison between two addresses; if they aren't equal, then an 
+abort() is called. What's weird is that these two addresses are like a gigabyte apart from
+each other. To make things more interesting, the higher addresses are actually odd and not
+four byte aligned. So, it seems like the design is setup so that there's a circular
+reference going on and that circular reference isn't being properly hit due to 
+some kind of memory corruption. The circular reference involves
+the base of the pointer referring to a specific address (at 8 bytes from
+its base). This address it refers to in turn has an offset which
+points back to the base of the pointer...
+
+It's also worth looking at the logic from the beginning of the free call which _leads_ up that
+point though, too.
+
+What's also worth mentioning is that there appear to be situations
+where a given filepath will fail on being located via fopen,
+but will, for some reason, immediately retry that exact same
+path as many as 3 times. This doesn't make sense, given
+the 3 consecutive checks that potentially occur, and the fact that
+each of those checks either changes the path extension or releases
+the worker thread from working.
+
+It makes me wonder if resources are being unnecessarily duplicated...

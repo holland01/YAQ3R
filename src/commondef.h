@@ -59,6 +59,8 @@ static void __nop(void) {}
 #define Mem_Alloc( s ) ( malloc( ( s ) ) )
 #define Mem_Free( ptr ) ( free( ( ptr ) ) )
 
+#define IS_ALIGN4( x ) ( ( ( ( x ) >> 2 ) << 2 ) == ( x ) )
+
 #define UNUSED( p ) ( ( void )( p ) )
 
 typedef unsigned int uint;
