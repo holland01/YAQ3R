@@ -3,6 +3,7 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <array>
 #include <memory>
 #include <assert.h>
 #include "wapi.h"
@@ -93,14 +94,26 @@ struct file_t
 	std::vector< unsigned char > readBuff;	
 
 	file_t( const std::string& path )
-	:	ptr( fopen( path.c_str(), "rb" ) )
+		: ptr( nullptr )
 	{
-		printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
+		Open( path );	
 	}
 
 	operator bool ( void ) const
 	{
 		return !!ptr;
+	}
+
+	void Open( const std::string& path )
+	{
+		if ( ptr )
+		{
+			fclose( ptr );
+		}
+
+		ptr = fopen( path.c_str(), "rb" );
+	
+		printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
 	}
 
 	bool ReadImage( void )
@@ -222,6 +235,20 @@ static INLINE std::string FullPath( const char* path )
 	return absp;
 }
 
+static INLINE bool GetExt( const std::string& name, std::string& outExt )
+{
+	size_t index = name.find_last_of( '.' );
+	
+	if ( index == std::string::npos )
+	{
+		return false;
+	}
+
+	outExt = name.substr( index, name.size() - index );
+
+	return true;
+}
+
 static INLINE std::string StripExt( const std::string& name )
 {
 	size_t index = name.find_last_of( '.' );
@@ -237,7 +264,7 @@ static INLINE std::string StripExt( const std::string& name )
 static std::string ReplaceExt( const std::string& path, const std::string& ext )
 {
 	std::string f( StripExt( path ) );
-	f += ".jpg";
+	f += ext;
 	return f;	
 }
 
@@ -317,24 +344,34 @@ static void ReadImage_Proxy( char* path, int size )
 {
 	std::string full( FullPath( path ) );
 
-	gFIOChain.reset( new file_t( full ) );
+	gFIOChain.reset( new file_t( full ) );	
 
 	if ( !( *gFIOChain ) )
 	{	
-		full = ReplaceExt( full, ".jpg" );
-		gFIOChain.reset( new file_t( full ) );
-		
+		std::array< std::string, 3 > candidates = 
+		{
+			".jpg", ".tga", ".jpeg"
+		};
+
+		std::string firstExt;
+		bool hasExt = GetExt( full, firstExt );
+
+		for ( size_t i = 0; i < candidates.size() && !( *gFIOChain ); ++i )
+		{	
+			if ( hasExt && firstExt == candidates[ i ] )
+			{	
+				continue;
+			}
+
+			full = ReplaceExt( full, candidates[ i ] );
+			gFIOChain->Open( full );
+		}
+
 		if ( !( *gFIOChain ) )
 		{
-			full = ReplaceExt( full, ".jpeg" );
-			gFIOChain.reset( new file_t( full ) );
-
-			if ( !( *gFIOChain ) )
-			{
-				FailOpen( path );
-				return;
-			}
-		}	
+			FailOpen( path );
+			return;
+		}
 	}
 
 	if ( !gFIOChain->ReadImage() )

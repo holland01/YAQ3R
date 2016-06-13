@@ -17,6 +17,11 @@ map_files = [
         'compress': COMPRESS_MAPS
     },
     {
+        'target':'models.data',
+        'name': 'models',
+        'compress': COMPRESS_MAPS
+    },
+    {
         'target':'env.data',
         'name': 'env',
         'compress': COMPRESS_MAPS
