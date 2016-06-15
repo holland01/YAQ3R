@@ -1129,3 +1129,34 @@ each of those checks either changes the path extension or releases
 the worker thread from working.
 
 It makes me wonder if resources are being unnecessarily duplicated...
+
+**6/12/16**
+
+Fixed up the issues with the extensions; I'm totally retarded:
+the filepath was always appending a ".jpg" string literal
+in `ReplaceExt()`, as opposed to actually using the extension
+parameter. This was the reason for the duplicates.
+
+I'm beginning to think the memory corruption is the result of having
+a lot of print statements going on when the files are being loaded:
+I wouldn't be surprised if the excess file IO coupled with the 
+in-browser logging is really screwing things up. This has happened
+before with some of Emscripten's Python utilities - albeit,
+it was strictly during compilation and not at runtime, so
+it goes to show this could happen anywhere.
+
+Next up is the following:
+
+- run gen_workers.sh
+- run asset_packging.py (so the models package is added into the bundle folder)
+- Compile with Release mode, do a full clean
+- when running, make sure the 'asset/models/mapobjects/timlamp' data is loaded (it should be, now that the path issues are
+resolved and the bundle is actually loaded'
+
+**6/14/16**
+
+- Fixed a memory corruption issue in file_traverse.cxx; passing the wrong length to a memcpy was the cause.
+
+- After fixing mem corruption, another bug occurs involving empty paths being passed the ReadImage web worker. It seems like AIIO_ReadImages
+is somehow stuck in an infinite loop, or not enough files are actually being filtered (there are some strange paths - most of them
+look like garbage data which is construed with random asset titles.)

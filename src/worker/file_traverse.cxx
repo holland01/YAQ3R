@@ -134,6 +134,7 @@ struct file_t
 				width, height, bpp );
 
 		int target = width * height * bpp;
+		int original = target;
 
 		// Next level bit h4x so 1337 omg w0w
 		// (we just want a 32-bit word fetch; in all honesty this may or may
@@ -146,7 +147,7 @@ struct file_t
 		}
 
 		readBuff.resize( target + 8, 0 );
-		memcpy( &readBuff[ 8 ], buf, readBuff.size() );
+		memcpy( &readBuff[ 8 ], buf, original );
 
 		// There's no way that we'll need more than 16 bits for each dimension.
 		// Remaining 3 bytes are for padding.
