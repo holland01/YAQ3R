@@ -52,6 +52,8 @@ struct gImageLoadTracker_t
 	bool FallbackEnd( void ) const { return extIterator == ( int16_t ) fallbackExts.size(); }
 	void ResetFallback( void ) { extIterator = 0; }
 	bool NextFallback( void );
+
+	void LogImages( void );
 };
 
 extern std::unique_ptr< gImageLoadTracker_t > gImageTracker;

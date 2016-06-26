@@ -18,7 +18,7 @@ static const uint32_t WAPI_FALSE = 0;
 
 // This may seem like overkill, but it's more _secure_
 // than just assuming that buffer is of size >= 4
-static inline uint32_t WAPI_FetchBool( char* buffer, int ofs, int size )
+static inline uint32_t WAPI_Fetch32( char* buffer, int size, int ofs )
 {
 	if ( !buffer ) return WAPI_FALSE; // <- not necessarily an error, because
 									  // this may be called knowing that 
@@ -31,7 +31,7 @@ static inline uint32_t WAPI_FetchBool( char* buffer, int ofs, int size )
 	uint32_t x = 0;
 	for ( int32_t y = 0; y < 4; ++y )
 	{
-		x |= ( ( ( ( uint32_t )( buffer[ y ] ) & 0xFF ) << ( y << 3 ) ) );
+		x |= ( ( uint32_t )( buffer[ y ] ) & 0xFF ) << ( y << 3 );
 	}
 	return x;
 }
@@ -47,9 +47,6 @@ static inline uint32_t WAPI_Fetch16( char* buffer, int ofs, int size )
 
 	return x | ( y << 8 );
 }
-
-// This is a slightly retarded setup, but for now it works
-#define WAPI_Fetch32( buffer, ofs ) ( WAPI_FetchBool( ( buffer ), ( ofs ), 4 ) ) 
 
 static inline uint32_t WAPI_StrEquals( register const char* a, register const char* b, int n, int* stopIndex )
 {

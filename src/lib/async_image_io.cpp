@@ -60,6 +60,28 @@ bool gImageLoadTracker_t::NextFallback( void )
 	}
 }
 
+void gImageLoadTracker_t::LogImages( void )
+{
+	std::stringstream ss;
+	ss << "Reading Images: \n";
+	for ( size_t i = 0; i < gImageTracker->textureInfo.size(); ++i )
+	{
+		ss << gImageTracker->textureInfo[ i ].path;
+
+		if ( i < gImageTracker->textureInfo.size() - 1 )
+		{
+			ss << ", ";
+		}
+
+		if ( ( ( i + 1 ) & 0x3 ) == 0 )
+		{
+			ss << "\n";
+		}
+	}
+
+	printf( "---------\n%s\n----------\n", ss.str().c_str() );
+};
+
 std::unique_ptr< gImageLoadTracker_t > gImageTracker( nullptr );
 
 
@@ -77,21 +99,26 @@ std::unique_ptr< gImageLoadTracker_t > gImageTracker( nullptr );
 // 4 -> bpp
 // 5, 6, 7 -> padding
 // 8, width * height * bpp -> image data
+
 static void OnImageRead( char* buffer, int size, void* param )
 {
-	MLOG_ASSERT( !!gImageTracker, "gImageTracker is null" );
+	if ( !gImageTracker )
+	{
+		MLOG_ERROR( "Image tracker is NULL" );
+		return;
+	}
 
 	UNUSED(param);	
 
 	// We may have an invalid path, or a path which exists but with
 	// a different extension
  	
-	uint32_t wapiBool = WAPI_FetchBool( buffer, 0, size);
+	uint32_t testDims = WAPI_Fetch32( buffer, 0, size);
 	
 	MLOG_INFO( "First byte: %i\n", buffer[ 0 ] );
-	MLOG_INFO( "Value from WAPI: %i\n", wapiBool );
+	MLOG_INFO( "Value from WAPI: %i\n", testDims );
 
-	if ( !wapiBool )
+	if ( !testDims )
 	{
 		// If NextFallback is good, we can re-check the same image with its
 		// new extension
@@ -157,8 +184,6 @@ next_image:
 		{
 			gImageTracker->finishEvent( gImageTracker.get() );
 		}
-
-		gImageTracker.release();
 		return;
 	}
 
@@ -200,30 +225,12 @@ void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
 	std::vector< std::string > fallbackExts, gSamplerHandle_t sampler,
 	onFinishEvent_t finish, onFinishEvent_t insert )
 {
-	gImageTracker.reset( new gImageLoadTracker_t( map, std::move( pathInfo ),
- 		std::move( fallbackExts ) ) );
+	gImageTracker.reset( new gImageLoadTracker_t( map, pathInfo, fallbackExts ) );
 	gImageTracker->sampler = sampler;
 	gImageTracker->finishEvent = finish;
 	gImageTracker->insertEvent = insert;
 
-	std::stringstream ss;
-	ss << "Reading Images: \n";
-	for ( size_t i = 0; i < gImageTracker->textureInfo.size(); ++i )
-	{
-		ss << gImageTracker->textureInfo[ i ].path;
-
-		if ( i < gImageTracker->textureInfo.size() - 1 )
-		{
-			ss << ", ";
-		}
-
-		if ( ( ( i + 1 ) & 0x3 ) == 0 )
-		{
-			ss << "\n";
-		}
-	}
-
-	printf( "%s", ss.str().c_str() );
+	gImageTracker->LogImages();
 
 	gFileWebWorker.Await( OnImageRead, "ReadImage",
 		gImageTracker->textureInfo[ 0 ].path, nullptr );

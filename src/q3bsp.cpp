@@ -376,8 +376,8 @@ void Q3BspMap::OnShaderLoadTexturesFinish( void* param )
 void Q3BspMap::OnMainLoadTexturesFinish( void* param )
 {
 	UNUSED( param );
-
-	MLOG_INFO("Main images finished.");
+	puts( "Main images finished" );
+	//MLOG_INFO( "Main images finished." );
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
