@@ -120,12 +120,18 @@ struct file_t
 	{
 		int width, height, bpp; // bpp is in bytes...
 
+		if ( !ptr )
+		{
+			puts( "ERROR: file could not be opened" );
+			return false;
+		}
+
 		stbi_uc* buf =
 			stbi_load_from_file( ptr, &width, &height, &bpp, STBI_default );
 
 		if ( !buf )
 		{
-			puts( "ERROR: could not load image" );
+			puts( "ERROR: STBI rejected the image file" );
 			return false;
 		}
 
@@ -357,7 +363,7 @@ static void ReadImage_Proxy( char* path, int size )
 		std::string firstExt;
 		bool hasExt = GetExt( full, firstExt );
 
-		for ( size_t i = 0; i < candidates.size() && !( *gFIOChain ); ++i )
+		for ( size_t i = 0; i < candidates.size(); ++i )
 		{	
 			if ( hasExt && firstExt == candidates[ i ] )
 			{	
@@ -366,6 +372,11 @@ static void ReadImage_Proxy( char* path, int size )
 
 			full = ReplaceExt( full, candidates[ i ] );
 			gFIOChain->Open( full );
+
+			if ( *gFIOChain )
+			{
+				break;
+			}
 		}
 
 		if ( !( *gFIOChain ) )

@@ -29,9 +29,9 @@ static inline uint32_t WAPI_FetchBool( char* buffer, int ofs, int size )
 	// We do have to be this pedantic with the & 0xFF: bad things
 	// can happen in produced emscripten code if we don't throw that in there.
 	uint32_t x = 0;
-	for ( int32_t y = 0; y < size && y < 4; ++y )
+	for ( int32_t y = 0; y < 4; ++y )
 	{
-		x |= ( ( uint32_t )( buffer[ y ] << ( y << 3 ) ) & 0xFF );
+		x |= ( ( ( ( uint32_t )( buffer[ y ] ) & 0xFF ) << ( y << 3 ) ) );
 	}
 	return x;
 }

@@ -88,6 +88,7 @@ static void OnImageRead( char* buffer, int size, void* param )
  	
 	uint32_t wapiBool = WAPI_FetchBool( buffer, 0, size);
 	
+	MLOG_INFO( "First byte: %i\n", buffer[ 0 ] );
 	MLOG_INFO( "Value from WAPI: %i\n", wapiBool );
 
 	if ( !wapiBool )
@@ -204,6 +205,25 @@ void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
 	gImageTracker->sampler = sampler;
 	gImageTracker->finishEvent = finish;
 	gImageTracker->insertEvent = insert;
+
+	std::stringstream ss;
+	ss << "Reading Images: \n";
+	for ( size_t i = 0; i < gImageTracker->textureInfo.size(); ++i )
+	{
+		ss << gImageTracker->textureInfo[ i ].path;
+
+		if ( i < gImageTracker->textureInfo.size() - 1 )
+		{
+			ss << ", ";
+		}
+
+		if ( ( ( i + 1 ) & 0x3 ) == 0 )
+		{
+			ss << "\n";
+		}
+	}
+
+	printf( "%s", ss.str().c_str() );
 
 	gFileWebWorker.Await( OnImageRead, "ReadImage",
 		gImageTracker->textureInfo[ 0 ].path, nullptr );
