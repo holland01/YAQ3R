@@ -1160,3 +1160,31 @@ resolved and the bundle is actually loaded'
 - After fixing mem corruption, another bug occurs involving empty paths being passed the ReadImage web worker. It seems like AIIO_ReadImages
 is somehow stuck in an infinite loop, or not enough files are actually being filtered (there are some strange paths - most of them
 look like garbage data which is construed with random asset titles.)
+
+**6/25/16**
+
+Above issues are fixed. Still not sure how much overhead the console logging
+incurs in the debug build, though. 
+
+Either way, here's the thing: the unnecessary repetition in file reading was due to a parsing error in the buffer
+which mistakenly told the IP it needed to re-read the image using a fallback extension. 
+
+Furthermore, when nothing but blank paths were being read in the infinite (async) loop, this was due to the fact that
+right before the shader gImageTracker was destroyed, the main texture async image read is called; this
+totally overwrote gImageTracker, given its memory release that occurs after the finish function (the main texture load, in this case)
+is called. In between the finish call and the deallocation is the re-initialization of the AIIO module. So, 
+when the gImageTracker is deleted after the finish call, its deleting the instance that was meant for the main
+texture load as opposed to its original instance that was meant for the shader load (what it should be deleting).
+
+It sounds like this could cause more issues further the down the road, so the best thing to do in this sense
+
+is to have the finishEvent() function do the actual free, considering that the tracker pointer is actually passed to it.
+The problem, though, is that the _pointer_ is passed to it - not its unique_ptr wrapper. So, either modify
+the function sig to accept a unique_ptr (if done then this will be needed for the gImageTracker->insertEvent() pointer as well),
+or just use a global raw pointer. 
+
+#### Additional
+
+You have extension checking/resolution happening in both the worker thread and the main thread. This is pointless, so eliminate
+the main thread usage (the worker thread check/resolution is more efficient because it prevents the need for more
+async calls).
