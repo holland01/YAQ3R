@@ -39,7 +39,8 @@ void GU_SetupTexParams( const Program& program,
 			program.LoadInt( prefix + "Sampler", offset );
 
 		program.LoadVec4( prefix + "ImageTransform", transform );
-		program.LoadVec2( prefix + "ImageScaleRatio", texParams.imageScaleRatio );
+		program.LoadVec2( prefix + "ImageScaleRatio", 
+			texParams.imageScaleRatio );
 	}
 	else // otherwise, we have an effect shader
 	{
@@ -95,7 +96,8 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
-				gPathMap_t pathMap = AIIO_MakeAssetPath( &stage.texturePath[ 0 ] );
+				gPathMap_t pathMap = AIIO_MakeAssetPath( 
+					&stage.texturePath[ 0 ] );
 				MLOG_INFO( "pathMap.path: %s\n", pathMap.path.c_str() );
 				pathMap.param = &stage;
 				paths.push_back( pathMap );
@@ -103,8 +105,7 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		}
 	}
 
-	AIIO_ReadImages( map, paths, { "jpeg", "jpg" },
-		sampler, Q3BspMap::OnShaderLoadTexturesFinish,
+	AIIO_ReadImages( map, paths, sampler, Q3BspMap::OnShaderLoadTexturesFinish,
 		PreInsert_Shader );
 }
 
@@ -116,11 +117,6 @@ static void PreInsert_Main( void* param )
 
 void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 {
-	std::vector< std::string > fallbackExts =
-	{
-		"jpg", "png", "tga", "tiff", "bmp"
-	};
-
 	std::vector< gPathMap_t > paths;
 	paths.reserve( map.data.shaders.size() );
 
@@ -131,14 +127,15 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		i++;
 	}
 
-	AIIO_ReadImages( map, paths, /*{ "jpeg", "jpg" }*/ fallbackExts,
-		sampler, Q3BspMap::OnMainLoadTexturesFinish,
+	AIIO_ReadImages( map, paths,  sampler, Q3BspMap::OnMainLoadTexturesFinish,
 		PreInsert_Main );
 
 	//---------------------------------------------------------------------
 	// Load Textures:
-	// This is just a hack to brute force load assets which don't belong in shaders.
-	// Now, we find and generate the textures. We first start with the image files.
+	// This is just a hack to brute force load assets which don't belong in 
+	//	shaders.
+	// Now, we find and generate the textures. We first start with the 
+	// image files.
 	//---------------------------------------------------------------------
 /*
 	const char* validImgExt[] =
@@ -160,10 +157,12 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 
 		bool success = false;
 
-		// No use in allocating tex memory if this is meant to be used with a shader
+		// No use in allocating tex memory if this is meant to be 
+		// used with a shader
 		if ( map.GetShaderInfo( map.data.shaders[ t ].name ) )
 		{
-			MLOG_INFO( "Shader found for: \'%s\'; skipping.", map.data.shaders[ t ].name );
+			MLOG_INFO( "Shader found for: \'%s\'; skipping.", 
+				map.data.shaders[ t ].name );
 			continue;
 		}
 
@@ -172,7 +171,8 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		{
 			for ( int32_t i = 0; i < SIGNED_LEN( validImgExt ); ++i )
 			{
-				const std::string& str = texPath + std::string( validImgExt[ i ] );
+				const std::string& str = texPath + 
+					std::string( validImgExt[ i ] );
 
 				if ( GLoadImageFromFile( str, texture ) )
 				{
@@ -191,9 +191,11 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	}
 
 	{
-		// We want to maintain a one->one mapping with the texture indices in the bsp file,
+		// We want to maintain a one->one mapping with the texture 
+		// indices in the bsp file,
 		// so we ensure the indices are properly mapped
-		gTextureMakeParams_t makeParams( textures, sampler, G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+		gTextureMakeParams_t makeParams( textures, sampler, 
+			G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
 		makeParams.keyMaps = std::move( indices );
 		return GMakeTexture( makeParams );
 	}

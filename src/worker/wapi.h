@@ -24,7 +24,11 @@ static inline uint32_t WAPI_Fetch32( char* buffer, int size, int ofs )
 									  // this may be called knowing that 
 									  // the buffer may not exist
 
-	if ( ofs >= ( size - 3 ) ) return WAPI_ERROR;
+	int32_t diff = size - 4;
+	if ( ( ofs ) > diff )
+	{
+		return WAPI_FALSE;
+	}
 
 	// We do have to be this pedantic with the & 0xFF: bad things
 	// can happen in produced emscripten code if we don't throw that in there.
@@ -48,7 +52,8 @@ static inline uint32_t WAPI_Fetch16( char* buffer, int ofs, int size )
 	return x | ( y << 8 );
 }
 
-static inline uint32_t WAPI_StrEquals( register const char* a, register const char* b, int n, int* stopIndex )
+static inline uint32_t WAPI_StrEquals( register const char* a, 
+	register const char* b, int n, int* stopIndex )
 {
 	int k = 0;
 	while (	a[k] == b[k] && k < n )
@@ -64,9 +69,11 @@ static inline uint32_t WAPI_StrEquals( register const char* a, register const ch
 	return k == n;	
 }
 
-// 8 byte key: _TOKEXXX, where _ is a mandatory prefix, TOKE is any four letters used to identify the key,
+// 8 byte key: _TOKEXXX, where _ is a mandatory prefix, 
+// TOKE is any four letters used to identify the key,
 // and XXX is a hexadecimal value specifying the amount of entries for that key
-// entries are 4 bytes each, but are required to be 8 byte aligned. So, a key with one entry
+// entries are 4 bytes each, but are required to be 8 byte aligned. 
+// So, a key with one entry
 // will still require an extra 8 bytes.
 // if 4 bytes of memory isn't necessary for a given entry, a freespace '_'
 // is used in areas where the remaining amount isn't needed
@@ -119,12 +126,16 @@ static inline uint32_t WAPI_FetchHex( char* val, int n )
 // - Each element is 4 bytes (including keys).
 // - First four bytes is the length of the first key/entry pair.
 // - Length of first key/entry pair is m = 2^(ceil(log2(n))), where n is the 
-// 		actual number of values which pertain to that key/value pair (including the key itself)
-// - For any key K at some index i in the list, its corresponding length L_i will be:
+// 		actual number of values which pertain to that key/value pair 
+//	(including the key itself)
+// - For any key K at some index i in the list, its corresponding length 
+//	L_i will be:
 // 		L_i = 2^(log2(L_0) + i); i > 0, L_i != L_0, and 2 <= L_0
-// - Unused elements in a given segment (where a segment is some area of memory corresponding to K with L_i - 1 values)
+// - Unused elements in a given segment (where a segment is some area of memory 
+//	corresponding to K with L_i - 1 values)
 // 		are blocked out with the letters BLNK (blank)
-// - Any entry which contains at least 1 byte will have its remaining unset bytes set to '_'
+// - Any entry which contains at least 1 byte will have its remaining unset 
+//	bytes set to '_'
 
 // Map this iterative approach to a binary search.
 // f(i) = 2^i
@@ -142,7 +153,8 @@ static inline uint32_t WAPI_FetchKey( char* dest, int destSize, const char* key,
 	
 	if ( keySize <= 0 || bufferSize <= 0 || destSize <= 0 ) return WAPI_ERROR; 	
 	
-	if ( !IS_ALIGN4( bufferSize ) || !IS_ALIGN4( destSize ) || !IS_ALIGN4( keySize ) )
+	if ( !IS_ALIGN4( bufferSize ) || !IS_ALIGN4( destSize ) 
+		|| !IS_ALIGN4( keySize ) )
 	{
 		return WAPI_ERROR;	
 	}

@@ -177,7 +177,8 @@ struct file_t
 
 		if ( !readBuff.empty() )
 		{
-			memset( &readBuff[ 0 ], 0, readBuff.size() * sizeof( unsigned char ) );
+			memset( &readBuff[ 0 ], 0, readBuff.size() * 
+				sizeof( unsigned char ) );
 		}
 
 		if ( readBuff.size() < size )
