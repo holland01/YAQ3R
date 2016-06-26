@@ -48,8 +48,6 @@ struct gImageLoadTracker_t
 	void LogImages( void );
 };
 
-extern std::unique_ptr< gImageLoadTracker_t > gImageTracker;
-
 gPathMap_t AIIO_MakeAssetPath( const char* path );
 
 void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo, 

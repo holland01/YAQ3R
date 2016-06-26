@@ -3,6 +3,8 @@
 #include "io.h"
 #include "worker/wapi.h"
 
+static gImageLoadTracker_t* gImageTracker = nullptr;
+
 void gImageLoadTracker_t::LogImages( void )
 {
 	std::stringstream ss;
@@ -24,9 +26,6 @@ void gImageLoadTracker_t::LogImages( void )
 
 	printf( "---------\n%s\n----------\n", ss.str().c_str() );
 };
-
-std::unique_ptr< gImageLoadTracker_t > gImageTracker( nullptr );
-
 
 #define DATA_FMT_STRING( bufferSize ) \
 	"Received: width->%i, height->%i, bpp->%i, size->%i, copy buffer size->%i,"\
@@ -104,7 +103,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 
 		if ( gImageTracker->insertEvent )
 		{
-			gImageTracker->insertEvent( gImageTracker.get() );
+			gImageTracker->insertEvent( gImageTracker );
 		}
 
 		gImageTracker->textures.push_back( image );
@@ -116,7 +115,7 @@ next_image:
 	{
 		if ( gImageTracker->finishEvent )
 		{
-			gImageTracker->finishEvent( gImageTracker.get() );
+			gImageTracker->finishEvent( &gImageTracker );
 		}
 	}
 	else
@@ -156,7 +155,16 @@ void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
 	gSamplerHandle_t sampler, onFinishEvent_t finish, 
 	onFinishEvent_t insert )
 {
-	gImageTracker.reset( new gImageLoadTracker_t( map, pathInfo ) );
+	if ( gImageTracker )
+	{
+		puts( "gImageTracker is not NULL" );
+	}
+	else
+	{
+		puts( "gImageTracker is NULL" );
+	}
+
+	gImageTracker = new gImageLoadTracker_t( map, pathInfo );
 	gImageTracker->sampler = sampler;
 	gImageTracker->finishEvent = finish;
 	gImageTracker->insertEvent = insert;

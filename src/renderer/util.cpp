@@ -105,7 +105,7 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		}
 	}
 
-	AIIO_ReadImages( map, paths, sampler, Q3BspMap::OnShaderLoadTexturesFinish,
+	AIIO_ReadImages( map, paths, sampler, Q3BspMap::OnShaderLoadImagesFinish,
 		PreInsert_Shader );
 }
 
@@ -127,7 +127,7 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		i++;
 	}
 
-	AIIO_ReadImages( map, paths,  sampler, Q3BspMap::OnMainLoadTexturesFinish,
+	AIIO_ReadImages( map, paths,  sampler, Q3BspMap::OnMainLoadImagesFinish,
 		PreInsert_Main );
 
 	//---------------------------------------------------------------------

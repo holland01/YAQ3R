@@ -9,6 +9,19 @@
 
 class Q3BspMap;
 
+struct gContextHandles_t
+{
+	SDL_GLContext context = nullptr;
+	SDL_Renderer* renderer = nullptr;
+	SDL_Window* window = nullptr;
+
+	~gContextHandles_t( void )
+	{
+		if ( renderer ) SDL_DestroyRenderer( renderer );
+		if ( window ) SDL_DestroyWindow( window );
+	}
+};
+
 class Test
 {
 protected:
@@ -24,10 +37,6 @@ protected:
 
 	InputCamera*    camPtr;
 
-	SDL_Renderer*	sdlRenderer;
-
-	SDL_GLContext	sdlContext;
-
 	bool            Load( const char* winTitle );
 
 	float			mouseX;
@@ -40,7 +49,7 @@ protected:
 
 public:
 
-	SDL_Window*	sdlWindow;
+	gContextHandles_t context;	
 
 	Test( int width, int height, bool fullscreen,
 	 	const char* readFilePath, onFinishEvent_t mapReadFinish = nullptr );

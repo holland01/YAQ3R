@@ -485,7 +485,8 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 	{
 		shaderStage_t& stage = shader.stageBuffer[ j ];
 
-		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? "lightmap": "tex0" );
+		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? 
+				"lightmap": "tex0" );
 
 		std::vector< std::string > attribs = { "position", texCoordName };
 		std::vector< std::string > uniforms = {
@@ -496,12 +497,14 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 			"viewToClip",
 		};
 
-		const std::string& vertexString = GenVertexShader( stage, texCoordName, attribs );
+		const std::string& vertexString = GenVertexShader( stage, texCoordName, 
+				attribs );
 		const std::string& fragmentString = GenFragmentShader( stage, uniforms );
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
 
-		// On the directive: this is good for testing and doing performance comparisons
+		// On the directive: this is good for testing and 
+		// doing performance comparisons
 #ifndef G_DUPLICATE_PROGRAMS
 		stage.program = GFindProgramByData( p->attribs, p->uniforms, &stage );
 		if ( G_HNULL( stage.program ) )

@@ -207,7 +207,8 @@ void GenGridTexture( GLenum target,
 }
 
 /*
-bool TryAlignBoundry( atlasPositionMap_t& map, glm::ivec2& result, const glm::vec2& scale,
+bool TryAlignBoundry( atlasPositionMap_t& map, glm::ivec2& result, 
+	const glm::vec2& scale,
 	const glm::vec2& baseDims, const glm::vec2& offsetDims )
 {
 	glm::vec2 min( scale * baseDims );
@@ -570,8 +571,9 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 	return nullptr;
 }
 
-std::vector< atlasPositionMap_t > CalcGridDimensions( gImageParams_t& canvasParams,
-					gSamplerHandle_t sampler, gImageParamList_t& images )
+std::vector< atlasPositionMap_t > CalcGridDimensions( 
+	gImageParams_t& canvasParams, gSamplerHandle_t sampler, 
+	gImageParamList_t& images )
 {
 	GLint maxTextureSize;
 	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSize ) );
@@ -712,7 +714,8 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 	gImageParams_t canvasParams;
 
 	std::vector< atlasPositionMap_t > origins =
-			CalcGridDimensions( canvasParams, makeParams.sampler, makeParams.images );
+			CalcGridDimensions( canvasParams, makeParams.sampler, 
+				makeParams.images );
 
 	gTexture_t* tt = new gTexture_t();
 
@@ -725,7 +728,8 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 		tt->imageSlots.resize( canvasParams.width * canvasParams.height );
 	}
 
-	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams, origins );
+	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams, 
+		origins );
 
 	const glm::ivec2& d = dims[ dims.size() - 1 ];
 
@@ -742,7 +746,8 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 	return tt;
 }
 
-bool DetermineImageFormats( int8_t bpp, uint32_t& format, uint32_t& internalFormat )
+bool DetermineImageFormats( int8_t bpp, uint32_t& format, 
+	uint32_t& internalFormat )
 {
 	switch( bpp )
 	{
@@ -917,7 +922,8 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle )
 {
-	MLOG_ASSERT( !G_VNULL( gSlotStage ), "Not slot stage set. Handle: %i", handle.id );
+	MLOG_ASSERT( !G_VNULL( gSlotStage ), "Not slot stage set. Handle: %i", 
+		handle.id );
 
 	return GTextureImage( handle, gSlotStage );
 }
@@ -1049,7 +1055,8 @@ void GSetAlignedImageData( gImageParams_t& destImage,
 	}
 }
 
-bool GLoadImageFromMemory( gImageParams_t& image, const std::vector< uint8_t >& buffer,
+bool GLoadImageFromMemory( gImageParams_t& image, 
+	const std::vector< uint8_t >& buffer,
  	int32_t width, int32_t height, int32_t bpp )
 {
 	if ( image.sampler.id == G_UNSPECIFIED )

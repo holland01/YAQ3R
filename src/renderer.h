@@ -125,8 +125,10 @@ struct shaderStage_t;
 struct mapModel_t;
 
 using effectFnSig_t = void( const Program& p, const effect_t& e );
-using programMap_t = std::unordered_map< std::string, std::unique_ptr< Program > >;
-using effectMap_t = std::unordered_map< std::string, std::function< effectFnSig_t > >;
+using programMap_t = std::unordered_map< std::string, 
+	std::unique_ptr< Program > >;
+using effectMap_t = std::unordered_map< std::string, 
+	std::function< effectFnSig_t > >;
 using modelBuffer_t = std::vector< std::unique_ptr< mapModel_t > >;
 
 struct debugFace_t
@@ -144,15 +146,20 @@ private:
 	// [2] int32_t -> texture index
 	// [3] int32_t -> lightmap index
 	// [4] bool -> true if solid, false if not
-	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, int32_t, int32_t, bool >;
+	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, 
+		int32_t, int32_t, bool >;
 
 	gSamplerHandle_t				mainSampler; // also used by lightmaps
 
-	gTextureHandle_t				shaderTexHandle, mainTexHandle, lightmapHandle;
+	gTextureHandle_t				shaderTexHandle, mainTexHandle, 
+		lightmapHandle;
 
-	modelBuffer_t					glFaces;			// has one->one mapping with face indices
+	// has one->one mapping with face indices
+	modelBuffer_t					glFaces; 
 
-	std::vector< debugFace_t > glDebugFaces; // has one-one mapping with face indices - is only used when debugging for immediate data
+	// has one-one mapping with 
+	// face indices - is only used when debugging for immediate data
+	std::vector< debugFace_t > glDebugFaces;
 
 	programMap_t		glPrograms;
 

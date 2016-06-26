@@ -46,8 +46,6 @@
 #   define GL_CHECK_WITH_NAME( expr, funcname ) ( expr )
 #endif // _DEBUG_USE_GL_ASYNC_CALLBACK
 
-
-
 #ifdef GLES
 #	define glClearDepth glClearDepthf
 #endif
@@ -82,10 +80,12 @@ class AABB;
 static INLINE void MapVec3( int location, size_t offset )
 {
 	GL_CHECK( glEnableVertexAttribArray( location ) );
-	GL_CHECK( glVertexAttribPointer( location, 3, GL_FLOAT, GL_FALSE, sizeof( bspVertex_t ), ( void* ) offset ) );
+	GL_CHECK( glVertexAttribPointer( location, 3, GL_FLOAT, GL_FALSE, 
+				sizeof( bspVertex_t ), ( void* ) offset ) );
 }
 
-static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID, const std::vector< std::string >& uniforms )
+static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID, 
+		const std::vector< std::string >& uniforms )
 {
 	for ( const std::string& title: uniforms )
 	{
@@ -96,7 +96,8 @@ static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID, const 
 }
 
 template < typename T >
-static INLINE GLuint GenBufferObject( GLenum target, const std::vector< T >& data, GLenum usage )
+static INLINE GLuint GenBufferObject( GLenum target, const std::vector< T >& data, 
+		GLenum usage )
 {
 	GLuint obj;
 	GL_CHECK( glGenBuffers( 1, &obj ) );
@@ -107,7 +108,8 @@ static INLINE GLuint GenBufferObject( GLenum target, const std::vector< T >& dat
 }
 
 template < typename T >
-static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset, const std::vector< T >& data, bool bindUnbind )
+static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset, 
+		const std::vector< T >& data, bool bindUnbind )
 {
 	if ( bindUnbind )
 	{

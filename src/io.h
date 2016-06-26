@@ -68,7 +68,19 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 				MLOG_ERROR( __VA_ARGS__ );      \
 			}                                   \
 		}                                       \
-		while( 0 )
+		while ( 0 )
+#elif defined (DEBUG_RELEASE)					
+#	define MLOG_ASSERT( condition, ... )	\
+	do                                      \
+	{                                       \
+		if ( !( condition ) )               \
+		{                                   \
+			O_Log( _FUNC_NAME_, 			\
+				"ASSERT", __VA_ARGS__ );    \
+			FlagExit();						\
+		}                                   \
+	}                                       \
+	while ( 0 )
 #else
 #	define MLOG_ASSERT( condition, ... )
 #endif

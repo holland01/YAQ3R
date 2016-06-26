@@ -9,9 +9,9 @@
 
 using namespace std;
 
-//-------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Data tweaking
-//-------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 static void SwizzleCoords( glm::vec3& v )
 {
@@ -48,9 +48,9 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 	v.z *= scale;
 }
 
-//-------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Read Event Handling
-//-------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 static int gBspDesc = -1;
 
@@ -175,7 +175,8 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 	[]( char* received, mapData_t& data, int length )
 	{
 		memcpy( &data.visdata, received, sizeof( bspVisdata_t ) );
-		data.bitsetSrc.resize( data.visdata.numVectors * data.visdata.sizeVector, 0 );
+		data.bitsetSrc.resize( data.visdata.numVectors 
+			* data.visdata.sizeVector, 0 );
 		memcpy( &data.bitsetSrc[ 0 ], received + sizeof( bspVisdata_t ),
 		 	length - sizeof( bspVisdata_t ) );
 		data.numVisdataVecs = length;
@@ -216,7 +217,8 @@ static void ReadFin( Q3BspMap* map )
 	for ( size_t i = 0; i < map->data.planes.size(); ++i )
 	{
 		map->data.planes[ i ].distance *= map->GetScaleFactor();
-		ScaleCoords( map->data.planes[ i ].normal, ( float ) map->GetScaleFactor() );
+		ScaleCoords( map->data.planes[ i ].normal, 
+			( float ) map->GetScaleFactor() );
 		SwizzleCoords( map->data.planes[ i ].normal );
 	}
 
@@ -253,8 +255,10 @@ static void ReadFin( Q3BspMap* map )
 
 		ScaleCoords( face.normal, ( float ) map->GetScaleFactor() );
 		ScaleCoords( face.lightmapOrigin, ( float ) map->GetScaleFactor() );
-		ScaleCoords( face.lightmapStVecs[ 0 ], ( float ) map->GetScaleFactor() );
-		ScaleCoords( face.lightmapStVecs[ 1 ], ( float ) map->GetScaleFactor() );
+		ScaleCoords( face.lightmapStVecs[ 0 ], 
+			( float ) map->GetScaleFactor() );
+		ScaleCoords( face.lightmapStVecs[ 1 ], 
+			( float ) map->GetScaleFactor() );
 
 		SwizzleCoords( face.normal );
 		SwizzleCoords( face.lightmapOrigin );
@@ -339,12 +343,32 @@ static void ReadBegin( char* data, int size, void* param )
 	SendRequest( info, param );
 }
 
-//-------------------------------------------------------------------------------
+static INLINE void LoadImagesFinish( gImageParamList_t& dest, 
+	gImageLoadTracker_t** imageTracker )
+{
+	dest = std::move( ( *imageTracker )->textures );
+	delete *imageTracker;
+	*imageTracker = nullptr;
+}
+
+
+//------------------------------------------------------------------------------
+// rendererPayload_t
+//------------------------------------------------------------------------------ 
+
+struct renderPayload_t
+{
+	gImageParamList_t mainImages, shaderImages;
+	gSamplerHandle_t sampler;
+};
+
+//------------------------------------------------------------------------------
 // Q3BspMap
-//-------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 Q3BspMap::Q3BspMap( void )
 	 :	scaleFactor( 1 ),
 		mapAllocated( false ),
+		payload( nullptr ),
 		readFinishEvent( nullptr ),
 		data( {} )
 {
@@ -363,21 +387,28 @@ void Q3BspMap::OnShaderReadFinish( void )
 	GU_LoadShaderTextures( *this, GMakeSampler() );
 }
 
-void Q3BspMap::OnShaderLoadTexturesFinish( void* param )
+void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 {
-	const gImageLoadTracker_t* imageTracker = ( const gImageLoadTracker_t* )param;
+	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
+	Q3BspMap& map = ( *imageTracker )->map;
+	map.payload.reset( new renderPayload_t() );
+	map.payload->sampler = ( *imageTracker )->sampler;
 
-	MLOG_INFO( "===============\n"\
+	LoadImagesFinish( map.payload->shaderImages, imageTracker );
+
+	MLOG_INFO( 
+		"===============\n"\
 		"Loading main images..."\
 		"\n===============" );
-	GU_LoadMainTextures( imageTracker->map, imageTracker->sampler );
+	GU_LoadMainTextures( map, map.payload->sampler );
 }
 
-void Q3BspMap::OnMainLoadTexturesFinish( void* param )
+void Q3BspMap::OnMainLoadImagesFinish( void* param )
 {
-	UNUSED( param );
-	puts( "Main images finished" );
-	//MLOG_INFO( "Main images finished." );
+	puts( "Main images finished." );
+	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
+	Q3BspMap& map = ( *imageTracker )->map;
+	LoadImagesFinish( map.payload->mainImages, imageTracker );
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
@@ -387,7 +418,8 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 	if ( it != effectShaders.end() )
 	{
 		/*
-		glslMade is only true if there's been shader compiles; this shouldn't be here
+		glslMade is only true if there's been shader compiles; 
+		this shouldn't be here
 		*/
 		//if ( !it->second.glslMade )
 			//return nullptr;
@@ -418,7 +450,8 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
 {
-	const std::string shadername( File_StripExt( File_StripPath( shaderPath ) ) );
+	const std::string shadername( 
+		File_StripExt( File_StripPath( shaderPath ) ) );
 
 	return shadername == name;
 }
@@ -459,7 +492,8 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;
 	name = File_StripExt( File_StripPath( filepath ) );
-	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) + "/../";
+	data.basePath = filepath.substr( 0, 
+		filepath.find_last_of( '/' ) ) + "/../";
 	File_QueryAsync( filepath, ReadBegin, this );
 }
 
@@ -581,10 +615,12 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 		const bspPlane_t* const plane = &data.planes[ node->plane ];
 
 		// If the distance from the camera to the plane is >= 0,
-		// then our needed camera data is in a leaf somewhere in front of this node,
+		// then our needed camera data is 
+		// in a leaf somewhere in front of this node,
 		// otherwise it's behind the node somewhere.
 
-		glm::vec3 planeNormal( plane->normal.x, plane->normal.y, plane->normal.z );
+		glm::vec3 planeNormal( plane->normal.x, plane->normal.y, 
+			plane->normal.z );
 
 		float distance = glm::dot( planeNormal, camPos ) - plane->distance;
 

@@ -8,20 +8,32 @@
 #include "renderer/context_window.h"
 #include "effect_shader.h"
 
-struct gContextHandles_t
-{
-	SDL_GLContext context = nullptr;
-	SDL_Renderer* renderer = nullptr;
-	SDL_Window* window = nullptr;
 
-	~gContextHandles_t( void )
-	{
-		if ( renderer ) SDL_DestroyRenderer( renderer );
-		if ( window ) SDL_DestroyWindow( window );
-	}
-};
 
 static gContextHandles_t gContext;
+
+struct gDrawTest_t
+{
+	gTextureHandle_t mainHandle, shaderHandle;
+	gSamplerHandle_t sampler;
+
+	gDrawTest_t( gImageParamList_t& mainImages,
+		gImageParamList_t& shaderImages,
+		gSamplerHandle_t sampler )
+	{
+		UNUSED( shaderImages );
+
+		{
+			gTextureMakeParams_t makeParams( mainImages,
+					sampler, 0 );	
+			mainHandle = GMakeTexture(makeParams);
+			
+			MLOG_ASSERT( !G_HNULL(mainHandle), 
+					"mainHandle is NULL" ); 
+		}
+		
+	}
+};
 
 static void OnFrameIteration( void )
 {
@@ -60,7 +72,6 @@ int IOTestWebWorker::operator()( void )
 	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, OnReadFinish );
 
 	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
-
 	return 0;
 }
 #endif

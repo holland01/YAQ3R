@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 struct shaderInfo_t;
+struct renderPayload_t;
 
 struct mapEntity_t
 {
@@ -21,11 +22,13 @@ private:
 	Q3BspMap( const Q3BspMap& ) = delete;
 	Q3BspMap& operator=( Q3BspMap ) = delete;
 
-	int								scaleFactor;
+	int									scaleFactor;
 
-	bool							mapAllocated;
+	bool								mapAllocated;
 
-	std::string						name;
+	std::unique_ptr< renderPayload_t > 	payload;
+
+	std::string							name;
 
 public:
 
@@ -40,10 +43,10 @@ public:
 
 	void 						OnShaderReadFinish( void );
 
-	static void 				OnShaderLoadTexturesFinish( void* param );
+	static void 				OnShaderLoadImagesFinish( void* param );
 
 
-	static void					OnMainLoadTexturesFinish( void* param );
+	static void					OnMainLoadImagesFinish( void* param );
 	
 	// retrives the first spawn point found in the text file.
 	mapEntity_t					GetFirstSpawnPoint( void ) const;
