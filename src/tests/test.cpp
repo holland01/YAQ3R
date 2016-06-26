@@ -29,7 +29,7 @@ static void OnFrameIteration( void )
 
 	gAppTest->Run();
 
-	SDL_GL_SwapWindow( gAppTest->sdlWindow );
+	SDL_GL_SwapWindow( gAppTest->base.window );
 
 	SDL_Event e;
 	while ( SDL_PollEvent( &e ) )
@@ -40,20 +40,13 @@ static void OnFrameIteration( void )
 
 Test::Test( int w, int h, bool fullscreen_,
 	const char* bspFilePath, onFinishEvent_t mapReadFinish )
-	: width( w ), height( h ),
-	  deltaTime( 0.0f ),
-	  fullscreen( fullscreen_ ),
-	  cursorVisible( true ),
-	  running( false ),
-	  useSRGBFramebuffer( true ),
-	  camPtr( nullptr ),
-	  sdlRenderer( nullptr ),
-	  sdlContext( nullptr ),
+	: deltaTime( 0.0f ), 
+	  camPtr( nullptr ), 
 	  mouseX( 0.0f ),
 	  mouseY( 0.0f ),
 	  lastMouseX( 0.0f ),
 	  lastMouseY( 0.0f ),
-	  sdlWindow( nullptr )
+	  base( w, h, fullscreen_ )
 {
 #if defined( EMSCRIPTEN )
 	EM_MountFS();
@@ -64,32 +57,26 @@ Test::Test( int w, int h, bool fullscreen_,
 		{
 			mapReadFinish = OnMapReadFin;
 		}
+		
 		map.Read( std::string( bspFilePath ), 1, mapReadFinish );
 	}
 }
 
 Test::~Test( void )
 {
-	if ( sdlWindow )
-		SDL_DestroyWindow( sdlWindow );
-
-	if ( sdlRenderer )
-		SDL_DestroyRenderer( sdlRenderer );
-
 	KillSysLog();
 }
 
 bool Test::Load( const char* winName )
 {
-	if ( !GInitContextWindow( width, height, fullscreen, winName,
-	 	&sdlWindow, &sdlRenderer, &sdlContext ) )
+	if ( !GInitContextWindow( winName, base ) )
 	{
 		return false;
 	}
 
 	GLoadVao();
 
-	running = true;
+	base.running = true;
 
 	InitSysLog();
 
@@ -98,15 +85,16 @@ bool Test::Load( const char* winName )
 
 int Test::Exec( void )
 {
-	if ( !sdlWindow )
+	if ( !base.window )
+	{
 		return 1;
-
+	}
 #ifdef EMSCRIPTEN
 	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
 #else
 	float lastTime = 0.0f;
 
-	while( running )
+	while( base.running )
 	{
 		OnFrameIteration();
 
@@ -129,21 +117,27 @@ void Test::OnInputEvent( SDL_Event* e )
 			switch ( e->key.keysym.sym )
 			{
 				case SDLK_ESCAPE:
-					running = false;
+					base.running = false;
 					break;
 
 				case SDLK_F1:
-					cursorVisible = !cursorVisible;
+					base.cursorVisible = !base.cursorVisible;
 
-					if ( cursorVisible )
+					if ( base.cursorVisible )
+					{
 						 SDL_SetRelativeMouseMode( SDL_FALSE );
+					}
 					else
+					{
 						 SDL_SetRelativeMouseMode( SDL_TRUE );
-					break;
+					}
+					 break;
 
 				default:
 					if ( camPtr )
+					{
 						camPtr->EvalKeyPress( e->key.keysym.sym );
+					}
 					break;
 			}
 			break;
@@ -162,7 +156,7 @@ void Test::OnInputEvent( SDL_Event* e )
 				mouseX += ( float )( e->motion.xrel );
 				mouseY += ( float )( e->motion.yrel );
 
-				if ( !cursorVisible )
+				if ( !base.cursorVisible )
 					camPtr->EvalMouseMove( mouseX, mouseY );
 			}
 			break;

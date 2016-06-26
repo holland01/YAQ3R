@@ -4,12 +4,9 @@
 
 extern "C" {
 
-bool GInitContextWindow( int width, int height, bool fullscreen, const char* winName,
-	SDL_Window** sdlWindow, SDL_Renderer** sdlRenderer,
-  	SDL_GLContext* sdlContext )
+bool GInitContextWindow( const char* title,
+		gContextHandles_t& handles )
 {
-	UNUSED( fullscreen );
-
 	SDL_Init( SDL_INIT_VIDEO );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, G_API_MAJOR_VERSION );
@@ -17,13 +14,15 @@ bool GInitContextWindow( int width, int height, bool fullscreen, const char* win
 	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, G_API_CONTEXT_PROFILE );
 
-	SDL_CreateWindowAndRenderer( width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN |
-		SDL_WINDOW_RESIZABLE, sdlWindow, sdlRenderer );
-	SDL_SetWindowTitle( *sdlWindow, winName );
+	SDL_CreateWindowAndRenderer( handles.width, handles.height, 
+			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE, 
+			&handles.window, &handles.renderer );
+	
+	SDL_SetWindowTitle( handles.window, title );
 
-	*sdlContext = SDL_GL_CreateContext( *sdlWindow );
+	handles.context = SDL_GL_CreateContext( handles.window );
 
-	if ( !( *sdlContext ) )
+	if ( !handles.context )
 	{
 		MLOG_ERROR( "SDL_Error: %s", SDL_GetError() );
 		return false;
@@ -34,12 +33,13 @@ bool GInitContextWindow( int width, int height, bool fullscreen, const char* win
 	GLenum glewErr = glewInit();
 	if ( glewErr != GLEW_OK )
 	{
-		MLOG_ERROR( "Could not initialize GLEW: %s", glewGetErrorString( glewErr ) );
+		MLOG_ERROR( "Could not initialize GLEW: %s", 
+				glewGetErrorString( glewErr ) );
 		return false;
 	}
 #endif
 
-	SDL_RenderPresent( *sdlRenderer );
+	SDL_RenderPresent( handles.renderer );
 
 	// HACK: error checking is impossible unless this happens;
 	// apparently an invalid enumeration exists - possibly

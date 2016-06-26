@@ -8,9 +8,7 @@
 #include "renderer/context_window.h"
 #include "effect_shader.h"
 
-
-
-static gContextHandles_t gContext;
+static gContextHandles_t gContext( 800, 600, false );
 
 struct gDrawTest_t
 {
@@ -65,8 +63,7 @@ IOTestWebWorker::~IOTestWebWorker( void )
 
 int IOTestWebWorker::operator()( void )
 {
-	GInitContextWindow( 800, 600, false, "iotestwebworker",
- 		&gContext.window, &gContext.renderer, &gContext.context );
+	GInitContextWindow( "iotestwebworker", gContext );
 
 	Q3BspMap map;
 	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, OnReadFinish );
