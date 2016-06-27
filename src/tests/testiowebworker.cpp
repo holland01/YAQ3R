@@ -38,7 +38,7 @@ IOTestWebWorker::~IOTestWebWorker( void )
 
 int IOTestWebWorker::operator()( void )
 {
-	GInitContextWindow( "iotestwebworker", gContext );
+	//GInitContextWindow( "iotestwebworker", gContext );
 
 	Q3BspMap map;
 	map.Read( ASSET_Q3_ROOT"/maps/q3dm2.bsp", 1, OnReadFinish );

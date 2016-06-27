@@ -397,8 +397,8 @@ void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 	LoadImagesFinish( map.payload->shaderImages, imageTracker );
 
 	MLOG_INFO( 
-		"===============\n"\
-		"Loading main images..."\
+		"===============\n" \
+		"Loading main images..." \
 		"\n===============" );
 	GU_LoadMainTextures( map, map.payload->sampler );
 }

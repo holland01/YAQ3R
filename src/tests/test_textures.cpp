@@ -29,7 +29,8 @@ void TTextureTest::Load( void )
 
 	camera->SetViewOrigin( glm::vec3( 0.0f, 0.0f, 3.0f ) );
 	camera->moveStep = 1.0f;
-	camera->SetPerspective( 45.0f, ( float ) this->width, ( float ) this->height, 1.0f, 10000.0f );
+	camera->SetPerspective( 45.0f, ( float ) base.width, (
+	 float ) base.height, 1.0f, 10000.0f );
 
 	std::string vertex = R"(
 		in vec3 position;

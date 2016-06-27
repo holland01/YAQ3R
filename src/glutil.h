@@ -199,8 +199,8 @@ public:
 	std::vector< std::string > disableAttribs; 
 
 	Program( const std::string& vertexShader, 
-		const std::string& fragmentShader, 
-		const std::vector< std::string >& bindAttribs = 
+			 const std::string& fragmentShader, 
+			 const std::vector< std::string >& bindAttribs = 
 			std::vector< std::string >() );
 
 	Program( const std::string& vertexShader, 
@@ -268,7 +268,8 @@ INLINE void Program::AddUnif( const std::string& name )
 
 INLINE void Program::AddAttrib( const std::string& name )
 {
-	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, name.c_str() ) );
+	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, 
+		name.c_str() ) );
 }
 
 INLINE void Program::AddAltAttribProfile( const attribProfile_t& profile )

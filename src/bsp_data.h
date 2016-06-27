@@ -507,27 +507,49 @@ struct shaderStage_t
 
 	int32_t						textureIndex = INDEX_UNDEFINED;
 
-	texCoordGen_t				tcgen = TCGEN_BASE; // Normal texcoord generation (if textureIndex is defined)
+	// Normal texcoord generation (if textureIndex is defined)
 
-	GLenum						blendSrc = GL_ONE; // src is incoming pixels
+	texCoordGen_t				tcgen = TCGEN_BASE; 
+	
+	// src is incoming pixels
 
-	GLenum						blendDest = GL_ZERO; // destination is the pixels which are already within the framebuffer from the previous frame
+	GLenum						blendSrc = GL_ONE; 
+
+	// destination is the pixels which are already within the 
+	// framebuffer from the previous frame
+
+	GLenum						blendDest = GL_ZERO; 
 
 	GLenum						depthFunc = GL_LEQUAL;
 
-	rgbGen_t					rgbGen = RGBGEN_UNDEFINED; // how colors are generated - identity refers to a white image
+	// how colors are generated - identity refers to a white image
 
-	alphaFunc_t					alphaFunc = ALPHA_FUNC_UNDEFINED;  // alpha constraint for the fragment; if fragment fails the condition, we discard it
+	rgbGen_t					rgbGen = RGBGEN_UNDEFINED; 
 
-	mapCmd_t					mapCmd = MAP_CMD_UNDEFINED; // either "map" or "clampmap"; clampmap refers to a non-repeating texture
+	// alpha constraint for the fragment; if fragment fails the condition, 
+	// we discard it
 
-	mapType_t					mapType = MAP_TYPE_UNDEFINED; // can be an image, a lightmap, or a whiteimage
+	alphaFunc_t					alphaFunc = ALPHA_FUNC_UNDEFINED;  
+	
+	// either "map" or "clampmap"; clampmap refers to a non-repeating texture
 
-	std::vector< effect_t >		effects;  // dynamic effects, designed to be passed to the shader
+	mapCmd_t					mapCmd = MAP_CMD_UNDEFINED; 
+	
+	// can be an image, a lightmap, or a whiteimage
 
-	float						alphaGen = 0.0f; // if 0, assume an alpha value of 1
+	mapType_t					mapType = MAP_TYPE_UNDEFINED; 
+	
+	// dynamic effects, designed to be passed to the shader
 
-	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath; // path to the texture image, if we have one
+	std::vector< effect_t >		effects;  
+
+	// if 0, assume an alpha value of 1
+
+	float						alphaGen = 0.0f; 
+
+	// path to the texture image, if we have one
+
+	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath; 
 
 	gProgramHandle_t program;
 
@@ -543,12 +565,17 @@ struct shaderStage_t
 
 struct shaderInfo_t
 {
-	bool				deform = false; // implies an animated vertex deformation
 
-	vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED; // choose wave, normal, or bulge
+	// implies an animated vertex deformation 
+	bool				deform = false; 
 
-	vertexDeformFunc_t	deformFn = VERTEXDEFORM_FUNC_UNDEFINED; // arbitrary sinusoidal functions which are applied by the command (e.g., sawtooth, triangle, a normal sine wave, etc)
+	// choose wave, normal, or bulge
+	vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED; 
 
+	// arbitrary sinusoidal functions which are applied by the command
+	//  (e.g., sawtooth, triangle, a normal sine wave, etc)
+	vertexDeformFunc_t	deformFn = VERTEXDEFORM_FUNC_UNDEFINED; 
+	
 	effect_t            deformParms; // arbitrary parameters for our deform
 
 	uint32_t			cullFace = G_UNSPECIFIED;
@@ -559,7 +586,8 @@ struct shaderInfo_t
 
 	float				tessSize = 0.0f; // 0 if none
 
-	int					stageCount = 0; // the amount of draw passes for this shader entry
+	// the amount of draw passes for this shader entry
+	int					stageCount = 0; 
 
 	float				surfaceLight = 0.0f; // 0 if no light
 

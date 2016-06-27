@@ -45,7 +45,8 @@ enum viewMode_t
 	VIEW_LIGHT_SAMPLE,
 };
 
-using drawCall_t = std::function< void( const void* param, const Program& program, const shaderStage_t* stage ) >;
+using drawCall_t = std::function< void( const void* param, 
+	const Program& program, const shaderStage_t* stage ) >;
 
 struct drawSurface_t
 {
@@ -185,7 +186,8 @@ private:
 	void				DeformVertexes( const mapModel_t& m,
 							const shaderInfo_t* shader ) const;
 
-	void				MakeProg( const std::string& name, const std::string& vertPath,
+	void				MakeProg( const std::string& name, 
+							const std::string& vertPath,
 							const std::string& fragPath,
 							const std::vector< std::string >& uniforms,
 							const std::vector< std::string >& attribs );
@@ -201,10 +203,12 @@ private:
 	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 							std::function< void( const Program& )> callback );
 
-	void				MakeAddSurface(const shaderInfo_t* shader, int32_t faceIndex,
+	void				MakeAddSurface(const shaderInfo_t* shader, 
+							int32_t faceIndex,
 							surfaceContainer_t& surfList );
 
-	void				AddSurface( const shaderInfo_t* shader, int32_t faceIndex,
+	void				AddSurface( const shaderInfo_t* shader, 
+							int32_t faceIndex,
 							surfaceContainer_t& surfList );
 
 	void				ReflectFromTuple( const drawTuple_t& data,
@@ -212,11 +216,14 @@ private:
 
 	void				DrawSurface( const drawSurface_t& surface ) const;
 
-	void				DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list );
+	void				DrawFaceList( drawPass_t& p, 
+							const std::vector< int32_t >& list );
 
-	void				DrawSurfaceList( const surfaceContainer_t& list, bool solid );
+	void				DrawSurfaceList( const surfaceContainer_t& list, 
+							bool solid );
 
-	void				DrawEffectPass( const drawTuple_t& data, drawCall_t callback );
+	void				DrawEffectPass( const drawTuple_t& data, 
+								drawCall_t callback );
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
 
@@ -267,7 +274,8 @@ public:
 	void		Update( float dt );
 };
 
-INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, const std::vector< int32_t >& list )
+INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, 
+	const std::vector< int32_t >& list )
 {
 	passDrawType_t defaultPass = p.drawType;
 

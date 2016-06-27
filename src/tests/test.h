@@ -33,7 +33,7 @@ public:
 	gContextHandles_t base;	
 
 	Test( int width, int height, bool fullscreen,
-	 	const char* readFilePath, onFinishEvent_t mapReadFinish = nullptr );
+	 	const char* bspFilePath, onFinishEvent_t mapReadFinish = nullptr );
 
 	virtual ~Test( void );
 
