@@ -10,6 +10,8 @@ namespace {
 
 	INLINE gProgramHandle_t AddProgram( Program* p )
 	{
+		if ( CompareMaps(  ) )
+
 		gProgramHandle_t h =
 		{
 			( uint32_t ) gProgramStorage.size()
@@ -25,8 +27,6 @@ namespace {
 		if ( p.size() != q.size() )
 			return false;
 
-		std::unordered_map< std::string, uint8_t > vals;
-
 		for ( const auto& pIterator: p )
 		{
 			bool found = false;
@@ -34,14 +34,8 @@ namespace {
 			{
 				if ( pIterator.first == qIterator.first )
 				{
-					// Only early out if we haven't actually come across this (successful) comparison
-					// yet, otherwise we duplicate successes and eliminate the potential for a valid find
-					if ( vals.find( pIterator.first ) == vals.end() )
-					{
-						vals[ pIterator.first ] = 1;
-						found = true;
-						break;
-					}
+					found = true;
+					break;
 				}
 			}
 
@@ -53,7 +47,7 @@ namespace {
 			}
 		}
 
-		return vals.size() == p.size();
+		return true;
 	}
 }
 

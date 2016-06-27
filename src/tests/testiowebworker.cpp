@@ -8,31 +8,6 @@
 #include "renderer/context_window.h"
 #include "effect_shader.h"
 
-static gContextHandles_t gContext( 800, 600, false );
-
-struct gDrawTest_t
-{
-	gTextureHandle_t mainHandle, shaderHandle;
-	gSamplerHandle_t sampler;
-
-	gDrawTest_t( gImageParamList_t& mainImages,
-		gImageParamList_t& shaderImages,
-		gSamplerHandle_t sampler )
-	{
-		UNUSED( shaderImages );
-
-		{
-			gTextureMakeParams_t makeParams( mainImages,
-					sampler, 0 );	
-			mainHandle = GMakeTexture(makeParams);
-			
-			MLOG_ASSERT( !G_HNULL(mainHandle), 
-					"mainHandle is NULL" ); 
-		}
-		
-	}
-};
-
 static void OnFrameIteration( void )
 {
 	static volatile int k = 0;
