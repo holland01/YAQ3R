@@ -1188,3 +1188,55 @@ or just use a global raw pointer.
 You have extension checking/resolution happening in both the worker thread and the main thread. This is pointless, so eliminate
 the main thread usage (the worker thread check/resolution is more efficient because it prevents the need for more
 async calls).
+
+**6/26/16**
+
+There was a problem with WAPI_Fetch32 returning -1 when it should have been returning 0, async_image_io's OnImageRead(). The positioning
+of the offset/size arguments were switched: the offset argument
+was interpreted as the size and vice-versa. 
+
+Removed excess Fallback code in OnImageRead() as well. Now, 
+the images can actually start being allocated on the GPU. 
+
+#### Additional
+
+* Don't forget to handle G_TEXTURE_STORAGE_KEY_MAPPED_BIT
+in the images which come from the gImageLoadTracker_t struct:
+the reason for this is that the tracker has support
+which was built into it a while ago, and you need
+to use that as a means for either the shaders
+or the main...
+
+* It may be useful to automatically check for equivalent programs (by address and by value)
+within the program table while a new given program is about to be inserted, and then
+just return the already existing one. The downside with this is that the Program
+object would already be dynamically allocated, which would add burden to the caller. 
+
+Something better (to prevent this kind of burden) would be to remove the addition of 
+a program object directly, and instead provide constructor parameters (vshader,
+fshader, uniforms, attribs, etc.) in addition to the bsp shader program.
+
+If there isn't an exact program already in the table which holds
+these values, then the program can be inserted. Otherwise,
+if an already existing member is returned to the caller,
+the caller wouldn't have to manually free anything...
+
+**8/10/2016**
+
+An exception is thrown here:
+
+(line 2582)
+	function _glCreateShader(shaderType) {
+      var id = GL.getNewId(GL.shaders);
+      GL.shaders[id] = GLctx.createShader(shaderType);
+      return id;
+    }
+
+
+The issue is that GLctx doesn't exist. All breakpoints
+involving code which actually assigns to the GLctx variable
+aren't executed, so it looks like the context isn't properly initialized...
+or, it could be a driver issue of some sort (trying nvidia's WebGL
+implementation might be useful). 
+
+Assume that it's just not being initialized, though. 

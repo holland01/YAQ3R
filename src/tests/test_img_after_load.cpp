@@ -67,6 +67,8 @@ struct gDrawTest_t
 			};
 
 			Program* p = new Program( vertex, fragment, uniforms, attribs );
+		
+			UNUSED(p);
 		}
 	}
 };
