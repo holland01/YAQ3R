@@ -20,6 +20,9 @@ static void OnMapReadFin( void* nullParam )
 	gAppTest->Exec();
 }
 
+static std::string gTmpBspPath;
+static onFinishEvent_t gTmpMapReadFinish = nullptr;
+
 static void OnFrameIteration( void )
 {
 	if ( !gAppTest )
@@ -48,18 +51,26 @@ Test::Test( int w, int h, bool fullscreen_,
 	  lastMouseY( 0.0f ),
 	  base( w, h, fullscreen_ )
 {
+	if ( bspFilePath )
+	{
+		gTmpBspPath = bspFilePath;
+	}
+
+
+	if ( mapReadFinish ) 
+	{
+		gTmpMapReadFinish = mapReadFinish;	
+	}
+	else
+	{
+		gTmpMapReadFinish = OnMapReadFin;
+	}
+
+
 #if defined( EMSCRIPTEN )
 	EM_MountFS();
 #endif
-	if ( bspFilePath )
-	{
-		if ( !mapReadFinish )
-		{
-			mapReadFinish = OnMapReadFin;
-		}
-		
-		map.Read( std::string( bspFilePath ), 1, mapReadFinish );
-	}
+	
 }
 
 Test::~Test( void )
@@ -72,6 +83,11 @@ bool Test::Load( const char* winName )
 	if ( !GInitContextWindow( winName, base ) )
 	{
 		return false;
+	}
+
+	if ( !gTmpBspPath.empty() )
+	{		
+		map.Read( gTmpBspPath, 1, gTmpMapReadFinish );
 	}
 
 	GLoadVao();
@@ -87,11 +103,14 @@ int Test::Exec( void )
 {
 	if ( !base.window )
 	{
+		MLOG_ERROR( "NO window returned! Bailing..." );
 		return 1;
 	}
+
 #ifdef EMSCRIPTEN
 	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
 #else
+	
 	float lastTime = 0.0f;
 
 	while( base.running )

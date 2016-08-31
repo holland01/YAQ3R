@@ -17,15 +17,19 @@ bool GInitContextWindow( const char* title,
 	SDL_CreateWindowAndRenderer( handles.width, handles.height, 
 			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE, 
 			&handles.window, &handles.renderer );
-	
+
+	if ( !handles.window ) 
+	{
+		goto sdl_failure;	
+	}
+
 	SDL_SetWindowTitle( handles.window, title );
 
 	handles.context = SDL_GL_CreateContext( handles.window );
 
 	if ( !handles.context )
 	{
-		MLOG_ERROR( "SDL_Error: %s", SDL_GetError() );
-		return false;
+		goto sdl_failure;	
 	}
 
 #ifndef EMSCRIPTEN
@@ -48,6 +52,10 @@ bool GInitContextWindow( const char* title,
 	glGetError();
 
 	return true;
+
+sdl_failure:
+	MLOG_ERROR( "SDL_Error: %s", SDL_GetError() );
+	return false;	
 }
 
 }

@@ -717,7 +717,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	const char* end = ( const char* ) &buffer[ size - 1 ];
 	ptrdiff_t range = ( ptrdiff_t )( end - pChar );
 
-	while ( *pChar && range > 0 )
+	while ( range > 0 )
 	{
 		shaderInfo_t entry;
 
@@ -824,7 +824,8 @@ void S_LoadShaders( Q3BspMap* map )
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
 #if defined( EM_USE_WORKER_THREAD )
-	gFileWebWorker.Await( OnShaderRead, "TraverseDirectory", shaderRootDir, map );
+	gFileWebWorker.Await( OnShaderRead,
+		"TraverseDirectory", shaderRootDir, map );
 #else
 	{
 		parseArgs_t::map = map;

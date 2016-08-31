@@ -1225,7 +1225,7 @@ the caller wouldn't have to manually free anything...
 
 An exception is thrown here:
 
-(line 2582)
+(line 7568)
 	function _glCreateShader(shaderType) {
       var id = GL.getNewId(GL.shaders);
       GL.shaders[id] = GLctx.createShader(shaderType);
@@ -1240,3 +1240,15 @@ or, it could be a driver issue of some sort (trying nvidia's WebGL
 implementation might be useful). 
 
 Assume that it's just not being initialized, though. 
+
+**8/12/2016**
+
+After enabling the context creation (it wasn't being creation
+when it should have been), a memory limit of over 1 GB is reached.
+
+This is a fucking joke, and shouldn't be ignored. Plenty of
+memory is available, so there's no need to grow the memory
+buffer. That said, anything which can be deallocated after init
+SHOULD be deallocated after init. Furthermore, there may be
+a means for implementing some kind of emulated memory
+mapping through the browser's client/data store.

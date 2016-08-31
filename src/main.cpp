@@ -30,10 +30,11 @@ void FlagExit( void )
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
 
-
+/*
 #ifdef EMSCRIPTEN
 #	define IOTEST
 #endif
+*/
 
 int main( void )
 {
@@ -41,19 +42,13 @@ int main( void )
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
-#if defined( EMSCRIPTEN )
-#	if defined( IOTEST )
+#if defined( EMSCRIPTEN ) && defined( IOTEST )
 	IOTestWebWorker test;
 	return test();
-#	else
-	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/Railgun_Arena.bsp" );
-	return 0;
-#	endif // IOTEST
 #else
 	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/q3dm2.bsp" );
-
+	gAppTest->Load();
 	int code = gAppTest->Exec();
-
 	FlagExit();
 
 	return code;
