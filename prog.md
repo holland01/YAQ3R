@@ -1086,7 +1086,7 @@ $15 = ($1 - $12)
 **6/10/16**
 
 Decided to take a look at it from a higher level. So far, it looks like that, while
-the second-to-last image path fails, the OnImageRead function isn't called at all, 
+the second-to-last image path fails, the OnImageRead function isn't called at all,
 so it's not possible to recover via a fallback extension - this is also weird.
 
 So, what needs to be figured out is why OnImageRead isn't being called (the emscripten_worker_respond()
@@ -1098,20 +1098,20 @@ The problem is that the actual fopen call in the web worker function (via gFIOCh
 doesn't have any idea of a fallback extension mechanism incorporated for file paths which it can't
 initially find. So, this will need to be passed as part of the stream of data.
 
-The next step is to map a binary search into the find mechanism for the file format, 
+The next step is to map a binary search into the find mechanism for the file format,
 considering that it will actually prove much more useful that way. Each index of i "points"
-to an inner array of elements which will be 2^i in length. 
+to an inner array of elements which will be 2^i in length.
 
 **Update**
 
-Added a quick fix to see whether or not the issue was solely based on lack of falling back to jpeg. 
+Added a quick fix to see whether or not the issue was solely based on lack of falling back to jpeg.
 It did indeed help, quite a bit. There's _still_ some major free issues going on, though.
 
-The free function fails at a comparison between two addresses; if they aren't equal, then an 
+The free function fails at a comparison between two addresses; if they aren't equal, then an
 abort() is called. What's weird is that these two addresses are like a gigabyte apart from
 each other. To make things more interesting, the higher addresses are actually odd and not
 four byte aligned. So, it seems like the design is setup so that there's a circular
-reference going on and that circular reference isn't being properly hit due to 
+reference going on and that circular reference isn't being properly hit due to
 some kind of memory corruption. The circular reference involves
 the base of the pointer referring to a specific address (at 8 bytes from
 its base). This address it refers to in turn has an offset which
@@ -1139,7 +1139,7 @@ parameter. This was the reason for the duplicates.
 
 I'm beginning to think the memory corruption is the result of having
 a lot of print statements going on when the files are being loaded:
-I wouldn't be surprised if the excess file IO coupled with the 
+I wouldn't be surprised if the excess file IO coupled with the
 in-browser logging is really screwing things up. This has happened
 before with some of Emscripten's Python utilities - albeit,
 it was strictly during compilation and not at runtime, so
@@ -1164,15 +1164,15 @@ look like garbage data which is construed with random asset titles.)
 **6/25/16**
 
 Above issues are fixed. Still not sure how much overhead the console logging
-incurs in the debug build, though. 
+incurs in the debug build, though.
 
 Either way, here's the thing: the unnecessary repetition in file reading was due to a parsing error in the buffer
-which mistakenly told the IP it needed to re-read the image using a fallback extension. 
+which mistakenly told the IP it needed to re-read the image using a fallback extension.
 
 Furthermore, when nothing but blank paths were being read in the infinite (async) loop, this was due to the fact that
 right before the shader gImageTracker was destroyed, the main texture async image read is called; this
 totally overwrote gImageTracker, given its memory release that occurs after the finish function (the main texture load, in this case)
-is called. In between the finish call and the deallocation is the re-initialization of the AIIO module. So, 
+is called. In between the finish call and the deallocation is the re-initialization of the AIIO module. So,
 when the gImageTracker is deleted after the finish call, its deleting the instance that was meant for the main
 texture load as opposed to its original instance that was meant for the shader load (what it should be deleting).
 
@@ -1181,7 +1181,7 @@ It sounds like this could cause more issues further the down the road, so the be
 is to have the finishEvent() function do the actual free, considering that the tracker pointer is actually passed to it.
 The problem, though, is that the _pointer_ is passed to it - not its unique_ptr wrapper. So, either modify
 the function sig to accept a unique_ptr (if done then this will be needed for the gImageTracker->insertEvent() pointer as well),
-or just use a global raw pointer. 
+or just use a global raw pointer.
 
 #### Additional
 
@@ -1193,10 +1193,10 @@ async calls).
 
 There was a problem with WAPI_Fetch32 returning -1 when it should have been returning 0, async_image_io's OnImageRead(). The positioning
 of the offset/size arguments were switched: the offset argument
-was interpreted as the size and vice-versa. 
+was interpreted as the size and vice-versa.
 
-Removed excess Fallback code in OnImageRead() as well. Now, 
-the images can actually start being allocated on the GPU. 
+Removed excess Fallback code in OnImageRead() as well. Now,
+the images can actually start being allocated on the GPU.
 
 #### Additional
 
@@ -1210,9 +1210,9 @@ or the main...
 * It may be useful to automatically check for equivalent programs (by address and by value)
 within the program table while a new given program is about to be inserted, and then
 just return the already existing one. The downside with this is that the Program
-object would already be dynamically allocated, which would add burden to the caller. 
+object would already be dynamically allocated, which would add burden to the caller.
 
-Something better (to prevent this kind of burden) would be to remove the addition of 
+Something better (to prevent this kind of burden) would be to remove the addition of
 a program object directly, and instead provide constructor parameters (vshader,
 fshader, uniforms, attribs, etc.) in addition to the bsp shader program.
 
@@ -1237,9 +1237,9 @@ The issue is that GLctx doesn't exist. All breakpoints
 involving code which actually assigns to the GLctx variable
 aren't executed, so it looks like the context isn't properly initialized...
 or, it could be a driver issue of some sort (trying nvidia's WebGL
-implementation might be useful). 
+implementation might be useful).
 
-Assume that it's just not being initialized, though. 
+Assume that it's just not being initialized, though.
 
 **8/12/2016**
 
@@ -1252,3 +1252,13 @@ buffer. That said, anything which can be deallocated after init
 SHOULD be deallocated after init. Furthermore, there may be
 a means for implementing some kind of emulated memory
 mapping through the browser's client/data store.
+
+
+**8/31/2016**
+
+- NOTE: there should be a filter before files are read;
+the fact that the file is read in entirely before passing it
+to the shader parser, for example, before even validating
+whether or not the file is in fact a shader, is dumb
+
+

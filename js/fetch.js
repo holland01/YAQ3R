@@ -102,7 +102,11 @@ function beginFetch(proxy, path, size, strPortNum) {
 	var packages = [];
 
 	if (strPortNum) {
-		strPortNum = UTF8ToString(strPortNum);	
+		if (typeof(strPortNum) === typeof(0)) {
+			strPortNum = UTF8ToString(strPortNum);
+		} else if (typeof(strPortNum) !== 'string') {
+			throw 'invalid value received for the server port';
+		}
 	} else {
 		strPortNum = null;
 	}

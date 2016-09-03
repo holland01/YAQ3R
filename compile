@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd build
-echo $(./gen_workers.sh)
+./gen_workers.sh
 cd ..
 
 CMD=make
@@ -12,6 +12,8 @@ do
 		CMD="${CMD} RELEASE=1"
 	elif [ ${var} = "-mode=DEBUG" ]; then
 		CMD="${CMD} DEBUG=1"
+	elif [ ${var} = "-mode=DEBUG_RELEASE"]; then
+		CMD="${CMD} DEBUG_RELEASE=1"
 	elif [ ${var} = "-clean=1" ]; then
 		echo $(make clean)
 	fi

@@ -22,27 +22,29 @@ OFILES := $(OBJFILES:%=obj/%.$(LFORMAT))
 
 BINFILE = bspviewer.html
 
-COMMONFLAGS = --separate-asm -Wall -Wextra -pedantic -Werror \
+COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
  -Wno-dollar-in-identifier-extension \
+ -Wno-unused-function \
  -Isrc -Isrc/extern -s SAFE_HEAP=1
+
+ifdef DEBUG_RELEASE
+	COMMONFLAGS := $(COMMONFLAGS) -DDEBUG_RELEASE	
+endif
 
 DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
-  -Wno-unused-parameter -g2 -s ASSERTIONS=2
+  -Wno-unused-parameter -g2
 
 LDFLAGS = --emrun --profiling-funcs
-LDO = -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=734003200
+LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=1073741824 #-s EMTERPRETIFY=1 \
+ -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST='["_main"]' -s 'EMTERPRETIFY_FILE="code.dat"'
 
 ifdef PRELOAD_ALL_ASSETS
 	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_all@
 else
 	LDFLAGS := $(LDFLAGS) --preload-file asset_preload_log@
 	COMMONFLAGS := $(COMMONFLAGS) -DASYNC_FILE_TRAVERSAL
-endif
-
-ifdef COMPRESS
-LDO := -s LZ4=1 $(LDO)
 endif
 
 ifdef DEBUG
