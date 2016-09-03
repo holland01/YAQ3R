@@ -1,5 +1,10 @@
-function xhrSnagFromName(exts, key, name, next, param,
-	packages, bundlePairIndex, threshold, portNumber) {
+function BundleLoader() {
+		
+}
+
+
+function xhrSnagFromName(exts, key, name, events, param,
+	packages, bundlePairIndex, threshold, portNumber, eventIndex) {
 
 	// 6931 is the default port provided by emscripten
 	var portStr = (!!portNumber ? portNumber.toString() : '6931');
@@ -17,45 +22,57 @@ function xhrSnagFromName(exts, key, name, next, param,
 		if (xhr.readyState === XMLHttpRequest.DONE) {
 			console.log('status 200; writing response: ', xhr.response);
 			param[exts[key]['param']] = xhr.response;
-			if (next.length > 0) {
-				f = next.shift();
-				f(next, exts, name, packages, param, bundlePairIndex,
-					threshold);
+			if (eventIndex < events.length) {
+				f = events[eventIndex];
+				f(events, exts, name, packages, param, bundlePairIndex,
+					threshold, eventIndex);
 			}
 		}
 	});
 	xhr.send();
 }
+
+var funcEvents = [
+	function(events, exts, name, packages, param, bpi, threshold, eventIndex){
+		xhrSnagFromName(exts, '.data', name, events, param,
+			packages, bpi, threshold, port, eventIndex + 1);
+	},
+	function(events, exts, name, packages, param, bpi, threshold, eventIndex){
+		xhrSnagFromName(exts, '.js.metadata', name, events, param,
+			packages, bpi, threshold, port, eventIndex + 1);
+	},
+	function(events, exts, name, packages, param, bpi, threshold, eventIndex) {
+		packages.push(param);
+		if (bpi !== threshold) {
+			return;	
+		}
+
+		console.log('the last is hit');
+
+	}
+];
+
 function fetchBundleAsync(names, finished, exts, packages, threshold, port) {
 	console.log('Loading bundles with the following names: ', JSON.stringify(names));
 	var params = new Array(names.length);
 	for (var i = 0; i < names.length; ++i) {
 		params[i] = {metadata:null, blob: null};
 	}
-
-	var funcEvents = [
-		function(next, exts, name, packages, param, bpi, threshold){
-			xhrSnagFromName(exts, '.data', name, next, param,
-				packages, bpi, threshold, port);
-		},
-		function(next, exts, name, packages, param, bpi, threshold){
-			xhrSnagFromName(exts, '.js.metadata', name, next, param,
-				packages, bpi, threshold, port);
-		},
-		function(next, exts, name, packages, param, bpi, threshold) {
-			packages.push(param);
-			if (bpi === threshold) {
-				console.log('the last is hit');
-				finished(packages);
-			}
-		}
-	];
-
-
+	
+/*
 	for (var i = 0; i < names.length; ++i) {	
-		xhrSnagFromName(exts, '.data', names[i], funcEvents, params[i],
-			packages, i, names.length - 1, port);
+		xhrSnagFromName(exts, 
+				'.data', 
+				names[i], 
+				funcEvents, 
+				params[i],
+				packages, i, 
+				names.length - 1,
+				port, 
+				0				// event index
+		);
 	}
+*/
 }
 function beginFetch(proxy, path, size, strPortNum) {	
 	var bundles = [
