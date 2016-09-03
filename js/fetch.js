@@ -1,12 +1,16 @@
 function xhrSnagFromName(exts, key, name, next, param,
-	packages, bundlePairIndex, threshold) {
+	packages, bundlePairIndex, threshold, portNumber) {
+
+	// 6931 is the default port provided by emscripten
+	var portStr = (!!portNumber ? portNumber.toString() : '6931');
+
 	var xhr = new XMLHttpRequest();
-	var url = 'http://localhost:6931/bundle/' + name + key;
+	var url = 'http://localhost:' + portStr + '/bundle/' + name + key;
 	console.log('Loading ', url, '...');
 	xhr.open('GET', url);
 	xhr.responseType = exts[key]['type'];
 	xhr.setRequestHeader('Access-Control-Allow-Origin',
-		'http://localhost:6931');
+		'http://localhost:' + portStr);
 	xhr.addEventListener('readystatechange', function(evt) {
 		console.log('XHR Ready State: ' + xhr.readyState
 			+ 'XHR Status: ' + xhr.status);
@@ -22,45 +26,60 @@ function xhrSnagFromName(exts, key, name, next, param,
 	});
 	xhr.send();
 }
-function fetchBundleAsync(names, finished, exts, packages, threshold) {
+function fetchBundleAsync(names, finished, exts, packages, threshold, port) {
 	console.log('Loading bundles with the following names: ', JSON.stringify(names));
 	var params = new Array(names.length);
 	for (var i = 0; i < names.length; ++i) {
 		params[i] = {metadata:null, blob: null};
 	}
-	for (var i = 0; i < names.length; ++i) {
-		var funcEvents = [
-			function(next, exts, name, packages, param, bpi, threshold){
-				xhrSnagFromName(exts, '.data', name, next, param,
-					packages, bpi, threshold);
-			},
-			function(next, exts, name, packages, param, bpi, threshold){
-				xhrSnagFromName(exts, '.js.metadata', name, next, param,
-					packages, bpi, threshold);
-			},
-			function(next, exts, name, packages, param, bpi, threshold) {
-				packages.push(param);
-				if (bpi === threshold) {
-					console.log('the last is hit');
-					finished(packages);
-				}
+
+	var funcEvents = [
+		function(next, exts, name, packages, param, bpi, threshold){
+			xhrSnagFromName(exts, '.data', name, next, param,
+				packages, bpi, threshold, port);
+		},
+		function(next, exts, name, packages, param, bpi, threshold){
+			xhrSnagFromName(exts, '.js.metadata', name, next, param,
+				packages, bpi, threshold, port);
+		},
+		function(next, exts, name, packages, param, bpi, threshold) {
+			packages.push(param);
+			if (bpi === threshold) {
+				console.log('the last is hit');
+				finished(packages);
 			}
-		];
+		}
+	];
+
+
+	for (var i = 0; i < names.length; ++i) {	
 		xhrSnagFromName(exts, '.data', names[i], funcEvents, params[i],
-			packages, i, names.length - 1);
+			packages, i, names.length - 1, port);
 	}
 }
-function beginFetch(proxy, path, size) {
-	var bundles = [['sprites', 'gfx'],['scripts', 'maps'],['textures', 'env']];
+function beginFetch(proxy, path, size, strPortNum) {	
+	var bundles = [
+		['sprites', 'gfx'],
+		['scripts', 'maps'],
+		['textures', 'env'], 
+		['models']
+	];
 	var fetchCount = 0;
 	function onFinish(packagesRef) {
 		fetchCount++;
 		console.log('fetch count: ', fetchCount);
 		if (fetchCount === bundles.length) {
+			console.log("HEAP BEFORE: ", DYNAMICTOP);
+			
+			
 			FS.mkdir('/working');
 			FS.mount(WORKERFS, {
 				packages: packagesRef },
 				'/working');
+
+			console.log("HEAP AFTER: ", DYNAMICTOP);
+
+
 			var stack = Runtime.stackSave();
 			Runtime.dynCall('vii', proxy, [path, size]);
 			Runtime.stackRestore(stack);
@@ -81,9 +100,16 @@ function beginFetch(proxy, path, size) {
 		}
 	};
 	var packages = [];
+
+	if (strPortNum) {
+		strPortNum = UTF8ToString(strPortNum);	
+	} else {
+		strPortNum = null;
+	}
+
 	for (var i = 0; i < bundles.length; ++i) {
 		fetchBundleAsync(bundles[i], onFinish, exts, packages,
-			bundles.length - 1);
+			bundles.length - 1, strPortNum);
 	}
 }
 function walkFileDirectory(pathPtr, callbackPtr, errPtr) {

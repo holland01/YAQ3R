@@ -2,7 +2,9 @@
 
 #define ASSET_Q3_ROOT "asset"
 
-#ifndef EMSCRIPTEN
+#if defined( EMSCRIPTEN )
+#	define EM_SERV_ASSET_PORT "6931"
+#else
 #	define _DEBUG_USE_GL_GET_ERR
 #endif
 

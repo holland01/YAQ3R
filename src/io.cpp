@@ -360,7 +360,7 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 	WIN32_FIND_DATAA findFileData;
 	HANDLE file;
 
-	char slash;
+	char slash = '\\';
 	if ( NeedsTrailingSlash( directory, slash ) )
 		directory.append(1, slash);
 
@@ -379,7 +379,8 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 
 #elif defined( __linux__ )
 
-	gLinuxCallback = [ & ]( const char* fpath, const struct stat* sb, int typeFlag ) -> int
+	gLinuxCallback = [ & ]( const char* fpath,
+		const struct stat* sb, int typeFlag ) -> int
 	{
 		UNUSED( sb );
 		UNUSED( typeFlag );
@@ -437,7 +438,9 @@ bool File_GetPixels( const std::string& filepath,
 	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight )
 {
 	// Load image
-	// Need to also flip the image, since stbi loads pointer to upper left rather than lower left (what OpenGL expects)
+	// Need to also flip the image, since stbi
+	// loads pointer to upper left rather than
+	// lower left (what OpenGL expects)
 	uint8_t* imagePixels = stbi_load( filepath.c_str(), &outWidth, &outHeight, &outBpp,
 		STBI_default );
 

@@ -7,7 +7,7 @@
 #include <memory>
 #include <assert.h>
 #include "wapi.h"
-#include "../commondef.h"
+#include "commondef.h"
 #include <extern/stb_image.h>
 
 void TestFile( unsigned char* path )
@@ -58,9 +58,12 @@ static void OnLoad( void* arg, void* data, int size )
 	memcpy( &copyData[ 0 ], data, size );
 	emscripten_run_script( &copyData[ 0 ] );
 
+	const char* port = EM_SERV_ASSET_PORT;
+
 	EM_ASM_({
-		self.beginFetch($0, $1, $2 );
-	}, args->proxy, args->data, args->size );
+		self.beginFetch($0, $1, $2, $3);
+	}, args->proxy, args->data, args->size,
+		port );
 }
 
 static bool InitSystem( callback_t proxy, char* data, int size )
@@ -72,8 +75,18 @@ static bool InitSystem( callback_t proxy, char* data, int size )
 		memset( dup, 0, size + 1 );
 		memcpy( dup, data, size );
 		gTmpArgs.reset( new asyncArgs_t( proxy, dup, size ) );
-		emscripten_async_wget_data( "http://localhost:6931/js/fetch.js",
-			 ( void* ) gTmpArgs.get(), OnLoad, OnError );
+		
+		const char* port = EM_SERV_ASSET_PORT;
+	
+		char urlString[ 36 ];
+		memset( urlString, 0, sizeof( urlString ) );
+		
+		strncat( urlString, "http://localhost:", 17 );
+		strncat( urlString, port, 4 );
+		strncat( urlString, "/js/fetch.js", 12 );
+
+		emscripten_async_wget_data( urlString, ( void* ) gTmpArgs.get(), 
+				OnLoad, OnError );
 
 		gInitialized = true;
 		return false;
@@ -91,12 +104,12 @@ struct file_t
 {
 	FILE* ptr;
 
-	std::vector< unsigned char > readBuff;	
+	std::vector< unsigned char > readBuff;
 
 	file_t( const std::string& path )
 		: ptr( nullptr )
 	{
-		Open( path );	
+		Open( path );
 	}
 
 	operator bool ( void ) const
@@ -112,7 +125,7 @@ struct file_t
 		}
 
 		ptr = fopen( path.c_str(), "rb" );
-	
+
 		printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
 	}
 
@@ -147,7 +160,7 @@ struct file_t
 		// not improve things since it's in a VM but w/e)
 		if ( ( ( target >> 2 ) << 2 ) != target ) // same as target % 4 != 0
 		{
-			int next = target & ( ~3 );	
+			int next = target & ( ~3 );
 			next += 4;
 			target = next;
 		}
@@ -174,20 +187,11 @@ struct file_t
 		{
 			return false;
 		}
-
-		if ( !readBuff.empty() )
-		{
-			memset( &readBuff[ 0 ], 0, readBuff.size() * 
-				sizeof( unsigned char ) );
-		}
-
-		if ( readBuff.size() < size )
-		{
-			readBuff.resize( size, 0 );
-		}
-
+		
+		readBuff.resize( size, 0 );
 		fseek( ptr, offset, SEEK_SET );
 		fread( &readBuff[ 0 ], size, 1, ptr );
+		readBuff.clear();
 
 		return true;
 	}
@@ -197,17 +201,10 @@ struct file_t
 		if ( !ptr )
 		{
 			return false;
-		}
-
-		readBuff.clear();
+		}	
 
 		fseek( ptr, 0, SEEK_END );
-		readBuff.resize( ftell( ptr ), 0 );
-		rewind( ptr );
-
-		fread( &readBuff[ 0 ], readBuff.size(), 1, ptr );
-
-		return true;
+		return Read( 0, ftell( ptr ) );			
 	}
 
 	void Send( void ) const
@@ -246,7 +243,7 @@ static INLINE std::string FullPath( const char* path )
 static INLINE bool GetExt( const std::string& name, std::string& outExt )
 {
 	size_t index = name.find_last_of( '.' );
-	
+
 	if ( index == std::string::npos )
 	{
 		return false;
@@ -273,7 +270,7 @@ static std::string ReplaceExt( const std::string& path, const std::string& ext )
 {
 	std::string f( StripExt( path ) );
 	f += ext;
-	return f;	
+	return f;
 }
 
 static INLINE void FailOpen( const char* path )
@@ -324,6 +321,8 @@ static void TraverseDirectory_Read( char* path, int size )
 		gFIOChain->readBuff.size() );
 	buffer[ size ] = '|'; // <- delim
 
+	gFIOChain.release();
+
 	emscripten_worker_respond_provisionally( &buffer[ 0 ],
 	 	buffer.size() );
 }
@@ -352,11 +351,11 @@ static void ReadImage_Proxy( char* path, int size )
 {
 	std::string full( FullPath( path ) );
 
-	gFIOChain.reset( new file_t( full ) );	
+	gFIOChain.reset( new file_t( full ) );
 
 	if ( !( *gFIOChain ) )
-	{	
-		std::array< std::string, 3 > candidates = 
+	{
+		std::array< std::string, 3 > candidates =
 		{
 			".jpg", ".tga", ".jpeg"
 		};
@@ -365,9 +364,9 @@ static void ReadImage_Proxy( char* path, int size )
 		bool hasExt = GetExt( full, firstExt );
 
 		for ( size_t i = 0; i < candidates.size(); ++i )
-		{	
+		{
 			if ( hasExt && firstExt == candidates[ i ] )
-			{	
+			{
 				continue;
 			}
 

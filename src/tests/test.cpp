@@ -12,7 +12,7 @@
 
 Test* gAppTest = nullptr;
 
-static void OnMapReadFin( void* nullParam )
+static void DefaultOnMapReadFin( void* nullParam )
 {
 	UNUSED( nullParam );
 
@@ -43,8 +43,8 @@ static void OnFrameIteration( void )
 
 Test::Test( int w, int h, bool fullscreen_,
 	const char* bspFilePath, onFinishEvent_t mapReadFinish )
-	: deltaTime( 0.0f ), 
-	  camPtr( nullptr ), 
+	: deltaTime( 0.0f ),
+	  camPtr( nullptr ),
 	  mouseX( 0.0f ),
 	  mouseY( 0.0f ),
 	  lastMouseX( 0.0f ),
@@ -56,21 +56,20 @@ Test::Test( int w, int h, bool fullscreen_,
 		gTmpBspPath = bspFilePath;
 	}
 
-
-	if ( mapReadFinish ) 
+	if ( mapReadFinish )
 	{
-		gTmpMapReadFinish = mapReadFinish;	
+		gTmpMapReadFinish = mapReadFinish;
 	}
 	else
 	{
-		gTmpMapReadFinish = OnMapReadFin;
+		gTmpMapReadFinish = DefaultOnMapReadFin;
 	}
 
 
 #if defined( EMSCRIPTEN )
 	EM_MountFS();
 #endif
-	
+
 }
 
 Test::~Test( void )
@@ -86,7 +85,7 @@ bool Test::Load( const char* winName )
 	}
 
 	if ( !gTmpBspPath.empty() )
-	{		
+	{
 		map.Read( gTmpBspPath, 1, gTmpMapReadFinish );
 	}
 
@@ -110,7 +109,7 @@ int Test::Exec( void )
 #ifdef EMSCRIPTEN
 	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
 #else
-	
+
 	float lastTime = 0.0f;
 
 	while( base.running )
