@@ -141,7 +141,7 @@ AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port) {
 	var loader = new AL.BundleLoader(
 		AL.getMaybeCString(bundleName), {
 			proxy: callback,
-			path: AL.getMaybeCString(path),
+			path: path,
 			size: pathLength,
 			port: port
 		}

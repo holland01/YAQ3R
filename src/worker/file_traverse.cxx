@@ -295,13 +295,17 @@ static INLINE void FailOpen( const std::string& path )
 	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
-static INLINE bool GetBundleName( std::string& bundleName, char* data, int size )
+static INLINE bool SplitDataWithBundle( std::string& bundleName, std::vector< char >& chopData, 
+		char* data, int size )
 {
 	int i;
 	for ( i = 0; i < size; ++i ) {
 		if ( data[i] == AL_STRING_DELIM ) {
 			bundleName = std::string( data, i );	
 			printf( "Bundle Name Found: %s\n", bundleName.c_str() );
+			
+			chopData.resize( size - i + 1, 0 );	
+			memcpy( &chopData[ 0 ], data + i + 1, size - i );
 			return true;
 		}
 	}
@@ -328,21 +332,23 @@ static void SendFile_OnLoad( char* path, int size )
 static void ReadFile_Proxy( char* data, int size )
 {
 	std::string bundleName;	
+	
+	std::vector< char > remData;	
 
-	if ( !GetBundleName( bundleName, data, size ) ) 
+	if ( !SplitDataWithBundle( bundleName, remData, data, size ) ) 
 	{	
 		FailOpen( std::string( data, size ) );
 		return;
 	}	
 
-	const char* port = EM_SERV_ASSET_PORT;
-	
-	charBuff_t buffer( data, size  );
+	const char* port = EM_SERV_ASSET_PORT;	
+
+	printf( "Remaining Data: %s\n", &remData[ 0 ] );
 
 	EM_ASM_ARGS( {
 		self.fetchBundleAsync($0, $1, $2, $3, $4);		
 	}, bundleName.c_str(), SendFile_OnLoad, 
-	   buffer.data, buffer.size,
+	   &remData[ 0 ], remData.size() - 1, // don't include null term 
 	   port );	
 }
 
