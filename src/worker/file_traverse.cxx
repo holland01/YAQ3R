@@ -10,6 +10,8 @@
 #include "commondef.h"
 #include <extern/stb_image.h>
 
+#define AL_STRING_DELIM '|'
+
 void TestFile( unsigned char* path )
 {
 	char* strpath = ( char* )path;
@@ -21,36 +23,53 @@ typedef void ( *callback_t )( char* data, int size );
 
 static bool gInitialized = false;
 
-struct asyncArgs_t
+struct charBuff_t
 {
-	callback_t proxy; // what to call after the asynchronous fetch is successful
 	char* data;
-	int size; // in bytes
+	int size;
 
-	asyncArgs_t( callback_t proxy_, char* data_, int size_ )
-		: proxy( proxy_ ),
-		  data( data_ ),
-		  size( size_ )
-	{}
-
-	~asyncArgs_t( void )
+	charBuff_t( const char* data_, int size_ )
+		: 
+			data( nullptr ),
+			size( size_ )
 	{
-		if ( data )
+		if ( data_ ) 
 		{
-			delete data;
+			data = new char[ size + 1  ];
+			memset( data, 0, size + 1 );
+			memcpy( data, data_, size );
+		}
+	}
+
+	~charBuff_t( void )
+	{
+		if ( data ) 
+		{
+			delete[] data;	
 		}
 	}
 };
 
+struct asyncArgs_t
+{
+	callback_t proxy; // what to call after the asynchronous fetch is successful
+	charBuff_t buff;
+
+	asyncArgs_t( callback_t proxy_, char* data, int size )
+		: proxy( proxy_ ),
+		  buff( data, size )
+	{}
+};
+
 static std::unique_ptr< asyncArgs_t > gTmpArgs( nullptr );
 
-static void OnError( void* arg )
+static void InitSystem_OnError( void* arg )
 {
 	( void )arg;
 	puts( "emscripten_async_wget_data inject fetch failed" );
 }
 
-static void OnLoad( void* arg, void* data, int size )
+static void InitSystem_OnLoad( void* arg, void* data, int size )
 {
 	asyncArgs_t* args = ( asyncArgs_t* )arg;
 
@@ -58,35 +77,26 @@ static void OnLoad( void* arg, void* data, int size )
 	memcpy( &copyData[ 0 ], data, size );
 	emscripten_run_script( &copyData[ 0 ] );
 
-	const char* port = EM_SERV_ASSET_PORT;
-
-	EM_ASM_({
-		self.beginFetch($0, $1, $2, $3);
-	}, args->proxy, args->data, args->size,
-		port );
+	args->proxy( args->buff.data, args->buff.size );
 }
 
 static bool InitSystem( callback_t proxy, char* data, int size )
 {
 	if ( !gInitialized )
-	{
-		// see if we can figure out which bundle holds our data
-		char* dup = new char[ size + 1 ]();
-		memset( dup, 0, size + 1 );
-		memcpy( dup, data, size );
-		gTmpArgs.reset( new asyncArgs_t( proxy, dup, size ) );
-		
-		const char* port = EM_SERV_ASSET_PORT;
-	
+	{	
+		gTmpArgs.reset( new asyncArgs_t( proxy, data, size ) );	
+
 		char urlString[ 36 ];
 		memset( urlString, 0, sizeof( urlString ) );
-		
+	
+		const char* port = EM_SERV_ASSET_PORT;
+
 		strncat( urlString, "http://localhost:", 17 );
 		strncat( urlString, port, 4 );
 		strncat( urlString, "/js/fetch.js", 12 );
 
 		emscripten_async_wget_data( urlString, ( void* ) gTmpArgs.get(), 
-				OnLoad, OnError );
+				InitSystem_OnLoad, InitSystem_OnError );
 
 		gInitialized = true;
 		return false;
@@ -154,11 +164,9 @@ struct file_t
 
 		int target = width * height * bpp;
 		int original = target;
-
-		// Next level bit h4x so 1337 omg w0w
-		// (we just want a 32-bit word fetch; in all honesty this may or may
-		// not improve things since it's in a VM but w/e)
-		if ( ( ( target >> 2 ) << 2 ) != target ) // same as target % 4 != 0
+		
+		// Keep things aligned, if only for pedantry
+		if ( ( ( target >> 2 ) << 2 ) != target )
 		{
 			int next = target & ( ~3 );
 			next += 4;
@@ -240,6 +248,13 @@ static INLINE std::string FullPath( const char* path )
 	return absp;
 }
 
+static INLINE std::string FullPath( const char* path, int size )
+{
+	charBuff_t nullTermed( path, size );
+
+	return FullPath( nullTermed.data );
+}
+
 static INLINE bool GetExt( const std::string& name, std::string& outExt )
 {
 	size_t index = name.find_last_of( '.' );
@@ -273,27 +288,62 @@ static std::string ReplaceExt( const std::string& path, const std::string& ext )
 	return f;
 }
 
-static INLINE void FailOpen( const char* path )
+static INLINE void FailOpen( const std::string& path )
 {
 	uint32_t m = WAPI_FALSE;
-	printf( "fopen for \'%s\' failed\n", path );
+	printf( "fopen for \'%s\' failed\n", path.c_str() );
 	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
-static void ReadFile_Proxy( char* path, int size )
+static INLINE bool GetBundleName( std::string& bundleName, char* data, int size )
 {
+	int i;
+	for ( i = 0; i < size; ++i ) {
+		if ( data[i] == AL_STRING_DELIM ) {
+			bundleName = std::string( data, i );	
+			printf( "Bundle Name Found: %s\n", bundleName.c_str() );
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void SendFile_OnLoad( char* path, int size )
+{
+	puts("SendFile_OnLoad reached.");
+
 	gFIOChain.reset( new file_t( FullPath( path ) ) );
 
 	if ( *gFIOChain )
 	{
-		uint32_t m;
-		m = WAPI_TRUE;
-		emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
+		gFIOChain->Send();	
 	}
 	else
 	{
-		FailOpen( path );
+		FailOpen( std::string( path, size ) );
 	}
+}
+
+static void ReadFile_Proxy( char* data, int size )
+{
+	std::string bundleName;	
+
+	if ( !GetBundleName( bundleName, data, size ) ) 
+	{	
+		FailOpen( std::string( data, size ) );
+		return;
+	}	
+
+	const char* port = EM_SERV_ASSET_PORT;
+	
+	charBuff_t buffer( data, size  );
+
+	EM_ASM_ARGS( {
+		self.fetchBundleAsync($0, $1, $2, $3, $4);		
+	}, bundleName.c_str(), SendFile_OnLoad, 
+	   buffer.data, buffer.size,
+	   port );	
 }
 
 static void TraverseDirectory_Read( char* path, int size )
@@ -308,7 +358,7 @@ static void TraverseDirectory_Read( char* path, int size )
 
 	if ( !gFIOChain->Read() )
 	{
-		FailOpen( path );
+		FailOpen( std::string( path, size ) );
 		return;
 	}
 
@@ -319,7 +369,7 @@ static void TraverseDirectory_Read( char* path, int size )
 	memcpy( &buffer[ 0 ], path, size );
 	memcpy( &buffer[ size ], &gFIOChain->readBuff[ 0 ],
 		gFIOChain->readBuff.size() );
-	buffer[ size ] = '|'; // <- delim
+	buffer[ size ] = AL_STRING_DELIM; 
 
 	gFIOChain.release();
 
@@ -349,7 +399,9 @@ static void TraverseDirectory_Proxy( char* dir, int size )
 
 static void ReadImage_Proxy( char* path, int size )
 {
-	std::string full( FullPath( path ) );
+	std::string strPath( path, size );
+
+	std::string full( FullPath( path ) );	
 
 	gFIOChain.reset( new file_t( full ) );
 
@@ -381,14 +433,14 @@ static void ReadImage_Proxy( char* path, int size )
 
 		if ( !( *gFIOChain ) )
 		{
-			FailOpen( path );
+			FailOpen( strPath );
 			return;
 		}
 	}
 
 	if ( !gFIOChain->ReadImage() )
 	{
-		FailOpen( path );
+		FailOpen( strPath );
 		return;
 	}
 

@@ -489,12 +489,17 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 		DestroyMap();
 	}
 
+	std::string readParams( "maps|" );
+	readParams.append(filepath);
+
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;
 	name = File_StripExt( File_StripPath( filepath ) );
-	data.basePath = filepath.substr( 0, 
-		filepath.find_last_of( '/' ) ) + "/../";
-	File_QueryAsync( filepath, ReadBegin, this );
+	
+	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) 
+		+ "/../";
+	
+	File_QueryAsync( readParams, ReadBegin, this );
 }
 
 mapEntity_t Q3BspMap::GetFirstSpawnPoint( void ) const

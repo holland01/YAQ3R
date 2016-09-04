@@ -1,138 +1,159 @@
-function BundleLoader() {
-		
+/*
+	this.funcEvents = [
+		function(events, exts, name, packages, param, bpi, threshold, eventIndex){
+			xhrSnagFromName(exts, '.data', name, events, param,
+				packages, bpi, threshold, port, eventIndex + 1);
+		},
+		function(events, exts, name, packages, param, bpi, threshold, eventIndex){
+			xhrSnagFromName(exts, '.js.metadata', name, events, param,
+				packages, bpi, threshold, port, eventIndex + 1);
+		},
+		function(events, exts, name, packages, param, bpi, threshold, eventIndex) {
+			packages.push(param);
+			if (bpi !== threshold) {
+				return;	
+			}
+
+			console.log('the last is hit');
+
+		}
+	];
+	*/
+
+
+var AL = {};
+
+AL.bundleLoadPort = '6931';
+
+AL.DATA_DIR_NAME = 'working';
+AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, and/or on load finish callback';
+
+AL.fetchNode = function(pathName) {
+	var node = null;
+	try  {
+		node = FS.lookupNode(FS.root, pathName);		
+	} catch (e) {
+		if (e.code === 'ENOENT') {
+			FS.mkdir(FS.root.name + pathName);	
+			node = FS.lookupNode(FS.root, pathName);
+		} else {
+			throw e;
+		}
+	}
+	return node;
 }
 
+AL.mountPackages = function(packages) {
+	var node = AL.fetchNode(AL.DATA_DIR_NAME);
+	if (!FS.isMountpoint(node)) {
+		FS.mount(WORKERFS, {packages: packages}, 
+				'/' + AL.DATA_DIR_NAME);
 
-function xhrSnagFromName(exts, key, name, events, param,
-	packages, bundlePairIndex, threshold, portNumber, eventIndex) {
+	}
+}
 
-	// 6931 is the default port provided by emscripten
-	var portStr = (!!portNumber ? portNumber.toString() : '6931');
+AL.unmountPackages = function() {
+	var node = AL.fetchNode(DATA_DIR_NAME);
+	if (FS.isMountpoint(node)) {
+		FS.unmount('/' + AL.DATA_DIR_NAME);
+	}
+}
 
+AL.getMaybeCString = function(str) {
+	var ret = str;
+	if (typeof(str) === typeof(0)) {
+		ret = UTF8ToString(str);
+	} else if (typeof(str) !== 'string') {
+		throw 'Invalid string received';
+	}
+	return ret;
+}
+
+AL.setBundleLoadPort = function(port) {
+	AL.bundleLoadPort = AL.getMaybeCString(port);
+}
+
+AL.loadFinished = function(loader) {
+	AL.mountPackages([loader.packageRef]);
+
+	var stack = Runtime.stackSave();
+	Runtime.dynCall('vii', 
+			loader.params.proxy, 
+			[loader.params.path, 
+			 loader.params.size]);
+	Runtime.stackRestore(stack);
+}
+
+AL.BundleLoader = function(bundle, params) {
+	this.bundle = bundle;
+	this.packageRef = {metadata:null, blob:null};
+	this.fin = {metadata:false, blob:false};
+
+	if (!params || !params.size || !params.path || !params.proxy) {
+		throw BUNDLE_REQUIRED_PARAMS_EXCEPT;
+	}
+
+	if (params.port) {
+		AL.setBundleLoadPort(params.port);
+	}
+
+	this.params = params;
+}
+
+AL.BundleLoader.prototype.load = function() {
+	this.xhrRequest('blob', 'blob', '.data');
+	this.xhrRequest('json', 'metadata', '.js.metadata');	
+}
+
+AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) {
 	var xhr = new XMLHttpRequest();
-	var url = 'http://localhost:' + portStr + '/bundle/' + name + key;
-	console.log('Loading ', url, '...');
+	var url = 'http://localhost:' + AL.bundleLoadPort 
+		+ '/bundle/' + this.bundle + ext;
+
+	console.log('URL Constructed: ', url);
+
 	xhr.open('GET', url);
-	xhr.responseType = exts[key]['type'];
-	xhr.setRequestHeader('Access-Control-Allow-Origin',
-		'http://localhost:' + portStr);
+	xhr.responseType = responseType;
+
+	xhr.setRequestHeader('Access-Control-Allow-Origin', 
+			'http://localhost:' + AL.bundleLoadPort);
+	
 	xhr.addEventListener('readystatechange', function(evt) {
-		console.log('XHR Ready State: ' + xhr.readyState
-			+ 'XHR Status: ' + xhr.status);
+		console.log('XHR Ready State: ' 
+				+ xhr.readyState 
+				+ 'XHR Status: ' + xhr.status);
+		
 		if (xhr.readyState === XMLHttpRequest.DONE) {
-			console.log('status 200; writing response: ', xhr.response);
-			param[exts[key]['param']] = xhr.response;
-			if (eventIndex < events.length) {
-				f = events[eventIndex];
-				f(events, exts, name, packages, param, bundlePairIndex,
-					threshold, eventIndex);
+			console.log('DONE for ', url);
+			this.packageRef[packRefKey] = xhr.response;
+			this.fin[packRefKey] = true;
+	
+			if (this.fin.metadata && this.fin.blob) {
+				AL.loadFinished(this);	
 			}
 		}
-	});
+	}.bind(this));
+
 	xhr.send();
 }
 
-var funcEvents = [
-	function(events, exts, name, packages, param, bpi, threshold, eventIndex){
-		xhrSnagFromName(exts, '.data', name, events, param,
-			packages, bpi, threshold, port, eventIndex + 1);
-	},
-	function(events, exts, name, packages, param, bpi, threshold, eventIndex){
-		xhrSnagFromName(exts, '.js.metadata', name, events, param,
-			packages, bpi, threshold, port, eventIndex + 1);
-	},
-	function(events, exts, name, packages, param, bpi, threshold, eventIndex) {
-		packages.push(param);
-		if (bpi !== threshold) {
-			return;	
+AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port) {	
+	var loader = new AL.BundleLoader(
+		AL.getMaybeCString(bundleName), {
+			proxy: callback,
+			path: AL.getMaybeCString(path),
+			size: pathLength,
+			port: port
 		}
+	);
 
-		console.log('the last is hit');
-
-	}
-];
-
-function fetchBundleAsync(names, finished, exts, packages, threshold, port) {
-	console.log('Loading bundles with the following names: ', JSON.stringify(names));
-	var params = new Array(names.length);
-	for (var i = 0; i < names.length; ++i) {
-		params[i] = {metadata:null, blob: null};
-	}
-	
-/*
-	for (var i = 0; i < names.length; ++i) {	
-		xhrSnagFromName(exts, 
-				'.data', 
-				names[i], 
-				funcEvents, 
-				params[i],
-				packages, i, 
-				names.length - 1,
-				port, 
-				0				// event index
-		);
-	}
-*/
+	loader.load();
 }
-function beginFetch(proxy, path, size, strPortNum) {	
-	var bundles = [
-		['sprites', 'gfx'],
-		['scripts', 'maps'],
-		['textures', 'env'], 
-		['models']
-	];
-	var fetchCount = 0;
-	function onFinish(packagesRef) {
-		fetchCount++;
-		console.log('fetch count: ', fetchCount);
-		if (fetchCount === bundles.length) {
-			console.log("HEAP BEFORE: ", DYNAMICTOP);
-			
-			
-			FS.mkdir('/working');
-			FS.mount(WORKERFS, {
-				packages: packagesRef },
-				'/working');
 
-			console.log("HEAP AFTER: ", DYNAMICTOP);
+self.fetchBundleAsync = AL.fetchBundleAsync;
+self.unmountPackages = AL.unmountPackages;
+self.mountPackages = AL.mountPackages;
 
-
-			var stack = Runtime.stackSave();
-			Runtime.dynCall('vii', proxy, [path, size]);
-			Runtime.stackRestore(stack);
-		}
-	}
-	var exts = {
-		'.data': {
-			'type': 'blob',
-			'param': 'blob'
-		},
-		'.js': {
-			'type': 'text',
-			'param': '.js'
-		},
-		'.js.metadata': {
-			'type': 'json',
-			'param': 'metadata'
-		}
-	};
-	var packages = [];
-
-	if (strPortNum) {
-		if (typeof(strPortNum) === typeof(0)) {
-			strPortNum = UTF8ToString(strPortNum);
-		} else if (typeof(strPortNum) !== 'string') {
-			throw 'invalid value received for the server port';
-		}
-	} else {
-		strPortNum = null;
-	}
-
-	for (var i = 0; i < bundles.length; ++i) {
-		fetchBundleAsync(bundles[i], onFinish, exts, packages,
-			bundles.length - 1, strPortNum);
-	}
-}
 function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 	 var path = UTF8ToString(pathPtr);
 	 var lookup = FS.lookupPath(path);
@@ -176,12 +197,11 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 		 }
 		 return false;
 	 }
+
 	 traverse(root);
 	 callfn(0, 0);
 
 	 return 1;
 }
+
 self.walkFileDirectory = walkFileDirectory;
-self.fetchBundleAsync = fetchBundleAsync;
-self.xhrSnagFromName = xhrSnagFromName;
-self.beginFetch = beginFetch;

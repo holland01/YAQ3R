@@ -1261,4 +1261,30 @@ the fact that the file is read in entirely before passing it
 to the shader parser, for example, before even validating
 whether or not the file is in fact a shader, is dumb
 
+**/9/3/2016**
+
+TODO
+
+- Fix issue in SendFile_OnLoad where the resolved path is completely messed up.
+	Suspect issue is a result of passing in the path string without the bundle prefix
+	chopped off.
+
+- Test map loading; check for familiar assets by ensuring the
+loaded data can be viewed at runtime
+via the debugger
+
+- Make sure that, after the worker is finished
+and the data has been sent through the last emscripten_respond
+call back, the mounted directory is unmounted; 
+this should happen for every bundle load to prevent excess allocations in RAM.
+You will need to create a new worker API function which performs this
+indirectly. The client would call into the worker, and the worker
+would in turn call into the javascript unmountWorkerFS function
+defined in fetch,js
+
+- Go through each and every asset loading call and make sure that
+the appropriate bundles are prefixed to the asset file path/URL. You'll have
+to load and unload a number of bundles in a much more granular manner,
+however this will likely only be apparent during the image load phase.
+
 
