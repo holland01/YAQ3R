@@ -53,7 +53,7 @@ AL.mountPackages = function(packages) {
 }
 
 AL.unmountPackages = function() {
-	var node = AL.fetchNode(DATA_DIR_NAME);
+	var node = AL.fetchNode(AL.DATA_DIR_NAME);
 	if (FS.isMountpoint(node)) {
 		FS.unmount('/' + AL.DATA_DIR_NAME);
 	}
@@ -205,3 +205,4 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 }
 
 self.walkFileDirectory = walkFileDirectory;
+

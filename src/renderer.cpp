@@ -335,7 +335,10 @@ void BSPRenderer::Render( void )
 {
 	float startTime = GetTimeSeconds();
 
-	RenderPass( camera->ViewData() );
+	if ( map.IsAllocated() )
+	{
+		RenderPass( camera->ViewData() );
+	}
 
 	frameTime = GetTimeSeconds() - startTime;
 

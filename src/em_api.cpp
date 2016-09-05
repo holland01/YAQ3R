@@ -105,16 +105,31 @@ void EM_MountFS( void )
 		// Load a global definition
 		// which can be used from inline javascript
 		// snippets
-		const char* script =
+		const char* walkFileDirectory  =
 		   EM_FUNC_WALK_FILE_DIRECTORY"\n"
 		   "Module.walkFileDirectory = walkFileDirectory;\n";
 
-		emscripten_run_script( script );
-		EM_ASM(
+		emscripten_run_script( walkFileDirectory );
+
+		const char* printHeapString = "\n"\
+			"function printHeapString(address) {\n"\
+			"\tvar counter = address;\n"\
+			"\tvar str = '';\n"\
+			"\twhile (HEAP8[counter] != 0) {\n"\
+			"\t\tstr += String.fromCharCode(HEAP8[counter++]);\n"\
+			"\t}\n"\
+			"\tconsole.log(str);\n"\
+			"}\n"\
+			"Module.printHeapString = printHeapString;\n";
+
+		emscripten_run_script( printHeapString );
+
+		/*EM_ASM(
 			FS.mkdir('/memory');
 			FS.mount(MEMFS, {}, '/memory');
 		);
 		gMounted = true;
+		*/
 	}
 }
 #endif // EMSCRIPTEN

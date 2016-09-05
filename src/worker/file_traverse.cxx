@@ -233,7 +233,7 @@ static std::unique_ptr< file_t > gFIOChain( nullptr );
 
 static INLINE std::string FullPath( const char* path )
 {
-	std::string root( "/working" );
+	std::string root = "/working";
 
 	if ( path[ 0 ] != '/' )
 	{
@@ -241,7 +241,7 @@ static INLINE std::string FullPath( const char* path )
 	}
 
 	std::string absp( root );
-	absp.append( path );
+	absp.append( path, strlen( path ) );
 
 	printf( "Path Received: %s\n", absp.c_str() );
 
@@ -329,17 +329,22 @@ static void SendFile_OnLoad( char* path, int size )
 	}
 }
 
-static void ReadFile_Proxy( char* data, int size )
+static INLINE bool SplitBundlePath( std::string& bundleName,
+		std::vector< char >& remData, char* data, int size )
 {
-	std::string bundleName;	
-	
-	std::vector< char > remData;	
-
 	if ( !SplitDataWithBundle( bundleName, remData, data, size ) ) 
 	{	
 		FailOpen( std::string( data, size ) );
-		return;
-	}	
+		return false;
+	}
+	return true;
+}
+
+static void ReadFile_Proxy( char* data, int size )
+{
+	std::string bundleName;	
+	std::vector< char > remData;	
+	if ( !SplitBundlePath( bundleName, remData, data, size ) ) return;
 
 	const char* port = EM_SERV_ASSET_PORT;	
 
@@ -352,19 +357,15 @@ static void ReadFile_Proxy( char* data, int size )
 	   port );	
 }
 
-static void TraverseDirectory_Read( char* path, int size )
+static void SendShader_OnLoad( char* path, int size )
 {
-	if ( !path )
-	{
-		emscripten_worker_respond( nullptr, 0 );
-		return;
-	}
+	std::string strPath( path, size );
 
-	gFIOChain.reset( new file_t( std::string( path ) ) );
+	gFIOChain.reset( new file_t( strPath ) );
 
 	if ( !gFIOChain->Read() )
 	{
-		FailOpen( std::string( path, size ) );
+		FailOpen( strPath );
 		return;
 	}
 
@@ -372,9 +373,12 @@ static void TraverseDirectory_Read( char* path, int size )
 	// include space for a null term, so we can expend
 	// one of them for a delimiter
 	std::vector< char > buffer( gFIOChain->readBuff.size() + size, 0 );
+	
 	memcpy( &buffer[ 0 ], path, size );
+	
 	memcpy( &buffer[ size ], &gFIOChain->readBuff[ 0 ],
 		gFIOChain->readBuff.size() );
+	
 	buffer[ size ] = AL_STRING_DELIM; 
 
 	gFIOChain.release();
@@ -383,24 +387,57 @@ static void TraverseDirectory_Read( char* path, int size )
 	 	buffer.size() );
 }
 
-static void TraverseDirectory_Proxy( char* dir, int size )
+static void TraverseDirectory_Read( char* dir, int size )
 {
+	if ( !dir )
+	{
+		FailOpen( std::string( dir, size ) );	
+		return;
+	}
+
 	std::string mountDir( FullPath( dir ) );
+	
 	char error[ 256 ];
 	memset( error, 0, sizeof( error ) );
-	int code = EM_ASM_ARGS({
-		try {
-			return self.walkFileDirectory($0, $1, $2);
-		} catch (e) {
-			console.log(e.message);
-			return 0;
-		}
-	}, mountDir.c_str(), TraverseDirectory_Read, error );
+	
+	int code = EM_ASM_ARGS(
+		{
+			try {
+				return self.walkFileDirectory($0, $1, $2);
+			} catch (e) {
+				console.log(e.message);
+				return 0;
+			}
+		}, 	
+		mountDir.c_str(), 
+		SendShader_OnLoad, 
+		error 
+	);
 
 	if ( !code )
 	{
 		printf( "Failed to traverse \'%s\'\n", dir );
-	}
+	}				
+}
+
+static void TraverseDirectory_Proxy( char* data, int size )
+{
+	std::string bundleName;	
+	std::vector< char > remData;	
+	if ( !SplitBundlePath( bundleName, remData, data, size ) ) return;
+
+	const char* port = EM_SERV_ASSET_PORT; 
+
+	EM_ASM_ARGS( 
+		{
+			self.fetchBundleAsync($0, $1, $2, $3);		
+		}, 
+		bundleName.c_str(), 
+		TraverseDirectory_Read, 
+	   &remData[ 0 ], 
+	    remData.size() - 1, // don't include null term 
+		port
+	);	
 }
 
 static void ReadImage_Proxy( char* path, int size )
@@ -451,6 +488,16 @@ static void ReadImage_Proxy( char* path, int size )
 	}
 
 	gFIOChain->Send();
+}
+
+void UnmountPackages_Proxy( char* data, int size )
+{
+	EM_ASM({
+		self.unmountPackages();
+	});
+
+	uint32_t success = WAPI_TRUE;
+	emscripten_worker_respond( ( char* ) &success, sizeof( success ) );
 }
 
 extern "C" {
@@ -504,6 +551,15 @@ void ReadImage( char* path, int size )
 	if ( InitSystem( ReadImage_Proxy, path, size ) )
 	{
 		ReadImage_Proxy( path, size );
+	}
+}
+
+void UnmountPackages( char* data, int size )
+{
+
+	if ( InitSystem( UnmountPackages_Proxy, nullptr, 0 ) )
+	{
+		UnmountPackages_Proxy( nullptr, 0 );
 	}
 }
 

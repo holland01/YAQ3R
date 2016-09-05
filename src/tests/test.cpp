@@ -16,8 +16,11 @@ static void DefaultOnMapReadFin( void* nullParam )
 {
 	UNUSED( nullParam );
 
-	gAppTest->Load();
-	gAppTest->Exec();
+	gAppTest->base.running = true;
+
+	InitSysLog();
+	
+	gAppTest->Exec();	
 }
 
 static std::string gTmpBspPath;
@@ -84,16 +87,13 @@ bool Test::Load( const char* winName )
 		return false;
 	}
 
-	if ( !gTmpBspPath.empty() )
-	{
-		map.Read( gTmpBspPath, 1, gTmpMapReadFinish );
-	}
-
 	GLoadVao();
 
-	base.running = true;
-
-	InitSysLog();
+	if ( !gTmpBspPath.empty() )
+	{
+		map.Read( gTmpBspPath, 1, 
+				gTmpMapReadFinish );
+	}		
 
 	return true;
 }

@@ -818,7 +818,8 @@ Q3BspMap* parseArgs_t::map = nullptr;
 
 void S_LoadShaders( Q3BspMap* map )
 {
-	std::string shaderRootDir( ASSET_Q3_ROOT );
+	std::string shaderRootDir( "scripts|" );
+	shaderRootDir.append( ASSET_Q3_ROOT );
 	shaderRootDir.append( "/scripts" );
 
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );

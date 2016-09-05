@@ -191,7 +191,23 @@ static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
 		( char* )&info, sizeof( info ), param );
 }
 
-static void ReadFin( Q3BspMap* map )
+static INLINE void MapReadFin_UnmountFin( char* data, int size, void* param )
+{
+	UNUSED( data );
+	UNUSED( size );
+	
+	Q3BspMap* map = ( Q3BspMap* ) param;
+
+	if ( !map )
+	{
+		MLOG_ERROR( "Map ptr received is NULL!" );
+		return;
+	}
+
+	S_LoadShaders( map );	
+}
+
+static void MapReadFin( Q3BspMap* map )
 {
 	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis.
 	// Also scale anything as necessary (or desired)
@@ -266,8 +282,17 @@ static void ReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-	S_LoadShaders( map );
-}
+	int ishader = 0;
+	MLOG_INFO( "Dumping shader info..." );
+	for ( const bspShader_t& shader: map->data.shaders ) 
+	{
+		printf( "Shader[ %i ]: { %s, %i, %i } \n", ishader++, 
+				shader.name, shader.surfaceFlags, shader.contentsFlags );	
+	}
+	
+	gFileWebWorker.Await( MapReadFin_UnmountFin,  "UnmountPackages", 
+			NULL, 0, map );
+}	
 
 static void ReadChunk( char* data, int size, void* param )
 {
@@ -320,7 +345,7 @@ static void ReadChunk( char* data, int size, void* param )
 			else
 			{
 				gBspDesc = -1;
-				ReadFin( map );
+				MapReadFin( map );
 			}
 			break;
 	}
@@ -351,6 +376,15 @@ static INLINE void LoadImagesFinish( gImageParamList_t& dest,
 	*imageTracker = nullptr;
 }
 
+static void UnmountShadersFin( char* data, int size, 
+		void* arg )
+{
+	MLOG_INFO( "===============\n"\
+		"Loading images from effect shaders..."\
+		"\n===============" );	
+	
+	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ), GMakeSampler() );
+}
 
 //------------------------------------------------------------------------------
 // rendererPayload_t
@@ -381,10 +415,15 @@ Q3BspMap::~Q3BspMap( void )
 
 void Q3BspMap::OnShaderReadFinish( void )
 {
-	MLOG_INFO( "===============\n"\
-		"Loading images from effect shaders..."\
-		"\n===============" );
-	GU_LoadShaderTextures( *this, GMakeSampler() );
+	int iEffectShader = 0;
+	for ( const shaderMapEntry_t& entry: effectShaders )
+	{
+		printf( "Effect Shader[%i] %s\n", iEffectShader++, 
+				entry.first.c_str() );
+	}
+
+	gFileWebWorker.Await( UnmountShadersFin,  "UnmountPackages", 
+			NULL, 0, this );	
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )

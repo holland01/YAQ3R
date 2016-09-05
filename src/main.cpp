@@ -48,9 +48,5 @@ int main( void )
 #else
 	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/q3dm2.bsp" );
 	gAppTest->Load();
-	int code = gAppTest->Exec();
-	FlagExit();
-
-	return code;
 #endif
 }
