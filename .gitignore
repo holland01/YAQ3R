@@ -1,13 +1,19 @@
 # Specific files
 asset/stockmaps/*
 
+bspviewer.*
 bspviewer.js
 bspviewer.data
 bspviewer.html
 testbin*
 obj/*
 build-bspviewer_*
+asset/*
 asset/
+bundle/*
+bundle/
+log/*
+log/
 
 # C++ objects and libs
 
