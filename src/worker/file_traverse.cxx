@@ -231,28 +231,21 @@ struct file_t
 
 static std::unique_ptr< file_t > gFIOChain( nullptr );
 
-static INLINE std::string FullPath( const char* path )
+static INLINE std::string FullPath( const char* path, size_t pathLen )
 {
-	std::string root = "/working";
+	const char* croot = "/working";
 
-	if ( path[ 0 ] != '/' )
-	{
-		root.append( 1, '/' );
-	}
+	std::string root( croot );
+
+	std::string strPath = "/";
+	strPath.append( path, pathLen );
 
 	std::string absp( root );
-	absp.append( path, strlen( path ) );
+	absp.append( strPath );
 
 	printf( "Path Received: %s\n", absp.c_str() );
 
 	return absp;
-}
-
-static INLINE std::string FullPath( const char* path, int size )
-{
-	charBuff_t nullTermed( path, size );
-
-	return FullPath( nullTermed.data );
 }
 
 static INLINE bool GetExt( const std::string& name, std::string& outExt )
@@ -288,10 +281,11 @@ static std::string ReplaceExt( const std::string& path, const std::string& ext )
 	return f;
 }
 
-static INLINE void FailOpen( const std::string& path )
+static INLINE void FailOpen( const char* path, size_t pathLen )
 {
 	uint32_t m = WAPI_FALSE;
-	printf( "fopen for \'%s\' failed\n", path.c_str() );
+	std::string strPath( path, pathLen );
+	printf( "fopen for \'%s\' failed\n", strPath.c_str() );
 	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
@@ -317,7 +311,7 @@ static void SendFile_OnLoad( char* path, int size )
 {
 	puts("SendFile_OnLoad reached.");
 
-	gFIOChain.reset( new file_t( FullPath( path ) ) );
+	gFIOChain.reset( new file_t( FullPath( path, size ) ) );
 
 	if ( *gFIOChain )
 	{
@@ -325,7 +319,7 @@ static void SendFile_OnLoad( char* path, int size )
 	}
 	else
 	{
-		FailOpen( std::string( path, size ) );
+		FailOpen( path, size );
 	}
 }
 
@@ -334,7 +328,7 @@ static INLINE bool SplitBundlePath( std::string& bundleName,
 {
 	if ( !SplitDataWithBundle( bundleName, remData, data, size ) ) 
 	{	
-		FailOpen( std::string( data, size ) );
+		FailOpen( data, size );
 		return false;
 	}
 	return true;
@@ -365,7 +359,7 @@ static void SendShader_OnLoad( char* path, int size )
 
 	if ( !gFIOChain->Read() )
 	{
-		FailOpen( strPath );
+		FailOpen( path, size );
 		return;
 	}
 
@@ -391,11 +385,11 @@ static void TraverseDirectory_Read( char* dir, int size )
 {
 	if ( !dir )
 	{
-		FailOpen( std::string( dir, size ) );	
+		FailOpen( dir, size );	
 		return;
 	}
 
-	std::string mountDir( FullPath( dir ) );
+	std::string mountDir( FullPath( dir, size ) );
 	
 	char error[ 256 ];
 	memset( error, 0, sizeof( error ) );
@@ -444,7 +438,7 @@ static void ReadImage_Proxy( char* path, int size )
 {
 	std::string strPath( path, size );
 
-	std::string full( FullPath( path ) );	
+	std::string full( FullPath( path, size ) );	
 
 	gFIOChain.reset( new file_t( full ) );
 
@@ -476,14 +470,14 @@ static void ReadImage_Proxy( char* path, int size )
 
 		if ( !( *gFIOChain ) )
 		{
-			FailOpen( strPath );
+			FailOpen( path, size  );
 			return;
 		}
 	}
 
 	if ( !gFIOChain->ReadImage() )
 	{
-		FailOpen( strPath );
+		FailOpen( path, size );
 		return;
 	}
 

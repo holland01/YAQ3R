@@ -1296,6 +1296,12 @@ near-garbage output to happen when the scripts directory
 received by `TraverseDirectory_Read()` ends up 
 producing an absolute path via a call to `FullPath()`.
 
+**NOTE**: before doing anything, double check fetch.js
+and make sure nothing wonky is happening in there.
+Given that the path is printed once more, after the async bundle loading for the 
+effect shaders is finished, and at that point in time the path has been
+correct, it's doubtful that there's anything there...but still.
+
 It seems like it could be the result of
 mis allocated or aligned value that exists
 as the first value pointed to the absolute path's
@@ -1384,7 +1390,193 @@ returning a copy of absp's string value.
 Smart pointers would be the right choice here.
 
 Worst case scenario, you can fall back to
-manual char arrays
+manual char arrays.
+
+**9/6/2016**
+
+(Holy fucking shit - is it almost 2017 already???)
+
+**What you've been doing:**
+
+The issue with the string concatenation in `FullPath()`
+is definitely a legitimate bug. 
+
+Here's a quick peak of std::string's header in the
+emscripten master repo:
 
 
+```
+    struct __long
+    {
+        size_type __cap_;
+        size_type __size_;
+        pointer   __data_;
+    };
+
+#if _LIBCPP_BIG_ENDIAN
+    enum {__short_mask = 0x80};
+    enum {__long_mask  = ~(size_type(~0) >> 1)};
+#else  // _LIBCPP_BIG_ENDIAN
+    enum {__short_mask = 0x01};
+    enum {__long_mask  = 0x1ul};
+#endif  // _LIBCPP_BIG_ENDIAN
+
+    enum {__min_cap = (sizeof(__long) - 1)/sizeof(value_type) > 2 ?
+                      (sizeof(__long) - 1)/sizeof(value_type) : 2};
+
+    struct __short
+    {
+        union
+        {
+            unsigned char __size_;
+            value_type __lx;
+        };
+        value_type __data_[__min_cap];
+    };
+```
+
+Note the two structs, `__short` and `__long`.
+
+`__short` is meant to be used in situations
+where the string's length is less than `__min_cap`,
+which on a 32-bit architecture produces a value of 11.
+
+(provding that `sizeof(value_type) == sizeof(char) && sizeof(char) == 1`).
+
+Why 1 is subtracted from `sizeof(__long)` in the calculation of `__min_cap`
+I'm not sure. It wouldn't make sense for ` __min_cap + 1` to be the
+index of the null terminator, considering that `__min_cap` *itself*
+specifies the stack-allocated size for `__data` in `__short`, as shown
+above.
+
+And here's the last of the declarations:
+
+```
+	union __ulx{__long __lx; __short __lxx;};
+
+    enum {__n_words = sizeof(__ulx) / sizeof(size_type)};
+
+    struct __raw
+    {
+        size_type __words[__n_words];
+    };
+
+    struct __rep
+    {
+        union
+        {
+            __long  __l;
+            __short __s;
+            __raw   __r;
+        };
+    };
+
+    __compressed_pair<__rep, allocator_type> __r_;
+```
+
+So the `__rep` union is what actually stores all of this...
+
+What's also interesting is what lies in this method:
+
+```
+template <class _CharT, class _Traits, class _Allocator>
+void
+basic_string<_CharT, _Traits, _Allocator>::__grow_by_and_replace
+    (size_type __old_cap, size_type __delta_cap, size_type __old_sz,
+     size_type __n_copy,  size_type __n_del,     size_type __n_add, const value_type* __p_new_stuff)
+{
+    size_type __ms = max_size();
+    if (__delta_cap > __ms - __old_cap - 1)
+        this->__throw_length_error();
+    pointer __old_p = __get_pointer();
+    size_type __cap = __old_cap < __ms / 2 - __alignment ?
+                          __recommend(_VSTD::max(__old_cap + __delta_cap, 2 * __old_cap)) :
+                          __ms - 1;
+    pointer __p = __alloc_traits::allocate(__alloc(), __cap+1);
+    __invalidate_all_iterators();
+    if (__n_copy != 0)
+        traits_type::copy(_VSTD::__to_raw_pointer(__p),
+                          _VSTD::__to_raw_pointer(__old_p), __n_copy);
+    if (__n_add != 0)
+        traits_type::copy(_VSTD::__to_raw_pointer(__p) + __n_copy, __p_new_stuff, __n_add);
+    size_type __sec_cp_sz = __old_sz - __n_del - __n_copy;
+    if (__sec_cp_sz != 0)
+        traits_type::copy(_VSTD::__to_raw_pointer(__p) + __n_copy + __n_add,
+                          _VSTD::__to_raw_pointer(__old_p) + __n_copy + __n_del, __sec_cp_sz);
+    if (__old_cap+1 != __min_cap)
+        __alloc_traits::deallocate(__alloc(), __old_p, __old_cap+1);
+    __set_long_pointer(__p);
+    __set_long_cap(__cap+1);
+    __old_sz = __n_copy + __n_add + __sec_cp_sz;
+    __set_long_size(__old_sz);
+    traits_type::assign(__p[__old_sz], value_type());
+}
+``` 
+
+...In particular,
+
+```
+ if (__old_cap+1 != __min_cap)
+        __alloc_traits::deallocate(__alloc(), __old_p, __old_cap+1);
+    __set_long_pointer(__p);
+    __set_long_cap(__cap+1);
+    __old_sz = __n_copy + __n_add + __sec_cp_sz;
+    __set_long_size(__old_sz);
+    traits_type::assign(__p[__old_sz], value_type());
+```
+
+So, maybe `__min_cap` does play a role in null termination for
+strings using the `__short` buffer, and the actual
+value is just implicitly included?
+
+Not sure tbh. 
+
+Been testing `FullPath()`'s concat routines in an isolated C++ script
+via g++. The results work as they should. I'm not sure what version of libcxx
+emscripten uses, so it could differ from the one being used by g++.
+
+If they're the same (a `diff -y` will determine this),
+then there's something wrong with the byte code 
+generatiog.
+
+Note this asm js, 
+from `__ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEE6appendEPKcj($this,$__s,$__n)`
+
+```
+ sp = STACKTOP;
+ $0 = HEAP8[$this>>0]|0;		// first member of $this pointer, which refers to the main union
+ $1 = $0 & 1;					// & 1 belongs to both the short mask and the long mask
+ $2 = ($1<<24>>24)==(0);		// _might_ be an inline reference to the is_long function
+```
+
+Here's the 
+
+```
+__is_long()
+
+``` 
+
+function:
+
+```
+  _LIBCPP_INLINE_VISIBILITY
+  bool __is_long() const _NOEXCEPT
+        {return bool(__r_.first().__s.__size_ & __short_mask);}
+```
+
+It's pretty clear that `HEAP8[$this]` refers to `__r.first().__s.__size_`, considering that
+the `__short` struct definition has the union which contains the `__size_` member listed
+as its first struct member.
+
+My understanding is that the C++ standard doesn't guarantee a one-one memory layout:
+in other words, there is no guarantee that the first class member listed in a
+class declaration will be the actual memory pointed to by a given `this` pointer.
+
+However, despite being UB, that approach seems to be pretty common with C++ compilers...
+
+Either way, just using char arrays and returning a newly constructed `std::string`
+from the concatted char buffers in `FullPath()` (as oppposed to using the API
+provided by `std::string` to process the input) should be legitimate fix.
+
+I still want to figure out what the actual cause of this is, though...
 

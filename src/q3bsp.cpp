@@ -379,6 +379,9 @@ static INLINE void LoadImagesFinish( gImageParamList_t& dest,
 static void UnmountShadersFin( char* data, int size, 
 		void* arg )
 {
+	UNUSED( data );
+	UNUSED( size );
+
 	MLOG_INFO( "===============\n"\
 		"Loading images from effect shaders..."\
 		"\n===============" );	
