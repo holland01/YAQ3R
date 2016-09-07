@@ -1,0 +1,41 @@
+
+const char* croot = "/working";
+std::string root( croot );
+---------------
+
+for basic_string(const value_type* s):
+	just calls __init(__S, traits_type::length(__s))
+
+__set_short_size:
+
+{__r_.first().__s.__size_ = (unsigned char)(__s << 1);}
+
+So, __r_.first().__s.__size_ & 0x1 = 0 always
+
+__sz = 8
+__min_cap = 11
+__p = __get_short_pointer()
+
+__get_short_pointer:
+
+return pointer_traits<pointer>::pointer_to(__r_.first().__s.__data_[0])
+
+^^^^ pointer_to leads to the following return statement in the memory header file:
+
+return (_Tp*)&reinterpret_cast<const volatile char&>(value)
+
+
+Last two lines in the init function @ line 1974:
+
+traits_type::copy(_VSTD::__to_raw_pointer(__p), __s, __sz);
+traits_type::assign(__p[__sz], value_type());
+
+Going to assume these are good for now, considering that their arguments make sense.
+
+---------------
+std::string strPath = "/";
+
+In order to find out how the construction sequence for std::string strPath = "/";
+is played out, write a simple class with operator= which takes a const char*
+pointer and also a default ctor. You can then compile with debugging symbols
+and test its initialization similarly
