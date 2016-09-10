@@ -1,3 +1,12 @@
+ASSUMPTIONS
+-----------
+
+- max_size() returns a variant of INT_MAX / 2 or something like that
+- traits_type::copy(_VSTD::__to_raw_pointer(__p), __s, __sz) works fine
+- traits_type::assign(__p[__sz], value_type()) works fine
+
+
+
 
 const char* croot = "/working";
 std::string root( croot );
@@ -39,3 +48,49 @@ In order to find out how the construction sequence for std::string strPath = "/"
 is played out, write a simple class with operator= which takes a const char*
 pointer and also a default ctor. You can then compile with debugging symbols
 and test its initialization similarly
+
+UPDATE:
+
+ctor is the only thing that matters for const char* initializers, even when the operator= is used,
+because hte operator= which is executed is not operator=(const char*)
+but operator=(const std::string& s); std::string's ctor is not explicitly defined, so: 
+
+std::string strPath = "/"
+
+... is the same as:
+
+std::string strPath = std::string("/");
+
+-----------------
+
+For this line:
+
+const char* croot = "/working";
+
+std::string root(croot);
+
+The __set_short_size() stores the value strlen(croot) * 2 (which is 16)
+
+-----------------
+
+capacity() and size() return valid results, because they both rely on __is_long()
+
+to determine the correct size. __is_long() will AND the short size with the short_mask
+to see if the LSB is set. In this case, since the short size is always stored shifted
+to the left by 1, the result of the and will be 0. 
+
+-----------------
+
+The grow_by_and_replace used in the first std::string::append looks good. What seems odd, though, 
+is the fact that, for __is_long, 
+the __size_ variable for the __short type within the union storage is used, as opposed to the
+capacity for the long type. 
+
+It seems odd because, when __set_long_capacity is called, the stored long capacity
+stores in its memory the value passed OR'd with the __long_mask, which is just 0x1 (the same
+as the __short_mask).
+
+Since both the __long and __short types are stored within the same union, they both
+occupy the same memory. You're going to want to take a closer look at their layouts
+and do some cross checking - that should clear things up as far as the confusion is concerned,
+or at least reveal something important...
