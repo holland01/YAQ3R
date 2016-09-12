@@ -11,7 +11,7 @@
 		function(events, exts, name, packages, param, bpi, threshold, eventIndex) {
 			packages.push(param);
 			if (bpi !== threshold) {
-				return;	
+				return;
 			}
 
 			console.log('the last is hit');
@@ -31,10 +31,10 @@ AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, and/or on load fi
 AL.fetchNode = function(pathName) {
 	var node = null;
 	try  {
-		node = FS.lookupNode(FS.root, pathName);		
+		node = FS.lookupNode(FS.root, pathName);
 	} catch (e) {
 		if (e.code === 'ENOENT') {
-			FS.mkdir(FS.root.name + pathName);	
+			FS.mkdir(FS.root.name + pathName);
 			node = FS.lookupNode(FS.root, pathName);
 		} else {
 			throw e;
@@ -46,10 +46,14 @@ AL.fetchNode = function(pathName) {
 AL.mountPackages = function(packages) {
 	var node = AL.fetchNode(AL.DATA_DIR_NAME);
 	if (!FS.isMountpoint(node)) {
-		FS.mount(WORKERFS, {packages: packages}, 
+		FS.mount(WORKERFS, {packages: packages},
 				'/' + AL.DATA_DIR_NAME);
 
 	}
+
+	console.log("AL.mountPackages: DYNAMICTOP; ", DYNAMICTOP);
+	console.log("AL.mountPackages: DYNAMIC_BASE; ", DYNAMIC_BASE);
+	console.log("AL.mountPackages: TOTAL_MEMORY; ", TOTAL_MEMORY);
 }
 
 AL.unmountPackages = function() {
@@ -77,9 +81,9 @@ AL.loadFinished = function(loader) {
 	AL.mountPackages([loader.packageRef]);
 
 	var stack = Runtime.stackSave();
-	Runtime.dynCall('vii', 
-			loader.params.proxy, 
-			[loader.params.path, 
+	Runtime.dynCall('vii',
+			loader.params.proxy,
+			[loader.params.path,
 			 loader.params.size]);
 	Runtime.stackRestore(stack);
 }
@@ -102,12 +106,12 @@ AL.BundleLoader = function(bundle, params) {
 
 AL.BundleLoader.prototype.load = function() {
 	this.xhrRequest('blob', 'blob', '.data');
-	this.xhrRequest('json', 'metadata', '.js.metadata');	
+	this.xhrRequest('json', 'metadata', '.js.metadata');
 }
 
 AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) {
 	var xhr = new XMLHttpRequest();
-	var url = 'http://localhost:' + AL.bundleLoadPort 
+	var url = 'http://localhost:' + AL.bundleLoadPort
 		+ '/bundle/' + this.bundle + ext;
 
 	console.log('URL Constructed: ', url);
@@ -115,21 +119,21 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 	xhr.open('GET', url);
 	xhr.responseType = responseType;
 
-	xhr.setRequestHeader('Access-Control-Allow-Origin', 
+	xhr.setRequestHeader('Access-Control-Allow-Origin',
 			'http://localhost:' + AL.bundleLoadPort);
-	
+
 	xhr.addEventListener('readystatechange', function(evt) {
-		console.log('XHR Ready State: ' 
-				+ xhr.readyState 
+		console.log('XHR Ready State: '
+				+ xhr.readyState
 				+ 'XHR Status: ' + xhr.status);
-		
+
 		if (xhr.readyState === XMLHttpRequest.DONE) {
 			console.log('DONE for ', url);
 			this.packageRef[packRefKey] = xhr.response;
 			this.fin[packRefKey] = true;
-	
+
 			if (this.fin.metadata && this.fin.blob) {
-				AL.loadFinished(this);	
+				AL.loadFinished(this);
 			}
 		}
 	}.bind(this));
@@ -137,7 +141,7 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 	xhr.send();
 }
 
-AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port) {	
+AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port) {
 	var loader = new AL.BundleLoader(
 		AL.getMaybeCString(bundleName), {
 			proxy: callback,
@@ -205,4 +209,3 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 }
 
 self.walkFileDirectory = walkFileDirectory;
-
