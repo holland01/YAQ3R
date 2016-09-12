@@ -29,11 +29,11 @@ struct charBuff_t
 	int size;
 
 	charBuff_t( const char* data_, int size_ )
-		: 
+		:
 			data( nullptr ),
 			size( size_ )
 	{
-		if ( data_ ) 
+		if ( data_ )
 		{
 			data = new char[ size + 1  ];
 			memset( data, 0, size + 1 );
@@ -43,9 +43,9 @@ struct charBuff_t
 
 	~charBuff_t( void )
 	{
-		if ( data ) 
+		if ( data )
 		{
-			delete[] data;	
+			delete[] data;
 		}
 	}
 };
@@ -83,19 +83,19 @@ static void InitSystem_OnLoad( void* arg, void* data, int size )
 static bool InitSystem( callback_t proxy, char* data, int size )
 {
 	if ( !gInitialized )
-	{	
-		gTmpArgs.reset( new asyncArgs_t( proxy, data, size ) );	
+	{
+		gTmpArgs.reset( new asyncArgs_t( proxy, data, size ) );
 
 		char urlString[ 36 ];
 		memset( urlString, 0, sizeof( urlString ) );
-	
+
 		const char* port = EM_SERV_ASSET_PORT;
 
 		strncat( urlString, "http://localhost:", 17 );
 		strncat( urlString, port, 4 );
 		strncat( urlString, "/js/fetch.js", 12 );
 
-		emscripten_async_wget_data( urlString, ( void* ) gTmpArgs.get(), 
+		emscripten_async_wget_data( urlString, ( void* ) gTmpArgs.get(),
 				InitSystem_OnLoad, InitSystem_OnError );
 
 		gInitialized = true;
@@ -164,7 +164,7 @@ struct file_t
 
 		int target = width * height * bpp;
 		int original = target;
-		
+
 		// Keep things aligned, if only for pedantry
 		if ( ( ( target >> 2 ) << 2 ) != target )
 		{
@@ -195,7 +195,7 @@ struct file_t
 		{
 			return false;
 		}
-		
+
 		readBuff.resize( size, 0 );
 		fseek( ptr, offset, SEEK_SET );
 		fread( &readBuff[ 0 ], size, 1, ptr );
@@ -209,10 +209,10 @@ struct file_t
 		if ( !ptr )
 		{
 			return false;
-		}	
+		}
 
 		fseek( ptr, 0, SEEK_END );
-		return Read( 0, ftell( ptr ) );			
+		return Read( 0, ftell( ptr ) );
 	}
 
 	void Send( void ) const
@@ -240,12 +240,11 @@ static INLINE std::string FullPath( const char* path, size_t pathLen )
 	std::string strPath = "/";
 	strPath.append( path, pathLen );
 
-	std::string absp( root );
-	absp.append( strPath );
+	root.append( strPath );
 
-	printf( "Path Received: %s\n", absp.c_str() );
+	printf( "Path Received: %s\n", root.c_str() );
 
-	return absp;
+	return root;
 }
 
 static INLINE bool GetExt( const std::string& name, std::string& outExt )
@@ -289,16 +288,16 @@ static INLINE void FailOpen( const char* path, size_t pathLen )
 	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
-static INLINE bool SplitDataWithBundle( std::string& bundleName, std::vector< char >& chopData, 
+static INLINE bool SplitDataWithBundle( std::string& bundleName, std::vector< char >& chopData,
 		char* data, int size )
 {
 	int i;
 	for ( i = 0; i < size; ++i ) {
 		if ( data[i] == AL_STRING_DELIM ) {
-			bundleName = std::string( data, i );	
+			bundleName = std::string( data, i );
 			printf( "Bundle Name Found: %s\n", bundleName.c_str() );
-			
-			chopData.resize( size - i + 1, 0 );	
+
+			chopData.resize( size - i + 1, 0 );
 			memcpy( &chopData[ 0 ], data + i + 1, size - i );
 			return true;
 		}
@@ -315,7 +314,7 @@ static void SendFile_OnLoad( char* path, int size )
 
 	if ( *gFIOChain )
 	{
-		gFIOChain->Send();	
+		gFIOChain->Send();
 	}
 	else
 	{
@@ -326,8 +325,8 @@ static void SendFile_OnLoad( char* path, int size )
 static INLINE bool SplitBundlePath( std::string& bundleName,
 		std::vector< char >& remData, char* data, int size )
 {
-	if ( !SplitDataWithBundle( bundleName, remData, data, size ) ) 
-	{	
+	if ( !SplitDataWithBundle( bundleName, remData, data, size ) )
+	{
 		FailOpen( data, size );
 		return false;
 	}
@@ -336,19 +335,19 @@ static INLINE bool SplitBundlePath( std::string& bundleName,
 
 static void ReadFile_Proxy( char* data, int size )
 {
-	std::string bundleName;	
-	std::vector< char > remData;	
+	std::string bundleName;
+	std::vector< char > remData;
 	if ( !SplitBundlePath( bundleName, remData, data, size ) ) return;
 
-	const char* port = EM_SERV_ASSET_PORT;	
+	const char* port = EM_SERV_ASSET_PORT;
 
 	printf( "Remaining Data: %s\n", &remData[ 0 ] );
 
 	EM_ASM_ARGS( {
-		self.fetchBundleAsync($0, $1, $2, $3, $4);		
-	}, bundleName.c_str(), SendFile_OnLoad, 
-	   &remData[ 0 ], remData.size() - 1, // don't include null term 
-	   port );	
+		self.fetchBundleAsync($0, $1, $2, $3, $4);
+	}, bundleName.c_str(), SendFile_OnLoad,
+	   &remData[ 0 ], remData.size() - 1, // don't include null term
+	   port );
 }
 
 static void SendShader_OnLoad( char* path, int size )
@@ -367,13 +366,13 @@ static void SendShader_OnLoad( char* path, int size )
 	// include space for a null term, so we can expend
 	// one of them for a delimiter
 	std::vector< char > buffer( gFIOChain->readBuff.size() + size, 0 );
-	
+
 	memcpy( &buffer[ 0 ], path, size );
-	
+
 	memcpy( &buffer[ size ], &gFIOChain->readBuff[ 0 ],
 		gFIOChain->readBuff.size() );
-	
-	buffer[ size ] = AL_STRING_DELIM; 
+
+	buffer[ size ] = AL_STRING_DELIM;
 
 	gFIOChain.release();
 
@@ -385,15 +384,15 @@ static void TraverseDirectory_Read( char* dir, int size )
 {
 	if ( !dir )
 	{
-		FailOpen( dir, size );	
+		FailOpen( dir, size );
 		return;
 	}
 
 	std::string mountDir( FullPath( dir, size ) );
-	
+
 	char error[ 256 ];
 	memset( error, 0, sizeof( error ) );
-	
+
 	int code = EM_ASM_ARGS(
 		{
 			try {
@@ -402,43 +401,43 @@ static void TraverseDirectory_Read( char* dir, int size )
 				console.log(e.message);
 				return 0;
 			}
-		}, 	
-		mountDir.c_str(), 
-		SendShader_OnLoad, 
-		error 
+		},
+		mountDir.c_str(),
+		SendShader_OnLoad,
+		error
 	);
 
 	if ( !code )
 	{
 		printf( "Failed to traverse \'%s\'\n", dir );
-	}				
+	}
 }
 
 static void TraverseDirectory_Proxy( char* data, int size )
 {
-	std::string bundleName;	
-	std::vector< char > remData;	
+	std::string bundleName;
+	std::vector< char > remData;
 	if ( !SplitBundlePath( bundleName, remData, data, size ) ) return;
 
-	const char* port = EM_SERV_ASSET_PORT; 
+	const char* port = EM_SERV_ASSET_PORT;
 
-	EM_ASM_ARGS( 
+	EM_ASM_ARGS(
 		{
-			self.fetchBundleAsync($0, $1, $2, $3);		
-		}, 
-		bundleName.c_str(), 
-		TraverseDirectory_Read, 
-	   &remData[ 0 ], 
-	    remData.size() - 1, // don't include null term 
+			self.fetchBundleAsync($0, $1, $2, $3);
+		},
+		bundleName.c_str(),
+		TraverseDirectory_Read,
+	   &remData[ 0 ],
+	    remData.size() - 1, // don't include null term
 		port
-	);	
+	);
 }
 
 static void ReadImage_Proxy( char* path, int size )
 {
 	std::string strPath( path, size );
 
-	std::string full( FullPath( path, size ) );	
+	std::string full( FullPath( path, size ) );
 
 	gFIOChain.reset( new file_t( full ) );
 
