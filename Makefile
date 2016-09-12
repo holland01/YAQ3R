@@ -28,7 +28,7 @@ COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
  -Isrc -Isrc/extern -s SAFE_HEAP=1
 
 ifdef DEBUG_RELEASE
-	COMMONFLAGS := $(COMMONFLAGS) -DDEBUG_RELEASE	
+	COMMONFLAGS := $(COMMONFLAGS) -DDEBUG_RELEASE
 endif
 
 DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
@@ -37,7 +37,7 @@ DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-parameter -g2
 
 LDFLAGS = --emrun --profiling-funcs
-LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=1073741824 #-s EMTERPRETIFY=1 \
+LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912 #-s EMTERPRETIFY=1 \
  -s EMTERPRETIFY_ASYNC=1 -s EMTERPRETIFY_WHITELIST='["_main"]' -s 'EMTERPRETIFY_FILE="code.dat"'
 
 ifdef PRELOAD_ALL_ASSETS
