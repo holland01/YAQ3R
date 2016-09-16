@@ -80,12 +80,18 @@ AL.setBundleLoadPort = function(port) {
 AL.loadFinished = function(loader) {
 	AL.mountPackages([loader.packageRef]);
 
+	var u8buf = intArrayFromString(loader.params.path);
+	var pbuf = Module._malloc(u8buf.length);
+	Module.writeArrayToMemory(u8buf, pbuf);
+
 	var stack = Runtime.stackSave();
 	Runtime.dynCall('vii',
 			loader.params.proxy,
-			[loader.params.path,
+			[pbuf,
 			 loader.params.size]);
 	Runtime.stackRestore(stack);
+
+	Module._free(pbuf);
 }
 
 AL.BundleLoader = function(bundle, params) {
@@ -145,7 +151,7 @@ AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port) {
 	var loader = new AL.BundleLoader(
 		AL.getMaybeCString(bundleName), {
 			proxy: callback,
-			path: path,
+			path: AL.getMaybeCString(path),
 			size: pathLength,
 			port: port
 		}

@@ -1633,3 +1633,26 @@ is the same address as __p_new_stuff.
 It looks like the allocate function makes a direct call into malloc, which is swapped
 out at runtime with the dlmalloc implementation, so the source of this could be
 in there...
+
+**9/15/16**
+
+Finally took care of the memory issues.
+
+What lies next is another issue, which seems to be occuring in AL.loadFinished()
+in fetch.js: the initial path which is passed to the async bundle loader
+is duplicated in memory so the bundle loader user doesn't need to worry about the lifetime
+of the string itself. That said, this duplication involves UTF, which may not be
+desired: the string is first converted to javascript string when the bundle loader
+is initialized, and then re converted back into a char* buffer which is dynamically
+allocated and freed upon returning from the callback invoke.
+
+What's more is that there's some inconsistent string length printouts
+occurring within the SendShader_OnLoad and ParseEffectShader functions. This appears
+to cause the contents of the shader file read to be overlooked due to a null terminator
+which might be inserted between the path and the shader script's string data (as
+	opposed to the intended pipe). Weird.
+
+emscripten_worker_respond_provisionally is used as well, which probably is due to
+the continuous iteration and chunking that happens between the Q3BspMap instance
+and the async file IO functionality. This may be important with
+respect to this issue - not sure. 

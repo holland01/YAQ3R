@@ -288,8 +288,8 @@ static INLINE void FailOpen( const char* path, size_t pathLen )
 	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
-static INLINE bool SplitDataWithBundle( std::string& bundleName, std::vector< char >& chopData,
-		char* data, int size )
+static INLINE bool SplitDataWithBundle( std::string& bundleName,
+	std::vector< char >& chopData, char* data, int size )
 {
 	int i;
 	for ( i = 0; i < size; ++i ) {
@@ -310,7 +310,9 @@ static void SendFile_OnLoad( char* path, int size )
 {
 	puts("SendFile_OnLoad reached.");
 
-	gFIOChain.reset( new file_t( FullPath( path, size ) ) );
+	const std::string& fp = FullPath( path, size );
+
+	gFIOChain.reset( new file_t( fp ) );
 
 	if ( *gFIOChain )
 	{
@@ -318,7 +320,7 @@ static void SendFile_OnLoad( char* path, int size )
 	}
 	else
 	{
-		FailOpen( path, size );
+		FailOpen( fp.c_str(), size );
 	}
 }
 
@@ -367,10 +369,10 @@ static void SendShader_OnLoad( char* path, int size )
 	// one of them for a delimiter
 	std::vector< char > buffer( gFIOChain->readBuff.size() + size, 0 );
 
-	memcpy( &buffer[ 0 ], path, size );
+	printf( "strlen( path ): %lu PATH SIZE: %i\n", strlen( path ), size );
 
-	memcpy( &buffer[ size ], &gFIOChain->readBuff[ 0 ],
-		gFIOChain->readBuff.size() );
+	memcpy( &buffer[ 0 ], path, size );
+	memcpy( &buffer[ size + 1 ], &gFIOChain->readBuff[ 0 ], gFIOChain->readBuff.size() );
 
 	buffer[ size ] = AL_STRING_DELIM;
 
