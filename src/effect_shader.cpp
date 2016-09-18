@@ -212,7 +212,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );	
+			
 			theStage.mapCmd = MAP_CMD_CLAMPMAP;
 			theStage.mapType = MAP_TYPE_IMAGE;
 			return true;
@@ -225,7 +226,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );	
+			
 			theStage.mapCmd = MAP_CMD_MAP;
 
 			// TODO: add support for this
@@ -692,6 +694,8 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	// the path to see if this shader is meant to be read
 	// only by the current map
 	const char* delim = strchr( buffer, '|' );
+	
+	MLOG_INFO( "Delimiter: %p", ( void* )delim  );	
 	{
 		char tmp[ 1024 ];
 		memset( tmp, 0, sizeof( tmp ) );
@@ -706,8 +710,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 			return;
 		}
 
-		isMapShader = map->IsMapOnlyShader( path );
-		MLOG_INFO( "%s", path.c_str() );
+		isMapShader = map->IsMapOnlyShader( path );	
 	}
 
 	// Parse each entry. We use the range/difference method here,

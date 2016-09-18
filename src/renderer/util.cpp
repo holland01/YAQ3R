@@ -80,38 +80,202 @@ static void PreInsert_Shader( void* param )
 	*/
 }
 
+using retrievePathCallback_t = const char* ( * )( void* source );
+
+
+struct gImageMountNode_t
+{
+	std::vector< gPathMap_t > paths;
+	std::string bundle; 
+	gImageMountNode_t* next = nullptr;
+};
+
+using gImnAutoPtr_t = std::unique_ptr< gImageMountNode_t, 
+	  std::function< void( gImageMountNode_t* ) > >;
+
+void DestroyImageMountNodes( gImageMountNode_t* n )
+{
+	for ( const gImageMountNode_t* u = n; u; )
+	{
+		const gImageMountNode_t* v = u->next;
+		delete u;
+		u = v;
+	}
+}
+
+static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources, 
+		retrievePathCallback_t getPath )
+{
+	std::vector< gPathMap_t > env, gfx, models, 
+		sprites, textures;
+
+	for ( void* source: sources ) 
+	{
+		const char* path = getPath( source );
+		const char* slash = strstr( path, "/" ); 
+		
+		if ( !slash )
+		{
+			MLOG_ERROR(
+				"Invalid image path received: path \'%s\' does not belong to a bundle",
+				path );	
+			return gImnAutoPtr_t( nullptr );
+		}
+
+		size_t len = ( ptrdiff_t )( slash - path) ;	
+
+		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
+
+		if ( strncmp( path, "env", len ) == 0 ) 
+		{
+			env.push_back( pathMap );
+		} 
+		else if ( strncmp( path, "gfx", len ) == 0 )
+		{
+			gfx.push_back( pathMap );
+		}
+		else if ( strncmp( path, "models", len ) == 0 )
+		{
+			models.push_back( pathMap );	
+		}
+		else if ( strncmp( path, "sprites", len ) == 0 )
+		{
+			sprites.push_back( pathMap );
+		}
+		else if ( strncmp( path, "textures", len ) == 0 )
+		{
+			textures.push_back( pathMap );
+		}
+	}
+
+	gImageMountNode_t* n = new gImageMountNode_t();
+	gImageMountNode_t* h = n;
+
+	auto LAddNode = [ &n ]( const std::vector< gPathMap_t >& paths, 
+			const char* name )
+	{
+		if ( !paths.empty() )
+		{
+			n->paths = std::move( paths );
+			n->bundle = std::string( name );
+			n->next = new gImageMountNode_t();
+			n = n->next;
+		}
+	};
+
+	LAddNode( env, "env" );
+	LAddNode( gfx, "gfx" );
+	LAddNode( models, "models" );
+	LAddNode( sprites, "sprites" );
+	LAddNode( textures, "textures" );
+
+	return gImnAutoPtr_t( h, DestroyImageMountNodes );
+}
+
+struct gLoadImagesState_t
+{
+	gImnAutoPtr_t head;
+	gImageMountNode_t* currNode = nullptr;
+	
+	onFinishEvent_t mapLoadFinEvent = nullptr;		
+	onFinishEvent_t imageReadInsert = nullptr;
+		
+	Q3BspMap* map = nullptr;
+
+	gSamplerHandle_t sampler = { G_UNSPECIFIED };
+};
+
+static gLoadImagesState_t gImageLoadState;
+
+static void LoadImagesBegin( char* mem, int size, void* param );
+
+static void LoadImagesEnd( void* param )
+{
+	gImageLoadState.currNode = gImageLoadState.currNode->next;
+	gFileWebWorker.Await(
+		LoadImagesBegin,
+		"UnmountPackages",
+		nullptr,
+		0 
+	);
+}
+
+static void LoadImages( char* mem, int size, void* param )
+{
+	AIIO_ReadImages( 
+		*gImageLoadState.map, 
+		gImageLoadState.currNode->paths, 
+		gImageLoadState.sampler, 
+		LoadImagesEnd,
+		gImageLoadState.imageReadInsert 
+	);
+}
+
+static void LoadImagesBegin( char* mem, int size, void* param )
+{
+	if ( gImageLoadState.currNode )
+	{
+		gFileWebWorker.Await( 
+			LoadImages,
+			"MountPackage", 
+			gImageLoadState.currNode->bundle,
+			nullptr
+		);	
+	}
+	else
+	{
+		gImageLoadState.mapLoadFinEvent( gImageLoadState.map );
+	}
+}
+
 void GU_LoadShaderTextures( Q3BspMap& map,
 	gSamplerHandle_t sampler )
 {
-	std::vector< gPathMap_t > paths;
-
 	for ( auto& entry: map.effectShaders )
 	{
 		GMakeProgramsFromEffectShader( entry.second );
 	}
 
+	std::vector< void* > sources;
+
 	for ( auto& entry: map.effectShaders )
 	{
+		uint32_t i = 0;
 		for ( shaderStage_t& stage: entry.second.stageBuffer )
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
-				gPathMap_t pathMap = AIIO_MakeAssetPath( 
-					&stage.texturePath[ 0 ] );
-				MLOG_INFO( "pathMap.path: %s\n", pathMap.path.c_str() );
-				pathMap.param = &stage;
-				paths.push_back( pathMap );
+				MLOG_INFO( "%s [ %i ]\n What the fuck: %s",
+						&entry.second.name[ 0 ],
+						i++,
+						&stage.texturePath[ 0 ] );
+
+				sources.push_back( &stage.texturePath[ 0 ] );			
 			}
 		}
 	}
 
-	AIIO_ReadImages( map, paths, sampler, Q3BspMap::OnShaderLoadImagesFinish,
-		PreInsert_Shader );
+	gImageLoadState.imageReadInsert = PreInsert_Shader;
+	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
+	gImageLoadState.map = &map;
+	gImageLoadState.sampler = sampler;
+
+	gImageLoadState.head = BundleImagePaths( 
+		sources, 
+		[]( void* source ) -> const char*
+		{
+			return ( const char* )source;
+		}
+	);	
+
+	gImageLoadState.currNode = gImageLoadState.head.get();
+
+	LoadImagesBegin( nullptr, 0, 0 ); 	
 }
 
 static void PreInsert_Main( void* param )
 {
-	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* )param;
+	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* ) param;
 	imageTracker->indices.push_back( imageTracker->iterator );
 }
 

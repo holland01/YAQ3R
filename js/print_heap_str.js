@@ -5,5 +5,6 @@ var printHeapString = function(address) {
         str += String.fromCharCode(HEAP8[counter++]);
     }
     console.log(str);
+	return str;
 };
 printHeapString($dir)

@@ -19,8 +19,8 @@ struct worker_t
 
 	~worker_t( void );
 
-	void Await( em_worker_callback_func callback, const char* func, char* data, int size,
-		void* param ) const;
+	void Await( em_worker_callback_func callback, const char* func, char* data, 
+		int size, void* param ) const;
 
 	// Useful for sending legit string data (as opposed to a struct or something):
 	// the emscripten function which calls into the worker requires non-const

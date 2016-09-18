@@ -1656,3 +1656,12 @@ emscripten_worker_respond_provisionally is used as well, which probably is due t
 the continuous iteration and chunking that happens between the Q3BspMap instance
 and the async file IO functionality. This may be important with
 respect to this issue - not sure. 
+
+**9/18/2016**
+
+The shaderInfo_t instance generated from line 854 in scripts/liquid.shader has a corrupted texturePath member
+in the first stage buffer entry. Probably the result of a parser bug, or maybe
+some kind of memory corruption...
+
+
+

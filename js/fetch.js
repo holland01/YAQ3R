@@ -77,21 +77,36 @@ AL.setBundleLoadPort = function(port) {
 	AL.bundleLoadPort = AL.getMaybeCString(port);
 }
 
-AL.loadFinished = function(loader) {
-	AL.mountPackages([loader.packageRef]);
 
-	var u8buf = intArrayFromString(loader.params.path);
-	var pbuf = Module._malloc(u8buf.length);
-	Module.writeArrayToMemory(u8buf, pbuf);
+AL.loadFinished = function(loader) {	
+	AL.mountPackages([loader.packageRef]);
+	
+	var pbuf = 0;
+	var pbufLen = 0;
+
+	if (loader.params.path) {
+		pbuf = Module._malloc(loader.params.size + 1);
+		/* 
+		 * NOTE: writeStringToMemory creates an additional array, 
+		 * which is where the null term will be added if at all;
+		 * every element is then copied into pbuf. 
+		 * So, if there is a null term (which there almost certainly is),
+		 * then pbuf's extra byte willl suffice
+		 * */
+		Module.writeStringToMemory(loader.params.path, pbuf, false); 
+		pbufLen = loader.params.size;
+	}
 
 	var stack = Runtime.stackSave();
 	Runtime.dynCall('vii',
 			loader.params.proxy,
 			[pbuf,
-			 loader.params.size]);
+			 pbufLen]);
 	Runtime.stackRestore(stack);
-
-	Module._free(pbuf);
+	
+	if (pbuf) {
+		Module._free(pbuf);
+	}
 }
 
 AL.BundleLoader = function(bundle, params) {
@@ -99,8 +114,11 @@ AL.BundleLoader = function(bundle, params) {
 	this.packageRef = {metadata:null, blob:null};
 	this.fin = {metadata:false, blob:false};
 
-	if (!params || !params.size || !params.path || !params.proxy) {
-		throw BUNDLE_REQUIRED_PARAMS_EXCEPT;
+	if (!params 
+		|| typeof(params.size) === 'undefined' 
+		|| typeof(params.path) === 'undefined' 
+		|| !params.proxy) {
+		throw AL.BUNDLE_REQUIRED_PARAMS_EXCEPT;
 	}
 
 	if (params.port) {
@@ -191,25 +209,25 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 				 break;
 			 }
 			 if (traverse(node.contents[n])) {
-				 var p = FS.getPath(node.contents[n]);
-				 var u8buf = intArrayFromString(p);
-				 console.log('Iterating path: ', p, ' Size: ', p.length,
+				
+				var p = FS.getPath(node.contents[n]);
+				var u8buf = intArrayFromString(p, true);
+				
+				console.log('Iterating path: ', p, ' Size: ', p.length,
 			 		' u8 Size: ', u8buf.length);
-				 var pbuf = Module._malloc(u8buf.length);
-				 Module.writeArrayToMemory(u8buf, pbuf);
-				 // very, very important that p.length is used:
-				 // u8buf will add an extra null terminator, despite the fact that
-				 // p already has one...this may be related to multibyte characteristics,
-				 // but for this case it makes sense to just pass the original size
-				 callfn(pbuf, p.length);
-				 Module._free(pbuf);
+				
+				var pbuf = Module._malloc(u8buf.length);
+				Module.writeArrayToMemory(u8buf, pbuf);
+
+				callfn(pbuf, u8buf.length);
+				Module._free(pbuf);
 			 }
 		 }
 		 return false;
 	 }
 
 	 traverse(root);
-	 callfn(0, 0);
+	// callfn(0, 0);
 
 	 return 1;
 }

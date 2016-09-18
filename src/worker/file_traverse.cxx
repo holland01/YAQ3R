@@ -198,8 +198,7 @@ struct file_t
 
 		readBuff.resize( size, 0 );
 		fseek( ptr, offset, SEEK_SET );
-		fread( &readBuff[ 0 ], size, 1, ptr );
-		readBuff.clear();
+		fread( &readBuff[ 0 ], size, 1, ptr );	
 
 		return true;
 	}
@@ -364,15 +363,11 @@ static void SendShader_OnLoad( char* path, int size )
 		return;
 	}
 
-	// 'size' and readBuff.size() will each already
-	// include space for a null term, so we can expend
-	// one of them for a delimiter
-	std::vector< char > buffer( gFIOChain->readBuff.size() + size, 0 );
-
-	printf( "strlen( path ): %lu PATH SIZE: %i\n", strlen( path ), size );
+	std::vector< char > buffer( gFIOChain->readBuff.size() + size + 1, 0 );
 
 	memcpy( &buffer[ 0 ], path, size );
-	memcpy( &buffer[ size + 1 ], &gFIOChain->readBuff[ 0 ], gFIOChain->readBuff.size() );
+	memcpy( &buffer[ size + 1 ], &gFIOChain->readBuff[ 0 ], 
+			gFIOChain->readBuff.size() );
 
 	buffer[ size ] = AL_STRING_DELIM;
 
@@ -413,6 +408,8 @@ static void TraverseDirectory_Read( char* dir, int size )
 	{
 		printf( "Failed to traverse \'%s\'\n", dir );
 	}
+
+	emscripten_worker_respond( NULL, 0 );
 }
 
 static void TraverseDirectory_Proxy( char* data, int size )
@@ -423,14 +420,16 @@ static void TraverseDirectory_Proxy( char* data, int size )
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	EM_ASM_ARGS(
-		{
+	printf( "Bundle Name: %s\n Rem Data: %s\n", bundleName.c_str(),
+		&remData[ 0 ] );
+
+	EM_ASM_ARGS({
 			self.fetchBundleAsync($0, $1, $2, $3);
 		},
 		bundleName.c_str(),
 		TraverseDirectory_Read,
-	   &remData[ 0 ],
-	    remData.size() - 1, // don't include null term
+		&remData[ 0 ],
+		remData.size() - 1, // don't include null term
 		port
 	);
 }
@@ -495,6 +494,22 @@ void UnmountPackages_Proxy( char* data, int size )
 	emscripten_worker_respond( ( char* ) &success, sizeof( success ) );
 }
 
+
+void MountPackage_Proxy( char* data, int size )
+{
+	const char* port = EM_SERV_ASSET_PORT;
+
+	EM_ASM_ARGS({
+			self.fetchBundleAsync($0, $1, $2, $3);
+		},
+		data,
+		emscripten_worker_respond,
+		0,
+		0,
+		port
+	);	
+}
+
 extern "C" {
 
 void ReadFile_Begin( char* path, int size )
@@ -546,6 +561,14 @@ void ReadImage( char* path, int size )
 	if ( InitSystem( ReadImage_Proxy, path, size ) )
 	{
 		ReadImage_Proxy( path, size );
+	}
+}
+
+void MountPackage( char* path, int size )
+{
+	if ( InitSystem( MountPackage_Proxy, path, size ) )
+	{
+		MountPackage_Proxy( path, size );
 	}
 }
 
