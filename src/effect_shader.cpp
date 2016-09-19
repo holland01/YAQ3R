@@ -227,7 +227,13 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( token );
 
 			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );	
-			
+		
+			if ( strcmp( &theStage.texturePath[ 0 ], 
+						"textures/liquids/pool3d_5c2.tga" ) == 0 )
+			{
+				puts( "HE SHOOTS! HE SCORES!" );
+			}
+
 			theStage.mapCmd = MAP_CMD_MAP;
 
 			// TODO: add support for this
@@ -565,7 +571,7 @@ static const char* SkipLevel( const char* buffer, int8_t targetLevel )
 	const char *pch = buffer;
 
 	int8_t level = targetLevel;
-
+	
 	while ( *pch )
 	{
 		switch ( *pch )

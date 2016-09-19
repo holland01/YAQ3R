@@ -141,6 +141,8 @@ struct file_t
 
 	bool ReadImage( void )
 	{
+		readBuff.clear();
+
 		int width, height, bpp; // bpp is in bytes...
 
 		if ( !ptr )
@@ -196,6 +198,7 @@ struct file_t
 			return false;
 		}
 
+		readBuff.clear();
 		readBuff.resize( size, 0 );
 		fseek( ptr, offset, SEEK_SET );
 		fread( &readBuff[ 0 ], size, 1, ptr );	

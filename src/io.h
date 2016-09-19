@@ -85,6 +85,13 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 #	define MLOG_ASSERT( condition, ... )
 #endif
 
+#define MLOG_OFFSET(type, member) \
+	do { \
+		size_t count = ( size_t )( &( ( ( type* )0 )->member ) ); \
+		printf( "OFFSET OF " #type "::" #member ": " F_SIZE_T "\n", count ); \
+	} while ( 0 )
+
+
 enum fileCommand_t
 {
 	FILE_CONTINUE_TRAVERSAL = 1,

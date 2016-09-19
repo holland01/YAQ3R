@@ -1664,4 +1664,55 @@ in the first stage buffer entry. Probably the result of a parser bug, or maybe
 some kind of memory corruption...
 
 
+**9/19/2016**
+
+The issue is still happening: "texturesIQ", which is the result of the corrupted texturePath member
+that should instead be equal to "textures/liquids/pool3d_5c2.tga", still exists. 
+
+I wound up adding a printf debug check which compared the string fetched
+from the "map" function token in the liquid.shader file (the corresponding shader of the corrupted
+path) to the correct path, and sure as shit the proper path WAS returned. 
+
+What this confirms is that, so far, there's no indication that there's anything wrong with the token
+reading portion of the shader parser.
+
+What's not certain, though, is where the stage.texturePath member could be written to again. 
+The debug print comparison compares the value of the texturePath member directly, which is 
+correct, so there has to be either a) a portion of code which again writes to the member
+at a later time or b) some screwed up overwriting issue.
+
+One interesting issue that was fixed was caused by a lack of resetting the global
+file_t instance's readBuff in the web worker source file: this caused an empty shader
+file, menu.shader, to be read into readBuff while retaining the majority of the previously
+read shader. Sadly, this didn't fix the main problem...
+
+I still haven't actually set a breakpoint in the debug print comparison block
+for when the comaprison is true. This would be a good idea, but finding out
+where this actually is in the asm.js is harder than I thought: for one,
+the string "HE SHOOTS! HE SCORES!", which is printed to the console
+when the comparison resolves to true, doesn't appear to exist in the .data file
+nor the .js file which is really odd. 
+
+A grep for the string (from the project's root directory) 
+only provides a reference to the effect_shader.cpp file.
+Searching for the actual hex bytes in the data file has also 
+produced no results. What might be good to do is check the .html
+and .js files for the direct hex pattern. 
+
+What's also important to note is that functions defined in the JS console
+can be used in conditional breakpoints, which means that actual string
+comparisons can be made using printHeapString. This should help me
+to track down the "map" token subroutine in effect_shader.cpp's stageReadFuncs var, 
+which is used to parse the actual texture path argument, because I can just
+compare the "$token$i$i" value to "map" when the current shader being
+parsed is liquid.shader (the variable to use for a conditional break
+would be $tmp$i here). 
+
+Once I see the subroutine, I'll see the debug comparison block and can just break
+in there anytime I want to restart. This should speed tracking the cause of the issue down up...
+
+
+
+
+
 

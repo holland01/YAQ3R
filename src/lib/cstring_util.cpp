@@ -77,7 +77,8 @@ const char* StrNextNumber( const char* buffer )
 
 float StrReadFloat( const char*& buffer )
 {
-	char f[ 24 ] = {};
+	char f[ 24 ];
+	memset( f, 0, sizeof( f ) );
 	buffer = StrReadToken( f, buffer );
 	return ( float ) strtod( f, NULL );
 }

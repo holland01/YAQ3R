@@ -7,4 +7,11 @@ var printHeapString = function(address) {
     console.log(str);
 	return str;
 };
-printHeapString($dir)
+
+var getHexString = function(str) {
+	var hex = '';
+	for (var x = 0; x < str.length; ++x) {
+		hex += str.charCodeAt(x) + ' ';
+	}
+	return hex;
+}
