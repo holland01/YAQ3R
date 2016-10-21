@@ -1,4 +1,4 @@
-#printHeapString($dir)pragma once
+#pragma once
 
 #define ASSET_Q3_ROOT "asset"
 

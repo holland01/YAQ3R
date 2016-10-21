@@ -9,7 +9,7 @@ namespace {
 	std::vector< std::unique_ptr< Program > > gProgramStorage;
 
 	INLINE gProgramHandle_t AddProgram( Program* p )
-	{/*
+	{
 		gProgramHandle_t h = GFindProgramByData( p->attribs,
 			p->uniforms, p->stage );
 
@@ -17,7 +17,7 @@ namespace {
 		{
 			return h;
 		}
-	*/
+		
 		gProgramHandle_t h;
 		h.id = ( uint32_t ) gProgramStorage.size();
 

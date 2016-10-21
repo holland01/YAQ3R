@@ -175,7 +175,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 	[]( char* received, mapData_t& data, int length )
 	{
 		memcpy( &data.visdata, received, sizeof( bspVisdata_t ) );
-		data.bitsetSrc.resize( data.visdata.numVectors 
+		data.bitsetSrc.resize( data.visdata.numVectors
 			* data.visdata.sizeVector, 0 );
 		memcpy( &data.bitsetSrc[ 0 ], received + sizeof( bspVisdata_t ),
 		 	length - sizeof( bspVisdata_t ) );
@@ -195,7 +195,7 @@ static INLINE void MapReadFin_UnmountFin( char* data, int size, void* param )
 {
 	UNUSED( data );
 	UNUSED( size );
-	
+
 	Q3BspMap* map = ( Q3BspMap* ) param;
 
 	if ( !map )
@@ -204,7 +204,7 @@ static INLINE void MapReadFin_UnmountFin( char* data, int size, void* param )
 		return;
 	}
 
-	S_LoadShaders( map );	
+	S_LoadShaders( map );
 }
 
 static void MapReadFin( Q3BspMap* map )
@@ -233,7 +233,7 @@ static void MapReadFin( Q3BspMap* map )
 	for ( size_t i = 0; i < map->data.planes.size(); ++i )
 	{
 		map->data.planes[ i ].distance *= map->GetScaleFactor();
-		ScaleCoords( map->data.planes[ i ].normal, 
+		ScaleCoords( map->data.planes[ i ].normal,
 			( float ) map->GetScaleFactor() );
 		SwizzleCoords( map->data.planes[ i ].normal );
 	}
@@ -271,9 +271,9 @@ static void MapReadFin( Q3BspMap* map )
 
 		ScaleCoords( face.normal, ( float ) map->GetScaleFactor() );
 		ScaleCoords( face.lightmapOrigin, ( float ) map->GetScaleFactor() );
-		ScaleCoords( face.lightmapStVecs[ 0 ], 
+		ScaleCoords( face.lightmapStVecs[ 0 ],
 			( float ) map->GetScaleFactor() );
-		ScaleCoords( face.lightmapStVecs[ 1 ], 
+		ScaleCoords( face.lightmapStVecs[ 1 ],
 			( float ) map->GetScaleFactor() );
 
 		SwizzleCoords( face.normal );
@@ -284,15 +284,15 @@ static void MapReadFin( Q3BspMap* map )
 
 	int ishader = 0;
 	MLOG_INFO( "Dumping shader info..." );
-	for ( const bspShader_t& shader: map->data.shaders ) 
+	for ( const bspShader_t& shader: map->data.shaders )
 	{
-		printf( "Shader[ %i ]: { %s, %i, %i } \n", ishader++, 
-				shader.name, shader.surfaceFlags, shader.contentsFlags );	
+		printf( "Shader[ %i ]: { %s, %i, %i } \n", ishader++,
+				shader.name, shader.surfaceFlags, shader.contentsFlags );
 	}
-	
-	gFileWebWorker.Await( MapReadFin_UnmountFin,  "UnmountPackages", 
+
+	gFileWebWorker.Await( MapReadFin_UnmountFin,  "UnmountPackages",
 			NULL, 0, map );
-}	
+}
 
 static void ReadChunk( char* data, int size, void* param )
 {
@@ -368,7 +368,7 @@ static void ReadBegin( char* data, int size, void* param )
 	SendRequest( info, param );
 }
 
-static INLINE void LoadImagesFinish( gImageParamList_t& dest, 
+static INLINE void LoadImagesFinish( gImageParamList_t& dest,
 	gImageLoadTracker_t** imageTracker )
 {
 	dest = std::move( ( *imageTracker )->textures );
@@ -376,7 +376,7 @@ static INLINE void LoadImagesFinish( gImageParamList_t& dest,
 	*imageTracker = nullptr;
 }
 
-static void UnmountShadersFin( char* data, int size, 
+static void UnmountShadersFin( char* data, int size,
 		void* arg )
 {
 	UNUSED( data );
@@ -384,14 +384,14 @@ static void UnmountShadersFin( char* data, int size,
 
 	MLOG_INFO( "===============\n"\
 		"Loading images from effect shaders..."\
-		"\n===============" );	
-	
+		"\n===============" );
+
 	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ), GMakeSampler() );
 }
 
 //------------------------------------------------------------------------------
 // rendererPayload_t
-//------------------------------------------------------------------------------ 
+//------------------------------------------------------------------------------
 
 struct renderPayload_t
 {
@@ -421,12 +421,12 @@ void Q3BspMap::OnShaderReadFinish( void )
 	int iEffectShader = 0;
 	for ( const shaderMapEntry_t& entry: effectShaders )
 	{
-		printf( "Effect Shader[%i] %s\n", iEffectShader++, 
+		printf( "Effect Shader[%i] %s\n", iEffectShader++,
 				entry.first.c_str() );
 	}
 
-	gFileWebWorker.Await( UnmountShadersFin,  "UnmountPackages", 
-			NULL, 0, this );	
+	gFileWebWorker.Await( UnmountShadersFin,  "UnmountPackages",
+			NULL, 0, this );
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
@@ -438,7 +438,7 @@ void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 
 	LoadImagesFinish( map.payload->shaderImages, imageTracker );
 
-	MLOG_INFO( 
+	MLOG_INFO(
 		"===============\n" \
 		"Loading main images..." \
 		"\n===============" );
@@ -460,7 +460,7 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 	if ( it != effectShaders.end() )
 	{
 		/*
-		glslMade is only true if there's been shader compiles; 
+		glslMade is only true if there's been shader compiles;
 		this shouldn't be here
 		*/
 		//if ( !it->second.glslMade )
@@ -492,7 +492,7 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 
 bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
 {
-	const std::string shadername( 
+	const std::string shadername(
 		File_StripExt( File_StripPath( shaderPath ) ) );
 
 	return shadername == name;
@@ -534,13 +534,15 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	std::string readParams( "maps|" );
 	readParams.append(filepath);
 
+	MLOG_INFO( "params: %s", readParams.c_str() );
+
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;
 	name = File_StripExt( File_StripPath( filepath ) );
-	
-	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) ) 
+
+	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) )
 		+ "/../";
-	
+
 	File_QueryAsync( readParams, ReadBegin, this );
 }
 
@@ -662,11 +664,11 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 		const bspPlane_t* const plane = &data.planes[ node->plane ];
 
 		// If the distance from the camera to the plane is >= 0,
-		// then our needed camera data is 
+		// then our needed camera data is
 		// in a leaf somewhere in front of this node,
 		// otherwise it's behind the node somewhere.
 
-		glm::vec3 planeNormal( plane->normal.x, plane->normal.y, 
+		glm::vec3 planeNormal( plane->normal.x, plane->normal.y,
 			plane->normal.z );
 
 		float distance = glm::dot( planeNormal, camPos ) - plane->distance;

@@ -51,6 +51,7 @@ AL.mountPackages = function(packages) {
 
 	}
 
+	console.log("packages: ", JSON.stringify(packages))
 	console.log("AL.mountPackages: DYNAMICTOP; ", DYNAMICTOP);
 	console.log("AL.mountPackages: DYNAMIC_BASE; ", DYNAMIC_BASE);
 	console.log("AL.mountPackages: TOTAL_MEMORY; ", TOTAL_MEMORY);
@@ -78,22 +79,22 @@ AL.setBundleLoadPort = function(port) {
 }
 
 
-AL.loadFinished = function(loader) {	
+AL.loadFinished = function(loader) {
 	AL.mountPackages([loader.packageRef]);
-	
+
 	var pbuf = 0;
 	var pbufLen = 0;
 
 	if (loader.params.path) {
 		pbuf = Module._malloc(loader.params.size + 1);
-		/* 
-		 * NOTE: writeStringToMemory creates an additional array, 
+		/*
+		 * NOTE: writeStringToMemory creates an additional array,
 		 * which is where the null term will be added if at all;
-		 * every element is then copied into pbuf. 
+		 * every element is then copied into pbuf.
 		 * So, if there is a null term (which there almost certainly is),
 		 * then pbuf's extra byte willl suffice
 		 * */
-		Module.writeStringToMemory(loader.params.path, pbuf, false); 
+		Module.writeStringToMemory(loader.params.path, pbuf, false);
 		pbufLen = loader.params.size;
 	}
 
@@ -103,7 +104,7 @@ AL.loadFinished = function(loader) {
 			[pbuf,
 			 pbufLen]);
 	Runtime.stackRestore(stack);
-	
+
 	if (pbuf) {
 		Module._free(pbuf);
 	}
@@ -114,9 +115,9 @@ AL.BundleLoader = function(bundle, params) {
 	this.packageRef = {metadata:null, blob:null};
 	this.fin = {metadata:false, blob:false};
 
-	if (!params 
-		|| typeof(params.size) === 'undefined' 
-		|| typeof(params.path) === 'undefined' 
+	if (!params
+		|| typeof(params.size) === 'undefined'
+		|| typeof(params.path) === 'undefined'
 		|| !params.proxy) {
 		throw AL.BUNDLE_REQUIRED_PARAMS_EXCEPT;
 	}
@@ -209,13 +210,13 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 				 break;
 			 }
 			 if (traverse(node.contents[n])) {
-				
+
 				var p = FS.getPath(node.contents[n]);
 				var u8buf = intArrayFromString(p, true);
-				
+
 				console.log('Iterating path: ', p, ' Size: ', p.length,
 			 		' u8 Size: ', u8buf.length);
-				
+
 				var pbuf = Module._malloc(u8buf.length);
 				Module.writeArrayToMemory(u8buf, pbuf);
 

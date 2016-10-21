@@ -179,7 +179,8 @@ static INLINE void WriteTexture(
 	std::string sampleTextureExpr;
 
 	if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
-		fragmentSrc.push_back( "\tst = clamp( applyTransform( st ), imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
+		fragmentSrc.push_back( "\tst = clamp( applyTransform( st ),
+			imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
 	else
 		fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
 
@@ -192,7 +193,8 @@ static INLINE void WriteTexture(
 	// Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
 	{
-		fragmentSrc.push_back( "\tconst float alphaGen = " + std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+		fragmentSrc.push_back( "\tconst float alphaGen = "
+			+ std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
 
 		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
 
@@ -278,15 +280,18 @@ static std::string GenVertexShader( shaderStage_t& stage,
 
 	if ( stage.tcgen == TCGEN_ENVIRONMENT )
 	{
-		vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "normal", "vec3", attribLocCounter++ ) );
+		vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++,
+			DeclAttributeVar( "normal", "vec3", attribLocCounter++ ) );
 		attribs.push_back( "normal" );
 	}
 
-	vertexSrc.push_back( "\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
+	vertexSrc.push_back(
+		"\tgl_Position = viewToClip * modelToView * vec4( position, 1.0 );" );
 
 	if ( stage.tcgen == TCGEN_ENVIRONMENT )
 	{
-		AddCalcEnvMap( vertexSrc, "position", "normal", "vec3( -modelToView[ 3 ] )" );
+		AddCalcEnvMap( vertexSrc, "position", "normal",
+			"vec3( -modelToView[ 3 ] )" );
 		vertexSrc.push_back( "\tfrag_Tex = st;" );
 	}
 	else
@@ -296,8 +301,10 @@ static std::string GenVertexShader( shaderStage_t& stage,
 
 	if ( UsesColor( stage ) )
 	{
-		vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++, DeclAttributeVar( "color", "vec4", attribLocCounter++ ) );
-		vertexSrc.insert( vertexSrc.begin() + vertTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "out" ) );
+		vertexSrc.insert( vertexSrc.begin() + vertAttrOffset++,
+			DeclAttributeVar( "color", "vec4", attribLocCounter++ ) );
+		vertexSrc.insert( vertexSrc.begin() + vertTransferOffset++,
+			DeclTransferVar( "frag_Color", "vec4", "out" ) );
 		vertexSrc.push_back( "\tfrag_Color = color;" );
 		attribs.push_back( "color" );
 	}
@@ -341,7 +348,8 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 
 	if ( UsesColor( stage ) )
 	{
-		fragmentSrc.insert( fragmentSrc.begin() + fragTransferOffset++, DeclTransferVar( "frag_Color", "vec4", "in" ) );
+		fragmentSrc.insert( fragmentSrc.begin() + fragTransferOffset++,
+			DeclTransferVar( "frag_Color", "vec4", "in" ) );
 	}
 
 	for ( const effect_t& op: stage.effects )
@@ -349,20 +357,24 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 		// Modify the texture coordinate as necessary before we write to the texture
 		if ( op.name == "tcModTurb" )
 		{
-			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform float tcModTurb;" );
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset,
+				"uniform float tcModTurb;" );
 			fragmentSrc.push_back( "\tst *= tcModTurb;" );
 			uniforms.push_back( "tcModTurb" );
 		}
 		else if ( op.name == "tcModScroll" )
 		{
-			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec4 tcModScroll;" );
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset,
+				"uniform vec4 tcModScroll;" );
 			fragmentSrc.push_back( "\tst += tcModScroll.xy * tcModScroll.zw;" );
 			uniforms.push_back( "tcModScroll" );
 		}
 		else if ( op.name == "tcModRotate" )
 		{
-			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 texRotate;" );
-			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform vec2 texCenter;" );
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset,
+				"uniform mat2 texRotate;" );
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset,
+				"uniform vec2 texCenter;" );
 			fragmentSrc.push_back( "\tst += texRotate * ( frag_Tex - texCenter );" );
 
 			uniforms.push_back( "texRotate" );
@@ -370,7 +382,8 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 		}
 		else if ( op.name == "tcModScale" )
 		{
-			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, "uniform mat2 tcModScale;" );
+			fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset,
+				"uniform mat2 tcModScale;" );
 			fragmentSrc.push_back( "\tst = tcModScale * st;" );
 			uniforms.push_back( "tcModScale" );
 		}
@@ -485,7 +498,7 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 	{
 		shaderStage_t& stage = shader.stageBuffer[ j ];
 
-		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )? 
+		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )?
 				"lightmap": "tex0" );
 
 		std::vector< std::string > attribs = { "position", texCoordName };
@@ -497,13 +510,13 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 			"viewToClip",
 		};
 
-		const std::string& vertexString = GenVertexShader( stage, texCoordName, 
+		const std::string& vertexString = GenVertexShader( stage, texCoordName,
 				attribs );
 		const std::string& fragmentString = GenFragmentShader( stage, uniforms );
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
 
-		// On the directive: this is good for testing and 
+		// On the directive: this is good for testing and
 		// doing performance comparisons
 #ifndef G_DUPLICATE_PROGRAMS
 		stage.program = GFindProgramByData( p->attribs, p->uniforms, &stage );

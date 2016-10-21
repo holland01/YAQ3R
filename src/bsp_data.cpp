@@ -21,7 +21,16 @@ bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b )
 
 	for ( uint32_t i = 0; i < a->effects.size(); ++i )
 	{
-		if ( a->effects[ 0 ].name != b->effects[ 0 ].name )
+		bool found = false;
+		for ( uint32_t j = 0; j < b->effects.size() && !found; ++j )
+		{
+			if ( a->effects[ i ].name == b->effects[ j ].name )
+			{
+				found = true;
+			}
+		}
+
+		if (!found)
 		{
 			return false;
 		}
@@ -29,4 +38,3 @@ bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b )
 
 	return true;
 }
-
