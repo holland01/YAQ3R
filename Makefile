@@ -55,6 +55,10 @@ else
   COMMONFLAGS := $(COMMONFLAGS) -O2
 endif
 
+ifdef EM_ASSERTIONS
+  COMMONFLAGS := $(COMMONFLAGS) -s ASSERTIONS=1
+endif
+
 CFLAGS = $(COMMONFLAGS) -std=c++14
 CXXFLAGS = $(COMMONFLAGS) -std=c++14
 
@@ -75,9 +79,7 @@ CXXO = -O2
 
 DEPFLAGS= -s USE_SDL=2
 
-ifdef EM_ASSERTIONS
-  COMMONFLAGS := $(COMMONFLAGS) -s ASSERTIONS=1
-endif
+
 
 -include Makefile.local
 
