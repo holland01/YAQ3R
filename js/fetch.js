@@ -210,12 +210,8 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 				 break;
 			 }
 			 if (traverse(node.contents[n])) {
-
 				var p = FS.getPath(node.contents[n]);
 				var u8buf = intArrayFromString(p, true);
-
-				console.log('Iterating path: ', p, ' Size: ', p.length,
-			 		' u8 Size: ', u8buf.length);
 
 				var pbuf = Module._malloc(u8buf.length);
 				Module.writeArrayToMemory(u8buf, pbuf);
@@ -228,7 +224,9 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 	 }
 
 	 traverse(root);
-	// callfn(0, 0);
+
+	 // Signal the end
+	 callfn(0, 0);
 
 	 return 1;
 }
