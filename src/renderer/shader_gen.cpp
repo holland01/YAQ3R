@@ -179,10 +179,14 @@ static INLINE void WriteTexture(
 	std::string sampleTextureExpr;
 
 	if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
-		fragmentSrc.push_back( "\tst = clamp( applyTransform( st ),
-			imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
+	{
+		fragmentSrc.push_back( "\tst = clamp( applyTransform( st )," \
+			 "imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
+	}
 	else
+	{
 		fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
+	}
 
 	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
 

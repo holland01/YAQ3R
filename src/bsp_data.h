@@ -509,47 +509,47 @@ struct shaderStage_t
 
 	// Normal texcoord generation (if textureIndex is defined)
 
-	texCoordGen_t				tcgen = TCGEN_BASE; 
-	
+	texCoordGen_t				tcgen = TCGEN_BASE;
+
 	// src is incoming pixels
 
-	GLenum						blendSrc = GL_ONE; 
+	GLenum						blendSrc = GL_ONE;
 
-	// destination is the pixels which are already within the 
+	// destination is the pixels which are already within the
 	// framebuffer from the previous frame
 
-	GLenum						blendDest = GL_ZERO; 
+	GLenum						blendDest = GL_ZERO;
 
 	GLenum						depthFunc = GL_LEQUAL;
 
 	// how colors are generated - identity refers to a white image
 
-	rgbGen_t					rgbGen = RGBGEN_UNDEFINED; 
+	rgbGen_t					rgbGen = RGBGEN_UNDEFINED;
 
-	// alpha constraint for the fragment; if fragment fails the condition, 
+	// alpha constraint for the fragment; if fragment fails the condition,
 	// we discard it
 
-	alphaFunc_t					alphaFunc = ALPHA_FUNC_UNDEFINED;  
-	
+	alphaFunc_t					alphaFunc = ALPHA_FUNC_UNDEFINED;
+
 	// either "map" or "clampmap"; clampmap refers to a non-repeating texture
 
-	mapCmd_t					mapCmd = MAP_CMD_UNDEFINED; 
-	
+	mapCmd_t					mapCmd = MAP_CMD_UNDEFINED;
+
 	// can be an image, a lightmap, or a whiteimage
 
-	mapType_t					mapType = MAP_TYPE_UNDEFINED; 
-	
+	mapType_t					mapType = MAP_TYPE_UNDEFINED;
+
 	// dynamic effects, designed to be passed to the shader
 
-	std::vector< effect_t >		effects;  
+	std::vector< effect_t >		effects;
 
 	// if 0, assume an alpha value of 1
 
-	float						alphaGen = 0.0f; 
+	float						alphaGen = 0.0f;
 
 	// path to the texture image, if we have one
 
-	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath; 
+	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath;
 
 	gProgramHandle_t program;
 
@@ -560,22 +560,23 @@ struct shaderStage_t
 		texturePath.fill( 0 );
 	}
 
-	const Program& GetProgram( void ) const { return *GQueryProgram( program ); }
+	const Program& GetProgram( void ) const
+	{ return *GQueryProgram( program ); }
 };
 
 struct shaderInfo_t
 {
 
-	// implies an animated vertex deformation 
-	bool				deform = false; 
+	// implies an animated vertex deformation
+	bool				deform = false;
 
 	// choose wave, normal, or bulge
-	vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED; 
+	vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;
 
 	// arbitrary sinusoidal functions which are applied by the command
 	//  (e.g., sawtooth, triangle, a normal sine wave, etc)
-	vertexDeformFunc_t	deformFn = VERTEXDEFORM_FUNC_UNDEFINED; 
-	
+	vertexDeformFunc_t	deformFn = VERTEXDEFORM_FUNC_UNDEFINED;
+
 	effect_t            deformParms; // arbitrary parameters for our deform
 
 	uint32_t			cullFace = G_UNSPECIFIED;
@@ -587,7 +588,7 @@ struct shaderInfo_t
 	float				tessSize = 0.0f; // 0 if none
 
 	// the amount of draw passes for this shader entry
-	int					stageCount = 0; 
+	int					stageCount = 0;
 
 	float				surfaceLight = 0.0f; // 0 if no light
 
@@ -599,6 +600,8 @@ struct shaderInfo_t
 	{
 		name.fill( 0 );
 	}
+
+	void PrintStageTextureNames( void ) const;
 };
 
 bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b );

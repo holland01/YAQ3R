@@ -178,7 +178,8 @@ struct file_t
 		readBuff.resize( target + 8, 0 );
 		memcpy( &readBuff[ 8 ], buf, original );
 
-		// There's no way that we'll need more than 16 bits for each dimension.
+		// There's no way that we'll need more
+		// Than 16 bits for each dimension.
 		// Remaining 3 bytes are for padding.
 		readBuff[ 0 ] = ( unsigned char )( width & 0xFF );
 		readBuff[ 1 ] = ( unsigned char )( ( width >> 8 ) & 0xFF );
@@ -199,9 +200,13 @@ struct file_t
 		}
 
 		readBuff.clear();
-		readBuff.resize( size, 0 );
-		fseek( ptr, offset, SEEK_SET );
-		fread( &readBuff[ 0 ], size, 1, ptr );	
+
+		if ( size )
+		{
+			readBuff.resize( size, 0 );
+			fseek( ptr, offset, SEEK_SET );
+			fread( &readBuff[ 0 ], size, 1, ptr );
+		}
 
 		return true;
 	}
@@ -219,7 +224,8 @@ struct file_t
 
 	void Send( void ) const
 	{
-		emscripten_worker_respond( ( char* ) &readBuff[ 0 ], readBuff.size() );
+		emscripten_worker_respond( ( char* ) &readBuff[ 0 ],
+			readBuff.size() );
 	}
 
 	~file_t( void )
@@ -275,7 +281,8 @@ static INLINE std::string StripExt( const std::string& name )
 	return name.substr( 0, index );
 }
 
-static std::string ReplaceExt( const std::string& path, const std::string& ext )
+static std::string ReplaceExt( const std::string& path,
+	const std::string& ext )
 {
 	std::string f( StripExt( path ) );
 	f += ext;
@@ -356,6 +363,13 @@ static void ReadFile_Proxy( char* data, int size )
 
 static void SendShader_OnLoad( char* path, int size )
 {
+	if ( !path && !size )
+	{
+		puts( "Last shader path found." );
+		emscripten_worker_respond( nullptr, 0 );
+		return;
+	}
+
 	std::string strPath( path, size );
 
 	gFIOChain.reset( new file_t( strPath ) );
@@ -369,7 +383,7 @@ static void SendShader_OnLoad( char* path, int size )
 	std::vector< char > buffer( gFIOChain->readBuff.size() + size + 1, 0 );
 
 	memcpy( &buffer[ 0 ], path, size );
-	memcpy( &buffer[ size + 1 ], &gFIOChain->readBuff[ 0 ], 
+	memcpy( &buffer[ size + 1 ], &gFIOChain->readBuff[ 0 ],
 			gFIOChain->readBuff.size() );
 
 	buffer[ size ] = AL_STRING_DELIM;
@@ -377,7 +391,7 @@ static void SendShader_OnLoad( char* path, int size )
 	gFIOChain.release();
 
 	emscripten_worker_respond_provisionally( &buffer[ 0 ],
-	 	buffer.size() );
+		buffer.size() );
 }
 
 static void TraverseDirectory_Read( char* dir, int size )
@@ -393,8 +407,7 @@ static void TraverseDirectory_Read( char* dir, int size )
 	char error[ 256 ];
 	memset( error, 0, sizeof( error ) );
 
-	int code = EM_ASM_ARGS(
-		{
+	int code = EM_ASM_ARGS({
 			try {
 				return self.walkFileDirectory($0, $1, $2);
 			} catch (e) {
@@ -412,7 +425,7 @@ static void TraverseDirectory_Read( char* dir, int size )
 		printf( "Failed to traverse \'%s\'\n", dir );
 	}
 
-	emscripten_worker_respond( NULL, 0 );
+	puts( "TraverseDirectory_Read finished" );
 }
 
 static void TraverseDirectory_Proxy( char* data, int size )
@@ -440,7 +453,6 @@ static void TraverseDirectory_Proxy( char* data, int size )
 static void ReadImage_Proxy( char* path, int size )
 {
 	std::string strPath( path, size );
-
 	std::string full( FullPath( path, size ) );
 
 	gFIOChain.reset( new file_t( full ) );
@@ -497,7 +509,6 @@ void UnmountPackages_Proxy( char* data, int size )
 	emscripten_worker_respond( ( char* ) &success, sizeof( success ) );
 }
 
-
 void MountPackage_Proxy( char* data, int size )
 {
 	const char* port = EM_SERV_ASSET_PORT;
@@ -510,7 +521,7 @@ void MountPackage_Proxy( char* data, int size )
 		0,
 		0,
 		port
-	);	
+	);
 }
 
 extern "C" {
@@ -534,17 +545,13 @@ void ReadFile_Chunk( char* bcmd, int size )
 		return;
 	}
 
-	wApiChunkInfo_t* cmd =  ( wApiChunkInfo_t* )bcmd;
+	wApiChunkInfo_t* cmd = ( wApiChunkInfo_t* )bcmd;
 
-	if ( gFIOChain->Read( cmd->offset, cmd->size ) )
-	{
-		emscripten_worker_respond( ( char* )&gFIOChain->readBuff[ 0 ], cmd->size );
-	}
-	else
-	{
-		uint32_t m = WAPI_FALSE;
-		emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
-	}
+	printf( "Received - offset: " F_SIZE_T ", size: " F_SIZE_T "\n",
+		cmd->offset, cmd->size );
+
+	gFIOChain->Read( cmd->offset, cmd->size );
+	emscripten_worker_respond( ( char* )&gFIOChain->readBuff[ 0 ], cmd->size );
 }
 
 void TraverseDirectory( char* dir, int size )

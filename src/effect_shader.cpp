@@ -212,8 +212,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );	
-			
+			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+
 			theStage.mapCmd = MAP_CMD_CLAMPMAP;
 			theStage.mapType = MAP_TYPE_IMAGE;
 			return true;
@@ -226,9 +226,9 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );	
-		
-			if ( strcmp( &theStage.texturePath[ 0 ], 
+			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+
+			if ( strcmp( &theStage.texturePath[ 0 ],
 						"textures/liquids/pool3d_5c2.tga" ) == 0 )
 			{
 				puts( "HE SHOOTS! HE SCORES!" );
@@ -566,12 +566,12 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 	return false;
 }
 
-static const char* SkipLevel( const char* buffer, int8_t targetLevel )
+static const char* SkipBlockAtLevel( const char* buffer, int8_t targetLevel )
 {
-	const char *pch = buffer;
+	const char* pch = buffer;
 
 	int8_t level = targetLevel;
-	
+
 	while ( *pch )
 	{
 		switch ( *pch )
@@ -601,12 +601,10 @@ static const char* ParseEntry(
 	bool& used,
 	const char* buffer,
 	int level,
-	const Q3BspMap* map )
+	const Q3BspMap* map
+)
 {
 	char token[ 64 ];
-
-	char first = 0;
-
 	shaderStage_t stage;
 
 	while ( true )
@@ -618,9 +616,6 @@ static const char* ParseEntry(
 			break;
 		}
 
-		first = *buffer;
-
-evaluate_tok:
 		// Begin stage?
 		if ( *token == '{' )
 		{
@@ -631,12 +626,15 @@ evaluate_tok:
 		// End stage; we done
 		if ( *token == '}' )
 		{
-			// We're back out into the main level, so we're finished with this entry.
+			// We're back out into the main level, so we're finished
+			// with this entry.
 			if ( level == 1 )
 			{
 				break;
 			}
-			// We're not in the main level, but we're leaving this stage, so decrease our level by 1 and add on to our stageCount
+
+			// We're not in the main level; we're leaving a shader stage,
+			// so decrease our level by 1 and add on to our stageCount
 			else
 			{
 				outInfo->stageBuffer.push_back( stage );
@@ -647,18 +645,20 @@ evaluate_tok:
 			}
 		}
 
-		// No invalid tokens ( e.g., spaces, indents, comments, etc. ); so, this must be a header
+		// We've checked for braces already and there's
+		// no invalid tokens. So, this must be a header
 		if ( level == 0 )
 		{
 			strcpy( &outInfo->name[ 0 ], token );
 
-			// Ensure we have a valid shader which a) we know is used by the map
-			// and b) hasn't already been read
+			// Ensure we have a valid shader which a)
+			// we know is used by the map and b) hasn't
+			// already been read
 			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader );
 
 			if ( !used )
 			{
-				return SkipLevel( buffer, level );
+				return SkipBlockAtLevel( buffer, level );
 			}
 
 			continue;
@@ -672,59 +672,49 @@ evaluate_tok:
 
 		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
 		{
-			goto evaluate_tok;
+			continue;
 		}
-	}
-
-	if ( *buffer == first )
-	{
-		buffer++;
 	}
 
 	return buffer;
 }
 
-/*!
-	We unfortunately can't use lambdas with the File_IterateDirTree API at the moment,
-	primarily due to emscripten complications.
-
-	Considering that the result would compile down to something like this, anyway, though
-	we're probably not losing much overhead.
-*/
-
 static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 {
 	bool isMapShader;
+
+	std::stringstream ss;
 
 	// Get the filepath using our delimiter; use
 	// the path to see if this shader is meant to be read
 	// only by the current map
 	const char* delim = strchr( buffer, '|' );
-	
-	MLOG_INFO( "Delimiter: %p", ( void* )delim  );	
+
 	{
 		char tmp[ 1024 ];
 		memset( tmp, 0, sizeof( tmp ) );
 		memcpy( tmp, buffer, ( ptrdiff_t )( delim - buffer ) );
 		std::string path( tmp );
 
+		ss << "Entries for " << path << ":\n";
+
 		std::string ext;
 		bool res = File_GetExt( ext, nullptr, path );
 		if ( !res || ext != "shader" )
 		{
-			MLOG_INFO( "%s is not a shader file; skipping...", path.c_str() );
 			return;
 		}
 
-		isMapShader = map->IsMapOnlyShader( path );	
+		isMapShader = map->IsMapOnlyShader( path );
 	}
 
 	// Parse each entry. We use the range/difference method here,
-	// since pChar has a variable amount of incrementing
-	// happening
-	const char* pChar = &delim[ 1 ]; // = delim + 1
+	// since it's possible to skip over the null terminator
+	const char* pChar = &delim[ 1 ];
 	const char* end = ( const char* ) &buffer[ size - 1 ];
 	ptrdiff_t range = ( ptrdiff_t )( end - pChar );
+
+	uint32_t entryCount = 0;
 
 	while ( range > 0 )
 	{
@@ -734,6 +724,8 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		entry.localLoadFlags = 0;
 		pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
 
+		ss << "\tname: " << &entry.name[0] << "; used: " << used << "\n";
+
 		if ( used )
 		{
 			map->effectShaders.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ],
@@ -742,6 +734,8 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		range = ( ptrdiff_t )( end - pChar );
 	}
+
+	MLOG_INFO( "%s", ss.str().c_str() );
 }
 
 #if defined( EM_USE_WORKER_THREAD )

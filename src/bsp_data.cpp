@@ -38,3 +38,40 @@ bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b )
 
 	return true;
 }
+
+void shaderInfo_t::PrintStageTextureNames( void ) const
+{
+	std::stringstream ss;
+
+	ss << "Stage Buffer Size: " << stageBuffer.size() << "\n";
+
+	ss << &name[0] << "\n";
+
+	uint32_t i = 0;
+	for ( const shaderStage_t& stage: stageBuffer )
+	{
+		ss << "[" << i++ << "]: ";
+		if ( stage.mapType == MAP_TYPE_IMAGE )
+		{
+			ss << &stage.texturePath[0];
+		}
+		else
+		{
+			switch ( stage.mapType )
+			{
+				case MAP_TYPE_LIGHT_MAP:
+					ss << "$lightmap";
+					break;
+				case MAP_TYPE_WHITE_IMAGE:
+					ss << "$whiteimage";
+					break;
+				default:
+					ss << "$unknown";
+					break;
+			}
+		}
+		ss << "\n";
+	}
+
+	MLOG_INFO( "%s", ss.str().c_str() );
+}

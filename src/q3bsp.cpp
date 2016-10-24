@@ -187,6 +187,9 @@ static void ReadChunk( char* data, int size, void* param );
 
 static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
 {
+	MLOG_INFO( "Sent - offset: " F_SIZE_T ", size: " F_SIZE_T,
+		info.offset, info.size );
+
 	gFileWebWorker.Await( ReadChunk, "ReadFile_Chunk",
 		( char* )&info, sizeof( info ), param );
 }
@@ -209,8 +212,9 @@ static INLINE void MapReadFin_UnmountFin( char* data, int size, void* param )
 
 static void MapReadFin( Q3BspMap* map )
 {
-	// swizzle coordinates from left-handed Z UP axis to right-handed Y UP axis.
-	// Also scale anything as necessary (or desired)
+	// Swizzle coordinates from left-handed Z UP axis
+	// to right-handed Y UP axis.
+	// Also perform scaling, desired
 
 	for ( size_t i = 0; i < map->data.nodes.size(); ++i )
 	{
@@ -282,12 +286,26 @@ static void MapReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-	int ishader = 0;
-	MLOG_INFO( "Dumping shader info..." );
-	for ( const bspShader_t& shader: map->data.shaders )
 	{
-		printf( "Shader[ %i ]: { %s, %i, %i } \n", ishader++,
-				shader.name, shader.surfaceFlags, shader.contentsFlags );
+		std::stringstream ss;
+		ss << "SHADERS\n";
+		uint32_t i = 0;
+		for ( const bspShader_t& s: map->data.shaders )
+		{
+			ss << "[" << i++ << "] " << s.name << "\n";
+		}
+		MLOG_INFO( "%s", ss.str().c_str() );
+	}
+
+	{
+		std::stringstream ss;
+		ss << "FOGS\n";
+		uint32_t i = 0;
+		for ( const bspFog_t& s: map->data.fogs )
+		{
+			ss << "[" << i++ << "] " << s.name << "\n";
+		}
+		MLOG_INFO( "%s", ss.str().c_str() );
 	}
 
 	gFileWebWorker.Await( MapReadFin_UnmountFin,  "UnmountPackages",
@@ -314,7 +332,7 @@ static void ReadChunk( char* data, int size, void* param )
 
 	switch ( gBspDesc )
 	{
-		// Header received; validate and then send it off...
+		// We've just begun, so we validate the header first
 		case -1:
 			MLOG_INFO( "Validating...." );
 			memcpy( &map->data.header, data, size );
@@ -325,22 +343,39 @@ static void ReadChunk( char* data, int size, void* param )
 				return;
 			}
 			MLOG_INFO( "Validation successful" );
-		// Grab any remaining lumps we need...
+
+		// We don't break on purpose above, because we want
+		// to initiate a fetch for the first chunk immediately after
 		default:
-			// Check to see if the data received here is from a previous
-			// directory entry
-			if ( gBspDesc >= 0 )
+
+			// We're ready to take what was received from the
+			// previous chunk read; -1 implies that
+			// we have nothing, since we've only
+			// just validated the header
+			if ( gBspDesc >= 0 && size )
 			{
 				gBspAllocTable[ gBspDesc ]( data, map->data, size );
 			}
+
 			MLOG_INFO( "Fall through; gBspDesc = %i", gBspDesc );
-			// Do we have any more requests to make?
+
 			if ( ++gBspDesc < ( int ) BSP_NUM_ENTRIES )
 			{
 				wApiChunkInfo_t info;
+
 				info.offset = map->data.header.directories[ gBspDesc ].offset;
 				info.size = map->data.header.directories[ gBspDesc ].length;
-				SendRequest( info, param );
+
+				if ( info.size )
+				{
+					SendRequest( info, param );
+				}
+				// Avoid wasting time by moving to the next
+				// directory if we have nothing to read here
+				else
+				{
+					ReadChunk( data, 0, param );
+				}
 			}
 			else
 			{
@@ -418,11 +453,9 @@ Q3BspMap::~Q3BspMap( void )
 
 void Q3BspMap::OnShaderReadFinish( void )
 {
-	int iEffectShader = 0;
 	for ( const shaderMapEntry_t& entry: effectShaders )
 	{
-		printf( "Effect Shader[%i] %s\n", iEffectShader++,
-				entry.first.c_str() );
+		entry.second.PrintStageTextureNames();
 	}
 
 	gFileWebWorker.Await( UnmountShadersFin,  "UnmountPackages",

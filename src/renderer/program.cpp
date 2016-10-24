@@ -17,8 +17,7 @@ namespace {
 		{
 			return h;
 		}
-		
-		gProgramHandle_t h;
+			
 		h.id = ( uint32_t ) gProgramStorage.size();
 
 		gProgramStorage.push_back( std::unique_ptr< Program >( p ) );

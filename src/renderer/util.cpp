@@ -39,7 +39,7 @@ void GU_SetupTexParams( const Program& program,
 			program.LoadInt( prefix + "Sampler", offset );
 
 		program.LoadVec4( prefix + "ImageTransform", transform );
-		program.LoadVec2( prefix + "ImageScaleRatio", 
+		program.LoadVec2( prefix + "ImageScaleRatio",
 			texParams.imageScaleRatio );
 	}
 	else // otherwise, we have an effect shader
@@ -86,11 +86,11 @@ using retrievePathCallback_t = const char* ( * )( void* source );
 struct gImageMountNode_t
 {
 	std::vector< gPathMap_t > paths;
-	std::string bundle; 
+	std::string bundle;
 	gImageMountNode_t* next = nullptr;
 };
 
-using gImnAutoPtr_t = std::unique_ptr< gImageMountNode_t, 
+using gImnAutoPtr_t = std::unique_ptr< gImageMountNode_t,
 	  std::function< void( gImageMountNode_t* ) > >;
 
 void DestroyImageMountNodes( gImageMountNode_t* n )
@@ -103,40 +103,40 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 	}
 }
 
-static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources, 
+static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 		retrievePathCallback_t getPath )
 {
-	std::vector< gPathMap_t > env, gfx, models, 
+	std::vector< gPathMap_t > env, gfx, models,
 		sprites, textures;
 
-	for ( void* source: sources ) 
+	for ( void* source: sources )
 	{
 		const char* path = getPath( source );
-		const char* slash = strstr( path, "/" ); 
-		
+		const char* slash = strstr( path, "/" );
+
 		if ( !slash )
 		{
 			MLOG_ERROR(
 				"Invalid image path received: path \'%s\' does not belong to a bundle",
-				path );	
+				path );
 			return gImnAutoPtr_t( nullptr );
 		}
 
-		size_t len = ( ptrdiff_t )( slash - path) ;	
+		size_t len = ( ptrdiff_t )( slash - path) ;
 
 		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
 
-		if ( strncmp( path, "env", len ) == 0 ) 
+		if ( strncmp( path, "env", len ) == 0 )
 		{
 			env.push_back( pathMap );
-		} 
+		}
 		else if ( strncmp( path, "gfx", len ) == 0 )
 		{
 			gfx.push_back( pathMap );
 		}
 		else if ( strncmp( path, "models", len ) == 0 )
 		{
-			models.push_back( pathMap );	
+			models.push_back( pathMap );
 		}
 		else if ( strncmp( path, "sprites", len ) == 0 )
 		{
@@ -151,7 +151,7 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 	gImageMountNode_t* n = new gImageMountNode_t();
 	gImageMountNode_t* h = n;
 
-	auto LAddNode = [ &n ]( const std::vector< gPathMap_t >& paths, 
+	auto LAddNode = [ &n ]( const std::vector< gPathMap_t >& paths,
 			const char* name )
 	{
 		if ( !paths.empty() )
@@ -176,10 +176,10 @@ struct gLoadImagesState_t
 {
 	gImnAutoPtr_t head;
 	gImageMountNode_t* currNode = nullptr;
-	
-	onFinishEvent_t mapLoadFinEvent = nullptr;		
+
+	onFinishEvent_t mapLoadFinEvent = nullptr;
 	onFinishEvent_t imageReadInsert = nullptr;
-		
+
 	Q3BspMap* map = nullptr;
 
 	gSamplerHandle_t sampler = { G_UNSPECIFIED };
@@ -196,18 +196,18 @@ static void LoadImagesEnd( void* param )
 		LoadImagesBegin,
 		"UnmountPackages",
 		nullptr,
-		0 
+		0
 	);
 }
 
 static void LoadImages( char* mem, int size, void* param )
 {
-	AIIO_ReadImages( 
-		*gImageLoadState.map, 
-		gImageLoadState.currNode->paths, 
-		gImageLoadState.sampler, 
+	AIIO_ReadImages(
+		*gImageLoadState.map,
+		gImageLoadState.currNode->paths,
+		gImageLoadState.sampler,
 		LoadImagesEnd,
-		gImageLoadState.imageReadInsert 
+		gImageLoadState.imageReadInsert
 	);
 }
 
@@ -215,12 +215,12 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 {
 	if ( gImageLoadState.currNode )
 	{
-		gFileWebWorker.Await( 
+		gFileWebWorker.Await(
 			LoadImages,
-			"MountPackage", 
+			"MountPackage",
 			gImageLoadState.currNode->bundle,
 			nullptr
-		);	
+		);
 	}
 	else
 	{
@@ -237,20 +237,13 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 	}
 
 	std::vector< void* > sources;
-
 	for ( auto& entry: map.effectShaders )
 	{
-		uint32_t i = 0;
 		for ( shaderStage_t& stage: entry.second.stageBuffer )
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
-				MLOG_INFO( "%s [ %i ]\n What the fuck: %s",
-						&entry.second.name[ 0 ],
-						i++,
-						&stage.texturePath[ 0 ] );
-
-				sources.push_back( &stage.texturePath[ 0 ] );			
+				sources.push_back( &stage.texturePath[ 0 ] );
 			}
 		}
 	}
@@ -260,17 +253,17 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 	gImageLoadState.map = &map;
 	gImageLoadState.sampler = sampler;
 
-	gImageLoadState.head = BundleImagePaths( 
-		sources, 
+	gImageLoadState.head = BundleImagePaths(
+		sources,
 		[]( void* source ) -> const char*
 		{
 			return ( const char* )source;
 		}
-	);	
+	);
 
 	gImageLoadState.currNode = gImageLoadState.head.get();
 
-	LoadImagesBegin( nullptr, 0, 0 ); 	
+	LoadImagesBegin( nullptr, 0, 0 );
 }
 
 static void PreInsert_Main( void* param )
@@ -296,9 +289,9 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 
 	//---------------------------------------------------------------------
 	// Load Textures:
-	// This is just a hack to brute force load assets which don't belong in 
+	// This is just a hack to brute force load assets which don't belong in
 	//	shaders.
-	// Now, we find and generate the textures. We first start with the 
+	// Now, we find and generate the textures. We first start with the
 	// image files.
 	//---------------------------------------------------------------------
 /*
@@ -321,11 +314,11 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 
 		bool success = false;
 
-		// No use in allocating tex memory if this is meant to be 
+		// No use in allocating tex memory if this is meant to be
 		// used with a shader
 		if ( map.GetShaderInfo( map.data.shaders[ t ].name ) )
 		{
-			MLOG_INFO( "Shader found for: \'%s\'; skipping.", 
+			MLOG_INFO( "Shader found for: \'%s\'; skipping.",
 				map.data.shaders[ t ].name );
 			continue;
 		}
@@ -335,7 +328,7 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		{
 			for ( int32_t i = 0; i < SIGNED_LEN( validImgExt ); ++i )
 			{
-				const std::string& str = texPath + 
+				const std::string& str = texPath +
 					std::string( validImgExt[ i ] );
 
 				if ( GLoadImageFromFile( str, texture ) )
@@ -355,10 +348,10 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	}
 
 	{
-		// We want to maintain a one->one mapping with the texture 
+		// We want to maintain a one->one mapping with the texture
 		// indices in the bsp file,
 		// so we ensure the indices are properly mapped
-		gTextureMakeParams_t makeParams( textures, sampler, 
+		gTextureMakeParams_t makeParams( textures, sampler,
 			G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
 		makeParams.keyMaps = std::move( indices );
 		return GMakeTexture( makeParams );
@@ -366,7 +359,7 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	*/
 }
 
-void GU_LoadStageTexture( glm::ivec2& maxDims, 
+void GU_LoadStageTexture( glm::ivec2& maxDims,
 		std::vector< gImageParams_t >& images,
 		shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
 {
