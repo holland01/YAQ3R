@@ -1714,4 +1714,38 @@ in there anytime I want to restart. This should speed tracking the cause of the 
 **10/20/2016**
 
 Finally got back to it and still nothing, apart from some minor
-bug fixes/sitings. 
+bug fixes/sitings. I've checked the interactions between the shader_gen module and the shaderStage_t structures it receives: it's all read only.
+
+It kind of makes sense that the std::vector's which hold the source
+strings during the generation for either vertex or fragment shader
+could have a corrupted interaction with the received shaderStage_t:
+the shaderStage_t belongs to a key/value container which in turn
+has an underlying storage that's heap allocated. There's likely some
+kind of conflict going on here.
+
+I should check the values within the liquid.shader:textures/liquids/calm_poollight entry before the programs
+are created - that would provide some significant information.
+
+**10/21/2016**
+
+- Requests are being received twice when map is being read.
+
+- There needs to be an approach for when the offset and size are valid
+BUT the size is 0: this can result in some weird effects because even thouhg
+the gFioChain->Read() should return true, it will still pass a pointer to a buffer
+holding zero allocated memory that could then be accessed later.
+
+**10/23/2016**
+
+Looks like not all of the shader files are actually being read. What's interesting is that 
+the scripts.js.metadata file which holds the paths of the actual shader files seems to be 
+complete, given that it contains filepaths which haven't actually been parsed during
+the course of the script reading stage: these files aren't even opened...
+
+I'm wondering if the issue is partially related to a combination of IO and memory usage
+coupled with silent failures and what-not, but that seems to a be a bit much.
+
+What's more likely though is that there's an error somewhere which is supposed to see if 
+a given filepath is valid and it fails in certain situations where the file referred
+to by the path is actually a shader file. Maybe something's going on right at the
+beginning of `ParseShaderFile()`, when the path test is made.
