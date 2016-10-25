@@ -1737,15 +1737,74 @@ holding zero allocated memory that could then be accessed later.
 
 **10/23/2016**
 
-Looks like not all of the shader files are actually being read. What's interesting is that 
-the scripts.js.metadata file which holds the paths of the actual shader files seems to be 
+Looks like not all of the shader files are actually being read. What's interesting is that
+the scripts.js.metadata file which holds the paths of the actual shader files seems to be
 complete, given that it contains filepaths which haven't actually been parsed during
 the course of the script reading stage: these files aren't even opened...
 
 I'm wondering if the issue is partially related to a combination of IO and memory usage
 coupled with silent failures and what-not, but that seems to a be a bit much.
 
-What's more likely though is that there's an error somewhere which is supposed to see if 
+What's more likely though is that there's an error somewhere which is supposed to see if
 a given filepath is valid and it fails in certain situations where the file referred
 to by the path is actually a shader file. Maybe something's going on right at the
 beginning of `ParseShaderFile()`, when the path test is made.
+
+**10/24/2016**
+
+	It seems like the `void *` param passed to the worker (which is the address
+	of the Q3BspMap instance) stays constant. After stepping through the code
+	which invoked the first worker function I noticed that, while the code
+	is asynchronous, the browser waits until a specific point to begin execution
+	of the worker thread. That said, I don't yet see anything which actually
+	confirms that the map instance might be unaffected or corrupted from the
+	async calls, so I'm going to take a different route.
+
+	I wrote a function to print some specific values of the map instance's
+	class members. Mostly things like container sizes in its data member, or the
+	name string it initially receives when `Q3BspMap::Read()` is first called.
+
+	At the top of ParseShaderEntry I decided to call this, and interestingly
+	enough the following occured:
+
+		- The entries were inconsistent and out of order: it was clear that
+		multiple print "events" were competing with each other and that
+		the constant accumulation of shader files which needed to be read
+		made this worse.
+
+		- Nearly all of the data printed was garbage.
+
+		- Too much memory was used, which caused the program to crash.
+
+	So, I wonder if the source of the issue is _again_ RAM usage. Maybe
+	being more conservative with IO statements (for both threads) and adding
+	just a little bit more - say, 100 MB or so, might prevent corruption
+	issues. Either way, it's clear that there's a lot of shader entry names
+	which are read from the actual map file that are also found and parsed in
+	the shader script files that _aren't_ matched and therefore _aren't_ used.
+
+	This is due to the map instance corruption. If the source of the problem
+	is the memory amount, I'm thinking there might be some kind of fragmentation
+	issue which is causing this. My fingers aren't crossed, though, because
+	dlmalloc is a pretty reliable allocation system. That said, it'd be
+	foolish of me to rule it out completely.
+
+	What's important is actually figuring out what's causing this, though.
+
+	What would be good to do is to find the (resolved) template function
+	for the effectShaders unordered_map which queries the size of the container
+	(i.e., `std::unordered_map<std::string, shaderInfo_t>::size()`):
+	I could use this while stepping through the javascript by passing the
+	effectShader's address from the map object as a $this pointer
+	to the function.
+
+	Removing a number of print statements and calling this function in the
+	console interpreter when paused from a breakpoint set in `ParseShaderFile()`
+	would provide some good information because a) there wouldn't be any
+	interference from the IO; b) if there is blatant corruption happening,
+	we know that it's not just the IO that's causing it; and c) if it always
+	takes N calls to `ParseShaderFile()` before the map instance actually gets
+	corrupted, it's unlikely that the issue is solely thread related, since
+	threads in general are inconsistent and therefore unpredictable
+	(unless we're working with single cores which, in this case,
+	isn't happening).
