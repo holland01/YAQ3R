@@ -549,7 +549,8 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 {
 	for ( int i = 0; i < map->data.numShaders; ++i )
 	{
-		if ( strcmp( map->data.shaders[ i ].name, header ) == 0 )
+		if ( strncmp( map->data.shaders[ i ].name, header,
+				SHADER_MAX_TOKEN_CHAR_LENGTH ) == 0 )
 		{
 			return true;
 		}
@@ -557,7 +558,8 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 
 	for ( int i = 0; i < map->data.numFogs; ++i )
 	{
-		if ( strcmp( map->data.fogs[ i ].name, header ) == 0 )
+		if ( strncmp( map->data.fogs[ i ].name, header,
+				SHADER_MAX_TOKEN_CHAR_LENGTH ) == 0 )
 		{
 			return true;
 		}
@@ -683,8 +685,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 {
 	bool isMapShader;
 
-	std::stringstream ss;
-
 	// Get the filepath using our delimiter; use
 	// the path to see if this shader is meant to be read
 	// only by the current map
@@ -696,7 +696,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		memcpy( tmp, buffer, ( ptrdiff_t )( delim - buffer ) );
 		std::string path( tmp );
 
-		ss << "Entries for " << path << ":\n";
+		//MLOG_INFO( "%s", map->GetPrintString( path ).c_str() );
 
 		std::string ext;
 		bool res = File_GetExt( ext, nullptr, path );
@@ -724,18 +724,15 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		entry.localLoadFlags = 0;
 		pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
 
-		ss << "\tname: " << &entry.name[0] << "; used: " << used << "\n";
-
 		if ( used )
 		{
-			map->effectShaders.insert( shaderMapEntry_t( std::string( &entry.name[ 0 ],
-				strlen( &entry.name[ 0 ] ) ), entry ) );
+			map->effectShaders.insert( shaderMapEntry_t(
+				std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ),
+				entry ) );
 		}
 
 		range = ( ptrdiff_t )( end - pChar );
 	}
-
-	MLOG_INFO( "%s", ss.str().c_str() );
 }
 
 #if defined( EM_USE_WORKER_THREAD )

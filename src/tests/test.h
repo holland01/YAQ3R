@@ -14,7 +14,7 @@ class Test
 {
 protected:
 
-	float			deltaTime;	
+	float			deltaTime;
 
 	InputCamera*    camPtr;
 
@@ -26,11 +26,11 @@ protected:
 	float			lastMouseX;
 	float			lastMouseY;
 
-	Q3BspMap 		map;
+	std::unique_ptr< Q3BspMap > 	map;
 
 public:
 
-	gContextHandles_t base;	
+	gContextHandles_t base;
 
 	Test( int width, int height, bool fullscreen,
 	 	const char* bspFilePath, onFinishEvent_t mapReadFinish = nullptr );

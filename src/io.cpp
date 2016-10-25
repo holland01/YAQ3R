@@ -344,14 +344,14 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 	return location != path.length() - 1;
 }
 
-void File_QueryAsync( const std::string& fpath, 
+void File_QueryAsync( const std::string& fpath,
 	em_worker_callback_func callback,
 	void* param )
 {
 	// const c_str() is forced :/
 	char* dupPath = strdup( fpath.c_str() );
-	gFileWebWorker.Await( callback, 
-			"ReadFile_Begin", dupPath, 
+	gFileWebWorker.Await( callback,
+			"ReadFile_Begin", dupPath,
 			strlen( dupPath ), param );
 	free( dupPath );
 }
@@ -438,7 +438,8 @@ FILE* File_Open( const std::string& path, const std::string& mode )
 }
 
 bool File_GetPixels( const std::string& filepath,
-	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth, int32_t& outHeight )
+	std::vector< uint8_t >& outBuffer, int32_t& outBpp, int32_t& outWidth,
+	int32_t& outHeight )
 {
 	// Load image
 	// Need to also flip the image, since stbi

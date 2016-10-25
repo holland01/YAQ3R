@@ -47,11 +47,13 @@ public:
 
 
 	static void					OnMainLoadImagesFinish( void* param );
-	
+
 	// retrives the first spawn point found in the text file.
 	mapEntity_t					GetFirstSpawnPoint( void ) const;
 
 	bool						Validate( void );
+
+	void						ZeroData( void );
 
 	void						Read( const std::string& filepath, int scale,
 	 								onFinishEvent_t finishCallback );
@@ -77,4 +79,8 @@ public:
 	bool						IsMapOnlyShader( const std::string& filepath ) const;
 
 	void						DestroyMap( void );
+
+	std::string					GetPrintString( const std::string& title = "." ) const;
+
+	void						AssertTrueMap( void ) const;
 };

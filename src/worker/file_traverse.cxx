@@ -242,12 +242,10 @@ static std::unique_ptr< file_t > gFIOChain( nullptr );
 static INLINE std::string FullPath( const char* path, size_t pathLen )
 {
 	const char* croot = "/working";
-
 	std::string root( croot );
 
 	std::string strPath = "/";
 	strPath.append( path, pathLen );
-
 	root.append( strPath );
 
 	printf( "Path Received: %s\n", root.c_str() );
@@ -300,8 +298,7 @@ static INLINE void FailOpen( const char* path, size_t pathLen )
 static INLINE bool SplitDataWithBundle( std::string& bundleName,
 	std::vector< char >& chopData, char* data, int size )
 {
-	int i;
-	for ( i = 0; i < size; ++i ) {
+	for ( int i = 0; i < size; ++i ) {
 		if ( data[i] == AL_STRING_DELIM ) {
 			bundleName = std::string( data, i );
 			printf( "Bundle Name Found: %s\n", bundleName.c_str() );

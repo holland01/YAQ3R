@@ -42,9 +42,6 @@ int main( void )
 	static_assert( sizeof( glm::vec2 ) == sizeof( float ) * 2, SIZE_ERROR_MESSAGE );
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
-	MLOG_OFFSET( mapData_t, numShaders );
-	MLOG_OFFSET( Q3BspMap, data );
-
 #if defined( EMSCRIPTEN ) && defined( IOTEST )
 	IOTestWebWorker test;
 	return test();

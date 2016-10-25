@@ -325,8 +325,6 @@ struct leafModel_t
 // Effect Shaders
 // --------------------------------------------------------
 
-struct mapData_t;
-
 
 // Info can be obtained from http://toolz.nexuizninjaz.com/shader/
 //

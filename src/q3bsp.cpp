@@ -9,6 +9,8 @@
 
 using namespace std;
 
+static const Q3BspMap* gOneTrueMap = nullptr;
+
 //------------------------------------------------------------------------------
 // Data tweaking
 //------------------------------------------------------------------------------
@@ -59,6 +61,7 @@ using q3BspAllocFn_t =
 
 static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 {{
+	// BSP_LUMP_ENTITIES = 0x00
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.entitiesSrc.resize( length / sizeof( char ) );
@@ -67,6 +70,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.entities.infoString = &data.entitiesSrc[ 0 ];
 	},
 
+	// BSP_LUMP_SHADERS = 0x01
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.shaders.resize( length / sizeof( bspShader_t ) );
@@ -74,6 +78,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numShaders = data.shaders.size();
 	},
 
+	// BSP_LUMP_PLANES = 0x02
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.planes.resize( length / sizeof( bspPlane_t ) );
@@ -81,6 +86,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numPlanes = data.planes.size();
 	},
 
+	// BSP_LUMP_NODES = 0x03
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.nodes.resize( length / sizeof( bspNode_t ) );
@@ -88,6 +94,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numNodes = data.nodes.size();
 	},
 
+	// BSP_LUMP_LEAVES = 0x04
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.leaves.resize( length / sizeof( bspLeaf_t ) );
@@ -95,6 +102,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numLeaves = data.leaves.size();
 	},
 
+	// BSP_LUMP_LEAF_FACES = 0x05
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.leafFaces.resize( length / sizeof( bspLeafFace_t ) );
@@ -102,6 +110,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numLeafFaces = data.leafFaces.size();
 	},
 
+	// BSP_LUMP_LEAF_BRUSHES = 0x06
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.leafBrushes.resize( length / sizeof( bspLeafBrush_t ) );
@@ -109,6 +118,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numLeafBrushes = data.leafBrushes.size();
 	},
 
+	// BSP_LUMP_MODELS = 0x07
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.models.resize( length / sizeof( bspModel_t ) );
@@ -116,6 +126,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numModels = data.models.size();
 	},
 
+	// BSP_LUMP_BRUSHES = 0x08
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.brushes.resize( length / sizeof( bspBrush_t ) );
@@ -123,6 +134,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numBrushes = data.brushes.size();
 	},
 
+	// BSP_LUMP_BRUSH_SIDES = 0x09
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.brushSides.resize( length / sizeof( bspBrushSide_t ) );
@@ -130,6 +142,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 	    data.numBrushSides = data.brushSides.size();
 	},
 
+	// BSP_LUMP_VERTEXES = 0x0A
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.vertexes.resize( length / sizeof( bspVertex_t ) );
@@ -137,6 +150,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numVertexes = data.vertexes.size();
 	},
 
+	// BSP_LUMP_MESH_VERTEXES = 0x0B
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.meshVertexes.resize( length / sizeof( bspMeshVertex_t ) );
@@ -144,6 +158,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numMeshVertexes = data.meshVertexes.size();
 	},
 
+	// BSP_LUMP_FOGS = 0x0C
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.fogs.resize( length / sizeof( bspFog_t ) );
@@ -151,13 +166,15 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numFogs = data.fogs.size();
 	},
 
+	// BSP_LUMP_FACES = 0x0D
 	[]( char* received, mapData_t& data, int length )
 	{
-		data.faces.resize( length / sizeof( bspShader_t ) );
+		data.faces.resize( length / sizeof( bspFace_t ) );
 		memcpy( &data.faces[ 0 ], received, length );
 		data.numFaces = data.faces.size();
 	},
 
+	// BSP_LUMP_LIGHTMAPS = 0x0E
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.lightmaps.resize( length / sizeof( bspLightmap_t ) );
@@ -165,6 +182,7 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numLightmaps = data.lightmaps.size();
 	},
 
+	// BSP_LUMP_LIGHTVOLS = 0x0F
 	[]( char* received, mapData_t& data, int length )
 	{
 		data.lightvols.resize( length / sizeof( bspLightvol_t ) );
@@ -172,11 +190,12 @@ static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 		data.numLightvols = data.lightvols.size();
 	},
 
+	// BSP_LUMP_VISDATA = 0x10
 	[]( char* received, mapData_t& data, int length )
 	{
 		memcpy( &data.visdata, received, sizeof( bspVisdata_t ) );
-		data.bitsetSrc.resize( data.visdata.numVectors
-			* data.visdata.sizeVector, 0 );
+		data.bitsetSrc.resize( data.visdata.numVectors *
+			data.visdata.sizeVector, 0 );
 		memcpy( &data.bitsetSrc[ 0 ], received + sizeof( bspVisdata_t ),
 		 	length - sizeof( bspVisdata_t ) );
 		data.numVisdataVecs = length;
@@ -288,7 +307,7 @@ static void MapReadFin( Q3BspMap* map )
 
 	{
 		std::stringstream ss;
-		ss << "SHADERS\n";
+		ss << "SHADERS(N = " << map->data.numShaders << ")\n";
 		uint32_t i = 0;
 		for ( const bspShader_t& s: map->data.shaders )
 		{
@@ -299,7 +318,7 @@ static void MapReadFin( Q3BspMap* map )
 
 	{
 		std::stringstream ss;
-		ss << "FOGS\n";
+		ss << "FOGS(N = " << map->data.numFogs << ")\n";
 		uint32_t i = 0;
 		for ( const bspFog_t& s: map->data.fogs )
 		{
@@ -314,27 +333,28 @@ static void MapReadFin( Q3BspMap* map )
 
 static void ReadChunk( char* data, int size, void* param )
 {
-	MLOG_INFO( "Entering ReadChunk..." );
+	MLOG_INFO( "%s", "Entering ReadChunk..." );
 
 	if ( !data )
 	{
-		MLOG_ERROR( "Null data received; bailing..." );
+		MLOG_ERROR( "%s", "Null data received; bailing..." );
 		return;
 	}
 
 	if ( !param )
 	{
-		MLOG_ERROR( "Null param received; bailing..." );
+		MLOG_ERROR( "%s", "Null param received; bailing..." );
 		return;
 	}
 
 	Q3BspMap* map = ( Q3BspMap* ) param;
 
+	map->AssertTrueMap();
+
 	switch ( gBspDesc )
 	{
 		// We've just begun, so we validate the header first
 		case -1:
-			MLOG_INFO( "Validating...." );
 			memcpy( &map->data.header, data, size );
 			if ( !map->Validate() )
 			{
@@ -342,7 +362,6 @@ static void ReadChunk( char* data, int size, void* param )
 					map->GetFileName().c_str() );
 				return;
 			}
-			MLOG_INFO( "Validation successful" );
 
 		// We don't break on purpose above, because we want
 		// to initiate a fetch for the first chunk immediately after
@@ -357,8 +376,6 @@ static void ReadChunk( char* data, int size, void* param )
 				gBspAllocTable[ gBspDesc ]( data, map->data, size );
 			}
 
-			MLOG_INFO( "Fall through; gBspDesc = %i", gBspDesc );
-
 			if ( ++gBspDesc < ( int ) BSP_NUM_ENTRIES )
 			{
 				wApiChunkInfo_t info;
@@ -368,13 +385,13 @@ static void ReadChunk( char* data, int size, void* param )
 
 				if ( info.size )
 				{
-					SendRequest( info, param );
+					SendRequest( info, map );
 				}
 				// Avoid wasting time by moving to the next
 				// directory if we have nothing to read here
 				else
 				{
-					ReadChunk( data, 0, param );
+					ReadChunk( data, 0, map );
 				}
 			}
 			else
@@ -441,9 +458,10 @@ Q3BspMap::Q3BspMap( void )
 	 :	scaleFactor( 1 ),
 		mapAllocated( false ),
 		payload( nullptr ),
-		readFinishEvent( nullptr ),
-		data( {} )
+		readFinishEvent( nullptr )
 {
+	gOneTrueMap = this;
+	ZeroData();
 }
 
 Q3BspMap::~Q3BspMap( void )
@@ -492,13 +510,6 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 
 	if ( it != effectShaders.end() )
 	{
-		/*
-		glslMade is only true if there's been shader compiles;
-		this shouldn't be here
-		*/
-		//if ( !it->second.glslMade )
-			//return nullptr;
-
 		return &it->second;
 	}
 
@@ -531,27 +542,35 @@ bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
 	return shadername == name;
 }
 
+void Q3BspMap::ZeroData( void )
+{
+	memset( ( uint8_t* ) &data.entities, 0,
+		sizeof( data ) - offsetof( mapData_t, entities ) );
+
+	data.nodes.clear();
+	data.leaves.clear();
+	data.leafBrushes.clear();
+	data.leafFaces.clear();
+	data.planes.clear();
+	data.vertexes.clear();
+	data.brushes.clear();
+	data.brushSides.clear();
+	data.shaders.clear();
+	data.models.clear();
+	data.fogs.clear();
+	data.faces.clear();
+	data.meshVertexes.clear();
+	data.lightmaps.clear();
+	data.lightvols.clear();
+	data.bitsetSrc.clear();
+	data.entitiesSrc.clear();
+}
+
 void Q3BspMap::DestroyMap( void )
 {
 	if ( mapAllocated )
 	{
-		data.nodes.clear();
-		data.leaves.clear();
-		data.leafBrushes.clear();
-		data.leafFaces.clear();
-		data.planes.clear();
-		data.vertexes.clear();
-		data.brushes.clear();
-		data.brushSides.clear();
-		data.shaders.clear();
-		data.models.clear();
-		data.fogs.clear();
-		data.faces.clear();
-		data.meshVertexes.clear();
-		data.lightmaps.clear();
-		data.lightvols.clear();
-		data.bitsetSrc.clear();
-		data.entitiesSrc.clear();
+		ZeroData();
 		mapAllocated = false;
 	}
 }
@@ -566,8 +585,6 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 
 	std::string readParams( "maps|" );
 	readParams.append(filepath);
-
-	MLOG_INFO( "params: %s", readParams.c_str() );
 
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;
@@ -700,7 +717,6 @@ bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
 		// then our needed camera data is
 		// in a leaf somewhere in front of this node,
 		// otherwise it's behind the node somewhere.
-
 		glm::vec3 planeNormal( plane->normal.x, plane->normal.y,
 			plane->normal.z );
 
@@ -734,11 +750,47 @@ bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 
 	unsigned char visSet = data.bitsetSrc[ i ];
 
-/*
-	MLOG_INFO( "Visset Vector Size: %i\n Source Cluster: %i\n"\
-		" testCluster: %i\n visSet: %i", data.visdata.sizeVector, sourceCluster,
-	 	testCluster, visSet );
-*/
-
 	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
+}
+
+std::string Q3BspMap::GetPrintString( const std::string& title ) const
+{
+	std::stringstream ss;
+
+	ss << "[" << title << "]" << "\n"
+	<< "\tscaleFactor: " << scaleFactor << "\n"
+	<< "\tmapAllocated: " << mapAllocated << "\n"
+	<< "\tpayload: " << std::hex << ( uintptr_t ) payload.get() << "\n"
+	<< "\tname: " << name << "\n"
+	<< "\treadFinishEvent: "
+		<< std::hex << ( uintptr_t ) readFinishEvent
+		<< "\n"
+	<< "\teffectShaders.size() " << std::dec << effectShaders.size() << "\n"
+	<< "\t[data]:\n"
+	<< "\t\theader.id: " << data.header.id << "\n"
+	<< "\t\tbasePath: " << data.basePath << "\n"
+	<< "\t\tshaders.size(): " << data.shaders.size() << "\n"
+	<< "\t\tplanes.size(): " <<  data.planes.size() << "\n"
+	<< "\t\tnodes.size(): " << data.nodes.size() << "\n"
+	<< "\t\tleaves.size(): " << data.leaves.size() << "\n"
+	<< "\t\tleafFaces.size(): " << data.leafFaces.size() << "\n"
+	<< "\t\tmodels.size(): " << data.models.size() << "\n"
+	<< "\t\tbrushes.size(): " << data.brushes.size() << "\n"
+	<< "\t\tbrushSides.size(): " << data.brushSides.size() << "\n"
+	<< "\t\tvertexes.size(): " << data.vertexes.size() << "\n"
+	<< "\t\tmeshVertexes.size(): " << data.meshVertexes.size() << "\n"
+	<< "\t\tfogs.size(): " << data.fogs.size() << "\n"
+	<< "\t\tfaces.size(): " << data.faces.size() << "\n"
+	<< "\t\tlightmaps.size(): " << data.lightmaps.size() << "\n"
+	<< "\t\tlightvols.size(): " << data.lightvols.size() << "\n";
+
+	return ss.str();
+}
+
+void Q3BspMap::AssertTrueMap( void ) const
+{
+	if ( this != gOneTrueMap )
+	{
+		MLOG_ERROR( "Big fucking problem." );
+	}
 }

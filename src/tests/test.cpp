@@ -19,8 +19,8 @@ static void DefaultOnMapReadFin( void* nullParam )
 	gAppTest->base.running = true;
 
 	InitSysLog();
-	
-	gAppTest->Exec();	
+
+	gAppTest->Exec();
 }
 
 static std::string gTmpBspPath;
@@ -52,6 +52,7 @@ Test::Test( int w, int h, bool fullscreen_,
 	  mouseY( 0.0f ),
 	  lastMouseX( 0.0f ),
 	  lastMouseY( 0.0f ),
+	  map( new Q3BspMap() ),
 	  base( w, h, fullscreen_ )
 {
 	if ( bspFilePath )
@@ -91,9 +92,9 @@ bool Test::Load( const char* winName )
 
 	if ( !gTmpBspPath.empty() )
 	{
-		map.Read( gTmpBspPath, 1, 
+		map->Read( gTmpBspPath, 1,
 				gTmpMapReadFinish );
-	}		
+	}
 
 	return true;
 }
