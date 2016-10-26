@@ -402,8 +402,7 @@ static void ReadBegin( char* data, int size, void* param )
 {
 	UNUSED( size );
 
-	int* result = ( int* )data;
-	if ( !result || !( *result ) )
+	if ( !data )
 	{
 		MLOG_ERROR( "Bailing out; Worker ReadFile_Begin failed." );
 		return;
