@@ -109,6 +109,8 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 	std::vector< gPathMap_t > env, gfx, models,
 		sprites, textures;
 
+	std::stringstream ss;
+
 	for ( void* source: sources )
 	{
 		const char* path = getPath( source );
@@ -117,7 +119,8 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 		if ( !slash )
 		{
 			MLOG_ERROR(
-				"Invalid image path received: path \'%s\' does not belong to a bundle",
+				"Invalid image path received: path \'%s\'"
+				" does not belong to a bundle",
 				path );
 			return gImnAutoPtr_t( nullptr );
 		}
@@ -126,40 +129,55 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 
 		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
 
+		ss << path << " goes to ";
+
 		if ( strncmp( path, "env", len ) == 0 )
 		{
+			ss << "env";
 			env.push_back( pathMap );
 		}
 		else if ( strncmp( path, "gfx", len ) == 0 )
 		{
+			ss << "gfx";
 			gfx.push_back( pathMap );
 		}
 		else if ( strncmp( path, "models", len ) == 0 )
 		{
+			ss << "models";
 			models.push_back( pathMap );
 		}
 		else if ( strncmp( path, "sprites", len ) == 0 )
 		{
+			ss << "sprites";
 			sprites.push_back( pathMap );
 		}
 		else if ( strncmp( path, "textures", len ) == 0 )
 		{
+			ss << "textures";
 			textures.push_back( pathMap );
 		}
+
+		ss << "\n";
 	}
 
-	gImageMountNode_t* n = new gImageMountNode_t();
-	gImageMountNode_t* h = n;
+	MLOG_INFO( "%s", ss.str().c_str() );
 
-	auto LAddNode = [ &n ]( const std::vector< gPathMap_t >& paths,
+	gImageMountNode_t* h = new gImageMountNode_t();
+	gImageMountNode_t** pn = &h;
+
+	auto LAddNode = [ &pn ]( const std::vector< gPathMap_t >& paths,
 			const char* name )
 	{
 		if ( !paths.empty() )
 		{
-			n->paths = std::move( paths );
-			n->bundle = std::string( name );
-			n->next = new gImageMountNode_t();
-			n = n->next;
+			if ( !( *pn ) )
+			{
+				*pn = new gImageMountNode_t();
+			}
+
+			( *pn )->paths = std::move( paths );
+			( *pn )->bundle = std::string( name );
+			pn = &( ( *pn )->next );
 		}
 	};
 
