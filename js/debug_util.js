@@ -8,10 +8,32 @@ var printHeapString = function(address) {
 	return str;
 };
 
+var get8 = function(address, n) {
+	var ret = [];
+
+	for (var x = 0; x < n; ++x) {
+		ret.push(HEAP8[address + x]);
+	}
+
+	return ret;
+};
+
+var get32 = function(address, n) {
+	var ret = [];
+
+	address = address >> 2;
+
+	for (var x = 0; x < n; ++x) {
+		ret.push(HEAP32[address + x]);
+	}
+
+	return ret;
+};
+
 var getHexString = function(str) {
 	var hex = '';
 	for (var x = 0; x < str.length; ++x) {
 		hex += str.charCodeAt(x) + ' ';
 	}
 	return hex;
-}
+};
