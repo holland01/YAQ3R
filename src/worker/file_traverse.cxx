@@ -136,7 +136,7 @@ struct file_t
 
 		ptr = fopen( path.c_str(), "rb" );
 
-		printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
+		//printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
 	}
 
 	bool ReadImage( void )
@@ -159,11 +159,11 @@ struct file_t
 			puts( "ERROR: STBI rejected the image file" );
 			return false;
 		}
-
+/*
 		printf( "Image Read successful:\n"\
 	 			"width: %i, height: %i, bpp: %i\n",
 				width, height, bpp );
-
+*/
 		int target = width * height * bpp;
 		int original = target;
 
@@ -224,8 +224,16 @@ struct file_t
 
 	void Send( void ) const
 	{
-		emscripten_worker_respond( ( char* ) &readBuff[ 0 ],
-			readBuff.size() );
+		if ( readBuff.empty() )
+		{
+			char truth[ 4 ] = { 0x7F, 0x7F, 0x7F, 0x7F };
+			emscripten_worker_respond( &truth[ 0 ], sizeof( truth ) );
+		}
+		else
+		{
+			emscripten_worker_respond( ( char* ) &readBuff[ 0 ],
+				readBuff.size() );
+		}
 	}
 
 	~file_t( void )
@@ -248,7 +256,7 @@ static INLINE std::string FullPath( const char* path, size_t pathLen )
 	strPath.append( path, pathLen );
 	root.append( strPath );
 
-	printf( "Path Received: %s\n", root.c_str() );
+	//printf( "Path Received: %s\n", root.c_str() );
 
 	return root;
 }
@@ -349,7 +357,7 @@ static void ReadFile_Proxy( char* data, int size )
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	printf( "Remaining Data: %s\n", &remData[ 0 ] );
+	//printf( "Remaining Data: %s\n", &remData[ 0 ] );
 
 	EM_ASM_ARGS( {
 		self.fetchBundleAsync($0, $1, $2, $3, $4);
@@ -563,7 +571,7 @@ void TraverseDirectory( char* dir, int size )
 
 void ReadImage( char* path, int size )
 {
-	puts( "Worker: ReadImage entering" );
+	//puts( "Worker: ReadImage entering" );
 
 	if ( InitSystem( ReadImage_Proxy, path, size ) )
 	{
