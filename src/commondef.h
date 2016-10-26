@@ -2,6 +2,9 @@
 
 #define ASSET_Q3_ROOT "asset"
 
+#define C_OFFSETOF_P(p, m) ( uintptr_t( &( ( p )->m ) ) - uintptr_t( ( p ) ) )
+#define C_OFFSETOF_T(t, s) C_OFFSETOF_P( ( t* )0x1000, s )
+
 #if defined( EMSCRIPTEN )
 #	define EM_SERV_ASSET_PORT "6931"
 #else
