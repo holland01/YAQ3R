@@ -1765,7 +1765,7 @@ beginning of `ParseShaderFile()`, when the path test is made.
 	name string it initially receives when `Q3BspMap::Read()` is first called.
 
 	At the top of ParseShaderEntry I decided to call this, and interestingly
-	enough the following occured:
+	enough the following occurred:
 
 		- The entries were inconsistent and out of order: it was clear that
 		multiple print "events" were competing with each other and that
@@ -1808,3 +1808,43 @@ beginning of `ParseShaderFile()`, when the path test is made.
 	threads in general are inconsistent and therefore unpredictable
 	(unless we're working with single cores which, in this case,
 	isn't happening).
+
+**10/26/2016**
+
+Finally found the source of the issue. There were two major contributors, the first being in `ReadBegin()` of q3bsp.cpp:
+
+```
+static void ReadBegin( char* data, int size, void* param )
+{
+	UNUSED( size );
+
+	if ( !data )
+	{
+		MLOG_ERROR( "Bailing out; Worker ReadFile_Begin failed." );
+	}
+
+```
+
+The above would a) receive a null pointer and b) not return after the error was raised. This would
+cause the Q3BspMap* param to be freed indirectly, which would in turn produce garbage data
+whenever a class member was read (for example, during the shader parsing stages).
+
+And here's the source of the null, from worker/file_traverse.cxx:
+
+(inline definition from file_t)
+
+```
+void Send( void ) const
+{
+	emscripten_worker_respond( ( char* ) &readBuff[ 0 ],
+		readBuff.size() );
+}	
+```
+
+The problem originates because readBuff hasn't been allocated when this is called - it doesn't need to be when the 
+files are first being mounted. Originally the model used for loading and reading assets was different, so it
+made sense to do things this way. 
+
+Relevant changes for ReadBegin() have been applied in 6c1afaa2329f957c2483596f5e50b39a850795e0
+
+Ditto for file_t::Send(), in commit 131444ed57dff550ce6b39420dea1b8ee75d10a2 
