@@ -406,6 +406,7 @@ static void ReadBegin( char* data, int size, void* param )
 	if ( !result || !( *result ) )
 	{
 		MLOG_ERROR( "Bailing out; Worker ReadFile_Begin failed." );
+		return;
 	}
 
 	wApiChunkInfo_t info;
