@@ -50,16 +50,12 @@ static void OnImageRead( char* buffer, int size, void* param )
 		return;
 	}
 
-	UNUSED(param);	
+	UNUSED( param );
 
 	// We may have an invalid path, or a path which exists but with
 	// a different extension
- 	
+
 	uint32_t testDims = WAPI_Fetch32( buffer, size, 0 );
-	
-	printf( "first 4: { %i, %i, %i, %i }; Size: %i\n", buffer[ 0 ],
-		buffer[ 1 ], buffer[ 2 ], buffer[ 3 ], size );
-	printf( "Value from WAPI: %x\n", testDims );
 
 	if ( !testDims )
 	{
@@ -74,18 +70,21 @@ static void OnImageRead( char* buffer, int size, void* param )
 
 		if ( !width || !height || !bpp )
 		{
-			MLOG_ERROR( "zero portion of metadata received. " 
+			MLOG_ERROR( "zero portion of metadata received. "
 				DATA_FMT_STRING( 0 ) );
 			return;
 		}
 
 		std::vector< uint8_t > imageData( width * height * bpp, 0 );
 
-		MLOG_ASSERT( ( unsigned ) size == imageData.size() + 8,
+		if ( ( unsigned ) size != imageData.size() + 8 )
+		{
+			MLOG_ERROR(
 			"buffer size does not match "\
-	 		"interpreted metadata criteria. " DATA_FMT_STRING( 
+	 		"interpreted metadata criteria. " DATA_FMT_STRING(
 	 			imageData.size() ) );
-
+			return;
+		}
 		memcpy( &imageData[ 0 ], buffer + 8, imageData.size() );
 
 		// Ensure it conforms to our standards
@@ -99,8 +98,6 @@ static void OnImageRead( char* buffer, int size, void* param )
 			return;
 		}
 
-		MLOG_INFO( DATA_FMT_STRING( imageData.size() ) );
-
 		if ( gImageTracker->insertEvent )
 		{
 			gImageTracker->insertEvent( gImageTracker );
@@ -110,7 +107,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 	}
 
 next_image:
-	if ( ( unsigned ) ++gImageTracker->iterator == 
+	if ( ( unsigned ) ++gImageTracker->iterator ==
 			gImageTracker->textureInfo.size() )
 	{
 		if ( gImageTracker->finishEvent )
@@ -151,19 +148,10 @@ gPathMap_t AIIO_MakeAssetPath( const char* path )
 	return pm;
 }
 
-void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo, 
-	gSamplerHandle_t sampler, onFinishEvent_t finish, 
+void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
+	gSamplerHandle_t sampler, onFinishEvent_t finish,
 	onFinishEvent_t insert )
 {
-	if ( gImageTracker )
-	{
-		puts( "gImageTracker is not NULL" );
-	}
-	else
-	{
-		puts( "gImageTracker is NULL" );
-	}
-
 	gImageTracker = new gImageLoadTracker_t( map, pathInfo );
 	gImageTracker->sampler = sampler;
 	gImageTracker->finishEvent = finish;

@@ -206,9 +206,6 @@ static void ReadChunk( char* data, int size, void* param );
 
 static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
 {
-	MLOG_INFO( "Sent - offset: " F_SIZE_T ", size: " F_SIZE_T,
-		info.offset, info.size );
-
 	gFileWebWorker.Await( ReadChunk, "ReadFile_Chunk",
 		( char* )&info, sizeof( info ), param );
 }
@@ -333,8 +330,6 @@ static void MapReadFin( Q3BspMap* map )
 
 static void ReadChunk( char* data, int size, void* param )
 {
-	MLOG_INFO( "%s", "Entering ReadChunk..." );
-
 	if ( !data )
 	{
 		MLOG_ERROR( "%s", "Null data received; bailing..." );
@@ -355,7 +350,7 @@ static void ReadChunk( char* data, int size, void* param )
 	{
 		// We've just begun, so we validate the header first
 		case -1:
-			memcpy( &map->data.header, data, size );
+			memcpy( &map->data.header, data, sizeof( map->data.header ) );
 			if ( !map->Validate() )
 			{
 				MLOG_ERROR( "BSP Map \'%s\' is invalid.",
@@ -413,7 +408,6 @@ static void ReadBegin( char* data, int size, void* param )
 		MLOG_ERROR( "Bailing out; Worker ReadFile_Begin failed." );
 	}
 
-	MLOG_INFO( "Beginning header query..." );
 	wApiChunkInfo_t info;
 	info.offset = 0;
 	info.size = sizeof( bspHeader_t );
@@ -584,7 +578,7 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	}
 
 	std::string readParams( "maps|" );
-	readParams.append(filepath);
+	readParams.append( filepath );
 
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;

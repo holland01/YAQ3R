@@ -14,9 +14,11 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
 
 namespace {
 
-using stageEvalFunc_t = std::function< bool( const char* & buffer, shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) >;
+using stageEvalFunc_t = std::function< bool( const char* & buffer,
+	shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) >;
 
-#define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) -> bool
+#define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, \
+	shaderStage_t& theStage, char* token ) -> bool
 
 #define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
 

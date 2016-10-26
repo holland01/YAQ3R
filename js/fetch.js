@@ -49,12 +49,11 @@ AL.mountPackages = function(packages) {
 		FS.mount(WORKERFS, {packages: packages},
 				'/' + AL.DATA_DIR_NAME);
 
-	}
 
-	console.log("packages: ", JSON.stringify(packages))
-	console.log("AL.mountPackages: DYNAMICTOP; ", DYNAMICTOP);
-	console.log("AL.mountPackages: DYNAMIC_BASE; ", DYNAMIC_BASE);
-	console.log("AL.mountPackages: TOTAL_MEMORY; ", TOTAL_MEMORY);
+		console.log("Mount succeeded");
+	} else {
+		console.log("Mount failed");
+	}
 }
 
 AL.unmountPackages = function() {
