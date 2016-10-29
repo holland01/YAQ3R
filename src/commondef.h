@@ -11,7 +11,7 @@
 #	define _DEBUG_USE_GL_GET_ERR
 #endif
 
-#if defined(_WIN32)
+#if defined( _WIN32 )
 #	include <Windows.h>
 #	define GL_PROC APIENTRY
 #	define alloca _alloca
@@ -25,20 +25,26 @@
 
 #define INLINE inline
 
-#ifdef _WIN32
-#   ifndef NDEBUG
+#if defined( _WIN32 )
+#   if !defined(NDEBUG)
 #       define DEBUG 1
 #   endif // NDEBUG
 #endif // _WIN32
 
 // Windows.h defines these for us already
-#ifndef _WIN32
+#if !defined( _WIN32_ )
 #	define TRUE 1
 #	define FALSE 0
+
 #	ifdef DEBUG
-static void __nop(void) {}
-#	endif
-#endif
+	static INLINE void __nop(void) 
+	{
+		volatile int a = 0;
+		a += 1;
+	}
+#	endif // DEBUG
+
+#endif // !_WIN32
 
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__

@@ -118,14 +118,14 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 
 		if ( !slash )
 		{
-			MLOG_ERROR(
+			MLOG_INFO(
 				"Invalid image path received: path \'%s\'"
-				" does not belong to a bundle",
+				" does not belong to a bundle. Skipping",
 				path );
-			return gImnAutoPtr_t( nullptr );
+			continue;
 		}
 
-		size_t len = ( ptrdiff_t )( slash - path) ;
+		size_t len = ( ptrdiff_t )( slash - path );
 
 		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
 
@@ -214,7 +214,8 @@ static void LoadImagesEnd( void* param )
 		LoadImagesBegin,
 		"UnmountPackages",
 		nullptr,
-		0
+		0,
+		param
 	);
 }
 
@@ -242,8 +243,27 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 	}
 	else
 	{
-		gImageLoadState.mapLoadFinEvent( gImageLoadState.map );
+		gImageLoadState.mapLoadFinEvent( param );
 	}
+}
+
+static void LoadImageState( Q3BspMap& map, gSamplerHandle_t sampler,
+	const std::vector< void* >& sources )
+{
+	gImageLoadState.map = &map;
+	gImageLoadState.sampler = sampler;
+
+	gImageLoadState.head = BundleImagePaths(
+		sources,
+		[]( void* source ) -> const char*
+		{
+			return ( const char* )source;
+		}
+	);
+
+	gImageLoadState.currNode = gImageLoadState.head.get();
+
+	LoadImagesBegin( nullptr, 0, 0 );
 }
 
 void GU_LoadShaderTextures( Q3BspMap& map,
@@ -268,20 +288,8 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 
 	gImageLoadState.imageReadInsert = PreInsert_Shader;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
-	gImageLoadState.map = &map;
-	gImageLoadState.sampler = sampler;
 
-	gImageLoadState.head = BundleImagePaths(
-		sources,
-		[]( void* source ) -> const char*
-		{
-			return ( const char* )source;
-		}
-	);
-
-	gImageLoadState.currNode = gImageLoadState.head.get();
-
-	LoadImagesBegin( nullptr, 0, 0 );
+	LoadImageState( map, sampler, sources );
 }
 
 static void PreInsert_Main( void* param )
@@ -292,6 +300,19 @@ static void PreInsert_Main( void* param )
 
 void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 {
+	std::vector< void* > sources;
+
+	for ( bspShader_t& shader: map.data.shaders )
+	{
+		sources.push_back( &shader.name[ 0 ] );
+	}
+
+	gImageLoadState.imageReadInsert = PreInsert_Main;
+	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
+
+	LoadImageState( map, sampler, sources );
+
+	/*
 	std::vector< gPathMap_t > paths;
 	paths.reserve( map.data.shaders.size() );
 
@@ -302,9 +323,9 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 		i++;
 	}
 
-	AIIO_ReadImages( map, paths,  sampler, Q3BspMap::OnMainLoadImagesFinish,
+AIIO_ReadImages( map, paths,  sampler, Q3BspMap::OnMainLoadImagesFinish,
 		PreInsert_Main );
-
+*/
 	//---------------------------------------------------------------------
 	// Load Textures:
 	// This is just a hack to brute force load assets which don't belong in

@@ -267,6 +267,7 @@ static INLINE bool GetExt( const std::string& name, std::string& outExt )
 
 	if ( index == std::string::npos )
 	{
+		outExt = "";
 		return false;
 	}
 
@@ -291,7 +292,13 @@ static std::string ReplaceExt( const std::string& path,
 	const std::string& ext )
 {
 	std::string f( StripExt( path ) );
-	f += ext;
+	printf( "Path: %s; f: %s; ext: %s\n", path.c_str(), f.c_str(),
+		ext.c_str() );
+
+	f.append( ext );
+
+	printf( "f += ext: %s\n", f.c_str() );
+
 	return f;
 }
 
@@ -457,8 +464,8 @@ static void TraverseDirectory_Proxy( char* data, int size )
 
 static void ReadImage_Proxy( char* path, int size )
 {
-	std::string strPath( path, size );
-	std::string full( FullPath( path, size ) );
+	//std::string strPath( path, size );
+	std::string full( FullPath( path, size - 1 ) );
 
 	gFIOChain.reset( new file_t( full ) );
 
@@ -470,7 +477,12 @@ static void ReadImage_Proxy( char* path, int size )
 		};
 
 		std::string firstExt;
-		bool hasExt = GetExt( full, firstExt );
+		volatile bool hasExt = GetExt( full, firstExt );
+
+		if ( !hasExt )
+		{
+			__nop();
+		}
 
 		for ( size_t i = 0; i < candidates.size(); ++i )
 		{
@@ -480,6 +492,9 @@ static void ReadImage_Proxy( char* path, int size )
 			}
 
 			full = ReplaceExt( full, candidates[ i ] );
+
+			printf( "Trying \'%s\'\n", full.c_str() );
+
 			gFIOChain->Open( full );
 
 			if ( *gFIOChain )
@@ -519,7 +534,7 @@ void MountPackage_Proxy( char* data, int size )
 	const char* port = EM_SERV_ASSET_PORT;
 
 	EM_ASM_ARGS({
-			self.fetchBundleAsync($0, $1, $2, $3);
+			self.fetchBundleAsync($0, $1, $2, $3, $4);
 		},
 		data,
 		emscripten_worker_respond,
