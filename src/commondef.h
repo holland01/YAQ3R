@@ -37,7 +37,7 @@
 #	define FALSE 0
 
 #	ifdef DEBUG
-	static INLINE void __nop(void) 
+	static INLINE void __nop(void)
 	{
 		volatile int a = 0;
 		a += 1;
@@ -45,6 +45,9 @@
 #	endif // DEBUG
 
 #endif // !_WIN32
+
+template< class Tint > static INLINE Tint Align( Tint s )
+{ return ( s + Tint( 3 ) ) & ( ~Tint( 3 ) );  }
 
 #ifdef __GNUC__
 #	define _FUNC_NAME_ __func__

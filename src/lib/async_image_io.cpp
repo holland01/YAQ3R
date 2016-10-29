@@ -40,7 +40,8 @@ void gImageLoadTracker_t::LogImages( void )
 // 2, 3 -> height
 // 4 -> bpp
 // 5, 6, 7 -> padding
-// 8, width * height * bpp -> image data
+// What follows is the image data, whose size will be aligned by
+// 4
 
 static void OnImageRead( char* buffer, int size, void* param )
 {
@@ -75,14 +76,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 			return;
 		}
 
-		std::vector< uint8_t > imageData( width * height * bpp, 0 );
-
-		if ( gImageTracker->textureInfo[ gImageTracker->iterator ].path
-			== "asset/textures/gothic_door/archpart9" )
-		{
-			volatile uint32_t aeiou1234 = 1337;
-			__nop();
-		}
+		std::vector< uint8_t > imageData( Align( width * height * bpp ), 0 );
 
 		if ( ( unsigned ) size != imageData.size() + 8 )
 		{
@@ -92,6 +86,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 	 			imageData.size() ) );
 			return;
 		}
+
 		memcpy( &imageData[ 0 ], buffer + 8, imageData.size() );
 
 		// Ensure it conforms to our standards
@@ -141,12 +136,8 @@ gPathMap_t AIIO_MakeAssetPath( const char* path )
 		return pm;
 	}
 
-	// Null terminator bypass hack; if we don't do this
-	// then file paths without extensions aren't capable of being
-	// modified.
+	// Don't ask...
 	{
-
-
 		size_t assRootLen = strlen( ASSET_Q3_ROOT );
 		size_t pathLen = strlen( path );
 
@@ -165,22 +156,6 @@ gPathMap_t AIIO_MakeAssetPath( const char* path )
 		}
 
 		strncpy( &pm.path[ assRootLen ], path, pathLen );
-
-		//pm.path.resize(  )
-/*
-		size_t assetLen = strlen( ASSET_Q3_ROOT );
-
-		std::vector<char> buffer( assetLen, 0 );
-		buffer.insert( buffer.end(), ASSET_Q3_ROOT,
-			&ASSET_Q3_ROOT[ assetLen ] );
-
-		volatile const char* bufferData = buffer.data();
-		volatile size_t bufferSize = buffer.size();
-
-		pm.path = std::string( "", buffer.size() );
-		memcpy( &pm.path[ 0 ], &buffer[ 0 ], sizeof( buffer[ 0 ] )
-			* buffer.size() );
-			*/
 	}
 
 	return pm;

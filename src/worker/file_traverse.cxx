@@ -159,24 +159,12 @@ struct file_t
 			puts( "ERROR: STBI rejected the image file" );
 			return false;
 		}
-/*
-		printf( "Image Read successful:\n"\
-	 			"width: %i, height: %i, bpp: %i\n",
-				width, height, bpp );
-*/
-		int target = width * height * bpp;
-		int original = target;
 
-		// Keep things aligned, if only for pedantry
-		if ( ( ( target >> 2 ) << 2 ) != target )
-		{
-			int next = target & ( ~3 );
-			next += 4;
-			target = next;
-		}
+		size_t size = width * height * bpp;
+		size_t cap = Align( size ) + 8;
 
-		readBuff.resize( target + 8, 0 );
-		memcpy( &readBuff[ 8 ], buf, original );
+		readBuff.resize( cap, 0 );
+		memcpy( &readBuff[ 8 ], buf, size );
 
 		// There's no way that we'll need more
 		// Than 16 bits for each dimension.
@@ -292,12 +280,8 @@ static std::string ReplaceExt( const std::string& path,
 	const std::string& ext )
 {
 	std::string f( StripExt( path ) );
-	printf( "Path: %s; f: %s; ext: %s\n", path.c_str(), f.c_str(),
-		ext.c_str() );
 
 	f.append( ext );
-
-	printf( "f += ext: %s\n", f.c_str() );
 
 	return f;
 }
@@ -464,7 +448,6 @@ static void TraverseDirectory_Proxy( char* data, int size )
 
 static void ReadImage_Proxy( char* path, int size )
 {
-	//std::string strPath( path, size );
 	std::string full( FullPath( path, size - 1 ) );
 
 	gFIOChain.reset( new file_t( full ) );
@@ -492,8 +475,6 @@ static void ReadImage_Proxy( char* path, int size )
 			}
 
 			full = ReplaceExt( full, candidates[ i ] );
-
-			printf( "Trying \'%s\'\n", full.c_str() );
 
 			gFIOChain->Open( full );
 
