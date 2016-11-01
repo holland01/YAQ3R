@@ -8,6 +8,28 @@ var printHeapString = function(address) {
 	return str;
 };
 
+var stringLen= function(address) {
+	var c = address;
+	while (HEAP8[c] != 0) {
+		c++;
+	}
+	return c - address;
+}
+
+var getStdString_c_str = function($thisPtr) {
+	var isShort = HEAP8[$thisPtr];
+	var test = (isShort & 0x1) == 0;
+	if (test) {
+		return $thisPtr + 1;
+	} else {
+		return HEAP32[($thisPtr + 8) >> 2];
+	}
+};
+
+var printStdString = function($thisPtr) {
+	printHeapString(getStdString_c_str($thisPtr));
+};
+
 var get8 = function(address, n) {
 	var ret = [];
 
@@ -28,6 +50,13 @@ var get32 = function(address, n) {
 	}
 
 	return ret;
+};
+
+var dumpStdString = function($this, extraLen, before) {
+	before = before || 0;
+	var cStringAddress = getStdString_c_str($this);
+	var n = stringLen(cStringAddress) + (extraLen || 0);
+	return get8( cStringAddress - before, n );
 };
 
 var getHexString = function(str) {
