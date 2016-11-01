@@ -42,13 +42,14 @@ using gTextureImageKey_t = uint8_t;
 
 struct gTextureMakeParams_t
 {
-
 	gImageParamList_t& images;
 	std::vector< gTextureImageKey_t > keyMaps; // specify G_TEXTURE_STORAGE_KEY_MAPPED
 	gSamplerHandle_t sampler;
 	gTextureFlags_t flags;
 
-	gTextureMakeParams_t( gImageParamList_t& images_, const gSamplerHandle_t& sampler_, gTextureFlags_t flags_ = 0 )
+	gTextureMakeParams_t( gImageParamList_t& images_,
+		gSamplerHandle_t sampler_,
+		gTextureFlags_t flags_ = 0 )
 		: images( images_ ),
 		  sampler( sampler_ ),
 		  flags( flags_ )

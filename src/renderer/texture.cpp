@@ -73,7 +73,8 @@ struct gTexture_t
 		}
 		else
 		{
-			MLOG_ASSERT( slot < imageSlots.size(), "Bad index %i for texture slot", slot );
+			MLOG_ASSERT( slot < imageSlots.size(),
+				"Bad index %i for texture slot", slot );
 			return imageSlots[ slot ];
 		}
 	}
@@ -151,8 +152,10 @@ INLINE bool ValidateTexture( const gImageParams_t& params, const gTexConfig_t& s
 			   GL_UNSIGNED_BYTE, &zeroOut[ 0 ] ) );
 
 	GLint testWidth, testHeight;
-	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &testWidth ) );
-	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &testHeight ) );
+	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0,
+		GL_TEXTURE_WIDTH, &testWidth ) );
+	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0,
+		GL_TEXTURE_HEIGHT, &testHeight ) );
 
 	return testWidth && testHeight;
 #endif
@@ -164,7 +167,8 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 	{
 		if ( makeParams.images.size() != makeParams.keyMaps.size() )
 		{
-			MLOG_WARNING( "%s", "G_TEXTURE_STORAGE_KEY_MAPPED specified with entry/key size mismatch; aborting." );
+			MLOG_WARNING( "%s", "G_TEXTURE_STORAGE_KEY_MAPPED specified "\
+				" with entry/key size mismatch; aborting." );
 			return false;
 		}
 	}
@@ -193,8 +197,10 @@ void GenGridTexture( GLenum target,
 
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
-	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MAG_FILTER, sampler.magFilter ) );
-	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MIN_FILTER, sampler.minFilter) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MAG_FILTER,
+		sampler.magFilter ) );
+	GL_CHECK( glTexParameteri( target, GL_TEXTURE_MIN_FILTER,
+		sampler.minFilter) );
 
 	GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, sampler.internalFormat,
 			grid->xEnd - grid->xStart,
@@ -206,221 +212,8 @@ void GenGridTexture( GLenum target,
 	GL_CHECK( glBindTexture( target, 0 ) );
 }
 
-/*
-bool TryAlignBoundry( atlasPositionMap_t& map, glm::ivec2& result, 
-	const glm::vec2& scale,
-	const glm::vec2& baseDims, const glm::vec2& offsetDims )
-{
-	glm::vec2 min( scale * baseDims );
-	glm::vec2 max( min + offsetDims );
-
-	bool inside = glm::all( glm::lessThanEqual( min, map.origin ) )
-			&& glm::all( glm::lessThan( map.origin, max ) );
-
-	if ( inside )
-	{
-		float xEnd = map.origin.x + map.image->width;
-		if ( xEnd > max.x )
-		{
-			max.x += 1 + xEnd - max.x;
-		}
-
-		float yEnd = map.origin.y + map.image->height;
-		if ( yEnd > max.y )
-		{
-			max.y += 1 + yEnd - max.y;
-		}
-
-		result = glm::ivec2( NextPower2( uint16_t( max.x - min.x ) ),
-			NextPower2( uint16_t( max.y - min.y ) ) );
-	}
-
-	return inside;
-}
-*/
-
-/*
-void CalcProjBounds( uint8_t offset, glm::vec2& min, glm::vec2& max,
-	const glm::mat2& axes, const std::array< glm::vec2, 8 >& p )
-{
-	//glm::mat2 invAxes( glm::inverse( axes ) );
-
-	uint8_t end = offset + ( p.size() >> 1 );
-	for ( uint8_t j = offset; j < end; ++j )
-	{
-		glm::vec2 proj( glm::dot( p[ j ], axes[ 1 ] ) * axes[ 1 ] );
-
-		glm::vec2 cmpProj( proj );
-		glm::vec2 cmpMin( glm::dot( min, axes[ 1 ] ) * axes[ 1 ] );
-		glm::vec2 cmpMax( glm::dot( max, axes[ 1 ] ) * axes[ 1 ] );
-
-		if ( glm::all( glm::lessThanEqual( cmpProj, cmpMin ) ) )
-		{
-			min = proj;
-		}
-
-		if ( glm::all( glm::greaterThanEqual( cmpProj, cmpMax ) ) )
-		{
-			max = proj;
-		}
-	}
-}
-*/
-
-/*
-void ResolveConflict( glm::vec2& aMin, glm::vec2& aMax,
-				glm::vec2& bMin, glm::vec2& bMax )
-{
-	std::array< glm::vec2, 8 > p =
-	{{
-		glm::vec2( aMin.x, aMin.y ),
-		glm::vec2( aMin.x, aMax.y ),
-		glm::vec2( aMax.x, aMax.y ),
-		glm::vec2( aMax.x, aMin.y ),
-
-		glm::vec2( bMin.x, bMin.y ),
-		glm::vec2( bMin.x, bMax.y ),
-		glm::vec2( bMax.x, bMax.y ),
-		glm::vec2( bMax.x, bMin.y )
-	}};
-
-	float smallest = std::numeric_limits< float >::max();
-	glm::vec2 resolve( std::numeric_limits< float >::max() );
-	uint8_t h = 0;
-
-	for ( uint8_t i = 0; i < p.size() - 1; i++ )
-	{
-		if ( i == 3 )
-		{
-			i = 4;
-		}
-
-		glm::vec2 side( p[ i + 1 ] - p[ i ] );
-
-		// Normal: perpendicular to side
-		glm::vec2 n( -side.y, side.x );
-		n = glm::normalize( n );
-
-		glm::mat2 axes( glm::normalize( side ), n );
-
-		// ( s, t ) => ( min, max ); ( u, v ) follows same suite
-		glm::vec2 s( std::numeric_limits< float >::max() ), t( -std::numeric_limits< float >::min() );
-		CalcProjBounds( 0, s, t, axes, p );
-
-		glm::vec2 u( std::numeric_limits< float >::max() ), v( -std::numeric_limits< float >::min() );
-		CalcProjBounds( p.size() >> 1, u, v, axes, p );
-
-		// If the distance from one's max to the other's min is greater than the sum of both
-		// object's projected lengths, we know there isn't an intersection
-		glm::vec2 lengths( glm::length( t - s ), glm::length( v - u ) );
-
-		float x = glm::distance( t, u );
-		float y = glm::distance( v, s );
-		float k = lengths.x + lengths.y;
-
-		// We choose the max distance, since there easily could be a max/min
-		// distance combo which is less than k
-		if ( glm::max( x, y ) > k )
-		{
-			return;
-		}
-
-		// Check for shortest route to resolution
-		if ( glm::min( x, y ) < smallest )
-		{
-			smallest = glm::min( x, y );
-			if ( smallest == x )
-			{
-				h = 0;
-				resolve = u - t;
-			}
-			else
-			{
-				h = 1;
-				resolve = s - v;
-			}
-		}
-	}
-
-	// Resolve
-	if ( h == 1 )
-	{
-		bMax += resolve;
-		bMin += resolve;
-	}
-	else
-	{
-		aMax += resolve;
-		aMax += resolve;
-	}
-}
-*/
-
-/*
-void CorrectOrigins( const glm::ivec2& gridDims, const glm::ivec2& originalDims,
-	std::vector< atlasPositionMap_t >& origins,
-	std::vector< glm::ivec2 >& gridSlotDims )
-{
-	for ( atlasPositionMap_t& m: origins )
-	{
-		bool found = false;
-		uint16_t i = 0;
-		for ( uint16_t y = 0; y < gridDims.y && !found; ++y )
-		{
-			for ( uint16_t x = 0; x < gridDims.x && !found; ++x )
-			{
-				found = TryAlignBoundry( m, gridSlotDims[ i ],
-							glm::ivec2( x, y ), originalDims,
-							gridSlotDims[ i ] );
-
-				++i;
-			}
-		}
-	}
-
-	uint16_t x0 = 0, y0 = 0;
-	for ( uint16_t i = 0; i < gridSlotDims.size(); ++i )
-	{
-		glm::vec2 min0( x0 * originalDims.x, y0 * originalDims.y );
-		glm::vec2 max0( min0 + glm::vec2( gridSlotDims[ i ].x,
-									gridSlotDims[ i ].y ) );
-
-		uint16_t next = i + 1;
-		uint16_t y1 = next / gridDims.x;
-		uint16_t x1 = next - y1 * gridDims.x;
-		glm::vec2 start( max0.x * !!x1, max0.y * !!x1 );
-		for ( uint16_t j = next; j < gridSlotDims.size(); ++j )
-		{
-			glm::vec2 min1( start );
-			glm::vec2 max1( min1 + glm::vec2( gridSlotDims[ j ].x,
-					gridSlotDims[ j ].y ) );
-
-			ResolveConflict( min0, max0, min1, max1 );
-
-			// Note: how do we know that gridSlotDims[ i ] won't just
-			// collide with a different element? At most, we're granted
-			// two collision passes and resolutions, which could easily
-			// not be enough
-			gridSlotDims[ i ] = max0 - min0;
-
-			x1 = ( x1 + 1 ) % gridDims.x;
-
-			if ( x1 == 0 )
-			{
-				y1++;
-			}
-		}
-
-		x0 = ( x0 + 1 ) % gridDims.x;
-		if ( x0 == 0 )
-		{
-			y0++;
-		}
-	}
-}
-*/
-
-std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& canvasParams,
+std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt,
+	const gImageParams_t& canvasParams,
 	std::vector< atlasPositionMap_t >& origins )
 {
 	std::vector< glm::ivec2 > dimensions;
@@ -496,9 +289,9 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt, const gImageParams_t& 
 	return dimensions;
 }
 
-INLINE void TryAllocDummy( void )
+static INLINE void TryAllocDummy( void )
 {
-	if ( !gDummy && !gSamplers.empty() ) // The sampler we use in particular is pretty much irrelevant
+	if ( !gDummy && !gSamplers.empty() )
 	{
 		gImageParams_t params;
 		params.sampler.id = 0;
@@ -513,7 +306,8 @@ INLINE void TryAllocDummy( void )
 		GenTextureData( gDummy.get(), params, dummy );
 
 		gTextureImage_t data;
-		data.dims = glm::vec2( ( float ) params.width, ( float ) params.height );
+		data.dims = glm::vec2( ( float ) params.width,
+		( float ) params.height );
 		data.imageScaleRatio = glm::vec2( 1.0f, 1.0f );
 		data.stOffsetEnd = glm::vec2( 1.0f, 1.0f );
 		data.stOffsetStart = glm::vec2( 0.0f, 0.0f );
@@ -541,14 +335,6 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 		return t->grids;
 	}
 
-	/*
-	MLOG_ASSERT( t->numGrids == 1, "You need to test this search routine now,"\
-						"considering that the grid count has actually exceeded 1."\
-						"Hint: stOffsetEnd/stOffsetStart are computed in texture space,"
-						"not in texel space, so you'll need to actually convert one to the other"
-						"in the commented loop." );
-						*/
-
 	// TODO: If this slot has a good relationship with the layout of the
 	// grids, then we can make this more intelligent. (geometrically,
 	// the slot should map to rectangle in a grid of grids - each grid
@@ -571,8 +357,8 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 	return nullptr;
 }
 
-std::vector< atlasPositionMap_t > CalcGridDimensions( 
-	gImageParams_t& canvasParams, gSamplerHandle_t sampler, 
+std::vector< atlasPositionMap_t > CalcGridDimensions(
+	gImageParams_t& canvasParams, gSamplerHandle_t sampler,
 	gImageParamList_t& images )
 {
 	GLint maxTextureSize;
@@ -594,9 +380,13 @@ std::vector< atlasPositionMap_t > CalcGridDimensions(
 
 	int32_t w = ( int32_t )( maxDims.x - minDims.x );
 	int32_t h = ( int32_t )( maxDims.y - minDims.y );
+
 	bool dw = false;
 	bool dh = false;
 
+	// We're dealing with origins in the
+	// dimensions calculation, so correct the width and height values
+	// by applying bounds offsets
 	for ( const atlasPositionMap_t& am: origins )
 	{
 		if ( ( am.origin.x + am.image->width ) >= w )
@@ -714,7 +504,7 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 	gImageParams_t canvasParams;
 
 	std::vector< atlasPositionMap_t > origins =
-			CalcGridDimensions( canvasParams, makeParams.sampler, 
+			CalcGridDimensions( canvasParams, makeParams.sampler,
 				makeParams.images );
 
 	gTexture_t* tt = new gTexture_t();
@@ -728,7 +518,7 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 		tt->imageSlots.resize( canvasParams.width * canvasParams.height );
 	}
 
-	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams, 
+	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams,
 		origins );
 
 	const glm::ivec2& d = dims[ dims.size() - 1 ];
@@ -746,7 +536,7 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 	return tt;
 }
 
-bool DetermineImageFormats( int8_t bpp, uint32_t& format, 
+bool DetermineImageFormats( int8_t bpp, uint32_t& format,
 	uint32_t& internalFormat )
 {
 	switch( bpp )
@@ -922,7 +712,7 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle )
 {
-	MLOG_ASSERT( !G_VNULL( gSlotStage ), "Not slot stage set. Handle: %i", 
+	MLOG_ASSERT( !G_VNULL( gSlotStage ), "Not slot stage set. Handle: %i",
 		handle.id );
 
 	return GTextureImage( handle, gSlotStage );
@@ -1055,7 +845,7 @@ void GSetAlignedImageData( gImageParams_t& destImage,
 	}
 }
 
-bool GLoadImageFromMemory( gImageParams_t& image, 
+bool GLoadImageFromMemory( gImageParams_t& image,
 	const std::vector< uint8_t >& buffer,
  	int32_t width, int32_t height, int32_t bpp )
 {
