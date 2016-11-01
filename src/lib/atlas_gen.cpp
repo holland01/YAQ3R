@@ -76,8 +76,10 @@ struct atlasBucket_t
 		return result;
 	}
 
-	// Grab the height group with the range of indices containing the given offset index
-	atlasBucket_t* FindRange( uint16_t offset, atlasBucket_t** prev, uint16_t i = 0 )
+	// Grab the height group with the range of indices containing
+	// the given offset index
+	atlasBucket_t* FindRange( uint16_t offset, atlasBucket_t** prev,
+		uint16_t i = 0 )
 	{
 		uint32_t upperBound = i + ReadCount();
 
@@ -151,7 +153,8 @@ struct meta_t
 
 	void LogData( const atlasTreeMetrics_t& metrics, atlasTree_t& treeRoot )
 	{
-		O_LogF( log.ptr, "METRICS", "\n\thighest: %i\n\tnextHighest: %i\n\tbase: %i\n\n\n\n",
+		O_LogF( log.ptr, "METRICS", "\n\thighest: %i\n\tnextHighest: %i\n"\
+				"\tbase: %i\n\n\n\n",
 				metrics.highest, metrics.nextHighest, metrics.base );
 
 		LogData_r( &treeRoot );
@@ -165,14 +168,16 @@ struct meta_t
 
 			if ( t->columns.empty() )
 			{
-				O_LogF( log.ptr, "entry", "\nWidth: %i\n Bucket (Column) Count: %i\n ( No Buckets/Columns )",
-						t->key, t->columns.size() );
+				O_LogF( log.ptr, "entry",
+					"\nWidth: %i\n Bucket (Column) Count: %i\n"\
+					" ( No Buckets/Columns )", t->key, t->columns.size() );
 			}
 			else
 			{
 				std::string info( t->First()->Info() );
-				O_LogF( log.ptr, "entry", "\nWidth: %i\n Bucket (Column) Count: %i\n Bucket Info: \n\n%s\n",
-						t->key, t->columns.size(), info.c_str() );
+				O_LogF( log.ptr, "entry", "\nWidth: %i\n"\
+					" Bucket (Column) Count: %i\n Bucket Info: \n\n%s\n",
+					t->key, t->columns.size(), info.c_str() );
 			}
 
 			LogData_r( t->right.get() );
@@ -182,7 +187,8 @@ struct meta_t
 
 std::unique_ptr< meta_t > gMeta( nullptr );
 
-void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p, uint16_t v )
+void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p,
+	uint16_t v )
 {
 	newb->val = p->val;
 	newb->count = p->count;
@@ -192,7 +198,8 @@ void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p, uin
 	p->WriteCount( 1 );
 }
 
-// Insert height values in descending order ( largest value is at the bottom )
+// Insert height values in descending order
+// ( largest value is always first )
 void BucketInsert( atlasTree_t& t, uint16_t v )
 {
 	t.used[ v ] = false;
@@ -223,11 +230,13 @@ void BucketInsert( atlasTree_t& t, uint16_t v )
 		return;
 	}
 
+	// v < prev->val
 	if ( prev )
 	{
 		std::unique_ptr< atlasBucket_t > newb( new atlasBucket_t() );
 
-		// p->val < v < prev->val
+		// p->val < v < prev->val, so insert newb between
+		// p and prev
 		if ( p )
 		{
 			ShiftForward( newb, p, v );
@@ -265,7 +274,8 @@ std::unique_ptr< atlasTree_t > TreeMake( uint16_t k, uint16_t v )
 
 void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v );
 
-void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k, uint16_t v )
+void InsertOrMake( std::unique_ptr< atlasTree_t >& t, uint16_t k,
+	uint16_t v )
 {
 	if ( t )
 	{
@@ -350,6 +360,9 @@ uint16_t SumBounds( const atlasTree_t* t, uint16_t target )
 
 void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
 {
+
+	// TODO: make this in order; it's actually more efficient that way,
+	// given the InsertOrdered() call
 	if ( t )
 	{
 		CalcMetrics( t->left.get(), metrics );
@@ -384,7 +397,8 @@ void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
 // the offset portion will decrement for each image which has a matching height value.
 // The initial count bits will remain the same, to ensure that images of different
 // heights will not "invade" the space of the given image these parameters correspond to.
-void TreePoint( atlasTree_t* t, atlasPositionMap_t& map, const atlasTree_t* root )
+void TreePoint( atlasTree_t* t, atlasPositionMap_t& map,
+	const atlasTree_t* root )
 {
 	if ( t )
 	{
@@ -436,7 +450,8 @@ atlasTree_t* TreeFetch( atlasTree_t* t, uint16_t key )
 	return t;
 }
 
-void DuplicateColumn( atlasTree_t& dest, const atlasBucket_t* src, uint16_t count )
+void DuplicateColumn( atlasTree_t& dest, const atlasBucket_t* src,
+	uint16_t count )
 {
 	if ( !count )
 	{
@@ -496,19 +511,90 @@ uint16_t CalcHeight( const atlasTree_t* t )
 	return std::max( h0, std::max( h1, h2 ) );
 }
 
-INLINE bool ValidateDims( uint16_t width, uint16_t height, uint16_t maxTextureSize )
+INLINE bool ValidateDims( uint16_t width, uint16_t height,
+	uint16_t maxTextureSize )
 {
 	bool good = width < maxTextureSize && height < maxTextureSize;
 
-	MLOG_ASSERT( good,
-				 "Width and Height exceed max GL texture size."\
-				 " (GL Max, width, height) => (%iu, %iu, %iu)",
-				 maxTextureSize, width, height );
+	if ( !good )
+	{
+		MLOG_ERROR(
+			 "Width and Height exceed max GL texture size."\
+			 " (GL Max, width, height) => (%iu, %iu, %iu)",
+			 maxTextureSize, width, height );
+	}
 
 	return good;
 }
 
-// For lists of images which have varying sizes
+// AtlasGenVariedOrigins is used to produce a texture atlas from a
+// list of images which have varying sizes. Most image groups for the
+// BSP Renderer fall into this category.
+
+//-----------------
+// Tree Generation
+//-----------------
+
+// The algorithm begins by treating each image width as a unique node in a BST.
+// The node holds "buckets" of sorted height values corresponding
+// to images which have the same width value.
+
+// Each bucket holds a count for each image with that very width and height
+// combination. So, if we have N images with a width of 256 containing M
+// buckets, and P of these N images holds a height of 128, there will be one of
+// these M buckets which is used to represent the height of 128 with a count of
+// P. No other bucket in the subtree of width 256 will contain the same height
+// value.
+
+// An ordered set of (unique) width values is first constructed; the root
+// node in the tree uses the median of these values. In the event that the
+// count of width sizes is even, the root node _doesn't_ hold any actual
+// buckets, since its value is ( a + b ) / 2, where a and b represent the
+// two middle-most values in the set. This doesn't really cause any problems,
+// though.
+
+//----------------------------
+// NOTE: the tree would probably benefit from using auto-balancing
+// techniques to speed up the generation: this would guarantee
+// logarithmic traversal.
+//----------------------------
+
+// Once each node and its corresponding buckets have been generated, the
+// next step is to ensure that we can actually use this layout as an actual
+// texture atlas.
+
+//-----------------
+// Initial Layout
+//-----------------
+
+// Each node contributes to the the atlas's dimensions via its width: the total
+// summation of widths makes up the actual base of the atlas itself,
+// or the atlas's total width.
+
+// The width area which contains the buckets whose stacked height is the max-
+// imum out of each possible node width is what decides the total height
+// of the atlas. Since there are buckets which represent more than a single
+// image, each bucket's contribution towards this value takes into account
+// the amount of image's it represents like so:
+
+// totalHeight = 0
+// for i = 0; i < node.buckets.size(); i += 1 {
+//	totalHeight += node.buckets[ i ].height * node.buckets[ i ].count
+// }
+
+// The atlas maintains the property that every height value
+// is stored in a node's bucket list in descending order; the
+// first bucket always holds the highest value. Thus, the lower
+// left-most image will always be the smallest, while the upper right-most
+// image will always be the largest.
+
+// This means the end result is the by-product of a simple and intuitive means
+// for generation. Furthermore, this allows us to stack buckets which store the
+// same height values linearly via a small offset value that can be incremented
+// or decremented as necessary.
+
+//
+
 std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
@@ -522,18 +608,6 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		widths.InsertOrderedUnique( params[ i ].width );
 	}
 
-	// NOTE: if widths.size() is even,
-	// the median returned will be the traditional
-	// half of the sum of width's two middle values.
-	// If this happens, we'll likely get a
-	// NON POT value. The worst case scenario
-	// is that the root node effectively divides
-	// all images and stores no buckets itself.
-	// the end result will likely be a gap
-	// in the atlas of that median values
-	// texels - this is somewhat inefficient,
-	// but it would be worth seeing what exactly
-	// happens when the size is even to make sure.
 	rootTree.key = widths.GetMedian();
 
 	for ( const gImageParams_t& param: params )
@@ -557,7 +631,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 	// Check to see if our highest bucket count is two standard deviations
 	// from the nextHighest. If so, we should split any bucket groups which
-	// are significantly high into separate columns: this will significantly
+	// are too high into separate columns: this should
 	// alleviate any potential problems with attempting a texture allocation
 	// which is larger than GL_MAX_TEXTURE_SIZE
 	float stdDev, zHigh;
@@ -567,17 +641,19 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 	{
 		atlasTree_t* t = TreeFetch( &rootTree, metrics.highest.width );
 
-		atlasBucket_t* phigh = nullptr;
+		atlasBucket_t* prevHigh = nullptr;
 		atlasBucket_t* high = nullptr;
+
 		atlasBucket_t* p = nullptr;
 		atlasBucket_t* b = t->First().get();
+
 		uint16_t newCount, counter, rem;
 
 		while ( b )
 		{
 			if ( ( high && b->ReadCount() > high->ReadCount() ) || !high )
 			{
-				phigh = p;
+				prevHigh = p;
 				high = b;
 			}
 
@@ -587,10 +663,10 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 		uint16_t subDivisions = 1;
 
-		if ( phigh )
+		if ( prevHigh )
 		{
-			t->columns.push_back( std::move( phigh->next ) );
-			phigh->next.reset( nullptr );
+			t->columns.push_back( std::move( prevHigh->next ) );
+			prevHigh->next.reset( nullptr );
 		}
 		else
 		{
@@ -628,14 +704,17 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		posMap.push_back( pmap );
 	}
 
-	gMeta->LogData( metrics, rootTree );
+	if ( gMeta )
+	{
+		gMeta->LogData( metrics, rootTree );
+	}
 
 	return posMap;
 }
 
 // For lists of images which all have the same dimensions
-std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gImageParams_t >& params,
-														uint16_t maxTextureSize )
+std::vector< atlasPositionMap_t > AtlasGenUniformOrigins(
+	const std::vector< gImageParams_t >& params, uint16_t maxTextureSize )
 {
 	std::vector< atlasPositionMap_t > posMap;
 	uint16_t square, width, height;
@@ -662,7 +741,8 @@ std::vector< atlasPositionMap_t > AtlasGenUniformOrigins( const std::vector< gIm
 
 			atlasPositionMap_t map;
 			map.image = &params[ slot ];
-			map.origin = glm::vec2( x * params[ slot ].width, y * params[ slot ].height );
+			map.origin = glm::vec2( x * params[ slot ].width,
+				y * params[ slot ].height );
 			posMap.push_back( map );
 		}
 	}
@@ -676,10 +756,12 @@ std::vector< atlasPositionMap_t > AtlasGenOrigins(
 		const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
+#ifdef LOG_ATLAS_GEN
 	if ( !gMeta )
 	{
 		gMeta.reset( new meta_t() );
 	}
+#endif
 
 	// Determine our atlas layout
 	for ( uint16_t i = 1; i < params.size(); ++i )
