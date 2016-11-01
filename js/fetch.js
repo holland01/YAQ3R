@@ -115,8 +115,8 @@ AL.BundleLoader = function(bundle, params) {
 	this.fin = {metadata:false, blob:false};
 
 	if (!params
-		|| typeof(params.size) === 'undefined'
-		|| typeof(params.path) === 'undefined'
+		|| (typeof(params.size) === 'undefined')
+		|| (typeof(params.path) === 'undefined')
 		|| !params.proxy) {
 		throw AL.BUNDLE_REQUIRED_PARAMS_EXCEPT;
 	}
