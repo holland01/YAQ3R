@@ -12,7 +12,7 @@ do
 		CMD="${CMD} RELEASE=1"
 	elif [ ${var} = "-mode=DEBUG" ]; then
 		CMD="${CMD} DEBUG=1"
-	elif [ ${var} = "-mode=DEBUG_RELEASE"]; then
+	elif [ ${var} = "-mode=DEBUG_RELEASE" ]; then
 		CMD="${CMD} DEBUG_RELEASE=1"
 	elif [ ${var} = "-clean=1" ]; then
 		echo $(make clean)
