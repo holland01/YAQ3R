@@ -1838,13 +1838,101 @@ void Send( void ) const
 {
 	emscripten_worker_respond( ( char* ) &readBuff[ 0 ],
 		readBuff.size() );
-}	
+}
 ```
 
-The problem originates because readBuff hasn't been allocated when this is called - it doesn't need to be when the 
+The problem originates because readBuff hasn't been allocated when this is called - it doesn't need to be when the
 files are first being mounted. Originally the model used for loading and reading assets was different, so it
-made sense to do things this way. 
+made sense to do things this way.
 
 Relevant changes for ReadBegin() have been applied in 6c1afaa2329f957c2483596f5e50b39a850795e0
 
-Ditto for file_t::Send(), in commit 131444ed57dff550ce6b39420dea1b8ee75d10a2 
+Ditto for file_t::Send(), in commit 131444ed57dff550ce6b39420dea1b8ee75d10a2
+
+__________
+
+Next up is a string copy issue for the main texture image paths which is due
+to the fact that the initialization of the string
+copies the null terminator of the string into the string's buffer and thus
+considers it as an actual character of the string itself; the result is that
+any appending of another string (e.g., an extension in the case of the tests
+performed in `ReadImage_Proxy()`) won't be read: the null terminator
+isn't overwritten and acts as a barrier between the original string and
+its newly appended portion.
+
+I'm pretty certain that the only reason why this wasn't spotted before
+is because the paths which were loaded as texture paths parsed from the
+shader scripts already have extensions, where as these `bspShader_t::name`
+texture paths don't contain extensions: a guessing game is played until the
+proper suffix succeeds with an `fopen`. It's a hack for sure, but for now it
+works well and it doesn't impede any performance issues after the map's been
+loaded given that this is all just init code. Finding something more elegant
+is also likely to be time consuming, and I'd rather avoid that...
+
+The main challenge is thinking about where this fix should be placed; a lot
+of string copies happen at different points as the `gPathMap_t` instances
+are being generated; one actually stems from an `std::string` generation by
+a `std::stringstream` in `AIIO_MakeAssetPath`.
+
+So, instead of doing
+
+```
+ss << char_ptr
+```
+
+maybe try
+
+```
+ss << std::string(char_ptr, strlen(char_ptr))
+```
+
+That might actually circumvent it.
+
+(Something really should be done about this though. Maybe add a "main" render
+stage, which assigns its image path via qer_editorImage,
+or look for the method which is used in the actual q3bsp renderer)
+
+**10/27/2016**
+
+Need to find the actual cause of it.
+
+**10/31/2016**
+
+All of the atlas generation code needs to be in atlas_gen.cpp.
+
+This keeps things a tad more API independent, and also allows for more
+fine-grained calculations to be made in terms of the end result.
+
+Currently, the dimensions are almost guaranteed to double in size.
+This is partly due to the fact that `NextPower2()` is necessary given GLES 2's
+power of 2 dimension rules.
+
+The other reason for this is because only _origins_ are being returned
+from `AtlasGenOrigins()`.
+
+These origins are then used to calculate the actual dimensions.
+The problem with this is that origins refer to texture origins and
+not actual boundries.
+
+I need to re-evaluate why the actual loop after the `w` and `h` values
+are calculated in `CalcGridDimensions()` is used. I think it's because
+of this boundry issue, and a double check is made to ensure that there aren't
+any image dimensions which, when added to a particular origin, exceed `w`
+or `h`. If this is the case, the "solution" of just doubling the actual
+dimensions is totally un called for.
+
+I'm thinking this is why the ZScore computation is made in atlas_gen.cpp before
+actually checking if the current dimensions are valid - because there's a good
+chance that they'll be doubled anyway, and this will at least "even out"
+the dimensions to make the results less painful.
+
+Another thing to think about is mentioned as a FIXME on line 674 of
+atlas_gen.cpp.
+
+Either way, this whole process needs some major reworking.
+
+Removing this unnecessary doubling should keep the length error from being
+thrown once the canvas size is allocated. For q3dm2, the dimensions literally
+jump from being within the 2k x 4k range to 8k and 16k.
+
+It's - for lack of a better word - totally fucking retarded.
