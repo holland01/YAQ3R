@@ -593,7 +593,15 @@ INLINE bool ValidateDims( uint16_t width, uint16_t height,
 // same height values linearly via a small offset value that can be incremented
 // or decremented as necessary.
 
-//
+//-----------------
+// Layout Fitting
+//-----------------
+
+// The columns member for each tree node represents the amount of duplication
+// necessary to ease the height of the initial layout. Initially, each
+// column has one member: if an adjustment needs to be made, another column
+// with is created for that particular width, using the bucket with the most
+// counts as its initial member.
 
 std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		const std::vector< gImageParams_t >& params,
@@ -663,11 +671,20 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 		uint16_t subDivisions = 1;
 
+		// FIXME: What about the case in which prevHigh doesn't exist
+		// because every ReadCount() check in the loop fails, but
+		// the actual bucket count > 1? Obviously if there's only
+		// one bucket count then separation makes no sense...
+
+		// prevHigh->next = high, obviously
 		if ( prevHigh )
 		{
 			t->columns.push_back( std::move( prevHigh->next ) );
 			prevHigh->next.reset( nullptr );
 		}
+		// We produce more subdivisions because a lack of a prevHigh
+		// implies that our max bucket dominates in size more than
+		// it would otherwise
 		else
 		{
 			subDivisions++;
