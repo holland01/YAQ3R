@@ -92,8 +92,7 @@ bool Test::Load( const char* winName )
 
 	if ( !gTmpBspPath.empty() )
 	{
-		map->Read( gTmpBspPath, 1,
-				gTmpMapReadFinish );
+		map->Read( gTmpBspPath, 1, gTmpMapReadFinish );
 	}
 
 	return true;

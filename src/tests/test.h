@@ -12,8 +12,7 @@ class Q3BspMap;
 
 class Test
 {
-protected:
-
+public:
 	float			deltaTime;
 
 	InputCamera*    camPtr;
@@ -27,8 +26,6 @@ protected:
 	float			lastMouseY;
 
 	std::unique_ptr< Q3BspMap > 	map;
-
-public:
 
 	gContextHandles_t base;
 
