@@ -4,13 +4,24 @@
 
 static void OnMapFinish( void* param )
 {
-	UNUSED( param );
+	TRenderer* app = ( TRenderer* ) gAppTest;
 
+	app->renderer.reset( new BSPRenderer(
+		( float ) app->base.width,
+		( float ) app->base.height,
+		*( app->map.get() ) )
+	);
 
+	app->renderer->Prep();
+	app->renderer->Load( *( app->map->payload ) );
+
+	app->map->payload.release();
+
+	app->camPtr = app->renderer->camera.get();
 }
 
 TRenderer::TRenderer( const std::string& filepath )
-	: Test( 1366, 768, false, filepath.c_str() ),
+	: Test( 1366, 768, false, filepath.c_str(), OnMapFinish ),
 	  moveRateChangeRate( 0.3f ),
 	  renderer( nullptr )
 {
@@ -31,24 +42,10 @@ void TRenderer::Load( void )
 {
 	if ( !Test::Load( "I am a floating camera" ) )
 	{
-		MLOG_ERROR( "Could not initialize the necessary rendering prerequisites." );
+		MLOG_ERROR(
+			"Could not initialize the necessary rendering prerequisites." );
 		return;
 	}
-
-	MLOG_INFO( "The Load Would happen here..." );
-
-/*
-	gSamplerHandle_t sampler = GMakeSampler();
-	gTextureHandle_t shader; GU_LoadShaderTextures( map, sampler );
-	gTextureHandle_t main; GU_LoadMainTextures( map, sampler );
-
-	renderer.reset( new BSPRenderer( ( float ) width,
-		( float ) height, map ) );
-	renderer->Prep();
-	renderer->Load( main, shader, sampler );
-
-	camPtr = renderer->camera.get();
-*/
 
 	#ifdef EMSCRIPTEN
 		EM_UnmountFS();
