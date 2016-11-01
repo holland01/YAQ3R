@@ -15,6 +15,8 @@ struct mapEntity_t
 	std::string className;
 };
 
+struct renderPayload_t;
+
 class Q3BspMap
 {
 private:
@@ -26,13 +28,13 @@ private:
 
 	bool								mapAllocated;
 
-	std::unique_ptr< renderPayload_t > 	payload;
-
 	std::string							name;
 
 public:
 
-	onFinishEvent_t					readFinishEvent;
+	std::unique_ptr< renderPayload_t > 	payload;
+
+	onFinishEvent_t						readFinishEvent;
 
 	std::unordered_map< std::string, shaderInfo_t > effectShaders;
 
@@ -83,4 +85,6 @@ public:
 	std::string					GetPrintString( const std::string& title = "." ) const;
 
 	void						AssertTrueMap( void ) const;
+
+	friend class BSPRenderer;
 };
