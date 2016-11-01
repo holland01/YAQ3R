@@ -6,6 +6,7 @@
 #include "lib/cstring_util.h"
 #include "lib/async_image_io.h"
 #include "worker/wapi.h"
+#include "renderer.h"
 
 using namespace std;
 
@@ -302,28 +303,6 @@ static void MapReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-	{
-		std::stringstream ss;
-		ss << "SHADERS(N = " << map->data.numShaders << ")\n";
-		uint32_t i = 0;
-		for ( const bspShader_t& s: map->data.shaders )
-		{
-			ss << "[" << i++ << "] " << s.name << "\n";
-		}
-		MLOG_INFO( "%s", ss.str().c_str() );
-	}
-
-	{
-		std::stringstream ss;
-		ss << "FOGS(N = " << map->data.numFogs << ")\n";
-		uint32_t i = 0;
-		for ( const bspFog_t& s: map->data.fogs )
-		{
-			ss << "[" << i++ << "] " << s.name << "\n";
-		}
-		MLOG_INFO( "%s", ss.str().c_str() );
-	}
-
 	gFileWebWorker.Await( MapReadFin_UnmountFin,  "UnmountPackages",
 			NULL, 0, map );
 }
@@ -418,6 +397,7 @@ static INLINE void LoadImagesFinish( gImageParamList_t& dest,
 	gImageLoadTracker_t** imageTracker )
 {
 	dest = std::move( ( *imageTracker )->textures );
+
 	delete *imageTracker;
 	*imageTracker = nullptr;
 }
@@ -435,15 +415,6 @@ static void UnmountShadersFin( char* data, int size,
 	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ), GMakeSampler() );
 }
 
-//------------------------------------------------------------------------------
-// rendererPayload_t
-//------------------------------------------------------------------------------
-
-struct renderPayload_t
-{
-	gImageParamList_t mainImages, shaderImages;
-	gSamplerHandle_t sampler;
-};
 
 //------------------------------------------------------------------------------
 // Q3BspMap
@@ -483,19 +454,18 @@ void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 
 	LoadImagesFinish( map.payload->shaderImages, imageTracker );
 
-	MLOG_INFO(
-		"===============\n" \
-		"Loading main images..." \
-		"\n===============" );
 	GU_LoadMainTextures( map, map.payload->sampler );
 }
 
 void Q3BspMap::OnMainLoadImagesFinish( void* param )
 {
-	puts( "Main images finished." );
 	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
 	Q3BspMap& map = ( *imageTracker )->map;
 	LoadImagesFinish( map.payload->mainImages, imageTracker );
+
+	puts( "Main images finished." );
+
+	map.readFinishEvent( &map );
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
