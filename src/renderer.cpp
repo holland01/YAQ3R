@@ -6,6 +6,7 @@
 #include "deform.h"
 #include "model.h"
 #include "renderer/shader_gen.h"
+#include "tests/test.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
 #include <random>
@@ -194,24 +195,28 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
 	}
 }
 
-void BSPRenderer::Load( gTextureHandle_t main, gTextureHandle_t shader,
- 	gSamplerHandle_t sampler )
+void BSPRenderer::Load( renderPayload_t& payload )
 {
-	mainTexHandle = main;
-	shaderTexHandle = shader;
-	mainSampler = sampler;
+	Prep();
+
+	mainSampler = payload.sampler;
+
+	// Create main and shader textures
+	{
+		gTextureMakeParams_t params( payload.mainImages, mainSampler );
+		mainTexHandle = GMakeTexture( params );
+	}
+
+	{
+		gTextureMakeParams_t params( payload.shaderImages, mainSampler );
+		shaderTexHandle = GMakeTexture( params );
+	}
 
 	camera->SetViewOrigin( map.GetFirstSpawnPoint().origin );
-
-	//if ( G_HNULL( mainSampler ) )
-	//	mainSampler = GMakeSampler();
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
-	//shaderTexHandle = GU_LoadShaderTextures( map, mainSampler );
-	// mainTexHandle = GU_LoadMainTextures( map, mainSampler );
 
 	LoadLightmaps();
 
@@ -229,7 +234,13 @@ void BSPRenderer::Load( gTextureHandle_t main, gTextureHandle_t shader,
 		}
 	}
 
-	glPrograms[ "main" ]->LoadMat4( "viewToClip", camera->ViewData().clipTransform );
+	glPrograms[ "main" ]->LoadMat4( "viewToClip",
+		camera->ViewData().clipTransform );
+
+	if ( !gAppTest->Exec() )
+	{
+		MLOG_ERROR( "%s", "Error found in Test::Exec()!" );
+	}
 }
 
 void BSPRenderer::LoadLightmaps( void )
@@ -313,7 +324,6 @@ void BSPRenderer::LoadVertexData( void )
 			glm::vec4 color( urd( e ), urd( e ), urd( e ), 1.0f );
 
 			glDebugFaces[ i ].color = color;
-			//glDebugFaces[ i ].positions = std::move( debugBuffer );
 		}
 	}
 

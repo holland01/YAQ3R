@@ -45,7 +45,7 @@ enum viewMode_t
 	VIEW_LIGHT_SAMPLE,
 };
 
-using drawCall_t = std::function< void( const void* param, 
+using drawCall_t = std::function< void( const void* param,
 	const Program& program, const shaderStage_t* stage ) >;
 
 struct drawSurface_t
@@ -126,9 +126,9 @@ struct shaderStage_t;
 struct mapModel_t;
 
 using effectFnSig_t = void( const Program& p, const effect_t& e );
-using programMap_t = std::unordered_map< std::string, 
+using programMap_t = std::unordered_map< std::string,
 	std::unique_ptr< Program > >;
-using effectMap_t = std::unordered_map< std::string, 
+using effectMap_t = std::unordered_map< std::string,
 	std::function< effectFnSig_t > >;
 using modelBuffer_t = std::vector< std::unique_ptr< mapModel_t > >;
 
@@ -136,6 +136,12 @@ struct debugFace_t
 {
 	std::vector< glm::vec3 > positions;
 	glm::vec4 color;
+};
+
+struct renderPayload_t
+{
+	gImageParamList_t mainImages, shaderImages;
+	gSamplerHandle_t sampler;
 };
 
 class BSPRenderer
@@ -147,18 +153,18 @@ private:
 	// [2] int32_t -> texture index
 	// [3] int32_t -> lightmap index
 	// [4] bool -> true if solid, false if not
-	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*, 
+	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*,
 		int32_t, int32_t, bool >;
 
 	gSamplerHandle_t				mainSampler; // also used by lightmaps
 
-	gTextureHandle_t				shaderTexHandle, mainTexHandle, 
+	gTextureHandle_t				shaderTexHandle, mainTexHandle,
 		lightmapHandle;
 
 	// has one->one mapping with face indices
-	modelBuffer_t					glFaces; 
+	modelBuffer_t					glFaces;
 
-	// has one-one mapping with 
+	// has one-one mapping with
 	// face indices - is only used when debugging for immediate data
 	std::vector< debugFace_t > glDebugFaces;
 
@@ -186,7 +192,7 @@ private:
 	void				DeformVertexes( const mapModel_t& m,
 							const shaderInfo_t* shader ) const;
 
-	void				MakeProg( const std::string& name, 
+	void				MakeProg( const std::string& name,
 							const std::string& vertPath,
 							const std::string& fragPath,
 							const std::vector< std::string >& uniforms,
@@ -203,11 +209,11 @@ private:
 	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 							std::function< void( const Program& )> callback );
 
-	void				MakeAddSurface(const shaderInfo_t* shader, 
+	void				MakeAddSurface(const shaderInfo_t* shader,
 							int32_t faceIndex,
 							surfaceContainer_t& surfList );
 
-	void				AddSurface( const shaderInfo_t* shader, 
+	void				AddSurface( const shaderInfo_t* shader,
 							int32_t faceIndex,
 							surfaceContainer_t& surfList );
 
@@ -216,13 +222,13 @@ private:
 
 	void				DrawSurface( const drawSurface_t& surface ) const;
 
-	void				DrawFaceList( drawPass_t& p, 
+	void				DrawFaceList( drawPass_t& p,
 							const std::vector< int32_t >& list );
 
-	void				DrawSurfaceList( const surfaceContainer_t& list, 
+	void				DrawSurfaceList( const surfaceContainer_t& list,
 							bool solid );
 
-	void				DrawEffectPass( const drawTuple_t& data, 
+	void				DrawEffectPass( const drawTuple_t& data,
 								drawCall_t callback );
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
@@ -260,8 +266,7 @@ public:
 
 	void		Prep( void );
 
-	void		Load( gTextureHandle_t main, gTextureHandle_t shader,
-	 	gSamplerHandle_t sampler );
+	void		Load( renderPayload_t& payload );
 
 	void		Sample( void );
 
@@ -274,7 +279,7 @@ public:
 	void		Update( float dt );
 };
 
-INLINE void BSPRenderer::DrawFaceList( drawPass_t& p, 
+INLINE void BSPRenderer::DrawFaceList( drawPass_t& p,
 	const std::vector< int32_t >& list )
 {
 	passDrawType_t defaultPass = p.drawType;
