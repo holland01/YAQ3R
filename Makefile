@@ -34,7 +34,7 @@ endif
 DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
-  -Wno-unused-parameter -g2
+  -Wno-unused-parameter -g4 -fno-inline -O0
 
 LDFLAGS = --emrun --profiling-funcs
 LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912 #-s EMTERPRETIFY=1 \
@@ -48,7 +48,7 @@ else
 endif
 
 ifdef DEBUG
-  COMMONFLAGS := $(COMMONFLAGS) -O0 $(DEBUGFLAGS)
+  COMMONFLAGS := $(COMMONFLAGS) $(DEBUGFLAGS)
   LDO := $(LDO) -O0
 else
   LDO := $(LDO) -O2
@@ -75,7 +75,13 @@ endif
 
 CC = em++ -v
 CXX = em++ -v
-CXXO = -O2
+CXXO =
+
+ifdef DEBUG
+  CXXO := $(CXXO) -O0
+else
+  CXXO := $(CXX0) -O2
+endif
 
 DEPFLAGS= -s USE_SDL=2
 
