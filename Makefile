@@ -34,7 +34,7 @@ endif
 DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
  -Wno-missing-field-initializers -Wno-self-assign\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
-  -Wno-unused-parameter -g4 -fno-inline -O0
+  -Wno-unused-parameter -g4 -O0
 
 LDFLAGS = --emrun --profiling-funcs
 LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912 #-s EMTERPRETIFY=1 \
