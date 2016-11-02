@@ -69,7 +69,7 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 			}                                   \
 		}                                       \
 		while ( 0 )
-#elif defined (DEBUG_RELEASE)					
+#elif defined (DEBUG_RELEASE)
 #	define MLOG_ASSERT( condition, ... )	\
 	do                                      \
 	{                                       \
@@ -100,21 +100,15 @@ enum fileCommand_t
 
 // This is a bit dirty, I know, but it's a simple method for integrating
 // support for web workers.
-#ifdef EM_USE_WORKER_THREAD
-void File_QueryAsync( const std::string& fpath, em_worker_callback_func callback,
-	void* param );
-
-using filedata_t = char*;
-typedef void ( *fileSystemTraversalFn_t )( filedata_t data, int size, void* arg );
-
-#else
+#ifndef EM_USE_WORKER_THREAD
 using filedata_t = uint8_t*;
 // A return value of true (1) means "keep iterating, unless we're at the end";
 // false will terminate the iteration
 typedef int ( *fileSystemTraversalFn_t )( const filedata_t data );
-#endif
 
-void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback );
+void File_IterateDirTree( std::string directory,
+	fileSystemTraversalFn_t callback );
+#endif
 
 FILE* File_Open( const std::string& path, const std::string& mode = "rb" );
 

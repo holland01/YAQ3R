@@ -344,19 +344,10 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 	return location != path.length() - 1;
 }
 
-void File_QueryAsync( const std::string& fpath,
-	em_worker_callback_func callback,
-	void* param )
-{
-	// const c_str() is forced :/
-	char* dupPath = strdup( fpath.c_str() );
-	gFileWebWorker.Await( callback,
-			"ReadFile_Begin", dupPath,
-			strlen( dupPath ), param );
-	free( dupPath );
-}
+#ifndef EM_USE_WORKER_THREAD
 
-void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callback )
+void File_IterateDirTree( std::string directory,
+	fileSystemTraversalFn_t callback )
 {
 
 #ifdef _WIN32
@@ -394,21 +385,7 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 		return callback( ( const filedata_t )path.c_str() );
 	};
 
-
 	ftw( directory.c_str(), invoke, 3 );
-
-#elif defined( EM_USE_WORKER_THREAD )
-	// std string will only return a constant version of its c-string,
-	// which won't be accepted by emscripten_call_worker. So, we just copy it...
-	size_t bsize = sizeof( char ) * directory.length();
-	char* buffer = ( char* ) alloca( bsize + 1 );
-	memset( buffer, 0, bsize + 1 );
-	memcpy( buffer, directory.data(), bsize );
-
-	//emscripten_call_worker( gFileWebWorker.handle, "Traverse", buffer, bsize,
-	//	callback, nullptr );
-
-	gFileWebWorker.Await( callback, "Traverse", buffer, bsize, nullptr );
 
 #else // Emscripten, without worker threads
 	char errorMsg[ 256 ];
@@ -422,8 +399,10 @@ void File_IterateDirTree( std::string directory, fileSystemTraversalFn_t callbac
 	{
 		printf( "[WORKER ERROR]: %s\n", errorMsg );
 	}
-#endif
+#endif // _WIN32
 }
+
+#endif // EM_USE_WORKER_THREAD
 
 FILE* File_Open( const std::string& path, const std::string& mode )
 {
