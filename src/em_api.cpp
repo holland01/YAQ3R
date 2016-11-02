@@ -20,7 +20,6 @@ worker_t::~worker_t( void )
 void worker_t::Await( em_worker_callback_func callback, const char* func, char* data,
 	int size, void* param ) const
 {
-	MLOG_INFO( "Calling Worker ID %i\n", handle );
 	emscripten_call_worker( handle, func, data, size, callback, param );
 }
 

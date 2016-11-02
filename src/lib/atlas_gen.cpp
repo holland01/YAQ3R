@@ -124,6 +124,12 @@ struct atlasTree_t
 	{
 		return columns[ 0 ];
 	}
+
+	~atlasTree_t( void )
+	{
+		left.reset();
+		right.reset();
+	}
 };
 
 struct slotMetrics_t
@@ -134,9 +140,11 @@ struct slotMetrics_t
 
 struct atlasTreeMetrics_t
 {
-	slotMetrics_t highest;		// the width "slot" which holds the maximum height value
-	slotMetrics_t nextHighest;	// same thing, but the second largest
-	uint16_t base;				// each width category, summed
+
+	// the width "slot" which holds the maximum height value
+	slotMetrics_t highest;
+	slotMetrics_t nextHighest;	// <- same thing, but the second largest
+	uint16_t base;				// <- each width category, summed
 	stats_t< uint16_t > bucketCounts;
 };
 
@@ -607,20 +615,19 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
-	atlasTree_t rootTree;
 	stats_t< uint16_t > widths;
-	uint16_t width, height;
 
 	for ( uint16_t i = 0; i < params.size(); ++i )
 	{
 		widths.InsertOrderedUnique( params[ i ].width );
 	}
 
-	rootTree.key = widths.GetMedian();
+	std::unique_ptr< atlasTree_t > rootTree( new atlasTree_t() );
+	rootTree->key = widths.GetMedian();
 
 	for ( const gImageParams_t& param: params )
 	{
-		TreeInsert( rootTree, param.width, param.height );
+		TreeInsert( *rootTree, param.width, param.height );
 	}
 
 	atlasTreeMetrics_t metrics =
@@ -635,7 +642,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 	metrics.base = widths.Sum();
 
-	CalcMetrics( &rootTree, metrics );
+	CalcMetrics( rootTree.get(), metrics );
 
 	// Check to see if our highest bucket count is two standard deviations
 	// from the nextHighest. If so, we should split any bucket groups which
@@ -647,7 +654,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 	if ( 2.0f <= zHigh )
 	{
-		atlasTree_t* t = TreeFetch( &rootTree, metrics.highest.width );
+		atlasTree_t* t = TreeFetch( rootTree.get(), metrics.highest.width );
 
 		atlasBucket_t* prevHigh = nullptr;
 		atlasBucket_t* high = nullptr;
@@ -703,8 +710,8 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		DuplicateColumn( *t, high, rem );
 	}
 
-	width = CalcWidth( &rootTree );
-	height = CalcHeight( &rootTree );
+	uint16_t width = CalcWidth( rootTree.get() );
+	uint16_t height = CalcHeight( rootTree.get() );
 
 	if ( !ValidateDims( width, height, maxTextureSize ) )
 	{
@@ -712,18 +719,17 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 	}
 
 	// Query the max value and send it in
-
 	for ( const gImageParams_t& image: params )
 	{
 		atlasPositionMap_t pmap;
 		pmap.image = &image;
-		TreePoint( &rootTree, pmap, &rootTree );
+		TreePoint( rootTree.get(), pmap, rootTree.get() );
 		posMap.push_back( pmap );
 	}
 
 	if ( gMeta )
 	{
-		gMeta->LogData( metrics, rootTree );
+		gMeta->LogData( metrics, *rootTree );
 	}
 
 	return posMap;
