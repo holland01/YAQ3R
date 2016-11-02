@@ -18,7 +18,8 @@ struct gGrid_t
 	float invPitch;
 };
 
-using gTextureKeySlotMap_t = std::unordered_map< gTextureImageKey_t, gTextureImage_t >;
+using gTextureKeySlotMap_t = std::unordered_map< gTextureImageKey_t,
+	gTextureImage_t >;
 
 struct gTexture_t;
 
@@ -259,14 +260,6 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt,
 
 		UNUSED( origins );
 
-		// Realign images so they exist on appropriate boundries
-		if ( tt->numGrids > 1 )
-		{
-			//CorrectOrigins( glm::ivec2( xDivide + 1, yDivide + 1 ),
-				//glm::ivec2( subdivision.width, subdivision.height ),
-				//origins, dimensions );
-		}
-
 		tt->grids[ 0 ].xStart = tt->grids[ 0 ].yStart = 0;
 		tt->grids[ 0 ].xEnd = dimensions[ 0 ].x;
 		tt->grids[ 0 ].yEnd = dimensions[ 0 ].y;
@@ -289,7 +282,7 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt,
 	return dimensions;
 }
 
-static INLINE void TryAllocDummy( void )
+void TryAllocDummy( void )
 {
 	if ( !gDummy && !gSamplers.empty() )
 	{
@@ -320,7 +313,7 @@ static INLINE void TryAllocDummy( void )
 	}
 }
 
-INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
+gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 {
 	if ( slotIndex == G_UNSPECIFIED )
 	{
@@ -328,7 +321,6 @@ INLINE gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 	}
 
 	const gTexture_t* t = GetTexture( handle );
-
 
 	if ( t->numGrids == 1 )
 	{
@@ -439,7 +431,7 @@ void GenSubdivision(
 		data.dims.x = image.width;
 		data.dims.y = image.height;
 		data.stOffsetEnd = ( atlasPos.origin + data.dims ) * invPitchStride;
-		data.imageScaleRatio.x = data.dims.x; // necessary, for
+		data.imageScaleRatio.x = data.dims.x;
 		data.imageScaleRatio.y = data.dims.y;
 
 		slot = ( uintptr_t )( y * square + x );
