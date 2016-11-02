@@ -698,8 +698,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		memcpy( tmp, buffer, ( ptrdiff_t )( delim - buffer ) );
 		std::string path( tmp );
 
-		//MLOG_INFO( "%s", map->GetPrintString( path ).c_str() );
-
 		std::string ext;
 		bool res = File_GetExt( ext, nullptr, path );
 		if ( !res || ext != "shader" )
@@ -737,7 +735,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	}
 }
 
-#if defined( EM_USE_WORKER_THREAD )
 static void OnShaderRead( char* buffer, int size, void* param )
 {
 	Q3BspMap* map = ( Q3BspMap* )param;
@@ -752,71 +749,11 @@ static void OnShaderRead( char* buffer, int size, void* param )
 		map->OnShaderReadFinish();
 	}
 }
-#else
-namespace {
-struct parseArgs_t
-{
-	static Q3BspMap* map;
 
-	static int ReadShaderFile( const filedata_t data )
-	{
-		// Something's probably wrong if there's no data,
-		// so let's just end it.
-		if ( !data )
-		{
-			return FILE_CONTINUE_TRAVERSAL;
-		}
-
-		if ( !map )
-		{
-			MLOG_ERROR( "No reference to bsp map data given; aborting traversal" );
-			return FILE_STOP_TRAVERSAL;
-		}
-
-		std::vector< uint8_t > fileBuffer;
-		bool isMapShader = false;
-		{
-			std::string filepath( ( const char* ) data, strlen( ( const char* )data ) );
-
-			std::string ext;
-			bool extFound = File_GetExt( ext, nullptr, filepath );
-
-			if ( !extFound )
-			{
-				MLOG_WARNING( "No extension found for file \'%s\'; moving on", filepath.c_str() );
-				return FILE_CONTINUE_TRAVERSAL;
-			}
-
-			if ( ext != "shader" )
-			{
-				MLOG_WARNING( "File \'%s\' does not have shader extension; moving on", filepath.c_str() );
-				return FILE_CONTINUE_TRAVERSAL;
-			}
-
-			if ( !File_GetBuf( fileBuffer, filepath ) )
-			{
-				MLOG_WARNING( "Could not open shader file \'%s\'", filepath.c_str() );
-				return FILE_CONTINUE_TRAVERSAL;
-			}
-
-			gMeta->currShaderFile = filepath;
-
-			isMapShader = map->IsMapOnlyShader( filepath );
-		}
-
-		ParseShaderFile( map, ( char* ) &fileBuffer[ 0 ], fileBuffer.size() );
-
-		return FILE_CONTINUE_TRAVERSAL;
-	}
-};
-Q3BspMap* parseArgs_t::map = nullptr;
-}
-#endif // EM_USE_WORKER_THREAD
-
-/*!
-   Main API for the effect shaders. In theory, the user should only have to call this
-   function.
-*/
+/*
+ * Main API for the effect shaders. In theory, the user should
+ * only have to call this function.
+ */
 
 void S_LoadShaders( Q3BspMap* map )
 {
@@ -826,19 +763,12 @@ void S_LoadShaders( Q3BspMap* map )
 
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
-#if defined( EM_USE_WORKER_THREAD )
 	gFileWebWorker.Await( OnShaderRead,
 		"TraverseDirectory", shaderRootDir, map );
-#else
-	{
-		parseArgs_t::map = map;
-		File_IterateDirTree( shaderRootDir, parseArgs_t::ReadShaderFile );
-		parseArgs_t::map = nullptr;
-	}
-#endif
 }
 
-bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1,
+bool operator == (
+	const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1,
 	const char* str2 )
 {
 	size_t min = glm::min( strlen( str2 ), str1.size() );

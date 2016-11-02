@@ -344,66 +344,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 	return location != path.length() - 1;
 }
 
-#ifndef EM_USE_WORKER_THREAD
-
-void File_IterateDirTree( std::string directory,
-	fileSystemTraversalFn_t callback )
-{
-
-#ifdef _WIN32
-	WIN32_FIND_DATAA findFileData;
-	HANDLE file;
-
-	char slash = '\\';
-	if ( NeedsTrailingSlash( directory, slash ) )
-		directory.append(1, slash);
-
-	file = FindFirstFileA( ( directory + "*" ).c_str(), &findFileData );
-	int success = file != INVALID_HANDLE_VALUE;
-
-	while ( success )
-	{
-		std::string path( directory + std::string( findFileData.cFileName ) );
-
-		if ( !callback( ( const filedata_t )path.c_str() ) )
-			break;
-
-		success = FindNextFileA( file, &findFileData );
-	}
-
-#elif defined( __linux__ )
-
-	gLinuxCallback = [ & ]( const char* fpath,
-		const struct stat* sb, int typeFlag ) -> int
-	{
-		UNUSED( sb );
-		UNUSED( typeFlag );
-
-		std::string path( fpath );
-
-		// 0 means "finished"; 1 tells us to keep searching
-		return callback( ( const filedata_t )path.c_str() );
-	};
-
-	ftw( directory.c_str(), invoke, 3 );
-
-#else // Emscripten, without worker threads
-	char errorMsg[ 256 ];
-	memset( errorMsg, 0, sizeof( errorMsg ) );
-
-	int ret = EM_ASM_ARGS(
-		return Module.walkFileDirectory($0, $1, $2);
-	, directory.c_str(), callback, errorMsg );
-
-	if ( !ret )
-	{
-		printf( "[WORKER ERROR]: %s\n", errorMsg );
-	}
-#endif // _WIN32
-}
-
-#endif // EM_USE_WORKER_THREAD
-
 FILE* File_Open( const std::string& path, const std::string& mode )
 {
 	FILE* f = fopen( path.c_str(), mode.c_str() );

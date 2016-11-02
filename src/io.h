@@ -98,18 +98,6 @@ enum fileCommand_t
 	FILE_STOP_TRAVERSAL = 0
 };
 
-// This is a bit dirty, I know, but it's a simple method for integrating
-// support for web workers.
-#ifndef EM_USE_WORKER_THREAD
-using filedata_t = uint8_t*;
-// A return value of true (1) means "keep iterating, unless we're at the end";
-// false will terminate the iteration
-typedef int ( *fileSystemTraversalFn_t )( const filedata_t data );
-
-void File_IterateDirTree( std::string directory,
-	fileSystemTraversalFn_t callback );
-#endif
-
 FILE* File_Open( const std::string& path, const std::string& mode = "rb" );
 
 // This is still useful in Emscripten for synchronous file io.
