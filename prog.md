@@ -1912,11 +1912,11 @@ from `AtlasGenOrigins()`.
 
 These origins are then used to calculate the actual dimensions.
 The problem with this is that origins refer to texture origins and
-not actual boundries.
+not actual boundaries.
 
 I need to re-evaluate why the actual loop after the `w` and `h` values
 are calculated in `CalcGridDimensions()` is used. I think it's because
-of this boundry issue, and a double check is made to ensure that there aren't
+of this boundary issue, and a double check is made to ensure that there aren't
 any image dimensions which, when added to a particular origin, exceed `w`
 or `h`. If this is the case, the "solution" of just doubling the actual
 dimensions is totally un called for.
