@@ -12,7 +12,9 @@ void GEnableDepthBuffer( void );
 
 void GLoadVao( void );
 
-gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertices, const std::vector< glm::vec2 >& texCoords = std::vector< glm::vec2 >() );
+gVertexBufferHandle_t GMakeVertexBuffer(
+	const std::vector< glm::vec3 >& vertices,
+	const std::vector< glm::vec2 >& texCoords = std::vector< glm::vec2 >() );
 
 void GFreeVertexBuffer( gVertexBufferHandle_t& buffer );
 

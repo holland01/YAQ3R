@@ -94,24 +94,26 @@ namespace {
 			}
 		}
 	};
-#else
-	struct vao_t
-	{
-		GLuint dummy;
-	};
-#endif
 
 	std::unique_ptr< vao_t > gVao( nullptr );
+#endif
 }
 
+#ifdef G_USE_GL_CORE
 void GLoadVao( void )
 {
 	gVao.reset( new vao_t() );
 }
+#else
+void GLoadVao( void ) { }
+#endif
 
-gVertexBufferHandle_t GMakeVertexBuffer( const std::vector< glm::vec3 >& vertices, const std::vector< glm::vec2 >& texCoords )
+gVertexBufferHandle_t GMakeVertexBuffer(
+	const std::vector< glm::vec3 >& vertices,
+	const std::vector< glm::vec2 >& texCoords )
 {
-	gVertexBuffer_t* buffer = MakeVertexBuffer_GL( ConvertToDrawVertex( vertices, texCoords ) );
+	gVertexBuffer_t* buffer = MakeVertexBuffer_GL(
+		ConvertToDrawVertex( vertices, texCoords ) );
 
 	gVertexBufferHandle_t handle;
 	handle.id = ( uint32_t ) gVertexBufferMap.size();
@@ -131,7 +133,8 @@ void GFreeVertexBuffer( gVertexBufferHandle_t& handle )
 void GBindVertexBuffer( const gVertexBufferHandle_t& buffer )
 {
 	if ( buffer.id < gVertexBufferMap.size() )
-		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, gVertexBufferMap[ buffer.id ]->handle ) );
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER,
+			gVertexBufferMap[ buffer.id ]->handle ) );
 }
 
 void GReleaseVertexBuffer( void )
