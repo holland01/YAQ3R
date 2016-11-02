@@ -91,32 +91,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 		printf( "OFFSET OF " #type "::" #member ": " F_SIZE_T "\n", count ); \
 	} while ( 0 )
 
-
-enum fileCommand_t
-{
-	FILE_CONTINUE_TRAVERSAL = 1,
-	FILE_STOP_TRAVERSAL = 0
-};
-
-FILE* File_Open( const std::string& path, const std::string& mode = "rb" );
-
-// This is still useful in Emscripten for synchronous file io.
-template < typename T >
-INLINE bool File_GetBuf( std::vector< T >& outBuffer, const std::string& fpath )
-{
-	FILE* f = File_Open( fpath );
-
-	fseek( f, 0, SEEK_END );
-	size_t count = ftell( f ) / sizeof( T );
-	fseek( f, 0, SEEK_SET );
-
-	outBuffer.resize( count + 1, 0 );
-	fread( &outBuffer[ 0 ], sizeof( T ), count, f );
-	fclose( f );
-
-	return true;
-}
-
 /*!
 	Provides the file extension of a file, without the period.
 	A return of true indicates we have an extension; we also allow for the index to be returned
@@ -242,13 +216,3 @@ static INLINE void Pixels_ToR( uint8_t* destination,
 		destination[ i ] = source[ i * sourceBPP + channel ];
 	}
 }
-
-class LogHandle
-{
-public:
-	FILE* ptr = nullptr;
-	bool enabled;
-
-	LogHandle( const std::string& path, bool _enabled );
-	~LogHandle( void );
-};

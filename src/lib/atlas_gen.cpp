@@ -150,51 +150,6 @@ struct atlasTreeMetrics_t
 
 namespace {
 
-struct meta_t
-{
-	LogHandle log;
-
-	meta_t( void )
-		: log( "log/atlas_gen.txt", true )
-	{
-	}
-
-	void LogData( const atlasTreeMetrics_t& metrics, atlasTree_t& treeRoot )
-	{
-		O_LogF( log.ptr, "METRICS", "\n\thighest: %i\n\tnextHighest: %i\n"\
-				"\tbase: %i\n\n\n\n",
-				metrics.highest, metrics.nextHighest, metrics.base );
-
-		LogData_r( &treeRoot );
-	}
-
-	void LogData_r( atlasTree_t* t )
-	{
-		if ( t )
-		{
-			LogData_r( t->left.get() );
-
-			if ( t->columns.empty() )
-			{
-				O_LogF( log.ptr, "entry",
-					"\nWidth: %i\n Bucket (Column) Count: %i\n"\
-					" ( No Buckets/Columns )", t->key, t->columns.size() );
-			}
-			else
-			{
-				std::string info( t->First()->Info() );
-				O_LogF( log.ptr, "entry", "\nWidth: %i\n"\
-					" Bucket (Column) Count: %i\n Bucket Info: \n\n%s\n",
-					t->key, t->columns.size(), info.c_str() );
-			}
-
-			LogData_r( t->right.get() );
-		}
-	}
-};
-
-std::unique_ptr< meta_t > gMeta( nullptr );
-
 void ShiftForward( std::unique_ptr< atlasBucket_t >& newb, atlasBucket_t* p,
 	uint16_t v )
 {
@@ -727,11 +682,6 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		posMap.push_back( pmap );
 	}
 
-	if ( gMeta )
-	{
-		gMeta->LogData( metrics, *rootTree );
-	}
-
 	return posMap;
 }
 
@@ -779,13 +729,6 @@ std::vector< atlasPositionMap_t > AtlasGenOrigins(
 		const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
-#ifdef LOG_ATLAS_GEN
-	if ( !gMeta )
-	{
-		gMeta.reset( new meta_t() );
-	}
-#endif
-
 	// Determine our atlas layout
 	for ( uint16_t i = 1; i < params.size(); ++i )
 	{

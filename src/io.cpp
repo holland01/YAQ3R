@@ -97,7 +97,6 @@ namespace {
 	};
 }
 
-
 void ExitOnGLError( int line, const char* glFunc, const char* callerFunc )
 {
 	GLenum error = glGetError();
@@ -304,24 +303,6 @@ void KillSysLog( void )
 		fclose( gBspDataLog );
 }
 
-#if defined( __linux__ ) && !defined( EMSCRIPTEN )
-namespace {
-	using ftwFunction_t = std::function< int( const char*, const struct stat*, int ) >;
-
-	ftwFunction_t gLinuxCallback;
-
-	extern "C" int invoke( const char* path, const struct stat* sb, int typeFlag )
-	{
-		// Linux's ftw() will halt traversal if result is non-zero, so we negate because
-		// our convention uses 1 for continue, 0 for stop
-		if ( gLinuxCallback )
-			return !gLinuxCallback( path, sb, typeFlag );
-
-		return 1;
-	}
-}
-#endif // __linux__
-
 bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 {
 	size_t location = path.find_last_of(OS_PATH_SEPARATOR);
@@ -342,18 +323,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash )
 
 	outSlash = path[location];
 	return location != path.length() - 1;
-}
-
-FILE* File_Open( const std::string& path, const std::string& mode )
-{
-	FILE* f = fopen( path.c_str(), mode.c_str() );
-
-	if ( !f )
-	{
-		MLOG_ERROR( "Could not open \'%s\'", path.c_str() );
-	}
-
-	return f;
 }
 
 bool File_GetPixels( const std::string& filepath,
@@ -378,18 +347,4 @@ bool File_GetPixels( const std::string& filepath,
 	stbi_image_free( imagePixels );
 
 	return true;
-}
-
-LogHandle::LogHandle( const std::string& path, bool _enabled )
-	: ptr( File_Open( path, "wb" ) ),
-	  enabled( _enabled )
-{
-}
-
-LogHandle::~LogHandle( void )
-{
-	if ( ptr )
-	{
-		fclose( ptr );
-	}
 }
