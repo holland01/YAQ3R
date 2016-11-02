@@ -66,18 +66,6 @@ static void PreInsert_Shader( void* param )
 		// This index will persist in the texture array it's going into
 		stage->textureIndex = imageTracker->textures.size();
 	}
-	/*
-	// We need the highest dimensions out of all images for the texture array
-	{
-		const gImageParams_t* image = ( gImageParams_t* )param;
-
-		gImageTracker->maxDims.x = glm::max( image->width,
-			gImageTracker->maxDims.x );
-
-		gImageTracker->maxDims.y = glm::max( image->height,
-			gImageTracker->maxDims.y );
-	}
-	*/
 }
 
 using retrievePathCallback_t = const char* ( * )( void* source );
