@@ -109,8 +109,6 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 	std::vector< gPathMap_t > env, gfx, models,
 		sprites, textures;
 
-	std::stringstream ss;
-
 	for ( void* source: sources )
 	{
 		const char* path = getPath( source );
@@ -129,38 +127,27 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 
 		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
 
-		ss << path << " goes to ";
-
 		if ( strncmp( path, "env", len ) == 0 )
 		{
-			ss << "env";
 			env.push_back( pathMap );
 		}
 		else if ( strncmp( path, "gfx", len ) == 0 )
 		{
-			ss << "gfx";
 			gfx.push_back( pathMap );
 		}
 		else if ( strncmp( path, "models", len ) == 0 )
 		{
-			ss << "models";
 			models.push_back( pathMap );
 		}
 		else if ( strncmp( path, "sprites", len ) == 0 )
 		{
-			ss << "sprites";
 			sprites.push_back( pathMap );
 		}
 		else if ( strncmp( path, "textures", len ) == 0 )
 		{
-			ss << "textures";
 			textures.push_back( pathMap );
 		}
-
-		ss << "\n";
 	}
-
-	MLOG_INFO( "%s", ss.str().c_str() );
 
 	gImageMountNode_t* h = new gImageMountNode_t();
 	gImageMountNode_t** pn = &h;
@@ -177,6 +164,7 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 
 			( *pn )->paths = std::move( paths );
 			( *pn )->bundle = std::string( name );
+
 			pn = &( ( *pn )->next );
 		}
 	};
@@ -243,6 +231,7 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 	}
 	else
 	{
+		gImageLoadState.head.reset();
 		gImageLoadState.mapLoadFinEvent( param );
 	}
 }
@@ -257,7 +246,7 @@ static void LoadImageState( Q3BspMap& map, gSamplerHandle_t sampler,
 		sources,
 		[]( void* source ) -> const char*
 		{
-			return ( const char* )source;
+			return ( const char* ) source;
 		}
 	);
 
@@ -311,91 +300,6 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
 	LoadImageState( map, sampler, sources );
-
-	/*
-	std::vector< gPathMap_t > paths;
-	paths.reserve( map.data.shaders.size() );
-
-	int i = 0;
-	for ( auto& s: map.data.shaders )
-	{
-		paths.push_back( AIIO_MakeAssetPath( s.name ) );
-		i++;
-	}
-
-AIIO_ReadImages( map, paths,  sampler, Q3BspMap::OnMainLoadImagesFinish,
-		PreInsert_Main );
-*/
-	//---------------------------------------------------------------------
-	// Load Textures:
-	// This is just a hack to brute force load assets which don't belong in
-	//	shaders.
-	// Now, we find and generate the textures. We first start with the
-	// image files.
-	//---------------------------------------------------------------------
-/*
-	const char* validImgExt[] =
-	{
-		".jpg", ".png", ".tga", ".tiff", ".bmp"
-	};
-
-	gImageParamList_t textures;
-	std::vector< gTextureImageKey_t > indices;
-
-	for ( int32_t t = 0; t < map.data.numShaders; t++ )
-	{
-		// We pre-initialize these before needing them because of the goto.
-		std::string fname( map.data.shaders[ t ].name );
-		const std::string& texPath = map.data.basePath + fname;
-
-		gImageParams_t texture;
-		texture.sampler = sampler;
-
-		bool success = false;
-
-		// No use in allocating tex memory if this is meant to be
-		// used with a shader
-		if ( map.GetShaderInfo( map.data.shaders[ t ].name ) )
-		{
-			MLOG_INFO( "Shader found for: \'%s\'; skipping.",
-				map.data.shaders[ t ].name );
-			continue;
-		}
-
-		// If we don't have a file extension appended in the name,
-		// try to find one for it which is valid
-		{
-			for ( int32_t i = 0; i < SIGNED_LEN( validImgExt ); ++i )
-			{
-				const std::string& str = texPath +
-					std::string( validImgExt[ i ] );
-
-				if ( GLoadImageFromFile( str, texture ) )
-				{
-					success = true;
-					indices.push_back( t );
-					textures.push_back( texture );
-					break;
-				}
-			}
-		}
-
-		if ( !success )
-		{
-			MLOG_WARNING( "Could not find a file extension for \'%s\'", texPath.c_str() );
-		}
-	}
-
-	{
-		// We want to maintain a one->one mapping with the texture
-		// indices in the bsp file,
-		// so we ensure the indices are properly mapped
-		gTextureMakeParams_t makeParams( textures, sampler,
-			G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
-		makeParams.keyMaps = std::move( indices );
-		return GMakeTexture( makeParams );
-	}
-	*/
 }
 
 void GU_LoadStageTexture( glm::ivec2& maxDims,
