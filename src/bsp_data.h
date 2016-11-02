@@ -236,7 +236,8 @@ struct bspFace_t
 
 struct bspLightmap_t
 {
-	unsigned char map[ BSP_LIGHTMAP_WIDTH ][ BSP_LIGHTMAP_HEIGHT ][ 3 ]; // lightmap color data. RGB.
+	// lightmap color data. RGB.
+	unsigned char map[ BSP_LIGHTMAP_WIDTH ][ BSP_LIGHTMAP_HEIGHT ][ 3 ];
 };
 
 struct bspLightvol_t
@@ -256,7 +257,6 @@ struct mapData_t
 {
 	bspHeader_t	header;
 
-	std::string	basePath; // root directory of the map
 	std::vector< char > entitiesSrc;
 	std::vector< bspShader_t > shaders;
 	std::vector< bspPlane_t > planes;

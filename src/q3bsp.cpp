@@ -323,8 +323,6 @@ static void ReadChunk( char* data, int size, void* param )
 
 	Q3BspMap* map = ( Q3BspMap* ) param;
 
-	map->AssertTrueMap();
-
 	switch ( gBspDesc )
 	{
 		// We've just begun, so we validate the header first
@@ -415,7 +413,6 @@ static void UnmountShadersFin( char* data, int size,
 	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ), GMakeSampler() );
 }
 
-
 //------------------------------------------------------------------------------
 // Q3BspMap
 //------------------------------------------------------------------------------
@@ -436,13 +433,8 @@ Q3BspMap::~Q3BspMap( void )
 
 void Q3BspMap::OnShaderReadFinish( void )
 {
-	for ( const shaderMapEntry_t& entry: effectShaders )
-	{
-		entry.second.PrintStageTextureNames();
-	}
-
-	gFileWebWorker.Await( UnmountShadersFin,  "UnmountPackages",
-			NULL, 0, this );
+	gFileWebWorker.Await( UnmountShadersFin,
+		"UnmountPackages", NULL, 0, this );
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
@@ -453,7 +445,6 @@ void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 	map.payload->sampler = ( *imageTracker )->sampler;
 
 	LoadImagesFinish( map.payload->shaderImages, imageTracker );
-
 	GU_LoadMainTextures( map, map.payload->sampler );
 }
 
@@ -464,7 +455,6 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 	LoadImagesFinish( map.payload->mainImages, imageTracker );
 
 	puts( "Main images finished." );
-
 	map.readFinishEvent( &map );
 }
 
@@ -547,17 +537,14 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 		DestroyMap();
 	}
 
-	std::string readParams( "maps|" );
-	readParams.append( filepath );
-
 	readFinishEvent = finishCallback;
 	scaleFactor = scale;
 	name = File_StripExt( File_StripPath( filepath ) );
 
-	data.basePath = filepath.substr( 0, filepath.find_last_of( '/' ) )
-		+ "/../";
+	std::string readParams( "maps|" );
+	readParams.append( filepath );
 
-	File_QueryAsync( readParams, ReadBegin, this );
+	gFileWebWorker.Await( ReadBegin, "ReadFile_Begin", readParams, this );
 }
 
 mapEntity_t Q3BspMap::GetFirstSpawnPoint( void ) const
@@ -732,7 +719,6 @@ std::string Q3BspMap::GetPrintString( const std::string& title ) const
 	<< "\teffectShaders.size() " << std::dec << effectShaders.size() << "\n"
 	<< "\t[data]:\n"
 	<< "\t\theader.id: " << data.header.id << "\n"
-	<< "\t\tbasePath: " << data.basePath << "\n"
 	<< "\t\tshaders.size(): " << data.shaders.size() << "\n"
 	<< "\t\tplanes.size(): " <<  data.planes.size() << "\n"
 	<< "\t\tnodes.size(): " << data.nodes.size() << "\n"
