@@ -10,8 +10,6 @@
 
 using namespace std;
 
-static const Q3BspMap* gOneTrueMap = nullptr;
-
 //------------------------------------------------------------------------------
 // Data tweaking
 //------------------------------------------------------------------------------
@@ -422,7 +420,6 @@ Q3BspMap::Q3BspMap( void )
 		payload( nullptr ),
 		readFinishEvent( nullptr )
 {
-	gOneTrueMap = this;
 	ZeroData();
 }
 
@@ -735,12 +732,4 @@ std::string Q3BspMap::GetPrintString( const std::string& title ) const
 	<< "\t\tlightvols.size(): " << data.lightvols.size() << "\n";
 
 	return ss.str();
-}
-
-void Q3BspMap::AssertTrueMap( void ) const
-{
-	if ( this != gOneTrueMap )
-	{
-		MLOG_ERROR( "Big fucking problem." );
-	}
 }

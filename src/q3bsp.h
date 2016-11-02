@@ -84,7 +84,5 @@ public:
 
 	std::string					GetPrintString( const std::string& title = "." ) const;
 
-	void						AssertTrueMap( void ) const;
-
 	friend class BSPRenderer;
 };
