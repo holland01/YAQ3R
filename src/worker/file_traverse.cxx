@@ -348,8 +348,6 @@ static void ReadFile_Proxy( char* data, int size )
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	//printf( "Remaining Data: %s\n", &remData[ 0 ] );
-
 	EM_ASM_ARGS( {
 		self.fetchBundleAsync($0, $1, $2, $3, $4);
 	}, bundleName.c_str(), SendFile_OnLoad,
@@ -384,7 +382,8 @@ static void SendShader_OnLoad( char* path, int size )
 
 	buffer[ size ] = AL_STRING_DELIM;
 
-	gFIOChain.release();
+	// memory held is useless at this point; so, just free it.
+	gFIOChain.reset();
 
 	emscripten_worker_respond_provisionally( &buffer[ 0 ],
 		buffer.size() );
@@ -502,6 +501,8 @@ static void ReadImage_Proxy( char* path, int size )
 
 void UnmountPackages_Proxy( char* data, int size )
 {
+	gFIOChain.reset();
+
 	EM_ASM({
 		self.unmountPackages();
 	});
