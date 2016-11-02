@@ -15,7 +15,7 @@ static void OnMapFinish( void* param )
 	app->renderer->Prep();
 	app->renderer->Load( *( app->map->payload ) );
 
-	app->map->payload.release();
+	app->map->payload.reset();
 
 	app->camPtr = app->renderer->camera.get();
 }

@@ -4,7 +4,6 @@
 #include "renderer/buffer.h"
 #include "renderer/context_window.h"
 
-
 #if defined( EMSCRIPTEN )
 #	include <emscripten.h>
 #	include "em_api.h"
@@ -69,11 +68,9 @@ Test::Test( int w, int h, bool fullscreen_,
 		gTmpMapReadFinish = DefaultOnMapReadFin;
 	}
 
-
 #if defined( EMSCRIPTEN )
 	EM_MountFS();
 #endif
-
 }
 
 Test::~Test( void )
