@@ -206,7 +206,8 @@ private:
 	void				LoadPassParams( drawPass_t& pass, int32_t face,
 							passDrawType_t defaultPass ) const;
 
-	void				DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
+	void				DrawMapPass( int32_t textureIndex,
+							int32_t	lightmapIndex,
 							std::function< void( const Program& )> callback );
 
 	void				MakeAddSurface(const shaderInfo_t* shader,
