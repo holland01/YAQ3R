@@ -381,40 +381,6 @@ std::vector< atlasPositionMap_t > CalcGridDimensions(
 	int32_t w = ( int32_t )( maxDims.x - minDims.x );
 	int32_t h = ( int32_t )( maxDims.y - minDims.y );
 
-	bool dw = false;
-	bool dh = false;
-
-	// We're dealing with origins in the
-	// dimensions calculation, so correct the width and height values
-	// by applying bounds offsets
-	for ( const atlasPositionMap_t& am: origins )
-	{
-		if ( ( am.origin.x + am.image->width ) >= w )
-		{
-			dw = true;
-		}
-
-		if ( ( am.origin.y + am.image->height ) >= h )
-		{
-			dh = true;
-		}
-
-		if ( dh && dw )
-		{
-			break;
-		}
-	}
-
-	if ( dw )
-	{
-		w <<= 1;
-	}
-
-	if ( dh )
-	{
-		h <<= 1;
-	}
-
 	canvasParams.width = NextPower2( w );
 	canvasParams.height = NextPower2( h );
 	canvasParams.sampler = sampler;
@@ -424,7 +390,8 @@ std::vector< atlasPositionMap_t > CalcGridDimensions(
 	return origins;
 }
 
-void GenSubdivision( gTexture_t* tt,
+void GenSubdivision(
+	gTexture_t* tt,
 	uint16_t gridX,
 	uint16_t gridY,
 	uint16_t stride,
