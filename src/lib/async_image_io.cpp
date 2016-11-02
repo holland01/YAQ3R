@@ -42,7 +42,6 @@ void gImageLoadTracker_t::LogImages( void )
 // 5, 6, 7 -> padding
 // What follows is the image data, whose size will be aligned by
 // 4
-
 static void OnImageRead( char* buffer, int size, void* param )
 {
 	if ( !gImageTracker )
@@ -169,8 +168,6 @@ void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
 	gImageTracker->sampler = sampler;
 	gImageTracker->finishEvent = finish;
 	gImageTracker->insertEvent = insert;
-
-	gImageTracker->LogImages();
 
 	gFileWebWorker.Await( OnImageRead, "ReadImage",
 		gImageTracker->textureInfo[ 0 ].path, nullptr );

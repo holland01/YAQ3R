@@ -10,7 +10,6 @@ static INLINE Tint NextPower2( Tint x )
 
 	if ( sizeof( x ) >= 2 ) x |= x >> 8;
 	if ( sizeof( x ) >= 4 ) x |= x >> 16;
-	//if ( sizeof( x ) >= 8 ) x |= x >> 32;
 
 	x++;
 	return x;

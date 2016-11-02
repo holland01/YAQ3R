@@ -20,8 +20,15 @@ struct circleBufferU16_t
 		buffer.fill( fill );
 	}
 
-	uint16_t WritePointer( void ) const { return uint16_t( pointer & LOW_MASK ); }
-	uint16_t ReadPointer( void ) const { return uint16_t( ( pointer & HIGH_MASK ) >> NUM_BITS ); }
+	uint16_t WritePointer( void ) const
+	{
+		return uint16_t( pointer & LOW_MASK );
+	}
+
+	uint16_t ReadPointer( void ) const
+	{
+		return uint16_t( ( pointer & HIGH_MASK ) >> NUM_BITS );
+	}
 
 	void SetWritePointer( uint32_t x )
 	{
@@ -54,6 +61,3 @@ struct circleBufferU16_t
 		SetWritePointer( w );
 	}
 };
-
-
-
