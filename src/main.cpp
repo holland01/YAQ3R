@@ -31,24 +31,6 @@ void FlagExit( void )
 
 #define SIZE_ERROR_MESSAGE "Unsupported type size found."
 
-/*
-#ifdef EMSCRIPTEN
-#	define IOTEST
-#endif
-*/
-
-static INLINE std::string FullPath( const char* path, size_t pathLen )
-{
-	const char* croot = "/working";
-	std::string root( croot );
-
-	std::string strPath = "/";
-	strPath.append( path, pathLen );
-	root.append( strPath );
-
-	return root;
-}
-
 int main( void )
 {
 	static_assert( sizeof( glm::vec3 ) == sizeof( float ) * 3, SIZE_ERROR_MESSAGE );
