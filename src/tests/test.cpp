@@ -17,8 +17,6 @@ static void DefaultOnMapReadFin( void* nullParam )
 
 	gAppTest->base.running = true;
 
-	InitSysLog();
-
 	gAppTest->Exec();
 }
 
@@ -75,7 +73,6 @@ Test::Test( int w, int h, bool fullscreen_,
 
 Test::~Test( void )
 {
-	KillSysLog();
 }
 
 bool Test::Load( const char* winName )

@@ -31,11 +31,8 @@ using gImageParamList_t = std::vector< gImageParams_t >;
 
 struct gTextureImage_t
 {
-	glm::vec2 gridLocation;
-	glm::vec2 stOffsetStart;
-	glm::vec2 stOffsetEnd;
-	glm::vec2 imageScaleRatio;
-	glm::vec2 dims;
+	uint16_t dimension;
+	glm::vec2 gridOffset;
 };
 
 using gTextureImageKey_t = uint8_t;
@@ -43,7 +40,10 @@ using gTextureImageKey_t = uint8_t;
 struct gTextureMakeParams_t
 {
 	gImageParamList_t& images;
-	std::vector< gTextureImageKey_t > keyMaps; // specify G_TEXTURE_STORAGE_KEY_MAPPED
+
+	// to be used with G_TEXTURE_STORAGE_KEY_MAPPED
+	std::vector< gTextureImageKey_t > keyMaps;
+
 	gSamplerHandle_t sampler;
 	gTextureFlags_t flags;
 
@@ -64,6 +64,12 @@ gSamplerHandle_t GMakeSampler(
 	bool mipmapped = G_MIPMAPPED,
 	uint32_t wrap = GL_CLAMP_TO_EDGE
 );
+
+struct gTextureImageShaderParams_t
+{
+	glm::vec4 transform;
+	glm::vec2 dimensions;
+};
 
 int8_t GSamplerBPP( const gSamplerHandle_t& sampler );
 
@@ -94,9 +100,21 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
 void GReleaseTexture( const gTextureHandle_t& handle, uint32_t offset = 0 );
 
-void GBindGrid( const gTextureHandle_t& handle, uint32_t grid, uint32_t offset = 0 );
+void GBindGrid( const gTextureHandle_t& handle, uint32_t grid,
+	uint32_t offset = 0 );
 
-const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot );
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle,
+	uint32_t slot );
+
+const glm::ivec2& GTextureImageDimensions( const gTextureHandle_t& handle,
+	const gTextureImage_t image );
+
+const glm::vec2& GTextureImageGridOffset( const gTextureHandle_t& handle,
+	uint32_t slot );
+
+gTextureImageShaderParams_t GTextureImageShaderParams(
+	const gTextureHandle_t& handle,
+ 	uint32_t slot );
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle );
 

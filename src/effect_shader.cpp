@@ -5,6 +5,7 @@
 #include "glutil.h"
 #include "renderer/texture.h"
 #include "lib/cstring_util.h"
+#include "em_api.h"
 #include <sstream>
 
 // #define G_DUPLICATE_PROGRAMS

@@ -7,6 +7,7 @@
 #include "lib/async_image_io.h"
 #include "worker/wapi.h"
 #include "renderer.h"
+#include "em_api.h"
 
 using namespace std;
 

@@ -253,11 +253,16 @@ void TTextureTest::Run( void )
 	}
 	else
 	{
-		const gTextureImage_t& img = GTextureImage( texture, imageKeys[ currImageKey ] );
+		const gTextureImage_t& img = GTextureImage( texture,
+			imageKeys[ currImageKey ] );
 
-		glm::mat4 model( glm::scale( glm::mat4( 1.0f ), glm::vec3( img.dims, 1.0f ) ) );
+		const glm::ivec2& dimensions = GTextureImageDimensions( texture, img );
 
-		GU_SetupTexParams( *textureProg, nullptr, texture, imageKeys[ currImageKey ], 0 );
+		glm::mat4 model( glm::scale( glm::mat4( 1.0f ),
+			glm::vec3( dimensions.x, dimensions.y, 1.0f ) ) );
+
+		GU_SetupTexParams( *textureProg, nullptr, texture,
+			imageKeys[ currImageKey ], 0 );
 		Draw( *textureProg, textureQuad, model );
 	}
 }

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "render_data.h"
 #include <unordered_map>
+#include <unordered_set>
 
 namespace {
 
@@ -30,6 +31,8 @@ struct gTexture_t
 	std::vector< gTextureImage_t > imageSlots;
 	gTextureKeySlotMap_t keyMapSlots;
 	glm::vec2 invRowPitch;
+
+	std::vector< glm::ivec2 > dimensions;
 
 	bool keyMapped;
 	GLenum target;
@@ -123,43 +126,26 @@ INLINE const gTexture_t* GetTexture( gTextureHandle_t handle )
 {
 	if ( handle.id >= gTextureMap.size() )
 	{
-		MLOG_WARNING( "Bad texture handle. ID received is %i. Returning dummy instead.",
-					  handle.id );
+		MLOG_WARNING(
+			"Bad texture handle. ID received is %i. Returning dummy instead.",
+			handle.id );
 
 		return gDummy.get();
 	}
 	else
 	{
-		return gTextureMap[ handle.id ].get();;
+		return gTextureMap[ handle.id ].get();
 	}
 }
 
-INLINE bool ValidateTexture( const gImageParams_t& params, const gTexConfig_t& sampler )
+INLINE bool ValidateTexture( const gImageParams_t& params,
+	const gTexConfig_t& sampler )
 {
-#ifdef EMSCRIPTEN
 	UNUSED( sampler );
 	GLint maxSize;
 	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxSize ) );
 
 	return params.width <= maxSize && params.height <= maxSize;
-#else
-	std::vector< uint8_t > zeroOut( params.width * sampler.bpp * params.height, 0 );
-
-	GL_CHECK( glTexImage2D( GL_PROXY_TEXTURE_2D, 0,  sampler.internalFormat,
-			   params.width,
-			   params.height,
-			   0,
-			   sampler.format,
-			   GL_UNSIGNED_BYTE, &zeroOut[ 0 ] ) );
-
-	GLint testWidth, testHeight;
-	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0,
-		GL_TEXTURE_WIDTH, &testWidth ) );
-	GL_CHECK( glGetTexLevelParameteriv( GL_PROXY_TEXTURE_2D, 0,
-		GL_TEXTURE_HEIGHT, &testHeight ) );
-
-	return testWidth && testHeight;
-#endif
 }
 
 INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
@@ -177,24 +163,25 @@ INLINE bool ValidateMakeParams( const gTextureMakeParams_t& makeParams )
 	return true;
 }
 
-INLINE bool InRange( const gGrid_t& grid, const atlasPositionMap_t& map )
+INLINE bool InRange( const gGrid_t& grid,
+ 	const glm::vec2& origin, const gImageParams_t& image )
 {
 	glm::vec2 gridOrigin( grid.xStart, grid.yStart );
 	glm::vec2 gridBound( grid.xEnd, grid.yEnd );
-	glm::vec2 mapBound( map.origin.x + map.image->width,
-		map.origin.y + map.image->height );
+	glm::vec2 mapBound( origin.x + image.width,
+		origin.y + image.height );
 
-	return glm::all( glm::lessThanEqual( gridOrigin, map.origin ) )
+	return glm::all( glm::lessThanEqual( gridOrigin, origin ) )
 		&& glm::all( glm::lessThan( mapBound, gridBound ) );
 }
 
 void GenGridTexture( GLenum target,
-					gGrid_t* grid,
+					gGrid_t& grid,
 					const gTexConfig_t& sampler,
 					const uint8_t* data )
 {
-	GL_CHECK( glGenTextures( 1, &grid->handle ) );
-	GL_CHECK( glBindTexture( target, grid->handle ) );
+	GL_CHECK( glGenTextures( 1, &grid.handle ) );
+	GL_CHECK( glBindTexture( target, grid.handle ) );
 
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_WRAP_S, sampler.wrap ) );
 	GL_CHECK( glTexParameteri( target, GL_TEXTURE_WRAP_T, sampler.wrap ) );
@@ -204,8 +191,8 @@ void GenGridTexture( GLenum target,
 		sampler.minFilter) );
 
 	GL_CHECK( glTexImage2D( GL_TEXTURE_2D, 0, sampler.internalFormat,
-			grid->xEnd - grid->xStart,
-			grid->yEnd - grid->yStart,
+			grid.xEnd - grid.xStart,
+			grid.yEnd - grid.yStart,
 			0,
 			sampler.format,
 			GL_UNSIGNED_BYTE, data ) );
@@ -213,9 +200,9 @@ void GenGridTexture( GLenum target,
 	GL_CHECK( glBindTexture( target, 0 ) );
 }
 
-std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt,
-	const gImageParams_t& canvasParams,
-	std::vector< atlasPositionMap_t >& origins )
+std::vector< glm::ivec2 > GenTextureData(
+	gTexture_t* tt,
+	const gImageParams_t& canvasParams )
 {
 	std::vector< glm::ivec2 > dimensions;
 
@@ -258,12 +245,27 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt,
 			glm::ivec2( subdivision.width,
 				subdivision.height ) );
 
-		UNUSED( origins );
-
 		tt->grids[ 0 ].xStart = tt->grids[ 0 ].yStart = 0;
 		tt->grids[ 0 ].xEnd = dimensions[ 0 ].x;
 		tt->grids[ 0 ].yEnd = dimensions[ 0 ].y;
 
+		// NOTE: as it stands, each dimension value
+		// in the vector is the same.
+
+		// The following loop uses the dimension values
+		// for the origin computations in such a manner that,
+		// if more than 1 grid _doess_ exist, then their origins will
+		// increase diagonally, instead of horizontally.
+
+		// This may not matter from a performance persective, though,
+		// because each grid represents its own texture, and anything
+		// sampling for a given image is done completely relative
+		// to the grid it belongs to.
+
+		// It's clear that the current implementation wasn't finished
+		// for handling multiple grids properly,
+		// given that only the first grid is actually allocated
+		// after the loop.
 		for ( uint16_t i = 1; i < tt->numGrids; ++i )
 		{
 			tt->grids[ i ].xStart = tt->grids[ i - 1 ].xEnd;
@@ -277,7 +279,8 @@ std::vector< glm::ivec2 > GenTextureData( gTexture_t* tt,
 	// grid iteration
 	dimensions.push_back( glm::ivec2( xDivide, yDivide ) );
 
-	GenGridTexture( tt->target, tt->grids, sampler, &canvasParams.data[ 0 ] );
+	GenGridTexture( tt->target, tt->grids[ 0 ], sampler,
+		&canvasParams.data[ 0 ] );
 
 	return dimensions;
 }
@@ -295,22 +298,58 @@ void TryAllocDummy( void )
 		gDummy->target = GL_TEXTURE_2D;
 		gDummy->sampler.id = 0;
 
-		std::vector< atlasPositionMap_t > dummy;
-		GenTextureData( gDummy.get(), params, dummy );
+		GenTextureData( gDummy.get(), params );
 
 		gTextureImage_t data;
-		data.dims = glm::vec2( ( float ) params.width,
-		( float ) params.height );
-		data.imageScaleRatio = glm::vec2( 1.0f, 1.0f );
-		data.stOffsetEnd = glm::vec2( 1.0f, 1.0f );
-		data.stOffsetStart = glm::vec2( 0.0f, 0.0f );
+
+		gDummy->dimensions.push_back( glm::ivec2(
+			params.width, params.height
+		) );
+
+		data.dimension = 0;
+		data.gridOffset = glm::vec2( 0.0f );
 
 		gDummy->imageSlots.push_back( data );
-
 		gDummy->megaDims = glm::ivec2( params.width, params.height );
-
 		gDummy->invRowPitch = glm::vec2( 1.0f, 1.0f );
 	}
+}
+
+gGrid_t* GridFromSlot( const gTexture_t* t, const gTextureImage_t& image )
+{
+	if ( t->numGrids == 1 )
+	{
+		return t->grids;
+	}
+
+	// FIXME: what is the relationship between atlasPositionMap_t::origin,
+	// data.gridLocation, and how they're used to:
+	// a) compute the proper memory region offset for a given image
+	// corresponding to a particular grid, and
+	// b) used to find the grid which owns a given image, as shown in the
+	// loop below?
+	// Furthermore, do you know for certain that all of this fits properly
+	// together, despite the fact that the grid x and y start/end positions
+	// increase diagonally, as opoposed to existing within the canvas itself?
+
+	// For the latter: yes, the relationship between the location of the
+	// grid's actual position/dimensions and the data's grid location
+	// is also flawed
+
+	const glm::ivec2& dims = t->dimensions[ image.dimension ];
+
+	for ( uint8_t i = 0; i < t->numGrids; ++i )
+	{
+		if ( image.gridOffset.x < t->grids[ i ].xStart ) continue;
+		if ( image.gridOffset.x + ( float ) dims.x >= t->grids[ i ].xEnd ) continue;
+
+		if ( image.gridOffset.y < t->grids[ i ].yStart ) continue;
+		if ( image.gridOffset.y +  ( float ) dims.y >= t->grids[ i ].yEnd ) continue;
+
+		return &t->grids[ i ];
+	}
+
+	return nullptr;
 }
 
 gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
@@ -320,54 +359,31 @@ gGrid_t* GridFromSlot( gTextureHandle_t handle, uint32_t slotIndex )
 		return nullptr;
 	}
 
+	const gTextureImage_t& image = GTextureImage( handle, slotIndex );
 	const gTexture_t* t = GetTexture( handle );
 
-	if ( t->numGrids == 1 )
-	{
-		return t->grids;
-	}
-
-	// TODO: If this slot has a good relationship with the layout of the
-	// grids, then we can make this more intelligent. (geometrically,
-	// the slot should map to rectangle in a grid of grids - each grid
-	// maps to its own set of x,y ranges; the slot is likely to have a corresponding
-	// relationship with these x,y ranges.)
-
-	const gTextureImage_t& data = GTextureImage( handle, slotIndex );
-
-	for ( uint8_t i = 0; i < t->numGrids; ++i )
-	{
-		if ( data.gridLocation.x < t->grids[ i ].xStart ) continue;
-		if ( data.gridLocation.x + data.dims.x >= t->grids[ i ].xEnd ) continue;
-
-		if ( data.gridLocation.y < t->grids[ i ].yStart ) continue;
-		if ( data.gridLocation.y + data.dims.y >= t->grids[ i ].yEnd ) continue;
-
-		return t->grids + i;
-	}
-
-	return nullptr;
+	return GridFromSlot( t, image );
 }
 
-std::vector< atlasPositionMap_t > CalcGridDimensions(
+atlasBaseInfo_t CalcGridDimensions(
 	gImageParams_t& canvasParams, gSamplerHandle_t sampler,
 	gImageParamList_t& images )
 {
 	GLint maxTextureSize;
 	GL_CHECK( glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSize ) );
 
-	std::vector< atlasPositionMap_t > origins = AtlasGenOrigins( images,
+	atlasBaseInfo_t baseInfo = AtlasGenOrigins( images,
 		( uint16_t )maxTextureSize );
-
+/*
 	glm::vec2 maxDims( std::numeric_limits< float >::min() ),
 			minDims( std::numeric_limits< float >::max() );
 
-	for ( const atlasPositionMap_t& am: origins )
+	for ( const glm::vec2& origin: baseInfo.origins )
 	{
-		if ( am.origin.x > maxDims.x ) maxDims.x = am.origin.x;
-		if ( am.origin.y > maxDims.y ) maxDims.y = am.origin.y;
-		if ( am.origin.x < minDims.x ) minDims.x = am.origin.x;
-		if ( am.origin.y < minDims.y ) minDims.y = am.origin.y;
+		if ( origin.x > maxDims.x ) maxDims.x = origin.x;
+		if ( origin.y > maxDims.y ) maxDims.y = origin.y;
+		if ( origin.x < minDims.x ) minDims.x = origin.x;
+		if ( origin.y < minDims.y ) minDims.y = origin.y;
 	}
 
 	int32_t w = ( int32_t )( maxDims.x - minDims.x );
@@ -376,10 +392,15 @@ std::vector< atlasPositionMap_t > CalcGridDimensions(
 	canvasParams.width = NextPower2( w );
 	canvasParams.height = NextPower2( h );
 	canvasParams.sampler = sampler;
+	*/
+
+	canvasParams.width = baseInfo.width;
+	canvasParams.height = baseInfo.height;
+	canvasParams.sampler = sampler;
 
 	GValidTextureDimensions( canvasParams.width, canvasParams.height );
 
-	return origins;
+	return baseInfo;
 }
 
 void GenSubdivision(
@@ -390,7 +411,7 @@ void GenSubdivision(
 	const glm::ivec2& slotDims,
 	const gTextureMakeParams_t& makeParams,
 	const gImageParams_t& canvasParams,
-	const std::vector< atlasPositionMap_t >& map )
+	const atlasBaseInfo_t& baseInfo )
 {
 	UNUSED( canvasParams );
 
@@ -401,7 +422,7 @@ void GenSubdivision(
 	GL_CHECK( glBindTexture( tt->target, tt->grids[ grid ].handle ) );
 
 	uint16_t x = 0, y = 0;
-	uint16_t square = NextSquare( map.size() );
+	uint16_t square = NextSquare( baseInfo.origins.size() );
 
 	glm::vec2 invPitchStride( 1.0f / ( float ) slotDims.x,
 							  1.0f / ( float ) slotDims.y );
@@ -409,43 +430,75 @@ void GenSubdivision(
 	tt->grids[ grid ].invStride = invPitchStride.x;
 	tt->grids[ grid ].invPitch = invPitchStride.y;
 
-	for ( const atlasPositionMap_t& atlasPos: map )
+	for ( size_t i = 0; i < baseInfo.origins.size(); ++i )
 	{
-		if ( !InRange( tt->grids[ grid ], atlasPos ) )
+		if ( !InRange( tt->grids[ grid ], baseInfo.origins[ i ],
+			makeParams.images[ i ] ) )
 		{
 			continue;
 		}
 
-		const gImageParams_t& image = *( atlasPos.image );
+		// NOTE:
+		// gridX/gridY refer to the (x, y) index of a particular grid
+		// within the subtexture grid array. Each grid has its own
+		// texture handle, and slotDims represents the size of the actual grid.
+
+		// in the glTexSubImage2D call below, the idea for the origin x, y
+		// params in the texture is to compute atlasPos.origin _relative_
+		// to the grid, as opposed to it being computed relative to the
+		// entire canvas as it originally was within the atlas generator.
+
+		// The only reason why the following computations work, though,
+		// is because slotDims is a uniform size for every grid. If it were
+		// possible that each grid had a different size, this wouldn't work
+		// properly.
+		GL_CHECK( glTexSubImage2D(
+			tt->target,
+			0,
+			( GLint )( baseInfo.origins[ i ].x - gridX * slotDims.x ),
+			( GLint )( baseInfo.origins[ i ].y - gridY * slotDims.y ),
+			makeParams.images[ i ].width,
+			makeParams.images[ i ].height,
+			sampler.format,
+			GL_UNSIGNED_BYTE,
+			&makeParams.images[ i ].data[ 0 ] ) );
+
 		gTextureImage_t data;
-		uint16_t slot, next;
+		data.gridOffset = baseInfo.origins[ i ];
 
-		GL_CHECK( glTexSubImage2D( tt->target,
-			0, ( int32_t )( atlasPos.origin.x - gridX * slotDims.x ),
-			( int32_t )( atlasPos.origin.y - gridY * slotDims.y ), image.width,
-			image.height, sampler.format,
-			GL_UNSIGNED_BYTE, &image.data[ 0 ] ) );
+		{
+			glm::ivec2 imageDims( makeParams.images[ i ].width,
+				makeParams.images[ i ].height );
 
-		data.gridLocation = atlasPos.origin;
-		data.stOffsetStart = atlasPos.origin * invPitchStride;
-		data.dims.x = image.width;
-		data.dims.y = image.height;
-		data.stOffsetEnd = ( atlasPos.origin + data.dims ) * invPitchStride;
-		data.imageScaleRatio.x = data.dims.x;
-		data.imageScaleRatio.y = data.dims.y;
+			auto dimIter = std::find( tt->dimensions.begin(),
+				tt->dimensions.end(), imageDims );
 
-		slot = ( uintptr_t )( y * square + x );
+			if ( dimIter != tt->dimensions.end() )
+			{
+				data.dimension = ( uint16_t )
+					( dimIter - tt->dimensions.begin() );
+			}
+			else
+			{
+				data.dimension = tt->dimensions.size();
+				tt->dimensions.push_back( imageDims );
+			}
+		}
+
+		//data.stOffsetStart = baseInfo.origins[ i ] * invPitchStride;
 
 		if ( tt->keyMapped )
 		{
-			tt->keyMapSlots[ makeParams.keyMaps[ ( gTextureImageKey_t ) slot ] ] = data;
+			uint16_t slot = makeParams.keyMaps[
+				( gTextureImageKey_t )( y * square + x ) ];
+			tt->keyMapSlots[ slot ] = data;
 		}
 		else
 		{
-			tt->imageSlots[ slot ] = data;
+			tt->imageSlots[ y * square + x ] = data;
 		}
 
-		next = ( x + 1 ) % square;
+		uint16_t next = ( x + 1 ) % square;
 
 		if ( next == 0 )
 		{
@@ -462,7 +515,7 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 {
 	gImageParams_t canvasParams;
 
-	std::vector< atlasPositionMap_t > origins =
+	atlasBaseInfo_t baseInfo =
 			CalcGridDimensions( canvasParams, makeParams.sampler,
 				makeParams.images );
 
@@ -477,18 +530,22 @@ gTexture_t* MakeTexture( gTextureMakeParams_t& makeParams )
 		tt->imageSlots.resize( canvasParams.width * canvasParams.height );
 	}
 
-	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams,
-		origins );
+	std::vector< glm::ivec2 > dims = GenTextureData( tt, canvasParams );
 
-	const glm::ivec2& d = dims[ dims.size() - 1 ];
+	const glm::ivec2& splitInfo = dims[ dims.size() - 1 ];
 
-	for ( uint16_t y = 0; y < ( 1 << d.y ); ++y )
+	for ( uint16_t y = 0; y < ( 1 << splitInfo.y ); ++y )
 	{
-		for ( uint16_t x = 0; x < ( 1 << d.x ); ++x )
+		for ( uint16_t x = 0; x < ( 1 << splitInfo.x ); ++x )
 		{
-			GenSubdivision( tt, x, y, ( 1 << d.x ),
-				dims[ y * ( 1 << d.x ) + x ],
-				makeParams, canvasParams, origins );
+			GenSubdivision(
+				tt,
+				x, y,
+				( 1 << splitInfo.x ),
+				dims[ y * ( 1 << splitInfo.x ) + x ],
+				makeParams,
+				canvasParams,
+				baseInfo );
 		}
 	}
 
@@ -656,7 +713,8 @@ void GBindGrid( const gTextureHandle_t& handle, uint32_t grid, uint32_t offset )
 	}
 }
 
-const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t slot )
+const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle,
+	uint32_t slot )
 {
 	const gTexture_t* t = GetTexture( handle );
 
@@ -667,6 +725,42 @@ const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle, uint32_t s
 	}
 
 	return t->GetSlot( slot );
+}
+
+const glm::ivec2& GTextureImageDimensions( const gTextureHandle_t& handle,
+	const gTextureImage_t& image )
+{
+	const gTexture_t* t = GetTexture( handle );
+
+	if ( image.dimension >= t->dimensions.size() )
+	{
+		MLOG_ERROR( "Found invalid image @ ( x, y ) = ( %f, %f )" \
+			" for handle %lu",
+			image.gridOffset.x, image.gridOffset.y, handle.id );
+	}
+
+	return t->dimensions[ image.dimension ];
+}
+
+gTextureImageShaderParams_t GTextureImageShaderParams(
+	const gTextureHandle_t& handle,
+ 	uint32_t slot )
+{
+	const gTexture_t* tt = GetTexture( handle );
+	const gTextureImage_t& image = GTextureImage( handle, slot );
+	gGrid_t* grid = GridFromSlot( tt, image );
+
+	gTextureImageShaderParams_t params;
+
+	params.transform.x = image.gridOffset.x * grid->invStride;
+	params.transform.y = image.gridOffset.y * grid->invPitch;
+	params.transform.z = grid->invStride;
+	params.transform.w = grid->invPitch;
+
+	params.dimensions.x = ( float ) tt->dimensions[ image.dimension ].x;
+	params.dimensions.y = ( float ) tt->dimensions[ image.dimension ].y;
+
+	return params;
 }
 
 const gTextureImage_t& GTextureImage( const gTextureHandle_t& handle )

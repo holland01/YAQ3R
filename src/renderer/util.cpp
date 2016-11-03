@@ -4,6 +4,7 @@
 #include "shader_gen.h"
 #include "lib/async_image_io.h"
 #include "q3bsp.h"
+#include "em_api.h"
 
 void GU_SetupTexParams( const Program& program,
 						const char* uniformPrefix,
@@ -17,16 +18,8 @@ void GU_SetupTexParams( const Program& program,
 		return;
 	}
 
-	GStageSlot( textureIndex );
-
-	const gTextureImage_t& texParams = GTextureImage( texHandle );
-	glm::vec2 invRowPitch( GTextureInverseRowPitch( texHandle ) );
-
-	glm::vec4 transform;
-	transform.x = texParams.stOffsetStart.x;
-	transform.y = texParams.stOffsetStart.y;
-	transform.z = invRowPitch.x;
-	transform.w = invRowPitch.y;
+	gTextureImageShaderParams_t shaderParams =
+		GTextureImageShaderParams( texHandle, textureIndex );
 
 	GBindTexture( texHandle, offset );
 
@@ -38,9 +31,10 @@ void GU_SetupTexParams( const Program& program,
 		if ( offset > -1 )
 			program.LoadInt( prefix + "Sampler", offset );
 
-		program.LoadVec4( prefix + "ImageTransform", transform );
+		program.LoadVec4( prefix + "ImageTransform",
+			shaderParams.transform );
 		program.LoadVec2( prefix + "ImageScaleRatio",
-			texParams.imageScaleRatio );
+			shaderParams.dimensions );
 	}
 	else // otherwise, we have an effect shader
 	{
@@ -48,11 +42,9 @@ void GU_SetupTexParams( const Program& program,
 		if ( offset > -1 )
 			program.LoadInt( "sampler0", offset );
 
-		program.LoadVec4( "imageTransform", transform );
-		program.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
+		program.LoadVec4( "imageTransform", shaderParams.transform );
+		program.LoadVec2( "imageScaleRatio", shaderParams.dimensions );
 	}
-
-	GUnstageSlot();
 }
 
 static void PreInsert_Shader( void* param )

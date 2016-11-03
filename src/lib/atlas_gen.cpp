@@ -266,18 +266,21 @@ void TreeInsert( atlasTree_t& t, uint16_t k, uint16_t v )
 	}
 }
 
-bool TraverseColumn( atlasTree_t& t, atlasPositionMap_t& map, uint8_t index )
+bool TraverseColumn( atlasTree_t& t,
+	glm::vec2& outPoint,
+	const gImageParams_t& image,
+	uint8_t index )
 {
-	map.origin.y = 0;
+	outPoint.y = 0;
 
 	atlasBucket_t* curr = t.columns[ index ].get();
 
 	// offset our origin through the summation of all heights which
 	// are placed before the height section the owning image belongs to;
 	// take into account the amount of duplications for every height value
-	while ( curr && map.image->height < curr->val )
+	while ( curr && image.height < curr->val )
 	{
-		map.origin.y += ( float )curr->val * ( float )curr->ReadCount();
+		outPoint.y += ( float )curr->val * ( float )curr->ReadCount();
 		curr = curr->next.get();
 	}
 
@@ -288,7 +291,7 @@ bool TraverseColumn( atlasTree_t& t, atlasPositionMap_t& map, uint8_t index )
 		if ( curr->ReadOffset() >= 1 )
 		{
 			curr->SubOffset();
-			map.origin.y += ( float )curr->val * ( float )curr->ReadOffset();
+			outPoint.y += ( float )curr->val * ( float )curr->ReadOffset();
 		}
 		else if ( t.used[ curr->val ] )
 		{
@@ -360,18 +363,20 @@ void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
 // the offset portion will decrement for each image which has a matching height value.
 // The initial count bits will remain the same, to ensure that images of different
 // heights will not "invade" the space of the given image these parameters correspond to.
-void TreePoint( atlasTree_t* t, atlasPositionMap_t& map,
+void TreePoint( atlasTree_t* t,
+	glm::vec2& outPoint,
+	const gImageParams_t& image,
 	const atlasTree_t* root )
 {
 	if ( t )
 	{
-		if ( map.image->width < t->key )
+		if ( image.width < t->key )
 		{
-			TreePoint( t->left.get(), map, root );
+			TreePoint( t->left.get(), outPoint, image, root );
 		}
-		else if ( map.image->width > t->key )
+		else if ( image.width > t->key )
 		{
-			TreePoint( t->right.get(), map, root );
+			TreePoint( t->right.get(), outPoint, image, root );
 		}
 		else
 		{
@@ -381,7 +386,7 @@ void TreePoint( atlasTree_t* t, atlasPositionMap_t& map,
 
 			for ( i = 0; i < t->columns.size() && !found; )
 			{
-				found = TraverseColumn( *t, map, i );
+				found = TraverseColumn( *t, outPoint, image, i );
 
 				if ( !found )
 				{
@@ -391,7 +396,7 @@ void TreePoint( atlasTree_t* t, atlasPositionMap_t& map,
 
 			assert( found );
 
-			map.origin.x = SumBounds( root, t->key ) + i * t->key;
+			outPoint.x = SumBounds( root, t->key ) + i * t->key;
 		}
 	}
 }
@@ -506,8 +511,8 @@ INLINE bool ValidateDims( uint16_t width, uint16_t height,
 // combination. So, if we have N images with a width of 256 containing M
 // buckets, and P of these N images holds a height of 128, there will be one of
 // these M buckets which is used to represent the height of 128 with a count of
-// P. No other bucket in the subtree of width 256 will contain the same height
-// value.
+// P distinct images. No other bucket in the subtree of width 256 will
+// contain the same height value.
 
 // An ordered set of (unique) width values is first constructed; the root
 // node in the tree uses the median of these values. In the event that the
@@ -519,7 +524,7 @@ INLINE bool ValidateDims( uint16_t width, uint16_t height,
 //----------------------------
 // NOTE: the tree would probably benefit from using auto-balancing
 // techniques to speed up the generation: this would guarantee
-// logarithmic traversal.
+// logarithmic traversal. This is definitely not a priority, though.
 //----------------------------
 
 // Once each node and its corresponding buckets have been generated, the
@@ -563,10 +568,10 @@ INLINE bool ValidateDims( uint16_t width, uint16_t height,
 // The columns member for each tree node represents the amount of duplication
 // necessary to ease the height of the initial layout. Initially, each
 // column has one member: if an adjustment needs to be made, another column
-// with is created for that particular width, using the bucket with the most
+// is created for that particular width, using the bucket with the most
 // counts as its initial member.
 
-std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
+atlasBaseInfo_t AtlasGenVariedOrigins(
 		const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
@@ -592,8 +597,6 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		0,
 		{}
 	};
-
-	std::vector< atlasPositionMap_t > posMap;
 
 	metrics.base = widths.Sum();
 
@@ -633,7 +636,7 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 
 		uint16_t subDivisions = 1;
 
-		// FIXME: What about the case in which prevHigh doesn't exist
+		// FIXME (?): What about the case in which prevHigh doesn't exist
 		// because every ReadCount() check in the loop fails, but
 		// the actual bucket count > 1? Obviously if there's only
 		// one bucket count then separation makes no sense...
@@ -665,41 +668,43 @@ std::vector< atlasPositionMap_t > AtlasGenVariedOrigins(
 		DuplicateColumn( *t, high, rem );
 	}
 
-	uint16_t width = CalcWidth( rootTree.get() );
-	uint16_t height = CalcHeight( rootTree.get() );
+	atlasBaseInfo_t baseInfo;
+	baseInfo.width = NextPower2( CalcWidth( rootTree.get() ) );
+	baseInfo.height = NextPower2( CalcHeight( rootTree.get() ) );
 
-	if ( !ValidateDims( width, height, maxTextureSize ) )
+	if ( !ValidateDims( baseInfo.width, baseInfo.height, maxTextureSize ) )
 	{
-		return posMap;
+		return baseInfo;
 	}
 
 	// Query the max value and send it in
-	for ( const gImageParams_t& image: params )
+	baseInfo.origins.resize( params.size(), glm::vec2( 0.0f ) );
+
+	for ( size_t i = 0; i < params.size(); ++i )
 	{
-		atlasPositionMap_t pmap;
-		pmap.image = &image;
-		TreePoint( rootTree.get(), pmap, rootTree.get() );
-		posMap.push_back( pmap );
+		TreePoint( rootTree.get(), baseInfo.origins[ i ], params[ i ],
+	 		rootTree.get() );
 	}
 
-	return posMap;
+	return baseInfo;
 }
 
 // For lists of images which all have the same dimensions
-std::vector< atlasPositionMap_t > AtlasGenUniformOrigins(
+atlasBaseInfo_t AtlasGenUniformOrigins(
 	const std::vector< gImageParams_t >& params, uint16_t maxTextureSize )
 {
-	std::vector< atlasPositionMap_t > posMap;
-	uint16_t square, width, height;
+	uint16_t square = NextSquare( params.size() );
 
-	square = NextSquare( params.size() );
-	width = NextPower2( square * params[ 0 ].width );
-	height = NextPower2( square * params[ 0 ].height );
+	atlasBaseInfo_t baseInfo;
+	baseInfo.width = NextPower2( square * params[ 0 ].width );
+	baseInfo.height = NextPower2( square * params[ 0 ].height );
 
-	if ( !ValidateDims( width, height, maxTextureSize ) )
+	if ( !ValidateDims( baseInfo.width, baseInfo.height, maxTextureSize ) )
 	{
-		return posMap;
+		return baseInfo;
 	}
+
+	baseInfo.origins.resize( params.size(), glm::vec2( 0.0f ) );
 
 	for ( uint16_t y = 0; y < square; ++y )
 	{
@@ -712,21 +717,17 @@ std::vector< atlasPositionMap_t > AtlasGenUniformOrigins(
 				break;
 			}
 
-			atlasPositionMap_t map;
-			map.image = &params[ slot ];
-			map.origin = glm::vec2( x * params[ slot ].width,
-				y * params[ slot ].height );
-			posMap.push_back( map );
+			baseInfo.origins[ slot ].x = x * params[ slot ].width;
+			baseInfo.origins[ slot ].y = y * params[ slot ].height;
 		}
 	}
 
-	return posMap;
+	return baseInfo;
 }
 
 } // end namespace
 
-std::vector< atlasPositionMap_t > AtlasGenOrigins(
-		const std::vector< gImageParams_t >& params,
+atlasBaseInfo_t AtlasGenOrigins( const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
 	// Determine our atlas layout

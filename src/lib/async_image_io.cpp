@@ -2,6 +2,7 @@
 #include "q3bsp.h"
 #include "io.h"
 #include "worker/wapi.h"
+#include "em_api.h"
 
 static gImageLoadTracker_t* gImageTracker = nullptr;
 
@@ -108,7 +109,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 	}
 
 next_image:
-	if ( ( unsigned ) ++gImageTracker->iterator ==
+	if ( ( size_t ) ++gImageTracker->iterator ==
 			gImageTracker->textureInfo.size() )
 	{
 		if ( gImageTracker->finishEvent )
