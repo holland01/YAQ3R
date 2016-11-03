@@ -16,8 +16,9 @@ static void OnMapFinish( void* param )
 	app->renderer->Load( *( app->map->payload ) );
 
 	app->map->payload.reset();
-
 	app->camPtr = app->renderer->camera.get();
+
+	app->Exec();
 }
 
 TRenderer::TRenderer( const std::string& filepath )

@@ -6,7 +6,6 @@
 #include "deform.h"
 #include "model.h"
 #include "renderer/shader_gen.h"
-#include "tests/test.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
 #include <random>
@@ -236,11 +235,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
-
-	if ( !gAppTest->Exec() )
-	{
-		MLOG_ERROR( "%s", "Error found in Test::Exec()!" );
-	}
 }
 
 void BSPRenderer::LoadLightmaps( void )
