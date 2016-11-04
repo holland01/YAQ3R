@@ -38,7 +38,6 @@ void GU_SetupTexParams( const Program& program,
 	}
 	else // otherwise, we have an effect shader
 	{
-
 		if ( offset > -1 )
 			program.LoadInt( "sampler0", offset );
 

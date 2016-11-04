@@ -453,6 +453,7 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 	LoadImagesFinish( map.payload->mainImages, imageTracker );
 
 	puts( "Main images finished." );
+	map.mapAllocated = true;
 	map.readFinishEvent( &map );
 }
 
