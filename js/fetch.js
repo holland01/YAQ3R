@@ -27,6 +27,7 @@ AL.bundleLoadPort = '6931';
 
 AL.DATA_DIR_NAME = 'working';
 AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, and/or on load finish callback';
+AL.CONTENT_PIPELINE_MSG = AL.CONTENT_PIPELINE_MSG || false;
 
 AL.fetchNode = function(pathName) {
 	var node = null;
@@ -114,6 +115,8 @@ AL.BundleLoader = function(bundle, params) {
 	this.packageRef = {metadata:null, blob:null};
 	this.fin = {metadata:false, blob:false};
 
+	AL.CONTENT_PIPELINE_MSG = AL.CONTENT_PIPELINE_MSG || false;
+
 	if (!params
 		|| (typeof(params.size) === 'undefined')
 		|| (typeof(params.path) === 'undefined')
@@ -138,7 +141,9 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 	var url = 'http://localhost:' + AL.bundleLoadPort
 		+ '/bundle/' + this.bundle + ext;
 
-	console.log('URL Constructed: ', url);
+	if (AL.CONTENT_PIPELINE_MSG) {
+		console.log('URL Constructed: ', url);
+	}
 
 	xhr.open('GET', url);
 	xhr.responseType = responseType;
@@ -147,12 +152,16 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 			'http://localhost:' + AL.bundleLoadPort);
 
 	xhr.addEventListener('readystatechange', function(evt) {
-		console.log('XHR Ready State: '
-				+ xhr.readyState
-				+ 'XHR Status: ' + xhr.status);
+		if (AL.CONTENT_PIPELINE_MSG) {
+			console.log('XHR Ready State: '
+					+ xhr.readyState
+					+ 'XHR Status: ' + xhr.status);
+		}
 
 		if (xhr.readyState === XMLHttpRequest.DONE) {
-			console.log('DONE for ', url);
+			if (AL.CONTENT_PIPELINE_MSG) {
+				console.log('DONE for ', url);
+			}
 			this.packageRef[packRefKey] = xhr.response;
 			this.fin[packRefKey] = true;
 
@@ -171,7 +180,8 @@ AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port) {
 			proxy: callback,
 			path: AL.getMaybeCString(path),
 			size: pathLength,
-			port: port
+			port: port,
+			CONTENT_PIPELINE_MSG: false
 		}
 	);
 
