@@ -90,7 +90,8 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 				"tcModRotate",
 				[]( const Program& p, const effect_t& e ) -> void
 				{
-					p.LoadMat2( "texRotate", &e.data.rotation2D.transform[ 0 ][ 0 ] );
+					p.LoadMat2( "texRotate",
+						&e.data.rotation2D.transform[ 0 ][ 0 ] );
 					p.LoadVec2( "texCenter", e.data.rotation2D.center );
 				}
 			}
@@ -119,8 +120,8 @@ void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc,
 	const std::string& fragSrc, const std::vector< std::string >& uniforms,
 	const std::vector< std::string >& attribs )
 {
-	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc, fragSrc,
-		uniforms, attribs ) );
+	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc,
+		fragSrc, uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
@@ -157,11 +158,13 @@ void BSPRenderer::Prep( void )
 			"lightmapImageScaleRatio"
 		};
 
-		MakeProg( "main", GMakeMainVertexShader(), GMakeMainFragmentShader(), uniforms, attribs );
+		MakeProg( "main", GMakeMainVertexShader(), GMakeMainFragmentShader(),
+			uniforms, attribs );
 	}
 }
 
-bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) const
+bool BSPRenderer::IsTransFace( int32_t faceIndex,
+	const shaderInfo_t* shader ) const
 {
 	UNUSED( shader );
 	const bspFace_t* face = &map.data.faces[ faceIndex ];
@@ -170,7 +173,8 @@ bool BSPRenderer::IsTransFace( int32_t faceIndex, const shaderInfo_t* shader ) c
 	{
 		bspShader_t* s = &map.data.shaders[ face->shader ];
 
-		return !!( s->contentsFlags & ( BSP_CONTENTS_WATER | BSP_CONTENTS_TRANSLUCENT ) )
+		return !!( s->contentsFlags & ( BSP_CONTENTS_WATER
+										| BSP_CONTENTS_TRANSLUCENT ) )
 			|| !!( s->surfaceFlags & ( BSP_SURFACE_NONSOLID ) );
 	}
 
@@ -382,7 +386,8 @@ void BSPRenderer::DrawDebugFace( uint32_t index )
 		glPrograms[ "debug" ]->LoadDefaultAttribProfiles();
 		glPrograms[ "debug" ]->LoadMat4( "modelToView", viewM );
 		glPrograms[ "debug" ]->LoadMat4( "viewToClip", proj );
-		glPrograms[ "debug" ]->LoadVec4( "fragColor", glDebugFaces[ index ].color );
+		glPrograms[ "debug" ]->LoadVec4( "fragColor",
+			glDebugFaces[ index ].color );
 		glPrograms[ "debug" ]->Bind();
 		GU_MultiDrawElements( GL_TRIANGLE_STRIP,
 					glFaces[ index ]->ToPatch()->rowIndices,
@@ -421,7 +426,8 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 
 	bool transparent = IsTransFace( pass.faceIndex, pass.shader );
 
-	bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
+	bool add = ( !pass.isSolid && transparent )
+		|| ( pass.isSolid && !transparent );
 
 	if ( add )
 	{
@@ -437,14 +443,19 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 		}
 		else
 		{
-			if ( pass.shader && !!( pass.shader->surfaceParms & SURFPARM_NO_DRAW ) )
+			if ( pass.shader && !!( pass.shader->surfaceParms
+				& SURFPARM_NO_DRAW ) )
 			{
 				pass.facesVisited[ pass.faceIndex ] = true;
 				return;
 			}
 
-			drawSurfaceList_t& list = ( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches: pass.polymeshes;
-			AddSurface( pass.shader, pass.faceIndex, pass.shader? list.effectSurfaces: list.surfaces );
+			drawSurfaceList_t& list =
+				( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches:
+				pass.polymeshes;
+
+			AddSurface( pass.shader, pass.faceIndex,
+				pass.shader? list.effectSurfaces: list.surfaces );
 			pass.facesVisited[ pass.faceIndex ] = true;
 		}
 	}
@@ -498,6 +509,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
 
+	// We start at index 1 because the 0th index
+	// provides a model which represents the entire map.
 	for ( int32_t i = 1; i < map.data.numModels; ++i )
 	{
 		bspModel_t* model = &map.data.models[ i ];
@@ -646,7 +659,8 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 }
 
 namespace {
-	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex, modelBuffer_t& glFaces )
+	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex,
+		modelBuffer_t& glFaces )
 	{
 		mapModel_t& model = *( glFaces[ faceIndex ] );
 
@@ -657,8 +671,10 @@ namespace {
 		{
 			mapPatch_t& patch = *( model.ToPatch() );
 
-			surf.bufferOffsets.insert( surf.bufferOffsets.end(), patch.rowIndices.begin(), patch.rowIndices.end() );
-			surf.bufferRanges.insert( surf.bufferRanges.end(), patch.trisPerRow.begin(), patch.trisPerRow.end() );
+			surf.bufferOffsets.insert( surf.bufferOffsets.end(),
+				patch.rowIndices.begin(), patch.rowIndices.end() );
+			surf.bufferRanges.insert( surf.bufferRanges.end(),
+				patch.trisPerRow.begin(), patch.trisPerRow.end() );
 		}
 		else
 		{
@@ -674,7 +690,9 @@ namespace {
 	}
 }
 
-void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
+void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader,
+	int32_t faceIndex,
+	surfaceContainer_t& surfList )
 {
 	const bspFace_t* face = &map.data.faces[ faceIndex ];
 
@@ -688,10 +706,12 @@ void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader, int32_t faceIndex,
 
 	AddSurfaceData( surf, faceIndex, glFaces );
 
-	surfList[ face->type - 1 ][ face->lightmapIndex ][ face->shader ][ ( uintptr_t ) shader ] = surf;
+	surfList[ face->type - 1 ][ face->lightmapIndex ][ face->shader ]
+		[ ( uintptr_t ) shader ] = surf;
 }
 
-void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex, surfaceContainer_t& surfList )
+void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex,
+	surfaceContainer_t& surfList )
 {
 	const bspFace_t* face = &map.data.faces[ faceIndex ];
 
@@ -890,7 +910,8 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 		default:
 		case PASS_DRAW_MAIN:
 
-			DrawMapPass( pass.face->shader, pass.face->lightmapIndex, [ &pass, this ]( const Program& prog )
+			DrawMapPass( pass.face->shader, pass.face->lightmapIndex,
+				[ &pass, this ]( const Program& prog )
 			{
 				UNUSED( prog );
 				DrawFaceVerts( pass, nullptr );
@@ -906,7 +927,8 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 {
 	UNUSED( solid );
 
-	auto LEffectCallback = [ this ]( const void* voidsurf, const Program& prog, const shaderStage_t* stage )
+	auto LEffectCallback = [ this ]( const void* voidsurf, const Program& prog,
+		const shaderStage_t* stage )
 	{
 		UNUSED( stage );
 		UNUSED( prog );
@@ -924,23 +946,31 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 		{
 			for ( auto i2 = i1->second.begin(); i2 != i1->second.end(); ++i2 )
 			{
-				for ( auto i3 = i2->second.begin(); i3 != i2->second.end(); ++i3 )
+				for ( auto i3 = i2->second.begin(); i3 != i2->second.end();
+					++i3 )
 				{
 					const drawSurface_t& surf = i3->second;
 
 					if ( surf.shader )
 					{
-						drawTuple_t tuple = std::make_tuple( ( const void* )&surf, surf.shader, surf.textureIndex,
-							surf.lightmapIndex, solid );
+						drawTuple_t tuple = std::make_tuple(
+							( const void* )&surf,
+							surf.shader,
+							surf.textureIndex,
+							surf.lightmapIndex,
+							solid );
 						DrawEffectPass( tuple, LEffectCallback );
 					}
 					else
 					{
-						DrawMapPass( surf.textureIndex, surf.lightmapIndex, [ &surf, this ]( const Program& main )
-						{
-							UNUSED( main );
-							DrawSurface( surf );
-						});
+						DrawMapPass(
+							surf.textureIndex,
+							surf.lightmapIndex,
+							[ &surf, this ]( const Program& main )
+							{
+								UNUSED( main );
+								DrawSurface( surf );
+							});
 					}
 				}
 			}
@@ -948,7 +978,8 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 	}
 }
 
-void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* stage ) const
+void BSPRenderer::DrawFaceVerts( const drawPass_t& pass,
+	const shaderStage_t* stage ) const
 {
 	UNUSED( stage );
 
@@ -959,7 +990,8 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 		DeformVertexes( m, pass.shader );
 	}
 
-	if ( pass.face->type == BSP_FACE_TYPE_POLYGON || pass.face->type == BSP_FACE_TYPE_MESH )
+	if ( pass.face->type == BSP_FACE_TYPE_POLYGON
+		|| pass.face->type == BSP_FACE_TYPE_MESH )
 	{
 		GU_DrawElements( GL_TRIANGLES, m.iboOffset, m.iboRange );
 	}
@@ -970,7 +1002,8 @@ void BSPRenderer::DrawFaceVerts( const drawPass_t& pass, const shaderStage_t* st
 	}
 }
 
-void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shader ) const
+void BSPRenderer::DeformVertexes( const mapModel_t& m,
+	const shaderInfo_t* shader ) const
 {
 	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED ) return;
 
@@ -1001,11 +1034,13 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m, const shaderInfo_t* shade
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
-		glm::vec3 n( verts[ i ].normal * GenDeformScale( verts[ i ].position, shader ) );
+		glm::vec3 n( verts[ i ].normal * GenDeformScale( verts[ i ].position,
+			shader ) );
 		verts[ i ].position += n;
 	}
 
-	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, apiHandles[ 0 ], m.vboOffset, verts, false );
+	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, apiHandles[ 0 ],
+		m.vboOffset, verts, false );
 }
 
 void BSPRenderer::LoadLightVol( const drawPass_t& pass, const Program& prog ) const

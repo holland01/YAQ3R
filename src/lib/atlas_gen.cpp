@@ -275,12 +275,12 @@ bool TraverseColumn( atlasTree_t& t,
 
 	atlasBucket_t* curr = t.columns[ index ].get();
 
-	// offset our origin through the summation of all heights which
-	// are placed before the height section the owning image belongs to;
-	// take into account the amount of duplications for every height value
+	// Move outPoint.y up to its assigned location;
+	// we stop at the beginning of the slot in which
+	// the image should reside in this column.
 	while ( curr && image.height < curr->val )
 	{
-		outPoint.y += ( float )curr->val * ( float )curr->ReadCount();
+		outPoint.y += ( float ) curr->val * ( float ) curr->ReadCount();
 		curr = curr->next.get();
 	}
 
@@ -288,11 +288,18 @@ bool TraverseColumn( atlasTree_t& t,
 	// curr->val is implicitly == image.height
 	if ( curr )
 	{
+		// What remains left is to determine if there's room for multiple
+		// images for this height group, and if so, calculate a
+		// corresponding offset.
 		if ( curr->ReadOffset() >= 1 )
 		{
 			curr->SubOffset();
-			outPoint.y += ( float )curr->val * ( float )curr->ReadOffset();
+			outPoint.y += ( float ) curr->val * ( float ) curr->ReadOffset();
 		}
+		// t.used is meant to handle situations
+		// where multiple columns with buckets containing
+		// the same height value exists: if this column is
+		// full, move onto the next one
 		else if ( t.used[ curr->val ] )
 		{
 			return false;
@@ -359,10 +366,11 @@ void CalcMetrics( atlasTree_t* t, atlasTreeMetrics_t& metrics )
 }
 
 // The ReadCount and ReadOffset methods will initially return the same values.
-// Things change, however, when the image's height corresponds to a particular bucket:
-// the offset portion will decrement for each image which has a matching height value.
-// The initial count bits will remain the same, to ensure that images of different
-// heights will not "invade" the space of the given image these parameters correspond to.
+// Things change, however, when the image's height corresponds to a particular
+// bucket: the offset portion will decrement for each image which has a matching
+// height value. The initial count bits will remain the same, to ensure that
+// images of different heights will not "invade" the space of the given image
+// these parameters correspond to.
 void TreePoint( atlasTree_t* t,
 	glm::vec2& outPoint,
 	const gImageParams_t& image,
@@ -522,9 +530,10 @@ INLINE bool ValidateDims( uint16_t width, uint16_t height,
 // though.
 
 //----------------------------
-// NOTE: the tree would probably benefit from using auto-balancing
+// NOTE: the tree might benefit from using auto-balancing
 // techniques to speed up the generation: this would guarantee
-// logarithmic traversal. This is definitely not a priority, though.
+// logarithmic traversal. This is definitely not a priority, though,
+// and doesn't seem to be a bottleneck in the generation.
 //----------------------------
 
 // Once each node and its corresponding buckets have been generated, the
@@ -604,11 +613,13 @@ atlasBaseInfo_t AtlasGenVariedOrigins(
 
 	// Check to see if our highest bucket count is two standard deviations
 	// from the nextHighest. If so, we should split any bucket groups which
-	// are too high into separate columns: this should
+	// are too high into separate columns: this should help to
 	// alleviate any potential problems with attempting a texture allocation
-	// which is larger than GL_MAX_TEXTURE_SIZE
+	// which is larger than maxTextureSize
 	float stdDev, zHigh;
 	zHigh = metrics.bucketCounts.ZScore( metrics.highest.numBuckets, &stdDev );
+
+	MLOG_INFO( "stdDev: %f, zScore: %f", stdDev, zHigh );
 
 	if ( 2.0f <= zHigh )
 	{
@@ -622,6 +633,7 @@ atlasBaseInfo_t AtlasGenVariedOrigins(
 
 		uint16_t newCount, counter, rem;
 
+		// Find the bucket with the most duplicated height values.
 		while ( b )
 		{
 			if ( ( high && b->ReadCount() > high->ReadCount() ) || !high )
@@ -636,27 +648,40 @@ atlasBaseInfo_t AtlasGenVariedOrigins(
 
 		uint16_t subDivisions = 1;
 
-		// FIXME (?): What about the case in which prevHigh doesn't exist
-		// because every ReadCount() check in the loop fails, but
-		// the actual bucket count > 1? Obviously if there's only
-		// one bucket count then separation makes no sense...
-
-		// prevHigh->next = high, obviously
+		// prevHigh->next = high, obviously,
+		// so prevHigh->next.get() should return nullptr
+		// since move constructor calls release()
 		if ( prevHigh )
 		{
 			t->columns.push_back( std::move( prevHigh->next ) );
-			prevHigh->next.reset( nullptr );
 		}
+
 		// We produce more subdivisions because a lack of a prevHigh
-		// implies that our max bucket dominates in size more than
-		// it would otherwise
+		// implies that our max-height bucket (i.e., the first)
+		// dominates in size more than any other height group for this width.
+		// We're already using the width with the highest bucket count,
+		// so the coupling of a width group with the most buckets
+		// who's max size bucket also holds the highest image count implies
+		// that this bucket is essentially the source of the issue on a high
+		// scale.
+
+		// Given the fact that we're at least 2 standard deviations from
+		// the average bucket count, an extra subDivision further
+		// aids our needs.
+
+		// That said, more granularity could be added here to improve
+		// effectiveness. For example, an extra subDivision is really only
+		// necessary if we know that the current stack of subdiv images
+		// exceeds the value of maxTextureSize.
 		else
 		{
 			subDivisions++;
 		}
 
+		MLOG_INFO( "Subdivison Count: %i" );
+
 		counter = newCount = high->ReadCount() >> subDivisions;
-		rem = high->ReadCount() % ( 1 << subDivisions );
+		rem = high->ReadCount() & ( ( 1 << subDivisions ) - 1 );
 
 		while ( counter < high->ReadCount() )
 		{
@@ -730,6 +755,8 @@ atlasBaseInfo_t AtlasGenUniformOrigins(
 atlasBaseInfo_t AtlasGenOrigins( const std::vector< gImageParams_t >& params,
 		uint16_t maxTextureSize )
 {
+	MLOG_INFO( "%s", "------------ATLAS GENERATION------------" );
+
 	// Determine our atlas layout
 	for ( uint16_t i = 1; i < params.size(); ++i )
 	{

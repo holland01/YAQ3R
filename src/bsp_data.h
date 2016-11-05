@@ -95,7 +95,10 @@ enum
 	BSP_SURFACE_LIGHTFILTER  = 0x8000, // act as a light filter during q3map
 	BSP_SURFACE_ALPHASHADOW = 0x10000, // do per-pixel light shadow casting in q3map
 	BSP_SURFACE_NODLIGHT = 0x20000, // don't dlight(?) even if solid (solid lava, skies)
-	BSP_SURFACE_DUST = 0x40000 // leave a dust trail when walking
+	BSP_SURFACE_DUST = 0x40000, // leave a dust trail when walking
+
+	// It always looks cooler in hex.
+	BSP_MAX_SHADER_TOKEN_LENGTH = 0x40
 };
 
 // Map loader-specific flags
@@ -106,7 +109,8 @@ enum
 	Q3LOAD_TEXTURE_MIPMAP = 1 << 3,
 	Q3LOAD_TEXTURE_ROTATE90CCW = 1 << 4,
 
-	Q3LOAD_ALL = Q3LOAD_TEXTURE_SRGB | Q3LOAD_TEXTURE_ANISOTROPY | Q3LOAD_TEXTURE_MIPMAP
+	Q3LOAD_ALL = Q3LOAD_TEXTURE_SRGB | Q3LOAD_TEXTURE_ANISOTROPY
+		| Q3LOAD_TEXTURE_MIPMAP
 };
 
 struct bspEntity_t
@@ -495,7 +499,7 @@ struct effect_t
 	}
 };
 
-#define SHADER_MAX_TOKEN_CHAR_LENGTH 64
+#define BSP_MAX_SHADER_TOKEN_LENGTH 64
 
 class Program;
 
@@ -547,7 +551,7 @@ struct shaderStage_t
 
 	// path to the texture image, if we have one
 
-	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > texturePath;
+	std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH > texturePath;
 
 	gProgramHandle_t program;
 
@@ -590,7 +594,7 @@ struct shaderInfo_t
 
 	float				surfaceLight = 0.0f; // 0 if no light
 
-	std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH > name;
+	std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH > name;
 
 	std::vector< shaderStage_t > stageBuffer;
 

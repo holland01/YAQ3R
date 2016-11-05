@@ -185,7 +185,8 @@ static INLINE void WriteTexture(
 	}
 	else
 	{
-		fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
+		fragmentSrc.push_back(
+			"\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
 	}
 
 	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );

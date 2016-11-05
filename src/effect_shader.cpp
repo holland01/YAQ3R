@@ -21,7 +21,7 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer,
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, \
 	shaderStage_t& theStage, char* token ) -> bool
 
-#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
+#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * BSP_MAX_SHADER_TOKEN_LENGTH ) );
 
 // Lookup table we use for each shader/stage command
 std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
@@ -405,7 +405,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				float t = StrReadFloat( buffer );
 
 				/*
-				NOTE: a scale may imply a division by the value, versus a multiplication. I'm not sure...
+				NOTE: a scale may imply a division by the value,
+				versus a multiplication. I'm not sure...
 
 				if ( s != 0.0f )
 					s = 1.0f / s;
@@ -509,9 +510,12 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 static INLINE GLsizei GL_EnumFromStr( const char* str )
 {
 	// blending
-	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
-	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
-	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 ) return GL_ONE_MINUS_DST_ALPHA;
+	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 )
+		return GL_ONE_MINUS_SRC_ALPHA;
+	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 )
+		return GL_ONE_MINUS_SRC_COLOR;
+	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 )
+		return GL_ONE_MINUS_DST_ALPHA;
 
 	if ( strcmp( str, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
 	if ( strcmp( str, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
@@ -547,7 +551,7 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 	for ( int i = 0; i < map->data.numShaders; ++i )
 	{
 		if ( strncmp( map->data.shaders[ i ].name, header,
-				SHADER_MAX_TOKEN_CHAR_LENGTH ) == 0 )
+				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 		{
 			return true;
 		}
@@ -556,7 +560,7 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 	for ( int i = 0; i < map->data.numFogs; ++i )
 	{
 		if ( strncmp( map->data.fogs[ i ].name, header,
-				SHADER_MAX_TOKEN_CHAR_LENGTH ) == 0 )
+				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 		{
 			return true;
 		}
@@ -763,13 +767,13 @@ void S_LoadShaders( Q3BspMap* map )
 }
 
 bool operator == (
-	const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1,
+	const std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH >& str1,
 	const char* str2 )
 {
 	size_t min = glm::min( strlen( str2 ), str1.size() );
 
 	// str1 should have zeros if its char characters are less than
-	// SHADER_MAX_TOKEN_CHAR_LENGTH
+	// BSP_MAX_SHADER_TOKEN_LENGTH
 	if ( min != str1.size() && str1[ min ] != 0 )
 	{
 		return false;

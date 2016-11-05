@@ -100,9 +100,20 @@ static void OnImageRead( char* buffer, int size, void* param )
 			return;
 		}
 
-		if ( gImageTracker->insertEvent )
+		if ( gImageTracker->isKeyMapped )
 		{
-			gImageTracker->insertEvent( gImageTracker );
+			image.keyMapIndex =
+				( size_t ) gImageTracker->
+					textureInfo[ gImageTracker->iterator ].param;
+		}
+		else
+		{
+			shaderStage_t* stage =
+				( shaderStage_t* )gImageTracker->
+					textureInfo[ gImageTracker->iterator ].param;
+
+			// This index will persist in the texture array it's going into
+			stage->textureIndex = gImageTracker->textures.size();
 		}
 
 		gImageTracker->textures.push_back( image );
@@ -127,48 +138,36 @@ next_image:
 }
 #undef DATA_FMT_STRING
 
-gPathMap_t AIIO_MakeAssetPath( const char* path )
+void AIIO_FixupAssetPath( gPathMap_t& pm )
 {
-	gPathMap_t pm;
+	// Generate the absolute path
+	std::string pathCopy( pm.path );
 
-	if ( !path )
+	size_t assRootLen = strlen( ASSET_Q3_ROOT );
+	size_t pathLen = pathCopy.length();
+
+	if ( pathCopy[ 0 ] != '/' )
 	{
-		return pm;
+		pathLen++;
 	}
 
-	// Don't ask...
+	pm.path = std::string( "", pathLen + assRootLen );
+	strncpy( &pm.path[ 0 ], ASSET_Q3_ROOT, assRootLen );
+
+	if ( pathCopy[ 0 ] != '/' )
 	{
-		size_t assRootLen = strlen( ASSET_Q3_ROOT );
-		size_t pathLen = strlen( path );
-
-		if ( path[ 0 ] != '/' )
-		{
-			pathLen++;
-		}
-
-		pm.path = std::string( "", pathLen + assRootLen );
-		strncpy( &pm.path[ 0 ], ASSET_Q3_ROOT, assRootLen );
-
-		if ( path[ 0 ] != '/' )
-		{
-			pathLen--;
-			pm.path[ assRootLen++ ] = '/';
-		}
-
-		strncpy( &pm.path[ assRootLen ], path, pathLen );
+		pathLen--;
+		pm.path[ assRootLen++ ] = '/';
 	}
 
-	return pm;
+	strncpy( &pm.path[ assRootLen ], &pathCopy[ 0 ], pathLen );
 }
 
 void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
-	gSamplerHandle_t sampler, onFinishEvent_t finish,
-	onFinishEvent_t insert )
+	gSamplerHandle_t sampler, onFinishEvent_t finish, bool keyMapped )
 {
-	gImageTracker = new gImageLoadTracker_t( map, pathInfo );
-	gImageTracker->sampler = sampler;
-	gImageTracker->finishEvent = finish;
-	gImageTracker->insertEvent = insert;
+	gImageTracker = new gImageLoadTracker_t( map, pathInfo, sampler,
+	 	finish, keyMapped );
 
 	gFileWebWorker.Await( OnImageRead, "ReadImage",
 		gImageTracker->textureInfo[ 0 ].path, nullptr );

@@ -35,10 +35,13 @@ struct gTexture_t
 	std::vector< glm::ivec2 > dimensions;
 
 	bool keyMapped;
+
 	GLenum target;
 	glm::ivec2 megaDims;
+
 	gGrid_t* grids;
 	gSamplerHandle_t sampler;
+
 	uint8_t numGrids;
 
 	gTexture_t( void )
@@ -79,6 +82,7 @@ struct gTexture_t
 		{
 			MLOG_ASSERT( slot < imageSlots.size(),
 				"Bad index %i for texture slot", slot );
+
 			return imageSlots[ slot ];
 		}
 	}
@@ -241,6 +245,8 @@ std::vector< glm::ivec2 > GenTextureData(
 		tt->numGrids = 1 << ( xDivide + yDivide );
 		tt->grids = new gGrid_t[ tt->numGrids ]();
 
+		MLOG_INFO( "GRID COUNT: %i", tt->numGrids );
+
 		dimensions.resize( tt->numGrids,
 			glm::ivec2( subdivision.width,
 				subdivision.height ) );
@@ -397,6 +403,9 @@ atlasBaseInfo_t CalcGridDimensions(
 	canvasParams.width = baseInfo.width;
 	canvasParams.height = baseInfo.height;
 	canvasParams.sampler = sampler;
+
+	MLOG_INFO( "canvas width: %i, canvas height: %i",
+ 		canvasParams.width, canvasParams.height );
 
 	GValidTextureDimensions( canvasParams.width, canvasParams.height );
 

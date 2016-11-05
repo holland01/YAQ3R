@@ -46,22 +46,6 @@ void GU_SetupTexParams( const Program& program,
 	}
 }
 
-static void PreInsert_Shader( void* param )
-{
-	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* )param;
-	{
-		shaderStage_t* stage =
-			( shaderStage_t* )imageTracker->
-				textureInfo[ imageTracker->iterator ].param;
-
-		// This index will persist in the texture array it's going into
-		stage->textureIndex = imageTracker->textures.size();
-	}
-}
-
-using retrievePathCallback_t = const char* ( * )( void* source );
-
-
 struct gImageMountNode_t
 {
 	std::vector< gPathMap_t > paths;
@@ -82,15 +66,21 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 	}
 }
 
-static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
-		retrievePathCallback_t getPath )
+static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 {
 	std::vector< gPathMap_t > env, gfx, models,
 		sprites, textures;
 
-	for ( void* source: sources )
+	for ( gPathMap_t& source: sources )
 	{
-		const char* path = getPath( source );
+		// Yes, this looks like total shit: we should be seeing only
+		// std::string functions instead of this odd mix
+		// of std::string with c string functions. There's no good reason
+		// for this other than lots of rewriting and has been happening.
+		// Time is currently of the essence, so it's hard to justify
+		// rewriting it.
+
+		const char* path = &source.path[ 0 ];
 		const char* slash = strstr( path, "/" );
 
 		if ( !slash )
@@ -104,27 +94,27 @@ static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
 
 		size_t len = ( ptrdiff_t )( slash - path );
 
-		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
+		AIIO_FixupAssetPath( source );
 
 		if ( strncmp( path, "env", len ) == 0 )
 		{
-			env.push_back( pathMap );
+			env.push_back( source );
 		}
 		else if ( strncmp( path, "gfx", len ) == 0 )
 		{
-			gfx.push_back( pathMap );
+			gfx.push_back( source );
 		}
 		else if ( strncmp( path, "models", len ) == 0 )
 		{
-			models.push_back( pathMap );
+			models.push_back( source );
 		}
 		else if ( strncmp( path, "sprites", len ) == 0 )
 		{
-			sprites.push_back( pathMap );
+			sprites.push_back( source );
 		}
 		else if ( strncmp( path, "textures", len ) == 0 )
 		{
-			textures.push_back( pathMap );
+			textures.push_back( source );
 		}
 	}
 
@@ -163,11 +153,11 @@ struct gLoadImagesState_t
 	gImageMountNode_t* currNode = nullptr;
 
 	onFinishEvent_t mapLoadFinEvent = nullptr;
-	onFinishEvent_t imageReadInsert = nullptr;
-
 	Q3BspMap* map = nullptr;
 
 	gSamplerHandle_t sampler = { G_UNSPECIFIED };
+
+	bool keyMapped = false;
 };
 
 static gLoadImagesState_t gImageLoadState;
@@ -193,7 +183,7 @@ static void LoadImages( char* mem, int size, void* param )
 		gImageLoadState.currNode->paths,
 		gImageLoadState.sampler,
 		LoadImagesEnd,
-		gImageLoadState.imageReadInsert
+		gImageLoadState.keyMapped
 	);
 }
 
@@ -216,18 +206,12 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 }
 
 static void LoadImageState( Q3BspMap& map, gSamplerHandle_t sampler,
-	const std::vector< void* >& sources )
+	std::vector< gPathMap_t >& sources )
 {
 	gImageLoadState.map = &map;
 	gImageLoadState.sampler = sampler;
 
-	gImageLoadState.head = BundleImagePaths(
-		sources,
-		[]( void* source ) -> const char*
-		{
-			return ( const char* ) source;
-		}
-	);
+	gImageLoadState.head = BundleImagePaths( sources );
 
 	gImageLoadState.currNode = gImageLoadState.head.get();
 
@@ -242,40 +226,44 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 		GMakeProgramsFromEffectShader( entry.second );
 	}
 
-	std::vector< void* > sources;
+	std::vector< gPathMap_t > sources;
 	for ( auto& entry: map.effectShaders )
 	{
 		for ( shaderStage_t& stage: entry.second.stageBuffer )
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
-				sources.push_back( &stage.texturePath[ 0 ] );
+				gPathMap_t initial;
+
+				initial.param = &stage;
+				initial.path = std::string( &stage.texturePath[ 0 ] );
+
+				sources.push_back( initial );
 			}
 		}
 	}
 
-	gImageLoadState.imageReadInsert = PreInsert_Shader;
+	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
 	LoadImageState( map, sampler, sources );
 }
 
-static void PreInsert_Main( void* param )
-{
-	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* ) param;
-	imageTracker->indices.push_back( imageTracker->iterator );
-}
-
 void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 {
-	std::vector< void* > sources;
+	std::vector< gPathMap_t> sources;
 
-	for ( bspShader_t& shader: map.data.shaders )
+	for ( size_t key = 0; key < map.data.shaders.size(); ++key )
 	{
-		sources.push_back( &shader.name[ 0 ] );
+		gPathMap_t initial;
+
+		initial.path = std::string( map.data.shaders[ key ].name );
+		initial.param = ( void* ) key;
+
+		sources.push_back( initial );
 	}
 
-	gImageLoadState.imageReadInsert = PreInsert_Main;
+	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
 	LoadImageState( map, sampler, sources );
@@ -283,7 +271,9 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 
 void GU_LoadStageTexture( glm::ivec2& maxDims,
 		std::vector< gImageParams_t >& images,
-		shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
+		shaderInfo_t& info,
+		int i,
+		const gSamplerHandle_t& sampler )
 {
 	UNUSED(maxDims);
 	UNUSED(images);

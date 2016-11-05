@@ -21,8 +21,18 @@ struct gSamplerHandle_t
 struct gImageParams_t
 {
 	gSamplerHandle_t sampler;
-	int32_t width = 0;
-	int32_t height = 0;
+	int16_t width = 0;
+	int16_t height = 0;
+
+	// a gImageParams_t
+	// which is produced
+	// from a bspShader_t requires
+	// a texture lookup that corresponds
+	// to the index of the bspShader_t
+	// that lies within the bspShader_t buffer
+	// obtained from the bsp file. 
+	int16_t keyMapIndex = -1;
+
 	gTextureFlags_t flags = 0;
 	std::vector< uint8_t > data;
 };
