@@ -1955,3 +1955,19 @@ an errors; nothing found, as expected.
 My guess is there's something going on with the key mapping 
 mechanism within the texture generation pipeline, so this is
 what's going to be evaluated next...
+
+--------------
+**Update**
+
+Fixed: check ceb69b55cc880b4a9bd3fd2ebf3ac72eccf1f3fa. The issue was due to a lack of key mapping 
+the main texture images. That said, it looks like the lightmaps aren't being rendered. 
+
+I've tried rendering the dummy texture in place of the lightmap in the event that lightmapIndex < 0
+(in BSPRenderer::DrawMapPass()), and that hasn't worked.
+
+Also double checked the uniform grid atlas generation method, which looks good (as does its
+interaction with the texture generation pipeline).
+
+Don't think that face culling is the culprit here, but it could be. 
+
+Will be looking more into this tomorrow.
