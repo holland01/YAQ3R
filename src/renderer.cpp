@@ -206,7 +206,14 @@ void BSPRenderer::Load( renderPayload_t& payload )
 
 	// Create main and shader textures
 	{
-		gTextureMakeParams_t params( payload.mainImages, mainSampler );
+		gTextureMakeParams_t params( payload.mainImages, mainSampler,
+			G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
+
+		for ( gImageParams_t& image: params.images )
+		{
+			params.keyMaps.push_back( image.keyMapIndex );
+		}
+
 		mainTexHandle = GMakeTexture( params );
 	}
 
@@ -647,7 +654,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 	if ( textureIndex == -1 )
 	{
 		textureIndex = 0;
-	}
+	}	
 
 	GU_SetupTexParams( main, "mainImage", mainImageHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
@@ -688,7 +695,6 @@ namespace {
 			surf.bufferRanges.push_back( model.iboRange );
 		}
 #endif
-
 		if ( surf.shader && surf.shader->deform )
 		{
 			surf.faceIndices.push_back( faceIndex );

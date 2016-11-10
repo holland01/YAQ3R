@@ -492,9 +492,13 @@ void GenSubdivision(
 				data.dimension = tt->dimensions.size();
 				tt->dimensions.push_back( imageDims );
 			}
-		}
+		}	
 
-		//data.stOffsetStart = baseInfo.origins[ i ] * invPitchStride;
+		// since the square value is 
+		// determined from map.size() = num images,
+		// we can use y * square + x as a valid
+		// index into the keyMaps and imageSlots
+		// buffers.
 
 		if ( tt->keyMapped )
 		{

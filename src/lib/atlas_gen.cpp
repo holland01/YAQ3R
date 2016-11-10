@@ -724,8 +724,10 @@ atlasBaseInfo_t AtlasGenUniformOrigins(
 	baseInfo.width = NextPower2( square * params[ 0 ].width );
 	baseInfo.height = NextPower2( square * params[ 0 ].height );
 
+	MLOG_INFO( "Gen Width: %lu, Height: %lu", baseInfo.width, baseInfo.height );
+
 	if ( !ValidateDims( baseInfo.width, baseInfo.height, maxTextureSize ) )
-	{
+	{	
 		return baseInfo;
 	}
 
@@ -758,16 +760,18 @@ atlasBaseInfo_t AtlasGenOrigins( const std::vector< gImageParams_t >& params,
 	MLOG_INFO( "%s", "------------ATLAS GENERATION------------" );
 
 	// Determine our atlas layout
-	for ( uint16_t i = 1; i < params.size(); ++i )
+	for ( size_t i = 1; i < params.size(); ++i )
 	{
 		// If true, we know that there is at least one image with differing
 		// dimensions from the rest, so we take that into account...
 		if ( params[ i - 1 ].width != params[ i ].width
 			 || params[ i - 1 ].height != params[ i ].height )
 		{
+			MLOG_INFO( "VARIED: %lu\n", params.size() );
 			return AtlasGenVariedOrigins( params, maxTextureSize );
 		}
 	}
 
+	MLOG_INFO( "UNIFORM: %lu\n", params.size() );
 	return AtlasGenUniformOrigins( params, maxTextureSize );
 }

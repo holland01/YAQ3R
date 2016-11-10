@@ -7,7 +7,7 @@
 
 struct meta_t
 {
-	const bool logProgramGen = true;	
+	const bool logProgramGen = false;
 	uint32_t currLineCount = 0;
 
 	std::string currShaderFile;
