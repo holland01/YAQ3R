@@ -8,8 +8,6 @@
 #include "em_api.h"
 #include <sstream>
 
-// #define G_DUPLICATE_PROGRAMS
-
 static INLINE GLsizei GL_EnumFromStr( const char* str );
 static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
 
@@ -21,7 +19,8 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer,
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, \
 	shaderStage_t& theStage, char* token ) -> bool
 
-#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * BSP_MAX_SHADER_TOKEN_LENGTH ) );
+#define ZEROTOK( t ) ( memset( t, 0, \
+	sizeof( char ) * BSP_MAX_SHADER_TOKEN_LENGTH ) );
 
 // Lookup table we use for each shader/stage command
 std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
@@ -93,7 +92,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				return false;
 			}
 
-			// Bulge and normal/wave signatures differ significantly, so we separate paths here
+			// Bulge and normal/wave signatures differ significantly,
+			// so we separate paths here
 			switch ( outInfo->deformCmd )
 			{
 			case VERTEXDEFORM_CMD_WAVE:
@@ -138,7 +138,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				break;
 
 			default:
-				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes", "Unsupported vertex deform found!" );
+				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes",
+					"Unsupported vertex deform found!" );
 				outInfo->deform = false;
 				return false;
 				break;
@@ -160,14 +161,17 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				outInfo->cullFace = GL_BACK;
 			}
-			else if ( strcmp( token, "none" ) == 0 || strcmp( token, "disable" ) == 0 )
+			else if ( strcmp( token, "none" ) == 0
+				|| strcmp( token, "disable" ) == 0 )
 			{
 				outInfo->cullFace = GL_NONE;
 			}
 			else
 			{
-				// the Q3 Shader Manual states that GL-FRONT is the default if no keyword is specified. The only other keyword
-				// that we have available to check after the above conditions is "front" anyway.
+				// the Q3 Shader Manual states that GL-FRONT is the default
+				// if no keyword is specified. The only other keyword
+				// that we have available to check after the above conditions
+				// is "front" anyway.
 				outInfo->cullFace = GL_FRONT;
 			}
 
