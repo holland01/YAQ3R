@@ -140,27 +140,14 @@ next_image:
 
 void AIIO_FixupAssetPath( gPathMap_t& pm )
 {
-	// Generate the absolute path
-	std::string pathCopy( pm.path );
-
-	size_t assRootLen = strlen( ASSET_Q3_ROOT );
-	size_t pathLen = pathCopy.length();
-
-	if ( pathCopy[ 0 ] != '/' )
+	std::string rootFolder( ASSET_Q3_ROOT );
+	
+	if ( pm.path[ 0 ] != '/' )
 	{
-		pathLen++;
+		rootFolder += "/";
 	}
 
-	pm.path = std::string( "", pathLen + assRootLen );
-	strncpy( &pm.path[ 0 ], ASSET_Q3_ROOT, assRootLen );
-
-	if ( pathCopy[ 0 ] != '/' )
-	{
-		pathLen--;
-		pm.path[ assRootLen++ ] = '/';
-	}
-
-	strncpy( &pm.path[ assRootLen ], &pathCopy[ 0 ], pathLen );
+	pm.path = rootFolder + pm.path;
 }
 
 void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
