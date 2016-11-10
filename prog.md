@@ -1936,3 +1936,22 @@ thrown once the canvas size is allocated. For q3dm2, the dimensions literally
 jump from being within the 2k x 4k range to 8k and 16k.
 
 It's - for lack of a better word - totally fucking retarded.
+
+**11/9/16**
+
+Things are much better now. The main issue being dealt with
+stems from either a) improper texture image paths being mapped to 
+the shader index within a bspFace_t or b) bad index mappings.
+
+Thinking b) is likely. A few things already checked: 
+
+- When effect passes aren't made, the error still shows.
+- The texture coordinate transform made in the fragment shaders
+- The relevant texture params passed to the fragment shaders, needed
+to make the actual transform.
+- Looking at the semantics behind DrawMapPass() and seeing if there's
+an errors; nothing found, as expected.
+
+My guess is there's something going on with the key mapping 
+mechanism within the texture generation pipeline, so this is
+what's going to be evaluated next...
