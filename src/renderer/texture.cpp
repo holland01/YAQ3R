@@ -15,8 +15,8 @@ struct gGrid_t
 	GLuint handle;
 	uint16_t xStart, yStart;
 	uint16_t xEnd, yEnd;
-	float invStride;
-	float invPitch;
+	float invStride; // 1 / grid width
+	float invPitch;  // 1 / grid height
 };
 
 using gTextureKeySlotMap_t = std::unordered_map< gTextureImageKey_t,
@@ -260,7 +260,7 @@ std::vector< glm::ivec2 > GenTextureData(
 
 		// The following loop uses the dimension values
 		// for the origin computations in such a manner that,
-		// if more than 1 grid _doess_ exist, then their origins will
+		// if more than 1 grid _does_ exist, then their origins will
 		// increase diagonally, instead of horizontally.
 
 		// This may not matter from a performance persective, though,
@@ -325,7 +325,7 @@ gGrid_t* GridFromSlot( const gTexture_t* t, const gTextureImage_t& image )
 {
 	if ( t->numGrids == 1 )
 	{
-		return t->grids;
+		return &t->grids[ 0 ];
 	}
 
 	// FIXME: what is the relationship between atlasPositionMap_t::origin,
