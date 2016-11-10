@@ -629,6 +629,9 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 
 	gTextureHandle_t mainImageHandle;
 
+	// Passing G_UNSPECIFIED to GBindTexture 
+	// (called in GU_SetupTexParams) will bind 
+	// a dummy texture which holds "white" data.
 	if ( textureIndex == -1 )
 	{
 		mainImageHandle.id = G_UNSPECIFIED;
@@ -637,7 +640,10 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 	{
 		mainImageHandle = mainTexHandle;
 	}
-
+	
+	// if textureIndex < 0, then GU_SetupTexParams 
+	// will only unbind the most recently used texture
+	// and then return.
 	if ( textureIndex == -1 )
 	{
 		textureIndex = 0;
@@ -933,12 +939,10 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 		UNUSED( stage );
 		UNUSED( prog );
 
-		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
-
+		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );	
+	
 		DrawSurface( surf );
 	};
-
-	UNUSED( LEffectCallback );
 
 	for ( auto i0 = list.begin(); i0 != list.end(); ++i0 )
 	{
@@ -966,6 +970,8 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 						DrawMapPass(
 							surf.textureIndex,
 							surf.lightmapIndex,
+							// FIXME: Is the lexical scoping used
+							// with the surf param bad for performance?
 							[ &surf, this ]( const Program& main )
 							{
 								UNUSED( main );
