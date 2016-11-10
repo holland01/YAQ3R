@@ -1,33 +1,11 @@
-/*
-	this.funcEvents = [
-		function(events, exts, name, packages, param, bpi, threshold, eventIndex){
-			xhrSnagFromName(exts, '.data', name, events, param,
-				packages, bpi, threshold, port, eventIndex + 1);
-		},
-		function(events, exts, name, packages, param, bpi, threshold, eventIndex){
-			xhrSnagFromName(exts, '.js.metadata', name, events, param,
-				packages, bpi, threshold, port, eventIndex + 1);
-		},
-		function(events, exts, name, packages, param, bpi, threshold, eventIndex) {
-			packages.push(param);
-			if (bpi !== threshold) {
-				return;
-			}
-
-			console.log('the last is hit');
-
-		}
-	];
-	*/
-
-
 var AL = {};
 
 AL.bundleLoadPort = '6931';
 
 AL.DATA_DIR_NAME = 'working';
-AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, and/or on load finish callback';
-AL.CONTENT_PIPELINE_MSG = AL.CONTENT_PIPELINE_MSG || false;
+AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, ' +
+	'and/or on load finish callback';
+AL.CONTENT_PIPELINE_MSG = AL.CONTENT_PIPELINE_MSG || true;
 
 AL.fetchNode = function(pathName) {
 	var node = null;
@@ -49,8 +27,6 @@ AL.mountPackages = function(packages) {
 	if (!FS.isMountpoint(node)) {
 		FS.mount(WORKERFS, {packages: packages},
 				'/' + AL.DATA_DIR_NAME);
-
-
 		console.log("Mount succeeded");
 	} else {
 		console.log("Mount failed");
