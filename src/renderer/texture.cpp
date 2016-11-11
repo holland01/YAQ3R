@@ -295,6 +295,8 @@ void TryAllocDummy( void )
 {
 	if ( !gDummy && !gSamplers.empty() )
 	{
+		MLOG_INFO( "%s", "Allocating Dummy..." );
+
 		gImageParams_t params;
 		params.sampler.id = 0;
 
@@ -492,9 +494,9 @@ void GenSubdivision(
 				data.dimension = tt->dimensions.size();
 				tt->dimensions.push_back( imageDims );
 			}
-		}	
+		}
 
-		// since the square value is 
+		// since the square value is
 		// determined from map.size() = num images,
 		// we can use y * square + x as a valid
 		// index into the keyMaps and imageSlots
@@ -694,7 +696,7 @@ void GBindTexture( const gTextureHandle_t& handle, uint32_t offset )
 
 	if ( t->numGrids == 1 )
 	{
-		grid = t->grids;
+		grid = &t->grids[ 0 ];
 	}
 	else
 	{
@@ -879,7 +881,8 @@ bool GValidTextureDimensions( uint16_t width, uint16_t height )
 	return true;
 }
 
-bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height, uint8_t fillValue )
+bool GSetImageBuffer( gImageParams_t& image, int32_t width, int32_t height,
+	uint8_t fillValue )
 {
 	if ( width < 0 ) return false;
 	if ( height < 0 ) return false;

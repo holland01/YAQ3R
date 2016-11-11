@@ -494,7 +494,7 @@ INLINE bool ValidateDims( uint16_t width, uint16_t height,
 
 	if ( !good )
 	{
-		MLOG_ERROR(
+		MLOG_INFO(
 			 "Width and Height exceed max GL texture size."\
 			 " (GL Max, width, height) => (%iu, %iu, %iu)",
 			 maxTextureSize, width, height );
@@ -727,7 +727,7 @@ atlasBaseInfo_t AtlasGenUniformOrigins(
 	MLOG_INFO( "Gen Width: %lu, Height: %lu", baseInfo.width, baseInfo.height );
 
 	if ( !ValidateDims( baseInfo.width, baseInfo.height, maxTextureSize ) )
-	{	
+	{
 		return baseInfo;
 	}
 

@@ -19,23 +19,32 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"position",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
+			MapVec3( program.attribs.at( "position" ), offsetof( bspVertex_t,
+				position ) );
 		}
 	},
 	{
 		"normal",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
+			MapVec3( program.attribs.at( "normal" ), offsetof( bspVertex_t,
+				normal ) );
 		}
 	},
 	{
 		"color",
 		[]( const Program& program ) -> void
 		{
-			GL_CHECK_WITH_NAME( glEnableVertexAttribArray( program.attribs.at( "color" ) ), "attribLoadFunctions" );
-			GL_CHECK_WITH_NAME( glVertexAttribPointer( program.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE,
-				GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ), "attribLoadFunctions" );
+			GL_CHECK_WITH_NAME( glEnableVertexAttribArray(
+				program.attribs.at( "color" ) ), "attribLoadFunctions" );
+			GL_CHECK_WITH_NAME( glVertexAttribPointer(
+				program.attribs.at( "color" ),
+				4,
+				GL_UNSIGNED_BYTE,
+				GL_TRUE,
+				sizeof( bspVertex_t ),
+				( void* ) offsetof( bspVertex_t, color ) ),
+				"attribLoadFunctions" );
 		}
 	},
 	{

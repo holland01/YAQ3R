@@ -204,6 +204,10 @@ void BSPRenderer::Load( renderPayload_t& payload )
 
 	mainSampler = payload.sampler;
 
+	GLint oldAlign;
+	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
+	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
+
 	// Create main and shader textures
 	{
 		gTextureMakeParams_t params( payload.mainImages, mainSampler,
@@ -222,15 +226,11 @@ void BSPRenderer::Load( renderPayload_t& payload )
 		shaderTexHandle = GMakeTexture( params );
 	}
 
-	camera->SetViewOrigin( map.GetFirstSpawnPoint().origin );
-
-	GLint oldAlign;
-	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
-	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-
 	LoadLightmaps();
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
+
+	camera->SetViewOrigin( map.GetFirstSpawnPoint().origin );
 
 	LoadVertexData();
 
@@ -253,13 +253,14 @@ void BSPRenderer::LoadLightmaps( void )
 	gImageParamList_t lightmaps;
 
 	// And then generate all of the lightmaps
-	for ( int32_t l = 0; l < map.data.numLightmaps; ++l )
+	for ( size_t l = 0; l < map.data.lightmaps.size(); ++l )
 	{
 		gImageParams_t image;
 		image.sampler = mainSampler;
 		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
 
-		GSetAlignedImageData( image, &map.data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3,
+		GSetAlignedImageData( image,
+			&map.data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3,
 			image.width * image.height );
 
 		lightmaps.push_back( image );
@@ -282,13 +283,11 @@ void BSPRenderer::LoadVertexData( void )
 	std::vector< bspVertex_t > vertexData( &map.data.vertexes[ 0 ],
 		&map.data.vertexes[ map.data.numVertexes ] );
 
-#if !G_STREAM_INDEX_VALUES
-	std::vector< uint32_t > indexData;
-	MapModelGenIndexBuffer( indexData );
-#endif
-
 #if G_STREAM_INDEX_VALUES
 	size_t iboSize = 0;
+#else
+	std::vector< uint32_t > indexData;
+	MapModelGenIndexBuffer( indexData );
 #endif
 
 	// cache the data already used for any polygon or mesh faces, so we don't have to
@@ -636,8 +635,8 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 
 	gTextureHandle_t mainImageHandle;
 
-	// Passing G_UNSPECIFIED to GBindTexture 
-	// (called in GU_SetupTexParams) will bind 
+	// Passing G_UNSPECIFIED to GBindTexture
+	// (called in GU_SetupTexParams) will bind
 	// a dummy texture which holds "white" data.
 	if ( textureIndex == -1 )
 	{
@@ -647,14 +646,14 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 	{
 		mainImageHandle = mainTexHandle;
 	}
-	
-	// if textureIndex < 0, then GU_SetupTexParams 
+
+	// if textureIndex < 0, then GU_SetupTexParams
 	// will only unbind the most recently used texture
 	// and then return.
 	if ( textureIndex == -1 )
 	{
 		textureIndex = 0;
-	}	
+	}
 
 	GU_SetupTexParams( main, "mainImage", mainImageHandle, textureIndex, 0 );
 	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
@@ -667,7 +666,7 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 
 	main.Release();
 
-	GReleaseTexture( mainTexHandle, 0 );
+	GReleaseTexture( mainImageHandle, 0 );
 	GReleaseTexture( lightmapHandle, 1 );
 }
 
@@ -945,8 +944,8 @@ void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
 		UNUSED( stage );
 		UNUSED( prog );
 
-		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );	
-	
+		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
+
 		DrawSurface( surf );
 	};
 

@@ -7,7 +7,9 @@
 
 #if defined( EMSCRIPTEN )
 #	define EM_SERV_ASSET_PORT "6931"
-#else
+#endif
+
+#if defined( DEBUG )
 #	define _DEBUG_USE_GL_GET_ERR
 #endif
 
