@@ -1,7 +1,5 @@
-YAQ3R
+YAQ3R (Yet Another Quake 3 Renderer)
 =========
-
-Can you guess what the abbreviation stands for?
 
 Functionally, it's pretty simple: just view a BSP map. This is really more of a project for educational/portfolio purposes than anything else.
 
