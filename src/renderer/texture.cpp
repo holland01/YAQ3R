@@ -7,6 +7,7 @@
 #include "render_data.h"
 #include <unordered_map>
 #include <unordered_set>
+#include "extern/gl_atlas.h"
 
 namespace {
 

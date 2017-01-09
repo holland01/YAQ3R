@@ -25,7 +25,8 @@ BINFILE = bspviewer.html
 COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
  -Wno-dollar-in-identifier-extension \
  -Wno-unused-function \
- -Isrc -Isrc/extern -s SAFE_HEAP=1
+ -Isrc -Isrc/extern -s SAFE_HEAP=1 \
+ -DGL_ATLAS_EGL
 
 ifdef DEBUG_RELEASE
 	COMMONFLAGS := $(COMMONFLAGS) -DDEBUG_RELEASE
