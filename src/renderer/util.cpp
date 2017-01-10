@@ -13,38 +13,7 @@ void GU_SetupTexParams( const Program& program,
 						int32_t textureIndex,
 						int32_t offset )
 {
-	if ( textureIndex < 0 )
-	{
-		GReleaseTexture( texHandle, offset );
-		return;
-	}
-
-	gTextureImageShaderParams_t shaderParams =
-		GTextureImageShaderParams( texHandle, textureIndex );
-
-	GBindTexture( texHandle, offset );
-
-	// If non-null, we're using the main program
-	if ( uniformPrefix )
-	{
-		std::string prefix( uniformPrefix );
-
-		if ( offset > -1 )
-			program.LoadInt( prefix + "Sampler", offset );
-
-		program.LoadVec4( prefix + "ImageTransform",
-			shaderParams.transform );
-		program.LoadVec2( prefix + "ImageScaleRatio",
-			shaderParams.dimensions );
-	}
-	else // otherwise, we have an effect shader
-	{
-		if ( offset > -1 )
-			program.LoadInt( "sampler0", offset );
-
-		program.LoadVec4( "imageTransform", shaderParams.transform );
-		program.LoadVec2( "imageScaleRatio", shaderParams.dimensions );
-	}
+	
 }
 
 struct gImageMountNode_t
@@ -70,12 +39,12 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 {
 	std::vector< gPathMap_t > env, gfx, models,
-		sprites, textures;	
+		sprites, textures;
 
 	// Iterate over our path sources
 	// and find each source a corresponding bundle
 	for ( gPathMap_t& source: sources )
-	{	
+	{
 		size_t slashPos = source.path.find_first_of( "/" );
 		if ( slashPos == std::string::npos )
 		{
@@ -86,11 +55,11 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 			continue;
 		}
 
-		AIIO_FixupAssetPath( source );	
+		AIIO_FixupAssetPath( source );
 
-		// Grab the path segment in between 
+		// Grab the path segment in between
 		// the first two slashes: this is our
-		// bundle we wish to assign 
+		// bundle we wish to assign
 		// the current path source.
 		const char* path = &source.path[ 0 ];
 		const char* slash0 = strstr( path, "/" );
@@ -110,7 +79,7 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 		}
 		else if ( strncmp( path, "models", len ) == 0 )
 		{
-			models.push_back( source );	
+			models.push_back( source );
 		}
 		else if ( strncmp( path, "sprites", len ) == 0 )
 		{
@@ -118,9 +87,9 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 		}
 		else if ( strncmp( path, "textures", len ) == 0 )
 		{
-			textures.push_back( source );	
+			textures.push_back( source );
 		}
-	}	
+	}
 
 	gImageMountNode_t* h = new gImageMountNode_t();
 	gImageMountNode_t** pn = &h;

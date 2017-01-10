@@ -76,7 +76,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 			return;
 		}
 
-		std::vector< uint8_t > imageData( Align( width * height * bpp ), 0 );
+		std::vector< uint8_t > imageData( width * height * bpp, 0 );
 
 		if ( ( unsigned ) size != imageData.size() + 8 )
 		{
@@ -141,7 +141,7 @@ next_image:
 void AIIO_FixupAssetPath( gPathMap_t& pm )
 {
 	std::string rootFolder( ASSET_Q3_ROOT );
-	
+
 	if ( pm.path[ 0 ] != '/' )
 	{
 		rootFolder += "/";

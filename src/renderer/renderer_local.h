@@ -6,7 +6,7 @@
 #define G_TEXNAME_CHAR_LIMIT 64
 #define G_UNSPECIFIED 0xFFFFFFFF
 
-// Just to let everyone know we only care 
+// Just to let everyone know we only care
 // really about RGBA... most of the time
 
 #define G_INTERNAL_BPP 4
@@ -15,7 +15,7 @@
 #define G_INDEX_BYTE_STRIDE 4
 
 // if 1, we don't use GL_ELEMENT_ARRAY_BUFFER, we just send
-// the indices directly through the draw call itself.
+// the indices directly through glDrawElementArrays and friends itself.
 #define G_STREAM_INDEX_VALUES 0
 
 #ifdef G_USE_GL_CORE
@@ -47,7 +47,6 @@ using gIndex_t = uint32_t;
 using gIndexBuffer_t = std::vector< gIndex_t >;
 using gTextureFlags_t = uint32_t;
 using gTexSlot_t = int16_t;
-
 
 #define G_HNULL( handle ) ( ( handle ).id == G_UNSPECIFIED )
 

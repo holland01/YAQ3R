@@ -547,18 +547,6 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	TraverseDraw( pass, false );
 
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
-
-/*
-	MLOG_INFOB( "FPS: %.2f\n numSolidEffect: %i\n numSolidNormal: %i\n numTransEffect: %i\n numTransNormal: %i\n"\
-				"Camera Move Speed: %f\n Depth Write ALWAYS Enabled: %s",
-				CalcFPS(),
-				gCounts.numSolidEffect,
-				gCounts.numSolidNormal,
-				gCounts.numTransEffect,
-				gCounts.numTransNormal,
-				camera->moveStep,
-				alwaysWriteDepth ? "true": "false" );
-				*/
 }
 
 void BSPRenderer::Update( float dt )
@@ -580,14 +568,19 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		pass.viewLeafIndex = -( nodeIndex + 1 );
 		const bspLeaf_t* viewLeaf = &map.data.leaves[ pass.viewLeafIndex ];
 
-		if ( !map.IsClusterVisible( pass.leaf->clusterIndex, viewLeaf->clusterIndex ) )
+		if ( !map.IsClusterVisible( pass.leaf->clusterIndex,
+				viewLeaf->clusterIndex ) )
 		{
 			return;
 		}
 
 		AABB leafBounds;
-		leafBounds.maxPoint = glm::vec3( viewLeaf->boxMax.x, viewLeaf->boxMax.y, viewLeaf->boxMax.z );
-		leafBounds.minPoint = glm::vec3( viewLeaf->boxMin.x, viewLeaf->boxMin.y, viewLeaf->boxMin.z );
+		leafBounds.maxPoint = glm::vec3( viewLeaf->boxMax.x,
+			viewLeaf->boxMax.y,
+			viewLeaf->boxMax.z );
+		leafBounds.minPoint = glm::vec3( viewLeaf->boxMin.x,
+			viewLeaf->boxMin.y,
+			viewLeaf->boxMin.z );
 
 		if ( !frustum->IntersectsBox( leafBounds ) )
 		{
@@ -596,19 +589,20 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
 			ProcessFace( pass,
-						map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+					map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
 	}
 	else
 	{
 		const bspNode_t* const node = &map.data.nodes[ nodeIndex ];
 		const bspPlane_t* const plane = &map.data.planes[ node->plane ];
 
-		float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x, plane->normal.y, plane->normal.z ) );
+		float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x,
+			plane->normal.y, plane->normal.z ) );
 
 		// We're in front of the plane if d > plane->distance.
-		// If both of these are true, it makes sense to draw what is in front of us, as any
-		// non-solid object can be handled properly by depth if it's infront of the partition plane
-		// and we're behind it
+		// If both of these are true, it makes sense to draw what is in
+		// front of us, as any non-solid object can be handled properly by
+		// depth if it's infront of the partition plane and we're behind it
 
 		if ( pass.isSolid == ( d > plane->distance ) )
 		{
@@ -701,7 +695,8 @@ namespace {
 	}
 }
 
-void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader,
+void BSPRenderer::MakeAddSurface(
+	const shaderInfo_t* shader,
 	int32_t faceIndex,
 	surfaceContainer_t& surfList )
 {
@@ -721,7 +716,9 @@ void BSPRenderer::MakeAddSurface( const shaderInfo_t* shader,
 		[ ( uintptr_t ) shader ] = surf;
 }
 
-void BSPRenderer::AddSurface( const shaderInfo_t* shader, int32_t faceIndex,
+void BSPRenderer::AddSurface(
+	const shaderInfo_t* shader,
+	int32_t faceIndex,
 	surfaceContainer_t& surfList )
 {
 	const bspFace_t* face = &map.data.faces[ faceIndex ];
@@ -761,7 +758,8 @@ void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
 	for ( int32_t i: surf.faceIndices )
 		DeformVertexes( *( glFaces[ i ] ), surf.shader );
 
-	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )? GL_TRIANGLE_STRIP: GL_TRIANGLES;
+	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )?
+		GL_TRIANGLE_STRIP: GL_TRIANGLES;
 
 #if G_STREAM_INDEX_VALUES
 	for ( uint32_t i = 0; i < surf.drawFaceIndices.size(); ++i )
@@ -829,7 +827,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		if ( !alwaysWriteDepth )
 		{
-			if ( isSolid || ( stage.depthPass && !( stage.blendSrc == GL_ONE && stage.blendDest == GL_ZERO ) ) )
+			if ( isSolid || ( stage.depthPass
+				&& !( stage.blendSrc == GL_ONE && stage.blendDest == GL_ZERO ) ) )
 			{
 				GL_CHECK( glDepthMask( GL_TRUE ) );
 			}

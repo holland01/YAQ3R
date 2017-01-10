@@ -89,7 +89,7 @@
 //------------------------------------------------------------------------------------
 #define ga_inline inline
 
-namespace gl_atlas {
+namespace gla {
 
 	static ga_inline void atlas_error_exit(void)
 	{
@@ -256,10 +256,14 @@ namespace gl_atlas {
 
 			bind(index);
 
-			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR) );
-			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR) );
-			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE) );
-			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE) );
+			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+				GL_LINEAR) );
+			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+				GL_LINEAR) );
+			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+				GL_CLAMP_TO_EDGE) );
+			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+				GL_CLAMP_TO_EDGE) );
 
 			alloc_blank_texture(widths[index], heights[index], 0x00);
 		}
@@ -319,7 +323,8 @@ namespace gl_atlas {
 				// until that item is unbound
 
 				bool bound = false;
-				for (GLuint handle = 0; handle < layer_tex_handles.size() && !bound && curr_bound_tex; ++handle) {
+				for (GLuint handle = 0; handle < layer_tex_handles.size()
+					&& !bound && curr_bound_tex; ++handle) {
 					bound = (GLuint)curr_bound_tex == layer_tex_handles[handle];
 				}
 
@@ -327,7 +332,8 @@ namespace gl_atlas {
 					GL_H( glBindTexture(GL_TEXTURE_2D, 0) );
 				}
 
-				GL_H( glDeleteTextures(layer_tex_handles.size(), &layer_tex_handles[0]) );
+				GL_H( glDeleteTextures(layer_tex_handles.size(),
+					&layer_tex_handles[0]) );
 			}
 
 			num_images = 0;
@@ -354,7 +360,8 @@ namespace gl_atlas {
 	//------------------
 	// gen_layer_bsp
 	//
-	// generates a layer (think of "layer" in this sense as just a separate atlas texture belonging to a whole image)
+	// generates a layer (think of "layer" in this sense as just a separate
+	// atlas texture belonging to a whole image)
 	// for a group of images. The core algorithm is based on 2D BSP generation.
 	//
 	// it assesses whether or not sorted images for this layer
@@ -365,7 +372,7 @@ namespace gl_atlas {
 	// of images which are of the same dimensions, then there will be a lot of unused
 	// space.
 	//
-	// source of BSP algol is from here:
+	// idea behind BSP algol is from here:
 	// http://gamedev.stackexchange.com/a/34193
 	//------------------
 
@@ -453,7 +460,8 @@ namespace gl_atlas {
 					if ((node->origin.y + image_dims.y) > layer_dims.y)
 						layer_dims.y = node->origin.y + image_dims.y;
 
-					atlas.write_origins(node->image, node->origin.x, node->origin.y);
+					atlas.write_origins(node->image, node->origin.x,
+						node->origin.y);
 
 					return node;
 				}
@@ -523,7 +531,8 @@ namespace gl_atlas {
 			return layer_dims;
 		}
 
-		gen_layer_bsp(atlas_type_t& atlas_, image_fill_map_t& image_check, uint32_t area_accum)
+		gen_layer_bsp(atlas_type_t& atlas_, image_fill_map_t& image_check,
+			uint32_t area_accum)
 			:   atlas(atlas_),
 				root(new node_t(), node_t::destroy)
 		{
@@ -585,8 +594,8 @@ namespace gl_atlas {
 	}
 
 
-	static ga_inline void convert_rgb_to_rgba(uint8_t* dest, const uint8_t* src, size_t dim_x,
-									size_t dim_y)
+	static ga_inline void convert_rgb_to_rgba(uint8_t* dest,
+		const uint8_t* src, size_t dim_x, size_t dim_y)
 	{
 		for (size_t y = 0; y < dim_y; ++y) {
 			for (size_t x = 0; x < dim_x; ++x) {
@@ -690,14 +699,14 @@ namespace gl_atlas {
 	}
 
 	static ga_inline void push_atlas_image(atlas_t& atlas,
-		stbi_uc* stbi_buffer, int dx, int dy, int bpp)
+		uint8_t* buffer, int dx, int dy, int bpp)
 	{
 		std::vector<uint8_t> image_data(dx * dy * DESIRED_BPP, 0);
 
 		if (bpp != DESIRED_BPP) {
-			convert_rgb_to_rgba(&image_data[0], stbi_buffer, dx, dy);
+			convert_rgb_to_rgba(&image_data[0], buffer, dx, dy);
 		} else {
-			memcpy(&image_data[0], stbi_buffer, dx * dy * DESIRED_BPP);
+			memcpy(&image_data[0], buffer, dx * dy * DESIRED_BPP);
 		}
 
 		area_accum += dx * dy;
@@ -771,6 +780,6 @@ namespace gl_atlas {
 			 atlas.num_images, area_accum);
 	}
 
-} // namespace gl_atlas
+} // namespace gla
 
 #endif

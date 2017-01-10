@@ -31,6 +31,7 @@ using extFallbackBuff_t = std::vector< std::string >;
 // generated from the effect shader loader), we have to make sure that
 // every stage with a texture image knows the index used to access the
 // "image slot" within the texture atlas.
+
 struct gImageLoadTracker_t
 {
 	bool isKeyMapped : 1;
@@ -39,7 +40,6 @@ struct gImageLoadTracker_t
 
 	onFinishEvent_t finishEvent;
 
-	gSamplerHandle_t sampler;
 	gImageParamList_t textures;
 
 	glm::ivec2 maxDims;
@@ -69,5 +69,8 @@ struct gImageLoadTracker_t
 
 void AIIO_FixupAssetPath( gPathMap_t& pathMap );
 
-void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
-	gSamplerHandle_t sampler, onFinishEvent_t finish, bool keyMapped );
+void AIIO_ReadImages(
+	Q3BspMap& map,
+	std::vector< gPathMap_t > pathInfo,
+	onFinishEvent_t finish,
+	bool keyMapped );
