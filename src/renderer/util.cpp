@@ -3,18 +3,10 @@
 #include "effect_shader.h"
 #include "shader_gen.h"
 #include "lib/async_image_io.h"
-#include "q3bsp.h"
+#include "renderer.h"
 #include "em_api.h"
+#include "extern/gl_atlas.h"
 #include <iostream>
-
-void GU_SetupTexParams( const Program& program,
-						const char* uniformPrefix,
-						gTextureHandle_t texHandle,
-						int32_t textureIndex,
-						int32_t offset )
-{
-	
-}
 
 struct gImageMountNode_t
 {
@@ -89,13 +81,19 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 		{
 			textures.push_back( source );
 		}
+		else
+		{
+			MLOG_ERROR( "%s", "Invalid bundle module received" );
+		}
 	}
 
 	gImageMountNode_t* h = new gImageMountNode_t();
 	gImageMountNode_t** pn = &h;
 
-	auto LAddNode = [ &pn ]( const std::vector< gPathMap_t >& paths,
-			const char* name )
+	auto LAddNode = [ &pn ](
+		const std::vector< gPathMap_t >& paths,
+		const char* name
+	)
 	{
 		if ( !paths.empty() )
 		{
@@ -128,7 +126,7 @@ struct gLoadImagesState_t
 	onFinishEvent_t mapLoadFinEvent = nullptr;
 	Q3BspMap* map = nullptr;
 
-	gSamplerHandle_t sampler = { G_UNSPECIFIED };
+	gla::atlas_t* destAtlas = nullptr;
 
 	bool keyMapped = false;
 };
@@ -137,8 +135,26 @@ static gLoadImagesState_t gImageLoadState;
 
 static void LoadImagesBegin( char* mem, int size, void* param );
 
+// NOTE:
+// Each time a new bundle is loaded, the global image tracker
+// in lib/async_image_io is reallocated. Since LoadImagesEnd()
+// is passed to AIIO_ReadImages() (via LoadImages()) as a
+// callback - which is invoked once all of desired the images from that particular bundle
+// have been read - then it's up to the finishing callback to actually delete
+// the memory owned by the current global image tracker.
+
+// This _isn't_ a good design - it was naiively written this way a year ago.
+// It should be rewritten.
+// That said, given the current scope of the application,
+// the amount of time available for yours truly, and the fact that I want
+// to actually finish this project, it's going to have to remain that way :/
+
 static void LoadImagesEnd( void* param )
 {
+	gImageLoadTracker_t** imageLoadTracker = ( gImageLoadTracker_t** ) param;
+	delete *imageLoadTracker;
+	*imageLoadTracker = nullptr;
+
 	gImageLoadState.currNode = gImageLoadState.currNode->next;
 	gFileWebWorker.Await(
 		LoadImagesBegin,
@@ -151,17 +167,25 @@ static void LoadImagesEnd( void* param )
 
 static void LoadImages( char* mem, int size, void* param )
 {
+	UNUSED( mem );
+	UNUSED( size );
+	UNUSED( param );
+
 	AIIO_ReadImages(
 		*gImageLoadState.map,
 		gImageLoadState.currNode->paths,
-		gImageLoadState.sampler,
 		LoadImagesEnd,
+		*( gImageLoadState.destAtlas ),
 		gImageLoadState.keyMapped
 	);
 }
 
 static void LoadImagesBegin( char* mem, int size, void* param )
 {
+	UNUSED( mem );
+	UNUSED( size );
+	UNUSED( param );
+
 	if ( gImageLoadState.currNode )
 	{
 		gFileWebWorker.Await(
@@ -174,25 +198,25 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 	else
 	{
 		gImageLoadState.head.reset();
+		gImageLoadState.destAtlas = nullptr;
 		gImageLoadState.mapLoadFinEvent( param );
 	}
 }
 
-static void LoadImageState( Q3BspMap& map, gSamplerHandle_t sampler,
-	std::vector< gPathMap_t >& sources )
+static void LoadImageState(
+	Q3BspMap& map,
+	std::vector< gPathMap_t >& sources,
+	int atlas )
 {
 	gImageLoadState.map = &map;
-	gImageLoadState.sampler = sampler;
-
 	gImageLoadState.head = BundleImagePaths( sources );
-
 	gImageLoadState.currNode = gImageLoadState.head.get();
+	gImageLoadState.destAtlas = map.payload->textureData[atlas].get();
 
 	LoadImagesBegin( nullptr, 0, 0 );
 }
 
-void GU_LoadShaderTextures( Q3BspMap& map,
-	gSamplerHandle_t sampler )
+void GU_LoadShaderTextures( Q3BspMap& map )
 {
 	for ( auto& entry: map.effectShaders )
 	{
@@ -219,10 +243,10 @@ void GU_LoadShaderTextures( Q3BspMap& map,
 	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
-	LoadImageState( map, sampler, sources );
+	LoadImageState( map, sources, TEXTURE_ATLAS_SHADERS );
 }
 
-void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
+void GU_LoadMainTextures( Q3BspMap& map )
 {
 	std::vector< gPathMap_t> sources;
 
@@ -239,75 +263,5 @@ void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
 	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
-	LoadImageState( map, sampler, sources );
+	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }
-
-void GU_LoadStageTexture( glm::ivec2& maxDims,
-		std::vector< gImageParams_t >& images,
-		shaderInfo_t& info,
-		int i,
-		const gSamplerHandle_t& sampler )
-{
-	UNUSED(maxDims);
-	UNUSED(images);
-	UNUSED(info);
-	UNUSED(i);
-	UNUSED(sampler);
-}
-
-#ifndef EMSCRIPTEN
-void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj )
-{
-	GL_CHECK( glUseProgram( 0 ) );
-	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( proj ) ) );
-
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glPushMatrix() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( view ) ) );
-}
-
-void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
-{
-	GU_ImmLoadMatrices( view, proj );
-	glBegin( mode );
-}
-
-void GU_ImmLoad( const guImmPosList_t& v, const glm::vec4& color )
-{
-	for ( const auto& p: v )
-	{
-		glColor4fv( glm::value_ptr( color ) );
-		glVertex3fv( glm::value_ptr( p ) );
-	}
-}
-
-void GU_ImmLoad( const guImmPosList_t& v, const glm::u8vec4& color )
-{
-	for ( const auto& p: v )
-	{
-		glColor4ubv( glm::value_ptr( color ) );
-		glVertex3fv( glm::value_ptr( p ) );
-	}
-}
-
-void GU_ImmEnd( void )
-{
-	glEnd();
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glPopMatrix() );
-}
-
-void GU_ImmDrawLine( const glm::vec3& origin,
-					 const glm::vec3& dir,
-					 const glm::vec4& color,
-					 const glm::mat4& view,
-					 const glm::mat4& proj )
-{
-	GU_ImmBegin( GL_LINES, view, proj );
-	glColor4fv( glm::value_ptr( color ) );
-	glVertex3fv( glm::value_ptr( origin ) );
-	glVertex3fv( glm::value_ptr( dir ) );
-	GU_ImmEnd();
-}
-#endif // EMSCRIPTEN

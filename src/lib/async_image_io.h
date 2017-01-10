@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "renderer/texture.h"
 #include <memory>
 
 class Q3BspMap;
@@ -32,15 +31,18 @@ using extFallbackBuff_t = std::vector< std::string >;
 // every stage with a texture image knows the index used to access the
 // "image slot" within the texture atlas.
 
+namespace gla {
+	struct atlas_t;
+}
+
 struct gImageLoadTracker_t
 {
 	bool isKeyMapped : 1;
+
 	int16_t iterator;
 	int16_t extIterator;
 
 	onFinishEvent_t finishEvent;
-
-	gImageParamList_t textures;
 
 	glm::ivec2 maxDims;
 
@@ -48,19 +50,21 @@ struct gImageLoadTracker_t
 
 	std::vector< gPathMap_t > textureInfo;
 
+	gla::atlas_t& destAtlas;
+
 	gImageLoadTracker_t( Q3BspMap& map_,
 		std::vector< gPathMap_t > textureInfo_,
-		gSamplerHandle_t sampler_,
 		onFinishEvent_t finishEvent_,
+		gla::atlas_t& destAtlas_,
 		bool isKeyMapped_ )
 		:	isKeyMapped( isKeyMapped_ ),
 			iterator( 0 ),
 			extIterator( 0 ),
 			finishEvent( finishEvent_ ),
-			sampler( sampler_ ),
 			maxDims( 0.0f ),
 			map( map_ ),
-			textureInfo( textureInfo_ )
+			textureInfo( textureInfo_ ),
+			destAtlas( destAtlas_ )
 	{
 	}
 
@@ -73,4 +77,6 @@ void AIIO_ReadImages(
 	Q3BspMap& map,
 	std::vector< gPathMap_t > pathInfo,
 	onFinishEvent_t finish,
-	bool keyMapped );
+	gla::atlas_t& destAtlas,
+	bool keyMapped
+);

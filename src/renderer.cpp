@@ -6,6 +6,7 @@
 #include "deform.h"
 #include "model.h"
 #include "renderer/shader_gen.h"
+#include "extern/gl_atlas.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
 #include <random>
@@ -56,8 +57,7 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
-	:	mainSampler( { G_UNSPECIFIED } ),
-		glEffects( {
+	:	glEffects( {
 			{
 				"tcModTurb",
 				[]( const Program& p, const effect_t& e ) -> void
@@ -202,31 +202,44 @@ void BSPRenderer::Load( renderPayload_t& payload )
 {
 	Prep();
 
-	mainSampler = payload.sampler;
+	textures = std::move(payload.textureData);
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
-	// Create main and shader textures
+	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_SHADERS ] ) );
+	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
+
+	// And then generate all of the lightmaps
+
+	for ( bspLightmap_t& lightmap: map.data.lightmaps )
 	{
-		gTextureMakeParams_t params( payload.mainImages, mainSampler,
-			G_TEXTURE_STORAGE_KEY_MAPPED_BIT );
-
-		for ( gImageParams_t& image: params.images )
-		{
-			params.keyMaps.push_back( image.keyMapIndex );
-		}
-
-		mainTexHandle = GMakeTexture( params );
+		gla::push_atlas_image(
+			*( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ),
+			&lightmap.map[ 0 ][ 0 ][ 0 ],
+			BSP_LIGHTMAP_WIDTH,
+			BSP_LIGHTMAP_HEIGHT,
+			3
+		);
 	}
 
+	// Sometimes a white image is necessary for certain shader passes.
+	// So, we just allocate a small extra set of texels here and add them to
+	// the lightmap atlas before layer generation.
 	{
-		gTextureMakeParams_t params( payload.shaderImages, mainSampler );
-		shaderTexHandle = GMakeTexture( params );
+		std::vector< uint8_t > whiteImage( 16 * 16 * 4, 0xFF );
+
+		gla::push_atlas_image(
+			*( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ),
+			&whiteImage[ 0 ],
+			16,
+			16,
+			4
+		);
 	}
 
-	LoadLightmaps();
+	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ) );
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 
@@ -248,27 +261,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 		camera->ViewData().clipTransform );
 }
 
-void BSPRenderer::LoadLightmaps( void )
-{
-	gImageParamList_t lightmaps;
-
-	// And then generate all of the lightmaps
-	for ( size_t l = 0; l < map.data.lightmaps.size(); ++l )
-	{
-		gImageParams_t image;
-		image.sampler = mainSampler;
-		GSetImageBuffer( image, BSP_LIGHTMAP_WIDTH, BSP_LIGHTMAP_HEIGHT, 255 );
-
-		GSetAlignedImageData( image,
-			&map.data.lightmaps[ l ].map[ 0 ][ 0 ][ 0 ], 3,
-			image.width * image.height );
-
-		lightmaps.push_back( image );
-	}
-
-	gTextureMakeParams_t makeParams( lightmaps, mainSampler );
-	lightmapHandle = GMakeTexture( makeParams );
-}
 
 //---------------------------------------------------------------------
 // Generate our face/render data
@@ -359,65 +351,6 @@ void BSPRenderer::Render( void )
 	frameCount++;
 }
 
-void BSPRenderer::DrawDebugFace( uint32_t index )
-{
-#ifdef EMSCRIPTEN
-	UNUSED( index );
-#else
-	pushBlend_t b( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-	const bspFace_t& f = map.data.faces[ index ];
-
-	const glm::mat4& viewM = camera->ViewData().transform;
-	const glm::mat4& proj = camera->ViewData().clipTransform;
-
-	if ( f.type != BSP_FACE_TYPE_PATCH )
-	{
-		glm::vec4 w( 0.3f );
-
-		GU_ImmBegin( GL_TRIANGLES, viewM, proj );
-		GU_ImmLoad( glDebugFaces[ index ].positions, w );
-		GU_ImmEnd();
-
-		glm::mat4 viewLine( camera->ViewData().transform * glm::translate(
-			glm::mat4( 1.0f ), f.lightmapOrigin ) );
-
-		GU_ImmDrawLine( glm::vec3( 0.0f ),
-						f.normal * 100.0f,
-						w,
-						viewLine, proj );
-	}
-	else
-	{
-		glPrograms[ "debug" ]->LoadDefaultAttribProfiles();
-		glPrograms[ "debug" ]->LoadMat4( "modelToView", viewM );
-		glPrograms[ "debug" ]->LoadMat4( "viewToClip", proj );
-		glPrograms[ "debug" ]->LoadVec4( "fragColor",
-			glDebugFaces[ index ].color );
-		glPrograms[ "debug" ]->Bind();
-		GU_MultiDrawElements( GL_TRIANGLE_STRIP,
-					glFaces[ index ]->ToPatch()->rowIndices,
-					glFaces[ index ]->ToPatch()->trisPerRow );
-		glPrograms[ "debug" ]->Release();
-
-		glm::mat4 viewLineX( camera->ViewData().transform * glm::translate(
-			glm::mat4( 1.0f ), f.lightmapStVecs[ 0 ] ) );
-		glm::mat4 viewLineY( camera->ViewData().transform * glm::translate(
-			glm::mat4( 1.0f ), f.lightmapStVecs[ 1 ] ) );
-
-		GU_ImmDrawLine( glm::vec3( 0.0f ),
-						f.normal * 100.0f,
-						glDebugFaces[ index ].color,
-						viewLineX, proj );
-
-		GU_ImmDrawLine( glm::vec3( 0.0f ),
-						f.normal * 100.0f,
-						glDebugFaces[ index ].color,
-						viewLineY, proj );
-	}
-#endif
-}
-
 void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 {
 	// if pass.facesVisited[ faceIndex ] is still false after this criteria's
@@ -437,12 +370,6 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 
 	if ( add )
 	{
-		if ( gConfig.debugRender )
-		{
-			DrawDebugFace( index );
-			return;
-		}
-
 		if ( gConfig.drawFacesOnly )
 		{
 			DrawFace( pass );
@@ -617,8 +544,48 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 	}
 }
 
-void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
-	std::function< void( const Program& mainRef ) > callback )
+void BSPRenderer::BindTexture(
+	const Program& program,
+	const gla_atlas_ptr_t& atlas,
+	uint16_t image,
+	const char* prefix,
+	int offset
+)
+{
+	gla::atlas_image_info_t imageData = atlas->image_info( image );
+
+	atlas->bind_to_active_slot( imageData.layer, offset );
+
+	std::string strfix( prefix );
+
+	glm::vec4 transform(
+		0.0f,
+		0.0f,
+		imageData.coords.x,
+		imageData.coords.y
+	);
+
+	if ( prefix )
+	{
+		std::string strfix( prefix );
+		program.LoadInt( strfix + "ImageSampler", offset );
+		program.LoadVec2( strfix + "ImageScaleRatio",
+			imageData.inverse_layer_dims );
+		program.LoadVec4( strfix + "ImageTransform", transform );
+	}
+	else
+	{
+		program.LoadInt( "sampler0", offset );
+		program.LoadVec2( "imageScaleRatio", imageData.inverse_layer_dims );
+		program.LoadVec4( "imageTransform", transform );
+	}
+}
+
+void BSPRenderer::DrawMapPass(
+	int32_t textureIndex,
+	int32_t lightmapIndex,
+	std::function< void( const Program& mainRef ) > callback
+)
 {
 	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
@@ -627,30 +594,47 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 
 	main.LoadDefaultAttribProfiles();
 
-	gTextureHandle_t mainImageHandle;
-
-	// Passing G_UNSPECIFIED to GBindTexture
-	// (called in GU_SetupTexParams) will bind
-	// a dummy texture which holds "white" data.
 	if ( textureIndex == -1 )
 	{
-		mainImageHandle.id = G_UNSPECIFIED;
+		BindTexture(
+			main,
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ],
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1,
+			"mainImage",
+			0
+		);
 	}
 	else
 	{
-		mainImageHandle = mainTexHandle;
+		BindTexture(
+			main,
+			textures[ TEXTURE_ATLAS_MAIN ],
+			( uint16_t ) textures[ TEXTURE_ATLAS_MAIN ]->key_image( textureIndex ),
+			"mainImage",
+			0
+		);
 	}
 
-	// if textureIndex < 0, then GU_SetupTexParams
-	// will only unbind the most recently used texture
-	// and then return.
-	if ( textureIndex == -1 )
+	if ( lightmapIndex == -1 )
 	{
-		textureIndex = 0;
+		BindTexture(
+			main,
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ],
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1,
+			"lightmap",
+			1
+		);
 	}
-
-	GU_SetupTexParams( main, "mainImage", mainImageHandle, textureIndex, 0 );
-	GU_SetupTexParams( main, "lightmap", lightmapHandle, lightmapIndex, 1 );
+	else
+	{
+		BindTexture(
+			main,
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ],
+			( uint16_t ) lightmapIndex,
+			"lightmap",
+			1
+		);
+	}
 
 	main.LoadMat4( "modelToView", camera->ViewData().transform );
 
@@ -660,8 +644,12 @@ void BSPRenderer::DrawMapPass( int32_t textureIndex, int32_t lightmapIndex,
 
 	main.Release();
 
-	GReleaseTexture( mainImageHandle, 0 );
-	GReleaseTexture( lightmapHandle, 1 );
+	// Even if the lightmaps atlas is used in place of the main atlas
+	// (in the case of textureIndex == -1), calling release_from_active_slot()
+	// using the main atlas pointer will still do what it's supposed to do:
+	// activate texture slot 0 and unbind its currently bound texture.
+	textures[ TEXTURE_ATLAS_MAIN ]->release_from_active_slot( 0 );
+	textures[ TEXTURE_ATLAS_LIGHTMAPS ]->release_from_active_slot( 1 );
 }
 
 namespace {
@@ -828,7 +816,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		if ( !alwaysWriteDepth )
 		{
 			if ( isSolid || ( stage.depthPass
-				&& !( stage.blendSrc == GL_ONE && stage.blendDest == GL_ZERO ) ) )
+				&& !( stage.blendSrc == GL_ONE
+				&& stage.blendDest == GL_ZERO ) ) )
 			{
 				GL_CHECK( glDepthMask( GL_TRUE ) );
 			}
@@ -838,13 +827,38 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			}
 		}
 
-		// TODO: use correct dimensions for texture
+		if ( stage.mapType == MAP_TYPE_IMAGE )
+		{
+			BindTexture(
+				stageProg,
+				textures[ TEXTURE_ATLAS_SHADERS ],
+				stage.textureIndex,
+				nullptr,
+				0
+			);
+		}
+		else if ( stage.mapType == MAP_TYPE_WHITE_IMAGE )
+		{
+			BindTexture(
+				stageProg,
+				textures[ TEXTURE_ATLAS_LIGHTMAPS ],
+				textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1,
+				nullptr,
+				0
+			);
+		}
+		else
+		{
+			BindTexture(
+				stageProg,
+				textures[ TEXTURE_ATLAS_LIGHTMAPS ],
+				lightmapIndex,
+				nullptr,
+				0
+			);
+		}
+
 		glm::vec2 texDims( 64.0f );
-
-		const gTextureHandle_t& handle = stage.mapType == MAP_TYPE_IMAGE? shaderTexHandle: lightmapHandle;
-		const int32_t texIndex = ( stage.mapType == MAP_TYPE_IMAGE )? stage.textureIndex: lightmapIndex;
-
-		GU_SetupTexParams( stageProg, nullptr, handle, texIndex, 0 );
 
 		for ( effect_t e: stage.effects )
 		{
@@ -868,7 +882,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		callback( std::get< 0 >( data ), stageProg, &stage );
 		stageProg.Release();
 
-		GReleaseTexture( handle );
+		textures[ TEXTURE_ATLAS_LIGHTMAPS ]->release_from_active_slot( 0 );
 	}
 
 	// No need to change state here unless there's the possibility
@@ -907,14 +921,27 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 	{
 		case PASS_DRAW_EFFECT:
 		{
-			drawTuple_t data = std::make_tuple( nullptr, pass.shader, pass.face->shader, pass.face->lightmapIndex, pass.isSolid );
+			drawTuple_t data = std::make_tuple(
+				nullptr,
+				pass.shader,
+				pass.face->shader,
+				pass.face->lightmapIndex,
+				pass.isSolid
+			);
 
-			DrawEffectPass( data, [ &pass, this ]( const void* param, const Program& prog, const shaderStage_t* stage )
-			{
-				UNUSED( param );
-				UNUSED( prog );
-				DrawFaceVerts( pass, stage );
-			});
+			DrawEffectPass(
+				data,
+				[ &pass, this ](
+					const void* param,
+					const Program& prog,
+					const shaderStage_t* stage
+				)
+				{
+					UNUSED( param );
+					UNUSED( prog );
+					DrawFaceVerts( pass, stage );
+				}
+			);
 		}
 			break;
 		default:
@@ -1044,23 +1071,41 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m,
 
 	for ( uint32_t i = 0; i < verts.size(); ++i )
 	{
-		glm::vec3 n( verts[ i ].normal * GenDeformScale( verts[ i ].position,
-			shader ) );
+		glm::vec3 n(
+			verts[ i ].normal * GenDeformScale( verts[ i ].position, shader )
+		);
 		verts[ i ].position += n;
 	}
 
-	UpdateBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, apiHandles[ 0 ],
-		m.vboOffset, verts, false );
+	UpdateBufferObject< bspVertex_t >(
+		GL_ARRAY_BUFFER,
+		apiHandles[ 0 ],
+		m.vboOffset,
+		verts,
+		false
+	);
 }
 
-void BSPRenderer::LoadLightVol( const drawPass_t& pass, const Program& prog ) const
+void BSPRenderer::LoadLightVol(
+	const drawPass_t& pass,
+	const Program& prog
+) const
 {
 	if ( pass.lightvol )
 	{
-		float phi = glm::radians( ( float )pass.lightvol->direction.x * 4.0f );
-		float theta = glm::radians( ( float )pass.lightvol->direction.y * 4.0f );
+		float phi = glm::radians(
+			( float ) pass.lightvol->direction.x * 4.0f
+		);
 
-		glm::vec3 dirToLight( glm::cos( theta ) * glm::cos( phi ), glm::sin( phi ), glm::cos( phi ) * glm::sin( theta ) );
+		float theta = glm::radians(
+			( float ) pass.lightvol->direction.y * 4.0f
+		);
+
+		glm::vec3 dirToLight(
+			glm::cos( theta ) * glm::cos( phi ),
+			glm::sin( phi ),
+			glm::cos( phi ) * glm::sin( theta )
+		);
 
 		glm::vec3 ambient( pass.lightvol->ambient );
 		ambient *= Inv255< float >();

@@ -2,8 +2,6 @@
 #include "renderer.h"
 #include "io.h"
 #include "tests/trenderer.h"
-#include "tests/test_textures.h"
-#include "tests/test_atlas_struct.h"
 #include "renderer/buffer.h"
 #include <iostream>
 
@@ -22,7 +20,7 @@ void FlagExit( void )
 		gAppTest = nullptr;
 	}
 #ifdef EMSCRIPTEN
-	//emscripten_force_exit( 0 );
+	emscripten_force_exit( 0 );
 #else
 	exit( 0 );
 #endif

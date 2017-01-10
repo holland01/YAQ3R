@@ -1,6 +1,7 @@
 #include "trenderer.h"
 #include "glutil.h"
 #include "em_api.h"
+#include "extern/gl_atlas.h"
 
 static void OnMapFinish( void* param )
 {

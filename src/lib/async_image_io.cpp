@@ -3,6 +3,7 @@
 #include "io.h"
 #include "worker/wapi.h"
 #include "em_api.h"
+#include "extern/gl_atlas.h"
 
 static gImageLoadTracker_t* gImageTracker = nullptr;
 
@@ -41,8 +42,7 @@ void gImageLoadTracker_t::LogImages( void )
 // 2, 3 -> height
 // 4 -> bpp
 // 5, 6, 7 -> padding
-// What follows is the image data, whose size will be aligned by
-// 4
+// What follows is the image data.
 static void OnImageRead( char* buffer, int size, void* param )
 {
 	if ( !gImageTracker )
@@ -76,35 +76,36 @@ static void OnImageRead( char* buffer, int size, void* param )
 			return;
 		}
 
-		std::vector< uint8_t > imageData( width * height * bpp, 0 );
+		size_t imageDataSize = width * height * bpp + 8;
 
-		if ( ( unsigned ) size != imageData.size() + 8 )
+		if ( ( unsigned ) size != imageDataSize )
 		{
 			MLOG_ERROR(
-			"buffer size does not match "\
-	 		"interpreted metadata criteria. " DATA_FMT_STRING(
-	 			imageData.size() ) );
+				"buffer size does not match "\
+		 		"interpreted metadata criteria. "
+				DATA_FMT_STRING( imageDataSize )
+			);
 			return;
 		}
 
-		memcpy( &imageData[ 0 ], buffer + 8, imageData.size() );
-
-		// Ensure it conforms to our standards
-		gImageParams_t image;
-		image.sampler = gImageTracker->sampler;
-
-		if ( !GLoadImageFromMemory( image, imageData, width, height, bpp ) )
-		{
-			MLOG_ERROR( "Failure to load image data. "\
-				DATA_FMT_STRING( imageData.size() ) );
-			return;
-		}
+		gla::push_atlas_image(
+			gImageTracker->destAtlas,
+			( uint8_t* ) &buffer[ 8 ],
+			width,
+			height,
+			bpp
+		);
 
 		if ( gImageTracker->isKeyMapped )
 		{
-			image.keyMapIndex =
+			size_t keyMap =
 				( size_t ) gImageTracker->
 					textureInfo[ gImageTracker->iterator ].param;
+
+			gImageTracker->destAtlas.map_key_to_image(
+				keyMap,
+				gImageTracker->destAtlas.num_images - 1
+			);
 		}
 		else
 		{
@@ -113,10 +114,8 @@ static void OnImageRead( char* buffer, int size, void* param )
 					textureInfo[ gImageTracker->iterator ].param;
 
 			// This index will persist in the texture array it's going into
-			stage->textureIndex = gImageTracker->textures.size();
+			stage->textureIndex = gImageTracker->destAtlas.num_images - 1;
 		}
-
-		gImageTracker->textures.push_back( image );
 	}
 
 next_image:
@@ -150,11 +149,19 @@ void AIIO_FixupAssetPath( gPathMap_t& pm )
 	pm.path = rootFolder + pm.path;
 }
 
-void AIIO_ReadImages( Q3BspMap& map, std::vector< gPathMap_t > pathInfo,
-	gSamplerHandle_t sampler, onFinishEvent_t finish, bool keyMapped )
+void AIIO_ReadImages( Q3BspMap& map,
+	std::vector< gPathMap_t > pathInfo,
+	onFinishEvent_t finish,
+	gla::atlas_t& destAtlas,
+	bool keyMapped )
 {
-	gImageTracker = new gImageLoadTracker_t( map, pathInfo, sampler,
-	 	finish, keyMapped );
+	gImageTracker = new gImageLoadTracker_t(
+		map,
+		pathInfo,
+		finish,
+		destAtlas,
+		keyMapped
+	);
 
 	gFileWebWorker.Await( OnImageRead, "ReadImage",
 		gImageTracker->textureInfo[ 0 ].path, nullptr );

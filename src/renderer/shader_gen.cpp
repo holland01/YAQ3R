@@ -190,8 +190,10 @@ static INLINE void WriteTexture(
 	// Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
 	{
-		fragmentSrc.push_back( "\tconst float alphaGen = "
-			+ std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+		fragmentSrc.push_back(
+			"\tconst float alphaGen = "
+			+ std::to_string( stage.alphaGen )
+			+ std::to_string( ';' ) );
 
 		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
 

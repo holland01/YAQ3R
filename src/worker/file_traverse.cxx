@@ -176,7 +176,7 @@ struct file_t
 		}
 
 		size_t size = width * height * bpp;
-		size_t cap = Align( size ) + 8;
+		size_t cap = size + 8;
 
 		readBuff.resize( cap, 0 );
 		memcpy( &readBuff[ 8 ], buf, size );

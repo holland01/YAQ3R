@@ -15,8 +15,6 @@ struct mapEntity_t
 	std::string className;
 };
 
-struct renderPayload_t;
-
 class Q3BspMap
 {
 private:
