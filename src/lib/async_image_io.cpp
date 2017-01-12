@@ -5,7 +5,7 @@
 #include "em_api.h"
 #include "extern/gl_atlas.h"
 
-static gImageLoadTracker_t* gImageTracker = nullptr;
+static gImageLoadTrackerPtr_t gImageTracker( nullptr );
 
 void gImageLoadTracker_t::LogImages( void )
 {
@@ -149,20 +149,28 @@ void AIIO_FixupAssetPath( gPathMap_t& pm )
 	pm.path = rootFolder + pm.path;
 }
 
-void AIIO_ReadImages( Q3BspMap& map,
+void AIIO_ReadImages(
+	Q3BspMap& map,
 	std::vector< gPathMap_t > pathInfo,
 	onFinishEvent_t finish,
 	gla::atlas_t& destAtlas,
-	bool keyMapped )
+	bool keyMapped
+)
 {
-	gImageTracker = new gImageLoadTracker_t(
-		map,
-		pathInfo,
-		finish,
-		destAtlas,
-		keyMapped
+	gImageTracker.reset(
+		new gImageLoadTracker_t(
+			map,
+			pathInfo,
+			finish,
+			destAtlas,
+			keyMapped
+		)
 	);
 
-	gFileWebWorker.Await( OnImageRead, "ReadImage",
-		gImageTracker->textureInfo[ 0 ].path, nullptr );
+	gFileWebWorker.Await(
+		OnImageRead,
+		"ReadImage",
+		gImageTracker->textureInfo[ 0 ].path,
+		nullptr
+	);
 }

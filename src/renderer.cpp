@@ -272,8 +272,10 @@ void BSPRenderer::LoadVertexData( void )
 	if ( gConfig.debugRender )
 		glDebugFaces.resize( map.data.numFaces );
 
-	std::vector< bspVertex_t > vertexData( &map.data.vertexes[ 0 ],
-		&map.data.vertexes[ map.data.numVertexes ] );
+	std::vector< bspVertex_t > vertexData(
+		&map.data.vertexes[ 0 ],
+		&map.data.vertexes[ map.data.numVertexes ]
+	);
 
 #if G_STREAM_INDEX_VALUES
 	size_t iboSize = 0;
@@ -502,12 +504,16 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		}
 
 		AABB leafBounds;
-		leafBounds.maxPoint = glm::vec3( viewLeaf->boxMax.x,
+		leafBounds.maxPoint = glm::vec3(
+			viewLeaf->boxMax.x,
 			viewLeaf->boxMax.y,
-			viewLeaf->boxMax.z );
-		leafBounds.minPoint = glm::vec3( viewLeaf->boxMin.x,
+			viewLeaf->boxMax.z
+		);
+		leafBounds.minPoint = glm::vec3(
+			viewLeaf->boxMin.x,
 			viewLeaf->boxMin.y,
-			viewLeaf->boxMin.z );
+			viewLeaf->boxMin.z
+		);
 
 		if ( !frustum->IntersectsBox( leafBounds ) )
 		{
@@ -568,7 +574,8 @@ void BSPRenderer::BindTexture(
 	if ( prefix )
 	{
 		std::string strfix( prefix );
-		program.LoadInt( strfix + "ImageSampler", offset );
+
+		program.LoadInt( strfix + "Sampler", offset );
 		program.LoadVec2( strfix + "ImageScaleRatio",
 			imageData.inverse_layer_dims );
 		program.LoadVec4( strfix + "ImageTransform", transform );
@@ -837,7 +844,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 				0
 			);
 		}
-		else if ( stage.mapType == MAP_TYPE_WHITE_IMAGE )
+		else if ( stage.mapType == MAP_TYPE_WHITE_IMAGE || lightmapIndex == -1 )
 		{
 			BindTexture(
 				stageProg,

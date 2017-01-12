@@ -599,7 +599,6 @@ void MountPackage( char* path, int size )
 
 void UnmountPackages( char* data, int size )
 {
-
 	if ( InitSystem( UnmountPackages_Proxy, nullptr, 0 ) )
 	{
 		UnmountPackages_Proxy( nullptr, 0 );

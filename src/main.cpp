@@ -20,7 +20,8 @@ void FlagExit( void )
 		gAppTest = nullptr;
 	}
 #ifdef EMSCRIPTEN
-	emscripten_force_exit( 0 );
+	
+	//emscripten_force_exit( 0 );
 #else
 	exit( 0 );
 #endif

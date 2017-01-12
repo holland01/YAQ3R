@@ -428,22 +428,18 @@ void Q3BspMap::OnShaderReadFinish( void )
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 {
-	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
+	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap& map = ( *imageTracker )->map;
-
-	delete *imageTracker;
-	*imageTracker = nullptr;
 
 	GU_LoadMainTextures( map );
 }
 
 void Q3BspMap::OnMainLoadImagesFinish( void* param )
 {
-	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
+	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap& map = ( *imageTracker )->map;
 
-	delete *imageTracker;
-	*imageTracker = nullptr;
+	imageTracker->reset();
 
 	puts( "Main images finished." );
 	map.mapAllocated = true;

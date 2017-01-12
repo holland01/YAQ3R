@@ -71,6 +71,8 @@ struct gImageLoadTracker_t
 	void LogImages( void );
 };
 
+using gImageLoadTrackerPtr_t = std::unique_ptr< gImageLoadTracker_t >;
+
 void AIIO_FixupAssetPath( gPathMap_t& pathMap );
 
 void AIIO_ReadImages(

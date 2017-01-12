@@ -151,10 +151,6 @@ static void LoadImagesBegin( char* mem, int size, void* param );
 
 static void LoadImagesEnd( void* param )
 {
-	gImageLoadTracker_t** imageLoadTracker = ( gImageLoadTracker_t** ) param;
-	delete *imageLoadTracker;
-	*imageLoadTracker = nullptr;
-
 	gImageLoadState.currNode = gImageLoadState.currNode->next;
 	gFileWebWorker.Await(
 		LoadImagesBegin,
