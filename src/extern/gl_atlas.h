@@ -241,6 +241,10 @@ namespace gla {
 
 		uint8_t layer(uint16_t image) const
 		{
+			if (image >= layers.size()) {
+				gla_logf("Fuck: %i", image);
+			}
+
 			assert(image < layers.size());
 			assert(layers[image] != 0xFF);
 			return layers[image];
@@ -506,6 +510,9 @@ namespace gla {
 					if ((node->origin.y + image_dims.y) > layer_dims.y)
 						layer_dims.y = node->origin.y + image_dims.y;
 
+					assert(layer_dims.x <= root->dims.x);
+					assert(layer_dims.y <= root->dims.y);
+
 					atlas.write_origins(node->image, node->origin.x,
 						node->origin.y);
 
@@ -742,6 +749,14 @@ namespace gla {
 
 		gla_logf("Total Images: %lu\nArea Accum: %lu",
 			 atlas.num_images, atlas.area_accum);
+
+		for (uint32_t i = 0; i < atlas.widths.size(); ++i) {
+			gla_logf("Layer Size [%i/%i]: %i x %i",
+				i + 1,
+				atlas.widths.size(),
+				atlas.widths[i],
+				atlas.heights[i]);
+		}
 	}
 
 	static ga_inline void push_atlas_image(atlas_t& atlas,
@@ -758,6 +773,8 @@ namespace gla {
 			"that does not contain a supported bytes per pixel count."\
 			" Dimensions: %i x %i. BPP received: %i",
 			(int) atlas.num_images, dx, dy, bpp);
+			atlas_error_exit();
+			return;
 		}
 
 		atlas.area_accum += dx * dy;

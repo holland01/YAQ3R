@@ -565,10 +565,10 @@ void BSPRenderer::BindTexture(
 	std::string strfix( prefix );
 
 	glm::vec4 transform(
-		0.0f,
-		0.0f,
-		imageData.coords.x,
-		imageData.coords.y
+		imageData.coords.x * imageData.inverse_layer_dims.x,
+		imageData.coords.y * imageData.inverse_layer_dims.y,
+		atlas->dims_x[ image ],
+		atlas->dims_y[ image ]
 	);
 
 	if ( prefix )
@@ -588,6 +588,15 @@ void BSPRenderer::BindTexture(
 	}
 }
 
+static void Check( int32_t index, gla_atlas_ptr_t& ptr, int line )
+{
+	if ( ( uint16_t ) index >= ptr->layers.size() )
+	{
+		printf( "caught index %i at %i with layer size: %i\n",
+			( int ) index, line, ptr->layers.size() );
+	}
+}
+
 void BSPRenderer::DrawMapPass(
 	int32_t textureIndex,
 	int32_t lightmapIndex,
@@ -601,7 +610,7 @@ void BSPRenderer::DrawMapPass(
 
 	main.LoadDefaultAttribProfiles();
 
-	if ( textureIndex == -1 )
+	if ( textureIndex < 0 )
 	{
 		BindTexture(
 			main,
@@ -616,13 +625,13 @@ void BSPRenderer::DrawMapPass(
 		BindTexture(
 			main,
 			textures[ TEXTURE_ATLAS_MAIN ],
-			( uint16_t ) textures[ TEXTURE_ATLAS_MAIN ]->key_image( textureIndex ),
+			textures[ TEXTURE_ATLAS_MAIN ]->key_image( textureIndex ),
 			"mainImage",
 			0
 		);
 	}
 
-	if ( lightmapIndex == -1 )
+	if ( lightmapIndex < 0 )
 	{
 		BindTexture(
 			main,
@@ -637,7 +646,7 @@ void BSPRenderer::DrawMapPass(
 		BindTexture(
 			main,
 			textures[ TEXTURE_ATLAS_LIGHTMAPS ],
-			( uint16_t ) lightmapIndex,
+			lightmapIndex,
 			"lightmap",
 			1
 		);
@@ -836,6 +845,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		if ( stage.mapType == MAP_TYPE_IMAGE )
 		{
+			assert( stage.textureIndex >= 0 );
 			BindTexture(
 				stageProg,
 				textures[ TEXTURE_ATLAS_SHADERS ],
@@ -844,7 +854,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 				0
 			);
 		}
-		else if ( stage.mapType == MAP_TYPE_WHITE_IMAGE || lightmapIndex == -1 )
+		else if ( stage.mapType == MAP_TYPE_WHITE_IMAGE || lightmapIndex < 0 )
 		{
 			BindTexture(
 				stageProg,
@@ -856,6 +866,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		}
 		else
 		{
+			assert( lightmapIndex >= 0 );
 			BindTexture(
 				stageProg,
 				textures[ TEXTURE_ATLAS_LIGHTMAPS ],

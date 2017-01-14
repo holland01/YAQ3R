@@ -717,7 +717,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	const char* end = ( const char* ) &buffer[ size - 1 ];
 	ptrdiff_t range = ( ptrdiff_t )( end - pChar );
 
-	uint32_t entryCount = 0;
+	//uint32_t entryCount = 0;
 
 	while ( range > 0 )
 	{

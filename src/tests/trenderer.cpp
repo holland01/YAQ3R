@@ -5,6 +5,8 @@
 
 static void OnMapFinish( void* param )
 {
+	UNUSED( param );
+
 	TRenderer* app = ( TRenderer* ) gAppTest;
 
 	app->renderer.reset( new BSPRenderer(
