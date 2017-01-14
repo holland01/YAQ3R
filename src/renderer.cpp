@@ -588,15 +588,6 @@ void BSPRenderer::BindTexture(
 	}
 }
 
-static void Check( int32_t index, gla_atlas_ptr_t& ptr, int line )
-{
-	if ( ( uint16_t ) index >= ptr->layers.size() )
-	{
-		printf( "caught index %i at %i with layer size: %i\n",
-			( int ) index, line, ptr->layers.size() );
-	}
-}
-
 void BSPRenderer::DrawMapPass(
 	int32_t textureIndex,
 	int32_t lightmapIndex,
@@ -845,7 +836,12 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		if ( stage.mapType == MAP_TYPE_IMAGE )
 		{
-			assert( stage.textureIndex >= 0 );
+			if ( stage.textureIndex < 0 )
+			{
+				FlagExit();
+				puts( "bad texture index in effect pass" );
+			}
+
 			BindTexture(
 				stageProg,
 				textures[ TEXTURE_ATLAS_SHADERS ],
@@ -866,7 +862,12 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		}
 		else
 		{
-			assert( lightmapIndex >= 0 );
+			if ( lightmapIndex < 0 )
+			{
+				FlagExit();
+				puts( "bad lightmap index in effect pass" );
+			}
+
 			BindTexture(
 				stageProg,
 				textures[ TEXTURE_ATLAS_LIGHTMAPS ],

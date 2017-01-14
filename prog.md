@@ -1983,3 +1983,24 @@ This is weird. None the less, I'm thinking that if I rewrite the atlas generatio
 it generates, in addition to using a grid as opposed to a tree, the results should be a tad more streamlined. Once this is finished,
 
 I can use the glGetError() reports from Firefox to determine whether or not there's more issues happening, which is likely.
+
+**1/13/2017**
+
+Thankfully most of this is finished. The next thing to take care of is what appears to be some kind of corruption with the texture sampling
+in the fragment shader. Some fragments being rendered appear to be strange "garbage" like artifacts that are somehow embedded
+in small areas of the texture images when they're projected onto a face. While most of the textured face looks correct, this is pretty signifcant
+and I'm not sure if the problem is due to memory corruption or a graphics driver mishap or just something else which is wrong
+in the asset loader.
+
+Either way, I'm going to test this on a different machine to see if there's any parallels there. 
+
+After fixing this, these are the major priorities:
+
+- Load times
+- Refresh rate and adjusting the framerate accordingly.
+- Eliminating as much GL state change calls as possible. Going to probably write a basic wrapper
+class which holds temporary references of attributes (e.g., previous cull mode, previous blend functions, whether or not face culling was enabled/disabled, etc.) 
+so that a change will only be inflicted if the attribute being changed is to be assigned a different value than what was set before.
+
+Profiling shows that at least on some hardware the state changes (especially with face culling, for some reason) incurr significant overhead.
+
