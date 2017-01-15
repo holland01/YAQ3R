@@ -85,6 +85,47 @@ static INLINE void FlipBytes( byte* out, const byte* src, int width, int height,
 }
 */
 
+#ifdef DEBUG
+
+static const Program* gDebugBadProgram = nullptr;
+
+void GPrintBadProgram( void )
+{
+	if ( !gDebugBadProgram )
+	{
+		return;
+	}
+
+	std::stringstream out;
+
+	out << "Vertex: \n" << gDebugBadProgram->vertexSource << "\n"
+		<< "Fragment: \n" << gDebugBadProgram->fragmentSource << "\n"
+		<< "Attribs:\n";
+
+	for ( auto attrib: gDebugBadProgram->attribs )
+	{
+		out << "\t[ " << attrib.first << ":" << attrib.second << " ]\n";
+	}
+
+	out << "Uniforms:\n";
+
+	for ( auto uniform: gDebugBadProgram->uniforms )
+	{
+		out << "\t[ " << uniform.first << ":" << uniform.second << " ]\n";
+	}
+
+	MLOG_INFO( "%s", out.str().c_str() );
+
+	gDebugBadProgram = nullptr;
+}
+
+bool GHasBadProgram( void )
+{
+	return !!gDebugBadProgram;
+}
+
+#endif
+
 //-------------------------------------------------------------------------------------------------
 
 static INLINE void DisableAllAttribs( void )
@@ -163,7 +204,6 @@ void Program::LoadDefaultAttribProfiles( void ) const
 	{
 		if ( attrib.second != -1 )
 		{
-
 			auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
 
 			if ( it != disableAttribs.end() )
@@ -174,6 +214,12 @@ void Program::LoadDefaultAttribProfiles( void ) const
 
 			attribLoadFunctions[ attrib.first ]( *this );
 		}
+#ifdef DEBUG
+		else
+		{
+			gDebugBadProgram = this;
+		}
+#endif
 	}
 }
 

@@ -202,13 +202,27 @@ void BSPRenderer::Load( renderPayload_t& payload )
 {
 	Prep();
 
-	textures = std::move(payload.textureData);
+	textures = std::move( payload.textureData );
 
 	GLint oldAlign;
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_SHADERS ] ) );
+
+	{
+		std::vector< uint8_t > whiteImage(
+			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4, 0xFF );
+
+		gla::push_atlas_image(
+			*( textures[ TEXTURE_ATLAS_MAIN ] ),
+			&whiteImage[ 0 ],
+			BSP_LIGHTMAP_WIDTH,
+			BSP_LIGHTMAP_HEIGHT,
+			4
+		);
+	}
+
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
 
 	// And then generate all of the lightmaps
@@ -228,13 +242,14 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	// So, we just allocate a small extra set of texels here and add them to
 	// the lightmap atlas before layer generation.
 	{
-		std::vector< uint8_t > whiteImage( 16 * 16 * 4, 0xFF );
+		std::vector< uint8_t > whiteImage(
+			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4, 0xFF );
 
 		gla::push_atlas_image(
 			*( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ),
 			&whiteImage[ 0 ],
-			16,
-			16,
+			BSP_LIGHTMAP_WIDTH,
+			BSP_LIGHTMAP_HEIGHT,
 			4
 		);
 	}
@@ -256,6 +271,8 @@ void BSPRenderer::Load( renderPayload_t& payload )
 				camera->ViewData().clipTransform );
 		}
 	}
+
+	printf( "Program Count: %i\n", GNumPrograms() );
 
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
@@ -562,8 +579,6 @@ void BSPRenderer::BindTexture(
 
 	atlas->bind_to_active_slot( imageData.layer, offset );
 
-	std::string strfix( prefix );
-
 	glm::vec4 transform(
 		imageData.coords.x * imageData.inverse_layer_dims.x,
 		imageData.coords.y * imageData.inverse_layer_dims.y,
@@ -601,12 +616,12 @@ void BSPRenderer::DrawMapPass(
 
 	main.LoadDefaultAttribProfiles();
 
-	if ( textureIndex < 0 )
+	if ( textureIndex < 0 ) // default to white image if nothing else
 	{
 		BindTexture(
 			main,
-			textures[ TEXTURE_ATLAS_LIGHTMAPS ],
-			textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1,
+			textures[ TEXTURE_ATLAS_MAIN ],
+			textures[ TEXTURE_ATLAS_MAIN ]->num_images - 1,
 			"mainImage",
 			0
 		);
@@ -660,8 +675,11 @@ void BSPRenderer::DrawMapPass(
 }
 
 namespace {
-	INLINE void AddSurfaceData( drawSurface_t& surf, int faceIndex,
-		modelBuffer_t& glFaces )
+	INLINE void AddSurfaceData(
+		drawSurface_t& surf,
+		int faceIndex,
+		modelBuffer_t& glFaces
+	)
 	{
 		mapModel_t& model = *( glFaces[ faceIndex ] );
 
@@ -834,48 +852,39 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			}
 		}
 
+		gla_atlas_ptr_t* atlas = nullptr;
+		int32_t texIndex = -1;
+
 		if ( stage.mapType == MAP_TYPE_IMAGE )
 		{
-			if ( stage.textureIndex < 0 )
-			{
-				FlagExit();
-				puts( "bad texture index in effect pass" );
-			}
-
-			BindTexture(
-				stageProg,
-				textures[ TEXTURE_ATLAS_SHADERS ],
-				stage.textureIndex,
-				nullptr,
-				0
-			);
+			atlas = &textures[ TEXTURE_ATLAS_SHADERS ];
+			texIndex = stage.textureIndex;
 		}
 		else if ( stage.mapType == MAP_TYPE_WHITE_IMAGE || lightmapIndex < 0 )
 		{
-			BindTexture(
-				stageProg,
-				textures[ TEXTURE_ATLAS_LIGHTMAPS ],
-				textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1,
-				nullptr,
-				0
-			);
+			atlas = &textures[ TEXTURE_ATLAS_LIGHTMAPS ];
+			texIndex = textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1;
 		}
 		else
 		{
-			if ( lightmapIndex < 0 )
-			{
-				FlagExit();
-				puts( "bad lightmap index in effect pass" );
-			}
-
-			BindTexture(
-				stageProg,
-				textures[ TEXTURE_ATLAS_LIGHTMAPS ],
-				lightmapIndex,
-				nullptr,
-				0
-			);
+			atlas = &textures[ TEXTURE_ATLAS_LIGHTMAPS ];
+			texIndex = lightmapIndex;
 		}
+
+		if ( texIndex < 0 )
+		{
+			FlagExit();
+			puts( "Bad texture index in effect pass." );
+			return;
+		}
+
+		BindTexture(
+			stageProg,
+			*atlas,
+			texIndex,
+			nullptr,
+			0
+		);
 
 		glm::vec2 texDims( 64.0f );
 
@@ -897,11 +906,18 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		stageProg.LoadDefaultAttribProfiles();
 
+#ifdef DEBUG
+		if ( GHasBadProgram() )
+		{
+			GPrintBadProgram();
+		}
+#endif
+
 		stageProg.Bind();
 		callback( std::get< 0 >( data ), stageProg, &stage );
 		stageProg.Release();
 
-		textures[ TEXTURE_ATLAS_LIGHTMAPS ]->release_from_active_slot( 0 );
+		( *atlas )->release_from_active_slot( 0 );
 	}
 
 	// No need to change state here unless there's the possibility

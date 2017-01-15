@@ -291,7 +291,9 @@ static void MapReadFin( Q3BspMap* map )
 		bspFace_t& face = map->data.faces[ i ];
 
 		ScaleCoords( face.normal, ( float ) map->GetScaleFactor() );
+
 		ScaleCoords( face.lightmapOrigin, ( float ) map->GetScaleFactor() );
+
 		ScaleCoords( face.lightmapStVecs[ 0 ],
 			( float ) map->GetScaleFactor() );
 		ScaleCoords( face.lightmapStVecs[ 1 ],

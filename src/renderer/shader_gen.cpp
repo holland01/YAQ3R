@@ -102,7 +102,7 @@ static INLINE std::string DeclAttributeVar( const std::string& name,
 
 #	ifdef __linux__
 	UNUSED( location );
-#else
+#	else
 	if ( location != -1 )
 	{
 		decl = "layout( location = " + std::to_string( location ) + " ) " + decl;
@@ -271,7 +271,7 @@ static std::string GenVertexShader( shaderStage_t& stage,
 	std::vector< std::string > vertexSrc =
 	{
 		DeclAttributeVar( "position", "vec3", attribLocCounter++ ),
-		DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
+		texCoordName.empty() ? "" : DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
 		DeclTransferVar( "frag_Tex", "vec2", "out" ),
 		DeclCoreTransforms(),
 		"void main(void) {",
@@ -497,10 +497,7 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 	{
 		shaderStage_t& stage = shader.stageBuffer[ j ];
 
-		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )?
-				"lightmap": "tex0" );
-
-		std::vector< std::string > attribs = { "position", texCoordName };
+		std::vector< std::string > attribs = { "position" };
 		std::vector< std::string > uniforms = {
 			"sampler0",
 			"imageTransform",
@@ -509,8 +506,22 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 			"viewToClip",
 		};
 
-		const std::string& vertexString = GenVertexShader( stage, texCoordName,
-				attribs );
+		std::string texCoordName;
+		if ( stage.tcgen != TCGEN_ENVIRONMENT )
+		{
+			if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
+			{
+				texCoordName = "lightmap";
+			}
+			else
+			{
+				texCoordName = "tex0";
+			}
+
+			attribs.push_back( texCoordName );
+		}
+
+		const std::string& vertexString = GenVertexShader( stage, texCoordName, attribs );
 		const std::string& fragmentString = GenFragmentShader( stage, uniforms );
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
@@ -523,8 +534,8 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 #endif
 		{
 #ifdef DEBUG
-			gMeta->LogShader( "Vertex", vertexString, j );
-			gMeta->LogShader( "Fragment", fragmentString, j );
+			p->vertexSource = vertexString;
+			p->fragmentSource = fragmentString;
 #endif
 			p->stage = &stage;
 			stage.program = GStoreProgram( p );

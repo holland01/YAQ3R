@@ -153,13 +153,19 @@ namespace gla {
 		va_end( arg );
 	}
 
-#ifdef DEBUG
+#ifdef GLA_DEBUG
 	#define IF_DEBUG(expr) expr
 #else
 	#define IF_DEBUG(expr)
 #endif
 
-#ifdef DEBUG
+#ifdef GLA_IO
+	#define gla_logf(...) logf_impl(__LINE__, __FUNCTION__, __VA_ARGS__)
+#else
+	#define gla_logf(...)
+#endif
+
+#ifdef GLA_DEBUG_RENDERER
 	#define GL_H(expr) \
 	do { \
 		( expr ); \
@@ -168,8 +174,6 @@ namespace gla {
 #else
 	#define GL_H(expr) expr
 #endif
-
-#define gla_logf( ... ) logf_impl(__LINE__, __FUNCTION__, __VA_ARGS__)
 
 #define DESIRED_BPP 4
 
@@ -241,10 +245,6 @@ namespace gla {
 
 		uint8_t layer(uint16_t image) const
 		{
-			if (image >= layers.size()) {
-				gla_logf("Fuck: %i", image);
-			}
-
 			assert(image < layers.size());
 			assert(layers[image] != 0xFF);
 			return layers[image];
@@ -278,7 +278,7 @@ namespace gla {
 
 			bind(index);
 
-			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
 				GL_LINEAR) );
 			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 				GL_LINEAR) );
@@ -287,7 +287,9 @@ namespace gla {
 			GL_H( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
 				GL_CLAMP_TO_EDGE) );
 
-			alloc_blank_texture(widths[index], heights[index], 0x00);
+			alloc_blank_texture(widths[index], heights[index], 0x00000000);
+
+			release();
 		}
 
 		void set_layer(uint16_t image, uint8_t layer)
@@ -303,7 +305,7 @@ namespace gla {
 			GL_H( glBindTexture(GL_TEXTURE_2D, layer_tex_handles[layer]) );
 		}
 
-		void bind_to_active_slot(uint8_t layer, int offset) const
+		void bind_to_active_slot(uint8_t layer, GLenum offset) const
 		{
 			GL_H( glActiveTexture(GL_TEXTURE0 + offset) );
 			bind(layer);
@@ -314,7 +316,7 @@ namespace gla {
 			GL_H( glBindTexture(GL_TEXTURE_2D, 0) );
 		}
 
-		void release_from_active_slot(int offset) const
+		void release_from_active_slot(GLenum offset) const
 		{
 			GL_H( glActiveTexture(GL_TEXTURE0 + offset) );
 			release();
@@ -335,15 +337,15 @@ namespace gla {
 
 		void fill_atlas_image(size_t image)
 		{
-			GL_H( glTexSubImage2D(GL_TEXTURE_2D,
-								  0,
-								  (GLsizei) origin_x(image),
-								  (GLsizei) origin_y(image),
-								  dims_x[image],
-								  dims_y[image],
-								  GL_ATLAS_TEX_FORMAT,
-								  GL_UNSIGNED_BYTE,
-								  &buffer_table[image][0]) );
+			GL_H( glTexSubImage2D(	GL_TEXTURE_2D,
+									0,
+									(GLsizei) origin_x(image),
+									(GLsizei) origin_y(image),
+									dims_x[image],
+									dims_y[image],
+									GL_ATLAS_TEX_FORMAT,
+									GL_UNSIGNED_BYTE,
+									&buffer_table[image][0]) );
 		}
 
 		uint16_t key_image(size_t key) const
@@ -633,15 +635,15 @@ namespace gla {
 									uint32_t clear_val)
 	{
 		std::vector<uint32_t> blank(width * height, clear_val);
-		GL_H( glTexImage2D(GL_TEXTURE_2D,
-						   0,
-						   GL_ATLAS_INTERNAL_TEX_FORMAT,
-						   (GLsizei) width,
-						   (GLsizei) height,
-						   0,
-						   GL_ATLAS_TEX_FORMAT,
-						   GL_UNSIGNED_BYTE,
-						   &blank[0]) );
+		GL_H( glTexImage2D(	GL_TEXTURE_2D,
+							0,
+							GL_ATLAS_INTERNAL_TEX_FORMAT,
+							(GLsizei) width,
+							(GLsizei) height,
+							0,
+							GL_ATLAS_TEX_FORMAT,
+							GL_UNSIGNED_BYTE,
+							&blank[0]) );
 	}
 
 
