@@ -3,7 +3,7 @@
 #include "em_api.h"
 #include "io.h"
 #include "js/global_func.h"
-#include <html5.h>
+#include <emscripten/html5.h>
 
 #ifdef EM_USE_WORKER_THREAD
 
