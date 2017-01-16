@@ -210,6 +210,9 @@ void BSPRenderer::Load( renderPayload_t& payload )
 
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_SHADERS ] ) );
 
+	// Sometimes a white image is necessary for certain shader passes.
+	// So, we just allocate a small extra set of texels here and add them to
+	// the atlas before layer generation.
 	{
 		std::vector< uint8_t > whiteImage(
 			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4, 0xFF );
@@ -219,7 +222,8 @@ void BSPRenderer::Load( renderPayload_t& payload )
 			&whiteImage[ 0 ],
 			BSP_LIGHTMAP_WIDTH,
 			BSP_LIGHTMAP_HEIGHT,
-			4
+			4,
+			false
 		);
 	}
 
@@ -234,13 +238,14 @@ void BSPRenderer::Load( renderPayload_t& payload )
 			&lightmap.map[ 0 ][ 0 ][ 0 ],
 			BSP_LIGHTMAP_WIDTH,
 			BSP_LIGHTMAP_HEIGHT,
-			3
+			3,
+			false
 		);
 	}
 
 	// Sometimes a white image is necessary for certain shader passes.
 	// So, we just allocate a small extra set of texels here and add them to
-	// the lightmap atlas before layer generation.
+	// the atlas before layer generation.
 	{
 		std::vector< uint8_t > whiteImage(
 			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4, 0xFF );
@@ -250,7 +255,8 @@ void BSPRenderer::Load( renderPayload_t& payload )
 			&whiteImage[ 0 ],
 			BSP_LIGHTMAP_WIDTH,
 			BSP_LIGHTMAP_HEIGHT,
-			4
+			4,
+			false
 		);
 	}
 
@@ -1078,29 +1084,6 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m,
 	const shaderInfo_t* shader ) const
 {
 	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED ) return;
-
-	/*
-	bspVertex_t* vertices;
-	gIndex_t* indices;
-	GL_CHECK( vertices = ( bspVertex_t* ) glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY ) );
-	GL_CHECK( indices = ( gIndex_t* ) glMapBuffer( GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY ) );
-
-	for ( uint32_t i = 0; i < m.clientVertices.size(); ++i )
-	{
-		gIndex_t index = indices[ m.iboOffset + i ];
-
-		glm::vec3 position( m.clientVertices[ i ].position );
-		glm::vec3 normal( m.clientVertices[ i ].normal );
-
-		normal *= GenDeformScale( m.clientVertices[ i ].position, shader );
-
-		vertices[ index ].position = position + normal;
-	}
-
-	GL_CHECK( glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER ) );
-	GL_CHECK( glUnmapBuffer( GL_ARRAY_BUFFER ) );
-
-	*/
 
 	std::vector< bspVertex_t > verts = m.clientVertices;
 

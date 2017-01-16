@@ -206,7 +206,7 @@ struct file_t
 
 		if ( size )
 		{
-			readBuff.resize( size, 0 );
+			readBuff.resize( size + 1, 0 );
 			fseek( ptr, offset, SEEK_SET );
 			fread( &readBuff[ 0 ], size, 1, ptr );
 		}
@@ -225,7 +225,7 @@ struct file_t
 		return Read( 0, ftell( ptr ) );
 	}
 
-	void Send( void ) const
+	void Send( void )
 	{
 		if ( readBuff.empty() )
 		{
@@ -234,8 +234,17 @@ struct file_t
 		}
 		else
 		{
-			emscripten_worker_respond( ( char* ) &readBuff[ 0 ],
-				readBuff.size() );
+			uint8_t checksum = WAPI_CalcCheckSum(
+				( char* ) &readBuff[ 0 ],
+		 		readBuff.size() - 1
+			);
+
+			readBuff[ readBuff.size() - 1 ] = ( char ) checksum;
+
+			emscripten_worker_respond(
+				( char* ) &readBuff[ 0 ],
+				readBuff.size()
+			);
 		}
 	}
 
@@ -365,9 +374,12 @@ static void ReadFile_Proxy( char* data, int size )
 
 	EM_ASM_ARGS( {
 		self.fetchBundleAsync($0, $1, $2, $3, $4);
-	}, bundleName.c_str(), SendFile_OnLoad,
-	   &remData[ 0 ], remData.size() - 1, // don't include null term
-	   port );
+	},
+	bundleName.c_str(),
+	SendFile_OnLoad,
+	&remData[ 0 ],
+	remData.size() - 1, // don't include null term
+	port );
 }
 
 static void SendShader_OnLoad( char* path, int size )
@@ -568,7 +580,7 @@ void ReadFile_Chunk( char* bcmd, int size )
 		cmd->offset, cmd->size );
 
 	gFIOChain->Read( cmd->offset, cmd->size );
-	emscripten_worker_respond( ( char* )&gFIOChain->readBuff[ 0 ], cmd->size );
+	gFIOChain->Send();
 }
 
 void TraverseDirectory( char* dir, int size )

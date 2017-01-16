@@ -305,8 +305,13 @@ static void MapReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
-	gFileWebWorker.Await( MapReadFin_UnmountFin,  "UnmountPackages",
-			NULL, 0, map );
+	gFileWebWorker.Await(
+		MapReadFin_UnmountFin,
+		"UnmountPackages",
+		NULL,
+		0,
+		map
+	);
 }
 
 static void ReadChunk( char* data, int size, void* param )
@@ -347,7 +352,22 @@ static void ReadChunk( char* data, int size, void* param )
 			// just validated the header
 			if ( gBspDesc >= 0 && size )
 			{
-				gBspAllocTable[ gBspDesc ]( data, map->data, size );
+				uint8_t checksum = WAPI_CalcCheckSum( data, size - 1 );
+
+				if ( checksum != ( uint8_t ) data[ size - 1 ] )
+				{
+					MLOG_WARNING(
+						"Bad Checksum for BSP LUMP ENTRY %x.\n"
+						"Checksum sent: %x\n"
+						"Checksum tested: %x",
+						(uint32_t)data[size - 1],
+						(uint32_t)checksum
+					);
+				}
+
+				// Checksum is appended to the very end of the buffer;
+				// sending the total size could cause problems
+				gBspAllocTable[ gBspDesc ]( data, map->data, size - 1 );
 			}
 
 			if ( ++gBspDesc < ( int ) BSP_NUM_ENTRIES )

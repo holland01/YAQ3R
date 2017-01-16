@@ -762,7 +762,7 @@ namespace gla {
 	}
 
 	static ga_inline void push_atlas_image(atlas_t& atlas,
-		uint8_t* buffer, int dx, int dy, int bpp)
+		uint8_t* buffer, int dx, int dy, int bpp, bool flip = true)
 	{
 		std::vector<uint8_t> image_data(dx * dy * DESIRED_BPP, 0);
 
@@ -784,12 +784,12 @@ namespace gla {
 		atlas.dims_x.push_back(dx);
 		atlas.dims_y.push_back(dy);
 
-		// Reverse image rows, since stb_image treats
-		// origin as upper left and OpenGL doesn't.
-		flip_rows_rgba(&image_data[0], dx, dy);
+		// stb_image treats the image origin as upper left and OpenGL doesn't.
+		if ( flip ) {
+			flip_rows_rgba(&image_data[0], dx, dy);
+		}
 
 		atlas.buffer_table.push_back(std::move(image_data));
-
 		atlas.num_images++;
 	}
 

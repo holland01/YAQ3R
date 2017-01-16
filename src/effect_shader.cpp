@@ -237,10 +237,9 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			theStage.mapCmd = MAP_CMD_MAP;
 
-			// TODO: add support for this
 			if ( strcmp( &theStage.texturePath[ 0 ], "$whiteimage" ) == 0 )
 			{
-				return true;
+				theStage.mapType = MAP_TYPE_WHITE_IMAGE;
 			}
 
 			if ( strcmp( &theStage.texturePath[ 0 ], "$lightmap" ) == 0 )
