@@ -203,7 +203,8 @@ gen_workers.bat</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy $(ProjectDir)..\..\..\worker $(TargetDir)worker\ /E /S /Y
-xcopy $(ProjectDir)..\..\..\js $(TargetDir)js /E /S /Y</Command>
+xcopy $(ProjectDir)..\..\..\js $(TargetDir)js\ /E /S /Y
+xcopy $(ProjectDir)..\..\..\bundle $(TargetDir)bundle\ /E /S /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
