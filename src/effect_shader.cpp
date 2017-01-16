@@ -5,9 +5,8 @@
 #include "glutil.h"
 #include "renderer/texture.h"
 #include "lib/cstring_util.h"
+#include "em_api.h"
 #include <sstream>
-
-// #define G_DUPLICATE_PROGRAMS
 
 static INLINE GLsizei GL_EnumFromStr( const char* str );
 static INLINE GLsizei GL_DepthFuncFromStr( const char* str );
@@ -20,7 +19,8 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer,
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, \
 	shaderStage_t& theStage, char* token ) -> bool
 
-#define ZEROTOK( t ) ( memset( t, 0, sizeof( char ) * SHADER_MAX_TOKEN_CHAR_LENGTH ) );
+#define ZEROTOK( t ) ( memset( t, 0, \
+	sizeof( char ) * BSP_MAX_SHADER_TOKEN_LENGTH ) );
 
 // Lookup table we use for each shader/stage command
 std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
@@ -92,7 +92,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				return false;
 			}
 
-			// Bulge and normal/wave signatures differ significantly, so we separate paths here
+			// Bulge and normal/wave signatures differ significantly,
+			// so we separate paths here
 			switch ( outInfo->deformCmd )
 			{
 			case VERTEXDEFORM_CMD_WAVE:
@@ -137,7 +138,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				break;
 
 			default:
-				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes", "Unsupported vertex deform found!" );
+				MLOG_WARNING_SANS_FUNCNAME( "deformvertexes",
+					"Unsupported vertex deform found!" );
 				outInfo->deform = false;
 				return false;
 				break;
@@ -159,14 +161,17 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				outInfo->cullFace = GL_BACK;
 			}
-			else if ( strcmp( token, "none" ) == 0 || strcmp( token, "disable" ) == 0 )
+			else if ( strcmp( token, "none" ) == 0
+				|| strcmp( token, "disable" ) == 0 )
 			{
 				outInfo->cullFace = GL_NONE;
 			}
 			else
 			{
-				// the Q3 Shader Manual states that GL-FRONT is the default if no keyword is specified. The only other keyword
-				// that we have available to check after the above conditions is "front" anyway.
+				// the Q3 Shader Manual states that GL-FRONT is the default
+				// if no keyword is specified. The only other keyword
+				// that we have available to check after the above conditions
+				// is "front" anyway.
 				outInfo->cullFace = GL_FRONT;
 			}
 
@@ -229,12 +234,6 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( token );
 
 			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
-
-			if ( strcmp( &theStage.texturePath[ 0 ],
-						"textures/liquids/pool3d_5c2.tga" ) == 0 )
-			{
-				puts( "HE SHOOTS! HE SCORES!" );
-			}
 
 			theStage.mapCmd = MAP_CMD_MAP;
 
@@ -410,7 +409,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				float t = StrReadFloat( buffer );
 
 				/*
-				NOTE: a scale may imply a division by the value, versus a multiplication. I'm not sure...
+				NOTE: a scale may imply a division by the value,
+				versus a multiplication. I'm not sure...
 
 				if ( s != 0.0f )
 					s = 1.0f / s;
@@ -514,9 +514,12 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 static INLINE GLsizei GL_EnumFromStr( const char* str )
 {
 	// blending
-	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 ) return GL_ONE_MINUS_SRC_ALPHA;
-	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 ) return GL_ONE_MINUS_SRC_COLOR;
-	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 ) return GL_ONE_MINUS_DST_ALPHA;
+	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 )
+		return GL_ONE_MINUS_SRC_ALPHA;
+	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 )
+		return GL_ONE_MINUS_SRC_COLOR;
+	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 )
+		return GL_ONE_MINUS_DST_ALPHA;
 
 	if ( strcmp( str, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
 	if ( strcmp( str, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
@@ -552,7 +555,7 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 	for ( int i = 0; i < map->data.numShaders; ++i )
 	{
 		if ( strncmp( map->data.shaders[ i ].name, header,
-				SHADER_MAX_TOKEN_CHAR_LENGTH ) == 0 )
+				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 		{
 			return true;
 		}
@@ -561,7 +564,7 @@ static bool ShaderUsed( const char* header, const Q3BspMap* map )
 	for ( int i = 0; i < map->data.numFogs; ++i )
 	{
 		if ( strncmp( map->data.fogs[ i ].name, header,
-				SHADER_MAX_TOKEN_CHAR_LENGTH ) == 0 )
+				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 		{
 			return true;
 		}
@@ -714,7 +717,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	const char* end = ( const char* ) &buffer[ size - 1 ];
 	ptrdiff_t range = ( ptrdiff_t )( end - pChar );
 
-	uint32_t entryCount = 0;
+	//uint32_t entryCount = 0;
 
 	while ( range > 0 )
 	{
@@ -768,13 +771,13 @@ void S_LoadShaders( Q3BspMap* map )
 }
 
 bool operator == (
-	const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1,
+	const std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH >& str1,
 	const char* str2 )
 {
 	size_t min = glm::min( strlen( str2 ), str1.size() );
 
 	// str1 should have zeros if its char characters are less than
-	// SHADER_MAX_TOKEN_CHAR_LENGTH
+	// BSP_MAX_SHADER_TOKEN_LENGTH
 	if ( min != str1.size() && str1[ min ] != 0 )
 	{
 		return false;

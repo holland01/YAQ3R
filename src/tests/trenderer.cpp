@@ -1,9 +1,12 @@
 #include "trenderer.h"
 #include "glutil.h"
 #include "em_api.h"
+#include "extern/gl_atlas.h"
 
 static void OnMapFinish( void* param )
 {
+	UNUSED( param );
+
 	TRenderer* app = ( TRenderer* ) gAppTest;
 
 	app->renderer.reset( new BSPRenderer(
@@ -16,8 +19,9 @@ static void OnMapFinish( void* param )
 	app->renderer->Load( *( app->map->payload ) );
 
 	app->map->payload.reset();
-
 	app->camPtr = app->renderer->camera.get();
+
+	app->Exec();
 }
 
 TRenderer::TRenderer( const std::string& filepath )

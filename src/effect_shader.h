@@ -11,7 +11,7 @@ class Q3BspMap;
 
 void S_LoadShaders( Q3BspMap* map );
 
-bool operator == ( const std::array< char, SHADER_MAX_TOKEN_CHAR_LENGTH >& str1,
+bool operator == ( const std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH >& str1,
 	const char* str2 );
 
 static INLINE bool S_StageHasIdentityColor( const shaderStage_t& s )

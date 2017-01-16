@@ -19,23 +19,32 @@ static std::map< std::string, std::function< void( const Program& program ) > > 
 		"position",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "position" ), offsetof( bspVertex_t, position ) );
+			MapVec3( program.attribs.at( "position" ), offsetof( bspVertex_t,
+				position ) );
 		}
 	},
 	{
 		"normal",
 		[]( const Program& program ) -> void
 		{
-			MapVec3( program.attribs.at( "normal" ), offsetof( bspVertex_t, normal ) );
+			MapVec3( program.attribs.at( "normal" ), offsetof( bspVertex_t,
+				normal ) );
 		}
 	},
 	{
 		"color",
 		[]( const Program& program ) -> void
 		{
-			GL_CHECK_WITH_NAME( glEnableVertexAttribArray( program.attribs.at( "color" ) ), "attribLoadFunctions" );
-			GL_CHECK_WITH_NAME( glVertexAttribPointer( program.attribs.at( "color" ), 4, GL_UNSIGNED_BYTE,
-				GL_TRUE, sizeof( bspVertex_t ), ( void* ) offsetof( bspVertex_t, color ) ), "attribLoadFunctions" );
+			GL_CHECK_WITH_NAME( glEnableVertexAttribArray(
+				program.attribs.at( "color" ) ), "attribLoadFunctions" );
+			GL_CHECK_WITH_NAME( glVertexAttribPointer(
+				program.attribs.at( "color" ),
+				4,
+				GL_UNSIGNED_BYTE,
+				GL_TRUE,
+				sizeof( bspVertex_t ),
+				( void* ) offsetof( bspVertex_t, color ) ),
+				"attribLoadFunctions" );
 		}
 	},
 	{
@@ -75,6 +84,47 @@ static INLINE void FlipBytes( byte* out, const byte* src, int width, int height,
 	}
 }
 */
+
+#ifdef DEBUG
+
+static const Program* gDebugBadProgram = nullptr;
+
+void GPrintBadProgram( void )
+{
+	if ( !gDebugBadProgram )
+	{
+		return;
+	}
+
+	std::stringstream out;
+
+	out << "Vertex: \n" << gDebugBadProgram->vertexSource << "\n"
+		<< "Fragment: \n" << gDebugBadProgram->fragmentSource << "\n"
+		<< "Attribs:\n";
+
+	for ( auto attrib: gDebugBadProgram->attribs )
+	{
+		out << "\t[ " << attrib.first << ":" << attrib.second << " ]\n";
+	}
+
+	out << "Uniforms:\n";
+
+	for ( auto uniform: gDebugBadProgram->uniforms )
+	{
+		out << "\t[ " << uniform.first << ":" << uniform.second << " ]\n";
+	}
+
+	MLOG_INFO( "%s", out.str().c_str() );
+
+	gDebugBadProgram = nullptr;
+}
+
+bool GHasBadProgram( void )
+{
+	return !!gDebugBadProgram;
+}
+
+#endif
 
 //-------------------------------------------------------------------------------------------------
 
@@ -154,7 +204,6 @@ void Program::LoadDefaultAttribProfiles( void ) const
 	{
 		if ( attrib.second != -1 )
 		{
-
 			auto it = std::find( disableAttribs.begin(), disableAttribs.end(), attrib.first );
 
 			if ( it != disableAttribs.end() )
@@ -165,6 +214,12 @@ void Program::LoadDefaultAttribProfiles( void ) const
 
 			attribLoadFunctions[ attrib.first ]( *this );
 		}
+#ifdef DEBUG
+		else
+		{
+			gDebugBadProgram = this;
+		}
+#endif
 	}
 }
 

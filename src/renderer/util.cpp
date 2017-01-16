@@ -3,73 +3,10 @@
 #include "effect_shader.h"
 #include "shader_gen.h"
 #include "lib/async_image_io.h"
-#include "q3bsp.h"
-
-void GU_SetupTexParams( const Program& program,
-						const char* uniformPrefix,
-						gTextureHandle_t texHandle,
-						int32_t textureIndex,
-						int32_t offset )
-{
-	if ( textureIndex < 0 )
-	{
-		GReleaseTexture( texHandle, offset );
-		return;
-	}
-
-	GStageSlot( textureIndex );
-
-	const gTextureImage_t& texParams = GTextureImage( texHandle );
-	glm::vec2 invRowPitch( GTextureInverseRowPitch( texHandle ) );
-
-	glm::vec4 transform;
-	transform.x = texParams.stOffsetStart.x;
-	transform.y = texParams.stOffsetStart.y;
-	transform.z = invRowPitch.x;
-	transform.w = invRowPitch.y;
-
-	GBindTexture( texHandle, offset );
-
-	// If true, we're using the main program
-	if ( uniformPrefix )
-	{
-		std::string prefix( uniformPrefix );
-
-		if ( offset > -1 )
-			program.LoadInt( prefix + "Sampler", offset );
-
-		program.LoadVec4( prefix + "ImageTransform", transform );
-		program.LoadVec2( prefix + "ImageScaleRatio",
-			texParams.imageScaleRatio );
-	}
-	else // otherwise, we have an effect shader
-	{
-
-		if ( offset > -1 )
-			program.LoadInt( "sampler0", offset );
-
-		program.LoadVec4( "imageTransform", transform );
-		program.LoadVec2( "imageScaleRatio", texParams.imageScaleRatio );
-	}
-
-	GUnstageSlot();
-}
-
-static void PreInsert_Shader( void* param )
-{
-	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* )param;
-	{
-		shaderStage_t* stage =
-			( shaderStage_t* )imageTracker->
-				textureInfo[ imageTracker->iterator ].param;
-
-		// This index will persist in the texture array it's going into
-		stage->textureIndex = imageTracker->textures.size();
-	}
-}
-
-using retrievePathCallback_t = const char* ( * )( void* source );
-
+#include "renderer.h"
+#include "em_api.h"
+#include "extern/gl_atlas.h"
+#include <iostream>
 
 struct gImageMountNode_t
 {
@@ -91,57 +28,72 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 	}
 }
 
-static gImnAutoPtr_t BundleImagePaths( const std::vector< void* >& sources,
-		retrievePathCallback_t getPath )
+static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 {
 	std::vector< gPathMap_t > env, gfx, models,
 		sprites, textures;
 
-	for ( void* source: sources )
+	// Iterate over our path sources
+	// and find each source a corresponding bundle
+	for ( gPathMap_t& source: sources )
 	{
-		const char* path = getPath( source );
-		const char* slash = strstr( path, "/" );
-
-		if ( !slash )
+		size_t slashPos = source.path.find_first_of( "/" );
+		if ( slashPos == std::string::npos )
 		{
 			MLOG_INFO(
 				"Invalid image path received: path \'%s\'"
 				" does not belong to a bundle. Skipping",
-				path );
+				source.path.c_str() );
 			continue;
 		}
 
-		size_t len = ( ptrdiff_t )( slash - path );
+		AIIO_FixupAssetPath( source );
 
-		gPathMap_t pathMap( AIIO_MakeAssetPath( path ) );
+		// Grab the path segment in between
+		// the first two slashes: this is our
+		// bundle we wish to assign
+		// the current path source.
+		const char* path = &source.path[ 0 ];
+		const char* slash0 = strstr( path, "/" );
+		const char* slash1 = strstr( slash0 + 1, "/" );
+
+		size_t len = slash1 - slash0 - 1;
+
+		path = slash0 + 1;
 
 		if ( strncmp( path, "env", len ) == 0 )
 		{
-			env.push_back( pathMap );
+			env.push_back( source );
 		}
 		else if ( strncmp( path, "gfx", len ) == 0 )
 		{
-			gfx.push_back( pathMap );
+			gfx.push_back( source );
 		}
 		else if ( strncmp( path, "models", len ) == 0 )
 		{
-			models.push_back( pathMap );
+			models.push_back( source );
 		}
 		else if ( strncmp( path, "sprites", len ) == 0 )
 		{
-			sprites.push_back( pathMap );
+			sprites.push_back( source );
 		}
 		else if ( strncmp( path, "textures", len ) == 0 )
 		{
-			textures.push_back( pathMap );
+			textures.push_back( source );
+		}
+		else
+		{
+			MLOG_ERROR( "%s", "Invalid bundle module received" );
 		}
 	}
 
 	gImageMountNode_t* h = new gImageMountNode_t();
 	gImageMountNode_t** pn = &h;
 
-	auto LAddNode = [ &pn ]( const std::vector< gPathMap_t >& paths,
-			const char* name )
+	auto LAddNode = [ &pn ](
+		const std::vector< gPathMap_t >& paths,
+		const char* name
+	)
 	{
 		if ( !paths.empty() )
 		{
@@ -172,16 +124,30 @@ struct gLoadImagesState_t
 	gImageMountNode_t* currNode = nullptr;
 
 	onFinishEvent_t mapLoadFinEvent = nullptr;
-	onFinishEvent_t imageReadInsert = nullptr;
-
 	Q3BspMap* map = nullptr;
 
-	gSamplerHandle_t sampler = { G_UNSPECIFIED };
+	gla::atlas_t* destAtlas = nullptr;
+
+	bool keyMapped = false;
 };
 
 static gLoadImagesState_t gImageLoadState;
 
 static void LoadImagesBegin( char* mem, int size, void* param );
+
+// NOTE:
+// Each time a new bundle is loaded, the global image tracker
+// in lib/async_image_io is reallocated. Since LoadImagesEnd()
+// is passed to AIIO_ReadImages() (via LoadImages()) as a
+// callback - which is invoked once all of desired the images from that particular bundle
+// have been read - then it's up to the finishing callback to actually delete
+// the memory owned by the current global image tracker.
+
+// This _isn't_ a good design - it was naiively written this way a year ago.
+// It should be rewritten.
+// That said, given the current scope of the application,
+// the amount of time available for yours truly, and the fact that I want
+// to actually finish this project, it's going to have to remain that way :/
 
 static void LoadImagesEnd( void* param )
 {
@@ -197,17 +163,25 @@ static void LoadImagesEnd( void* param )
 
 static void LoadImages( char* mem, int size, void* param )
 {
+	UNUSED( mem );
+	UNUSED( size );
+	UNUSED( param );
+
 	AIIO_ReadImages(
 		*gImageLoadState.map,
 		gImageLoadState.currNode->paths,
-		gImageLoadState.sampler,
 		LoadImagesEnd,
-		gImageLoadState.imageReadInsert
+		*( gImageLoadState.destAtlas ),
+		gImageLoadState.keyMapped
 	);
 }
 
 static void LoadImagesBegin( char* mem, int size, void* param )
 {
+	UNUSED( mem );
+	UNUSED( size );
+	UNUSED( param );
+
 	if ( gImageLoadState.currNode )
 	{
 		gFileWebWorker.Await(
@@ -220,140 +194,70 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 	else
 	{
 		gImageLoadState.head.reset();
+		gImageLoadState.destAtlas = nullptr;
 		gImageLoadState.mapLoadFinEvent( param );
 	}
 }
 
-static void LoadImageState( Q3BspMap& map, gSamplerHandle_t sampler,
-	const std::vector< void* >& sources )
+static void LoadImageState(
+	Q3BspMap& map,
+	std::vector< gPathMap_t >& sources,
+	int atlas )
 {
 	gImageLoadState.map = &map;
-	gImageLoadState.sampler = sampler;
-
-	gImageLoadState.head = BundleImagePaths(
-		sources,
-		[]( void* source ) -> const char*
-		{
-			return ( const char* ) source;
-		}
-	);
-
+	gImageLoadState.head = BundleImagePaths( sources );
 	gImageLoadState.currNode = gImageLoadState.head.get();
+	gImageLoadState.destAtlas = map.payload->textureData[atlas].get();
 
 	LoadImagesBegin( nullptr, 0, 0 );
 }
 
-void GU_LoadShaderTextures( Q3BspMap& map,
-	gSamplerHandle_t sampler )
+void GU_LoadShaderTextures( Q3BspMap& map )
 {
 	for ( auto& entry: map.effectShaders )
 	{
 		GMakeProgramsFromEffectShader( entry.second );
 	}
 
-	std::vector< void* > sources;
+	std::vector< gPathMap_t > sources;
 	for ( auto& entry: map.effectShaders )
 	{
 		for ( shaderStage_t& stage: entry.second.stageBuffer )
 		{
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
-				sources.push_back( &stage.texturePath[ 0 ] );
+				gPathMap_t initial;
+
+				initial.param = &stage;
+				initial.path = std::string( &stage.texturePath[ 0 ] );
+
+				sources.push_back( initial );
 			}
 		}
 	}
 
-	gImageLoadState.imageReadInsert = PreInsert_Shader;
+	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
-	LoadImageState( map, sampler, sources );
+	LoadImageState( map, sources, TEXTURE_ATLAS_SHADERS );
 }
 
-static void PreInsert_Main( void* param )
+void GU_LoadMainTextures( Q3BspMap& map )
 {
-	gImageLoadTracker_t* imageTracker = ( gImageLoadTracker_t* ) param;
-	imageTracker->indices.push_back( imageTracker->iterator );
-}
+	std::vector< gPathMap_t> sources;
 
-void GU_LoadMainTextures( Q3BspMap& map, gSamplerHandle_t sampler )
-{
-	std::vector< void* > sources;
-
-	for ( bspShader_t& shader: map.data.shaders )
+	for ( size_t key = 0; key < map.data.shaders.size(); ++key )
 	{
-		sources.push_back( &shader.name[ 0 ] );
+		gPathMap_t initial;
+
+		initial.path = std::string( map.data.shaders[ key ].name );
+		initial.param = ( void* ) key;
+
+		sources.push_back( initial );
 	}
 
-	gImageLoadState.imageReadInsert = PreInsert_Main;
+	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
-	LoadImageState( map, sampler, sources );
+	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }
-
-void GU_LoadStageTexture( glm::ivec2& maxDims,
-		std::vector< gImageParams_t >& images,
-		shaderInfo_t& info, int i, const gSamplerHandle_t& sampler )
-{
-	UNUSED(maxDims);
-	UNUSED(images);
-	UNUSED(info);
-	UNUSED(i);
-	UNUSED(sampler);
-}
-
-#ifndef EMSCRIPTEN
-void GU_ImmLoadMatrices( const glm::mat4& view, const glm::mat4& proj )
-{
-	GL_CHECK( glUseProgram( 0 ) );
-	GL_CHECK( glMatrixMode( GL_PROJECTION ) );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( proj ) ) );
-
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glPushMatrix() );
-	GL_CHECK( glLoadMatrixf( glm::value_ptr( view ) ) );
-}
-
-void GU_ImmBegin( GLenum mode, const glm::mat4& view, const glm::mat4& proj )
-{
-	GU_ImmLoadMatrices( view, proj );
-	glBegin( mode );
-}
-
-void GU_ImmLoad( const guImmPosList_t& v, const glm::vec4& color )
-{
-	for ( const auto& p: v )
-	{
-		glColor4fv( glm::value_ptr( color ) );
-		glVertex3fv( glm::value_ptr( p ) );
-	}
-}
-
-void GU_ImmLoad( const guImmPosList_t& v, const glm::u8vec4& color )
-{
-	for ( const auto& p: v )
-	{
-		glColor4ubv( glm::value_ptr( color ) );
-		glVertex3fv( glm::value_ptr( p ) );
-	}
-}
-
-void GU_ImmEnd( void )
-{
-	glEnd();
-	GL_CHECK( glMatrixMode( GL_MODELVIEW ) );
-	GL_CHECK( glPopMatrix() );
-}
-
-void GU_ImmDrawLine( const glm::vec3& origin,
-					 const glm::vec3& dir,
-					 const glm::vec4& color,
-					 const glm::mat4& view,
-					 const glm::mat4& proj )
-{
-	GU_ImmBegin( GL_LINES, view, proj );
-	glColor4fv( glm::value_ptr( color ) );
-	glVertex3fv( glm::value_ptr( origin ) );
-	glVertex3fv( glm::value_ptr( dir ) );
-	GU_ImmEnd();
-}
-#endif // EMSCRIPTEN

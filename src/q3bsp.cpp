@@ -7,6 +7,8 @@
 #include "lib/async_image_io.h"
 #include "worker/wapi.h"
 #include "renderer.h"
+#include "extern/gl_atlas.h"
+#include "em_api.h"
 
 using namespace std;
 
@@ -55,8 +57,8 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 
 static int gBspDesc = -1;
 
-using q3BspAllocFn_t =
-	std::function< void( char* received, mapData_t& data, int length ) >;
+using q3BspAllocFn_t = std::function< void( char* received, mapData_t& data,
+	int length ) >;
 
 static std::array< q3BspAllocFn_t, BSP_NUM_ENTRIES > gBspAllocTable =
 {{
@@ -289,7 +291,9 @@ static void MapReadFin( Q3BspMap* map )
 		bspFace_t& face = map->data.faces[ i ];
 
 		ScaleCoords( face.normal, ( float ) map->GetScaleFactor() );
+
 		ScaleCoords( face.lightmapOrigin, ( float ) map->GetScaleFactor() );
+
 		ScaleCoords( face.lightmapStVecs[ 0 ],
 			( float ) map->GetScaleFactor() );
 		ScaleCoords( face.lightmapStVecs[ 1 ],
@@ -389,17 +393,7 @@ static void ReadBegin( char* data, int size, void* param )
 	SendRequest( info, param );
 }
 
-static INLINE void LoadImagesFinish( gImageParamList_t& dest,
-	gImageLoadTracker_t** imageTracker )
-{
-	dest = std::move( ( *imageTracker )->textures );
-
-	delete *imageTracker;
-	*imageTracker = nullptr;
-}
-
-static void UnmountShadersFin( char* data, int size,
-		void* arg )
+static void UnmountShadersFin( char* data, int size, void* arg )
 {
 	UNUSED( data );
 	UNUSED( size );
@@ -408,7 +402,7 @@ static void UnmountShadersFin( char* data, int size,
 		"Loading images from effect shaders..."\
 		"\n===============" );
 
-	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ), GMakeSampler() );
+	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ) );
 }
 
 //------------------------------------------------------------------------------
@@ -436,22 +430,21 @@ void Q3BspMap::OnShaderReadFinish( void )
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 {
-	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
+	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap& map = ( *imageTracker )->map;
-	map.payload.reset( new renderPayload_t() );
-	map.payload->sampler = ( *imageTracker )->sampler;
 
-	LoadImagesFinish( map.payload->shaderImages, imageTracker );
-	GU_LoadMainTextures( map, map.payload->sampler );
+	GU_LoadMainTextures( map );
 }
 
 void Q3BspMap::OnMainLoadImagesFinish( void* param )
 {
-	gImageLoadTracker_t** imageTracker = ( gImageLoadTracker_t** ) param;
+	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap& map = ( *imageTracker )->map;
-	LoadImagesFinish( map.payload->mainImages, imageTracker );
+
+	imageTracker->reset();
 
 	puts( "Main images finished." );
+	map.mapAllocated = true;
 	map.readFinishEvent( &map );
 }
 
@@ -515,6 +508,8 @@ void Q3BspMap::ZeroData( void )
 	data.lightvols.clear();
 	data.bitsetSrc.clear();
 	data.entitiesSrc.clear();
+
+	payload.reset();
 }
 
 void Q3BspMap::DestroyMap( void )
@@ -532,6 +527,13 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	if ( IsAllocated() )
 	{
 		DestroyMap();
+	}
+
+	payload.reset(new renderPayload_t());
+
+	for (gla_atlas_ptr_t& atlas: payload->textureData)
+	{
+		atlas.reset(new gla::atlas_t());
 	}
 
 	readFinishEvent = finishCallback;

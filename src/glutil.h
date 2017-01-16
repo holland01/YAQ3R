@@ -50,6 +50,11 @@
 #	define glClearDepth glClearDepthf
 #endif
 
+#ifdef DEBUG
+ void GPrintBadProgram( void );
+ bool GHasBadProgram( void );
+#endif
+
 enum
 {
 	GLUTIL_POLYGON_OFFSET_FILL = 1 << 0,
@@ -80,11 +85,11 @@ class AABB;
 static INLINE void MapVec3( int location, size_t offset )
 {
 	GL_CHECK( glEnableVertexAttribArray( location ) );
-	GL_CHECK( glVertexAttribPointer( location, 3, GL_FLOAT, GL_FALSE, 
+	GL_CHECK( glVertexAttribPointer( location, 3, GL_FLOAT, GL_FALSE,
 				sizeof( bspVertex_t ), ( void* ) offset ) );
 }
 
-static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID, 
+static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID,
 		const std::vector< std::string >& uniforms )
 {
 	for ( const std::string& title: uniforms )
@@ -96,20 +101,20 @@ static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID,
 }
 
 template < typename T >
-static INLINE GLuint GenBufferObject( GLenum target, 
+static INLINE GLuint GenBufferObject( GLenum target,
 	const std::vector< T >& data, GLenum usage )
 {
 	GLuint obj;
 	GL_CHECK( glGenBuffers( 1, &obj ) );
 	GL_CHECK( glBindBuffer( target, obj ) );
-	GL_CHECK( glBufferData( target, data.size() * sizeof( T ), 
+	GL_CHECK( glBufferData( target, data.size() * sizeof( T ),
 		&data[ 0 ], usage ) );
 	GL_CHECK( glBindBuffer( target, 0 ) );
 	return obj;
 }
 
 template < typename T >
-static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset, 
+static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset,
 		const std::vector< T >& data, bool bindUnbind )
 {
 	if ( bindUnbind )
@@ -117,7 +122,7 @@ static INLINE void UpdateBufferObject( GLenum target, GLuint obj, GLuint offset,
 		GL_CHECK( glBindBuffer( target, obj ) );
 	}
 
-	GL_CHECK( glBufferSubData( target, offset * sizeof( T ), 
+	GL_CHECK( glBufferSubData( target, offset * sizeof( T ),
 		data.size() * sizeof( T ), &data[ 0 ] ) );
 
 	if ( bindUnbind )
@@ -139,7 +144,7 @@ static INLINE void DeleteBufferObject( GLenum target, GLuint obj )
 static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
 {
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo ) );
-	GL_CHECK( glDrawElements( GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 
+	GL_CHECK( glDrawElements( GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
 		nullptr ) );
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 }
@@ -183,7 +188,7 @@ private:
 
 #undef DECL_SHADER_STORE
 
-	void GenData( const std::vector< std::string >& uniforms, 
+	void GenData( const std::vector< std::string >& uniforms,
 		const std::vector< std::string >& attribs );
 
 	std::vector< attribProfile_t > altAttribProfiles;
@@ -196,21 +201,26 @@ public:
 	const shaderStage_t* stage;
 
 	// Cleared on each invocation of LoadAttribLayout
-	std::vector< std::string > disableAttribs; 
+	std::vector< std::string > disableAttribs;
 
-	Program( const std::string& vertexShader, 
-			 const std::string& fragmentShader, 
-			 const std::vector< std::string >& bindAttribs = 
+#ifdef DEBUG
+ 	std::string vertexSource;
+	std::string fragmentSource;
+#endif
+
+	Program( const std::string& vertexShader,
+			 const std::string& fragmentShader,
+			 const std::vector< std::string >& bindAttribs =
 			std::vector< std::string >() );
 
-	Program( const std::string& vertexShader, 
+	Program( const std::string& vertexShader,
 			const std::string& fragmentShader,
-		const std::vector< std::string >& uniforms, 
+		const std::vector< std::string >& uniforms,
 		const std::vector< std::string >& attribs );
 
-	Program( const std::vector< char >& vertexShader, 
+	Program( const std::vector< char >& vertexShader,
 		const std::vector< char >& fragmentShader,
-		const std::vector< std::string >& uniforms, 
+		const std::vector< std::string >& uniforms,
 		const std::vector< std::string >& attribs );
 
 	Program( const Program& copy );
@@ -235,18 +245,18 @@ public:
 	void LoadVec2( const std::string& name, const glm::vec2& v ) const;
 	void LoadVec2( const std::string& name, const float* v ) const;
 
-	void LoadVec2Array( const std::string& name, 
+	void LoadVec2Array( const std::string& name,
 		const float* v, int32_t num ) const;
 
 	void LoadVec3( const std::string& name, const glm::vec3& v ) const;
 
-	void LoadVec3Array( const std::string& name, const float* v, 
+	void LoadVec3Array( const std::string& name, const float* v,
 		int32_t num ) const;
 
 	void LoadVec4( const std::string& name, const glm::vec4& v ) const;
 	void LoadVec4( const std::string& name, const float* v ) const;
 
-	void LoadVec4Array( const std::string& name, const float* v, 
+	void LoadVec4Array( const std::string& name, const float* v,
 		int32_t num ) const;
 
 	void LoadInt( const std::string& name, int v ) const;
@@ -256,19 +266,19 @@ public:
 	void Bind( void ) const;
 	void Release( void ) const;
 
-	static std::vector< std::string > ArrayLocationNames( 
+	static std::vector< std::string > ArrayLocationNames(
 		const std::string& name, int32_t length );
 };
 
 INLINE void Program::AddUnif( const std::string& name )
 {
-	GL_CHECK( uniforms[ name ] = glGetUniformLocation( 
+	GL_CHECK( uniforms[ name ] = glGetUniformLocation(
 		program, name.c_str() ) );
 }
 
 INLINE void Program::AddAttrib( const std::string& name )
 {
-	GL_CHECK( attribs[ name ] = glGetAttribLocation( program, 
+	GL_CHECK( attribs[ name ] = glGetAttribLocation( program,
 		name.c_str() ) );
 }
 
@@ -278,7 +288,7 @@ INLINE void Program::AddAltAttribProfile( const attribProfile_t& profile )
 }
 
 template < typename vecType_t, uint32_t tupleSize >
-static INLINE typename std::vector< vecType_t > MakeVectorArray( 
+static INLINE typename std::vector< vecType_t > MakeVectorArray(
 	const float* v, int32_t num )
 {
 	uint32_t cnum = num;
@@ -296,19 +306,19 @@ static INLINE typename std::vector< vecType_t > MakeVectorArray(
 	return std::move( buf );
 }
 
-INLINE void Program::LoadMat4( const std::string& name, 
+INLINE void Program::LoadMat4( const std::string& name,
 	const glm::mat4& t ) const
 {
 	mat4s.insert( t_mat4s::value_type( uniforms.at( name ), t ) );
 }
 
-INLINE void Program::LoadMat2( const std::string& name, 
+INLINE void Program::LoadMat2( const std::string& name,
 	const glm::mat2& t ) const
 {
 	mat2s.insert( t_mat2s::value_type( uniforms.at( name ), t ) );
 }
 
-INLINE void Program::LoadMat2( const std::string& name, 
+INLINE void Program::LoadMat2( const std::string& name,
 	const float* t ) const
 {
 	glm::mat2 m( t[ 0 ], t[ 1 ],
@@ -317,13 +327,13 @@ INLINE void Program::LoadMat2( const std::string& name,
 	mat2s.insert( t_mat2s::value_type( uniforms.at( name ), m ) );
 }
 
-INLINE void Program::LoadVec2( const std::string& name, 
+INLINE void Program::LoadVec2( const std::string& name,
 	const glm::vec2& v ) const
 {
 	vec2s.insert( t_vec2s::value_type( uniforms.at( name ), v ) );;
 }
 
-INLINE void Program::LoadVec2( const std::string& name, 
+INLINE void Program::LoadVec2( const std::string& name,
 	const float* v ) const
 {
 	glm::vec2 v0( v[ 0 ], v[ 1 ] );
@@ -331,33 +341,33 @@ INLINE void Program::LoadVec2( const std::string& name,
 	vec2s.insert( t_vec2s::value_type( uniforms.at( name ), v0 ) );
 }
 
-INLINE void Program::LoadVec2Array( const std::string& name, const float* v, 
+INLINE void Program::LoadVec2Array( const std::string& name, const float* v,
 	int32_t num ) const
 {
-	vec2Array.insert( t_vec2Array::value_type( uniforms.at( name ), 
+	vec2Array.insert( t_vec2Array::value_type( uniforms.at( name ),
 		MakeVectorArray< glm::vec2, 2 >( v, num ) ) );
 }
 
-INLINE void Program::LoadVec3( const std::string& name, 
+INLINE void Program::LoadVec3( const std::string& name,
 	const glm::vec3& v ) const
 {
 	vec3s.insert( t_vec3s::value_type( uniforms.at( name ), v ) );
 }
 
-INLINE void Program::LoadVec3Array( const std::string& name, const float* v, 
+INLINE void Program::LoadVec3Array( const std::string& name, const float* v,
 	int32_t num ) const
 {
-	vec3Array.insert( t_vec3Array::value_type( uniforms.at( name ), 
+	vec3Array.insert( t_vec3Array::value_type( uniforms.at( name ),
 		MakeVectorArray< glm::vec3, 3 >( v, num ) ) );
 }
 
-INLINE void Program::LoadVec4( const std::string& name, 
+INLINE void Program::LoadVec4( const std::string& name,
 	const glm::vec4& v ) const
 {
 	vec4s.insert( t_vec4s::value_type( uniforms.at( name ), v ) );
 }
 
-INLINE void Program::LoadVec4( const std::string& name, 
+INLINE void Program::LoadVec4( const std::string& name,
 	const float* v ) const
 {
 	glm::vec4 v0( v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
@@ -365,10 +375,10 @@ INLINE void Program::LoadVec4( const std::string& name,
 	vec4s.insert( t_vec4s::value_type( uniforms.at( name ), v0 ) );
 }
 
-INLINE void Program::LoadVec4Array( const std::string& name, const float* v, 
+INLINE void Program::LoadVec4Array( const std::string& name, const float* v,
 	int32_t num ) const
 {
-	vec4Array.insert( t_vec4Array::value_type( uniforms.at( name ), 
+	vec4Array.insert( t_vec4Array::value_type( uniforms.at( name ),
 		MakeVectorArray< glm::vec4, 4 >( v, num ) ) );
 }
 
@@ -403,7 +413,7 @@ struct viewportStash_t
 
 	~viewportStash_t( void )
 	{
-		GL_CHECK( glViewport( original[ 0 ], original[ 1 ], 
+		GL_CHECK( glViewport( original[ 0 ], original[ 1 ],
 			original[ 2 ], original[ 3 ] ) );
 	}
 };

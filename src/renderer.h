@@ -45,8 +45,13 @@ enum viewMode_t
 	VIEW_LIGHT_SAMPLE,
 };
 
-using drawCall_t = std::function< void( const void* param,
-	const Program& program, const shaderStage_t* stage ) >;
+using drawCall_t = std::function<
+	void(
+		const void* param,
+		const Program& program,
+		const shaderStage_t* stage
+	)
+>;
 
 struct drawSurface_t
 {
@@ -126,10 +131,17 @@ struct shaderStage_t;
 struct mapModel_t;
 
 using effectFnSig_t = void( const Program& p, const effect_t& e );
-using programMap_t = std::unordered_map< std::string,
-	std::unique_ptr< Program > >;
-using effectMap_t = std::unordered_map< std::string,
-	std::function< effectFnSig_t > >;
+
+using programMap_t = std::unordered_map<
+	std::string,
+	std::unique_ptr< Program >
+>;
+
+using effectMap_t = std::unordered_map<
+	std::string,
+	std::function< effectFnSig_t >
+>;
+
 using modelBuffer_t = std::vector< std::unique_ptr< mapModel_t > >;
 
 struct debugFace_t
@@ -138,10 +150,25 @@ struct debugFace_t
 	glm::vec4 color;
 };
 
+namespace gla {
+	struct atlas_t;
+}
+
+using gla_atlas_ptr_t = std::unique_ptr< gla::atlas_t >;
+using gla_array_t = std::array< gla_atlas_ptr_t, 3 >;
+
+// An instance of this gets passed from Q3BspMap to the BSPRenderer once
+// all of the map data has been read.
 struct renderPayload_t
 {
-	gImageParamList_t mainImages, shaderImages;
-	gSamplerHandle_t sampler;
+	gla_array_t textureData;
+};
+
+// indices for the above payload's atlas array
+enum {
+	TEXTURE_ATLAS_SHADERS = 0x0,
+	TEXTURE_ATLAS_MAIN = 0x1,
+	TEXTURE_ATLAS_LIGHTMAPS = 0x2
 };
 
 class BSPRenderer
@@ -149,17 +176,19 @@ class BSPRenderer
 private:
 
 	// [0] void* -> surface/face data to render
-	// [1] shaderInfo_t* -> relevant shader information
+	// [1] const shaderInfo_t* -> relevant shader information
 	// [2] int32_t -> texture index
 	// [3] int32_t -> lightmap index
 	// [4] bool -> true if solid, false if not
-	using drawTuple_t = std::tuple< const void*, const shaderInfo_t*,
-		int32_t, int32_t, bool >;
+	using drawTuple_t = std::tuple<
+		const void*,
+		const shaderInfo_t*,
+		int32_t,
+		int32_t,
+		bool
+	>;
 
-	gSamplerHandle_t				mainSampler; // also used by lightmaps
-
-	gTextureHandle_t				shaderTexHandle, mainTexHandle,
-		lightmapHandle;
+	gla_array_t textures;
 
 	// has one->one mapping with face indices
 	modelBuffer_t					glFaces;
@@ -183,58 +212,91 @@ private:
 
 	double				frameTime;
 
-	void				LoadLightVol( const drawPass_t& pass,
-							const Program& prog ) const;
+	void 				BindTexture(
+							const Program& program,
+							const gla_atlas_ptr_t& atlas,
+							uint16_t image,
+							const char* prefix,
+							int offset
+						);
 
-	void                SortDrawSurfaces( std::vector< drawSurface_t >& surf,
-							bool transparent );
+	void				LoadLightVol(
+							const drawPass_t& pass,
+							const Program& prog
+						) const;
 
-	void				DeformVertexes( const mapModel_t& m,
-							const shaderInfo_t* shader ) const;
+	void                SortDrawSurfaces(
+							std::vector< drawSurface_t >& surf,
+							bool transparent
+						);
 
-	void				MakeProg( const std::string& name,
+	void				DeformVertexes(
+							const mapModel_t& m,
+							const shaderInfo_t* shader
+						) const;
+
+	void				MakeProg(
+							const std::string& name,
 							const std::string& vertPath,
 							const std::string& fragPath,
 							const std::vector< std::string >& uniforms,
-							const std::vector< std::string >& attribs );
+							const std::vector< std::string >& attribs
+						);
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
 	bool				IsTransFace( int32_t faceIndex,
-							const shaderInfo_t* shader ) const;
+							const shaderInfo_t* shader
+						) const;
 
-	void				LoadPassParams( drawPass_t& pass, int32_t face,
-							passDrawType_t defaultPass ) const;
+	void				LoadPassParams(
+							drawPass_t& pass,
+							int32_t face,
+							passDrawType_t defaultPass
+						) const;
 
-	void				DrawMapPass( int32_t textureIndex,
+	void				DrawMapPass(
+							int32_t textureIndex,
 							int32_t	lightmapIndex,
-							std::function< void( const Program& )> callback );
+							std::function< void( const Program& )> callback
+						);
 
-	void				MakeAddSurface(const shaderInfo_t* shader,
+	void				MakeAddSurface(
+							const shaderInfo_t* shader,
 							int32_t faceIndex,
-							surfaceContainer_t& surfList );
+							surfaceContainer_t& surfList
+						);
 
-	void				AddSurface( const shaderInfo_t* shader,
+	void				AddSurface(
+							const shaderInfo_t* shader,
 							int32_t faceIndex,
-							surfaceContainer_t& surfList );
+							surfaceContainer_t& surfList
+						);
 
-	void				ReflectFromTuple( const drawTuple_t& data,
-							const drawPass_t& pass, const Program& program );
+	void				ReflectFromTuple(
+							const drawTuple_t& data,
+							const drawPass_t& pass,
+							const Program& program
+						);
 
 	void				DrawSurface( const drawSurface_t& surface ) const;
 
-	void				DrawFaceList( drawPass_t& p,
-							const std::vector< int32_t >& list );
+	void				DrawFaceList(
+							drawPass_t& p,
+							const std::vector< int32_t >& list
+						);
 
-	void				DrawSurfaceList( const surfaceContainer_t& list,
-							bool solid );
+	void				DrawSurfaceList(
+							const surfaceContainer_t& list,
+							bool solid
+						);
 
-	void				DrawEffectPass( const drawTuple_t& data,
-								drawCall_t callback );
+	void				DrawEffectPass(
+							const drawTuple_t& data,
+							drawCall_t callback
+						);
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
-
-	void				DrawDebugFace( uint32_t index );
 
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 
@@ -246,12 +308,12 @@ private:
 
 	void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts( const drawPass_t& pass,
-							const shaderStage_t* stage ) const;
+	void				DrawFaceVerts(
+							const drawPass_t& pass,
+							const shaderStage_t* stage
+						) const;
 
 	void				LoadVertexData( void );
-
-	void				LoadLightmaps( void );
 
 public:
 	bool				alwaysWriteDepth;
@@ -280,8 +342,10 @@ public:
 	void		Update( float dt );
 };
 
-INLINE void BSPRenderer::DrawFaceList( drawPass_t& p,
-	const std::vector< int32_t >& list )
+INLINE void BSPRenderer::DrawFaceList(
+	drawPass_t& p,
+	const std::vector< int32_t >& list
+)
 {
 	passDrawType_t defaultPass = p.drawType;
 

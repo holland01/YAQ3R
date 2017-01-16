@@ -7,23 +7,10 @@
 
 struct meta_t
 {
-	bool logProgramGen = true;
-	FILE*	programLog = nullptr;
+	const bool logProgramGen = false;
 	uint32_t currLineCount = 0;
 
 	std::string currShaderFile;
-
-	meta_t( void )
-	{
-		if ( logProgramGen )
-			programLog = fopen( "log/shader_gen.txt", "wb" );
-	}
-
-	~meta_t( void )
-	{
-		if ( programLog )
-			fclose( programLog );
-	}
 
 	void LogShader( const std::string& title,
 					const std::string& source,
@@ -31,7 +18,7 @@ struct meta_t
 	{
 		if ( logProgramGen )
 		{
-			fprintf( programLog, "[ %i ] [ \n\n %s \n\n%s \n\n ]",
+			fprintf( stdout, "[ %i ] [ \n\n %s \n\n%s \n\n ]",
 				stage,
 				title.c_str(),
 				source.c_str() );
@@ -42,7 +29,7 @@ struct meta_t
 	{
 		if ( logProgramGen )
 		{
-			fprintf( programLog,
+			fprintf( stdout,
 					 "---------------------------\n\n"
 					 "PROGRAM COUNT: %llu"
 					 "\n\n-----------------------------",
@@ -57,7 +44,8 @@ static std::unique_ptr< meta_t > gMeta( new meta_t() );
 // Shader Gen Utilities
 //--------------------------------------------------
 
-static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const std::string& discardPredicate )
+static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc,
+	const std::string& discardPredicate )
 {
 	fragmentSrc.push_back( "\tif ( " + discardPredicate + " )" );
 	fragmentSrc.push_back( "\t{" );
@@ -65,7 +53,8 @@ static INLINE void AddDiscardIf( std::vector< std::string >& fragmentSrc, const 
 	fragmentSrc.push_back( "\t}" );
 }
 
-static INLINE std::string SampleTexture2D( const std::string& samplerName, const std::string& coords )
+static INLINE std::string SampleTexture2D( const std::string& samplerName,
+	const std::string& coords )
 {
 #ifdef G_USE_GL_CORE
 	std::string fname( "texture" );
@@ -85,10 +74,12 @@ static INLINE std::string SampleFromTexture( const std::string& destCoords,
 
 	std::stringstream ss;
 
-	ss << "\t" << destCoords << " = " << "mod( " << srcCoords << ", vec2( 0.99 ) ) * " << scaleParams
+	ss << "\t" << destCoords << " = " << "mod( " << srcCoords
+	<< ", vec2( 0.99 ) ) * " << scaleParams
 	   << " * " << transform << ".zw + " << transform << ".xy;\n";
 
-	ss << "\t" << destSample << " = " << SampleTexture2D( srcSample, destCoords ) << ";";
+	ss << "\t" << destSample << " = " << SampleTexture2D( srcSample,
+		destCoords ) << ";";
 
 	return ss.str();
 }
@@ -103,24 +94,25 @@ static INLINE std::string WriteFragment( const std::string& value )
 #endif
 }
 
-static INLINE std::string DeclAttributeVar( const std::string& name, const std::string& type, const int32_t location = -1 )
+static INLINE std::string DeclAttributeVar( const std::string& name,
+	const std::string& type, const int32_t location = -1 )
 {
 #ifdef G_USE_GL_CORE
-	std::string decl("in " + type + " " + name + ";");
+	std::string decl( "in " + type + " " + name + ";" );
 
 #	ifdef __linux__
 	UNUSED( location );
-#else
+#	else
 	if ( location != -1 )
 	{
 		decl = "layout( location = " + std::to_string( location ) + " ) " + decl;
 	}
-#	endif
+#	endif // __linux__
 	return decl;
 #else
 	UNUSED( location );
 	return "attribute " + type + " " + name + ";";
-#endif
+#endif // G_USE_GL_COREf
 }
 
 static INLINE std::string DeclTransferVar( const std::string& name,
@@ -185,7 +177,8 @@ static INLINE void WriteTexture(
 	}
 	else
 	{
-		fragmentSrc.push_back( "\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
+		fragmentSrc.push_back(
+			"\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
 	}
 
 	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
@@ -197,8 +190,10 @@ static INLINE void WriteTexture(
 	// Some shader entries will incorporate specific alpha values
 	if ( stage.alphaGen != 0.0f )
 	{
-		fragmentSrc.push_back( "\tconst float alphaGen = "
-			+ std::to_string( stage.alphaGen ) + std::to_string( ';' ) );
+		fragmentSrc.push_back(
+			"\tconst float alphaGen = "
+			+ std::to_string( stage.alphaGen )
+			+ std::to_string( ';' ) );
 
 		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
 
@@ -276,7 +271,7 @@ static std::string GenVertexShader( shaderStage_t& stage,
 	std::vector< std::string > vertexSrc =
 	{
 		DeclAttributeVar( "position", "vec3", attribLocCounter++ ),
-		DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
+		texCoordName.empty() ? "" : DeclAttributeVar( texCoordName, "vec2", attribLocCounter++ ),
 		DeclTransferVar( "frag_Tex", "vec2", "out" ),
 		DeclCoreTransforms(),
 		"void main(void) {",
@@ -502,10 +497,7 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 	{
 		shaderStage_t& stage = shader.stageBuffer[ j ];
 
-		const std::string texCoordName( ( stage.mapType == MAP_TYPE_LIGHT_MAP )?
-				"lightmap": "tex0" );
-
-		std::vector< std::string > attribs = { "position", texCoordName };
+		std::vector< std::string > attribs = { "position" };
 		std::vector< std::string > uniforms = {
 			"sampler0",
 			"imageTransform",
@@ -514,8 +506,22 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 			"viewToClip",
 		};
 
-		const std::string& vertexString = GenVertexShader( stage, texCoordName,
-				attribs );
+		std::string texCoordName;
+		if ( stage.tcgen != TCGEN_ENVIRONMENT )
+		{
+			if ( stage.mapType == MAP_TYPE_LIGHT_MAP )
+			{
+				texCoordName = "lightmap";
+			}
+			else
+			{
+				texCoordName = "tex0";
+			}
+
+			attribs.push_back( texCoordName );
+		}
+
+		const std::string& vertexString = GenVertexShader( stage, texCoordName, attribs );
 		const std::string& fragmentString = GenFragmentShader( stage, uniforms );
 
 		Program* p = new Program( vertexString, fragmentString, uniforms, attribs );
@@ -526,10 +532,11 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 		stage.program = GFindProgramByData( p->attribs, p->uniforms, &stage );
 		if ( G_HNULL( stage.program ) )
 #endif
-
 		{
-			gMeta->LogShader( "Vertex", vertexString, j );
-			gMeta->LogShader( "Fragment", fragmentString, j );
+#ifdef DEBUG
+			p->vertexSource = vertexString;
+			p->fragmentSource = fragmentString;
+#endif
 			p->stage = &stage;
 			stage.program = GStoreProgram( p );
 		}

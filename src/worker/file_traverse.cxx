@@ -6,6 +6,7 @@
 #include <array>
 #include <memory>
 #include <assert.h>
+#include <stdarg.h>
 #include "wapi.h"
 #include "commondef.h"
 #include <extern/stb_image.h>
@@ -17,6 +18,20 @@ void TestFile( unsigned char* path )
 	char* strpath = ( char* )path;
 
 	emscripten_worker_respond_provisionally( strpath, strlen( strpath ) );
+}
+
+static void O_Log( const char* fmt, ... )
+{
+#if defined( DEBUG ) && defined( CONTENT_PIPELINE_IO )
+	va_list arg;
+
+	va_start( arg, fmt );
+	vfO_Log( stdout, fmt, arg );
+	fO_Log( "%s",  "\n", stdout );
+	va_end( arg );
+#else
+	UNUSED( fmt );
+#endif
 }
 
 typedef void ( *callback_t )( char* data, int size );
@@ -66,7 +81,7 @@ static std::unique_ptr< asyncArgs_t > gTmpArgs( nullptr );
 static void InitSystem_OnError( void* arg )
 {
 	( void )arg;
-	puts( "emscripten_async_wget_data inject fetch failed" );
+	O_Log( "%s", "emscripten_async_wget_data inject fetch failed" );
 }
 
 static void InitSystem_OnLoad( void* arg, void* data, int size )
@@ -136,7 +151,7 @@ struct file_t
 
 		ptr = fopen( path.c_str(), "rb" );
 
-		//printf( "Attempting fopen for \'%s\'...\n", path.c_str() );
+		//O_Log( "Attempting fopen for \'%s\'...\n", path.c_str() );
 	}
 
 	bool ReadImage( void )
@@ -147,7 +162,7 @@ struct file_t
 
 		if ( !ptr )
 		{
-			puts( "ERROR: file could not be opened" );
+			O_Log( "%s", "ERROR: file could not be opened" );
 			return false;
 		}
 
@@ -156,12 +171,12 @@ struct file_t
 
 		if ( !buf )
 		{
-			puts( "ERROR: STBI rejected the image file" );
+			O_Log( "%s",  "ERROR: STBI rejected the image file" );
 			return false;
 		}
 
 		size_t size = width * height * bpp;
-		size_t cap = Align( size ) + 8;
+		size_t cap = size + 8;
 
 		readBuff.resize( cap, 0 );
 		memcpy( &readBuff[ 8 ], buf, size );
@@ -244,7 +259,7 @@ static INLINE std::string FullPath( const char* path, size_t pathLen )
 	strPath.append( path, pathLen );
 	root.append( strPath );
 
-	//printf( "Path Received: %s\n", root.c_str() );
+	//O_Log( "Path Received: %s\n", root.c_str() );
 
 	return root;
 }
@@ -290,7 +305,7 @@ static INLINE void FailOpen( const char* path, size_t pathLen )
 {
 	uint32_t m = WAPI_FALSE;
 	std::string strPath( path, pathLen );
-	printf( "fopen for \'%s\' failed\n", strPath.c_str() );
+	O_Log( "fopen for \'%s\' failed\n", strPath.c_str() );
 	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
 }
 
@@ -300,7 +315,7 @@ static INLINE bool SplitDataWithBundle( std::string& bundleName,
 	for ( int i = 0; i < size; ++i ) {
 		if ( data[i] == AL_STRING_DELIM ) {
 			bundleName = std::string( data, i );
-			printf( "Bundle Name Found: %s\n", bundleName.c_str() );
+			O_Log( "Bundle Name Found: %s\n", bundleName.c_str() );
 
 			chopData.resize( size - i + 1, 0 );
 			memcpy( &chopData[ 0 ], data + i + 1, size - i );
@@ -313,7 +328,7 @@ static INLINE bool SplitDataWithBundle( std::string& bundleName,
 
 static void SendFile_OnLoad( char* path, int size )
 {
-	puts("SendFile_OnLoad reached.");
+	O_Log( "%s", "SendFile_OnLoad reached.");
 
 	const std::string& fp = FullPath( path, size );
 
@@ -359,7 +374,7 @@ static void SendShader_OnLoad( char* path, int size )
 {
 	if ( !path && !size )
 	{
-		puts( "Last shader path found." );
+		O_Log( "%s",  "Last shader path found." );
 		emscripten_worker_respond( nullptr, 0 );
 		return;
 	}
@@ -417,10 +432,10 @@ static void TraverseDirectory_Read( char* dir, int size )
 
 	if ( !code )
 	{
-		printf( "Failed to traverse \'%s\'\n", dir );
+		O_Log( "Failed to traverse \'%s\'\n", dir );
 	}
 
-	puts( "TraverseDirectory_Read finished" );
+	O_Log( "%s",  "TraverseDirectory_Read finished" );
 }
 
 static void TraverseDirectory_Proxy( char* data, int size )
@@ -431,7 +446,7 @@ static void TraverseDirectory_Proxy( char* data, int size )
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	printf( "Bundle Name: %s\n Rem Data: %s\n", bundleName.c_str(),
+	O_Log( "Bundle Name: %s\n Rem Data: %s\n", bundleName.c_str(),
 		&remData[ 0 ] );
 
 	EM_ASM_ARGS({
@@ -530,7 +545,7 @@ extern "C" {
 
 void ReadFile_Begin( char* path, int size )
 {
-	puts( "Worker: ReadFile_Begin entering" );
+	O_Log( "%s",  "Worker: ReadFile_Begin entering" );
 
 	if ( InitSystem( ReadFile_Proxy, path, size ) )
 	{
@@ -542,14 +557,14 @@ void ReadFile_Chunk( char* bcmd, int size )
 {
 	if ( !gFIOChain || !( *gFIOChain ) )
 	{
-		puts( "No file initialized..." );
+		O_Log( "%s",  "No file initialized..." );
 		emscripten_worker_respond( nullptr, 0 );
 		return;
 	}
 
 	wApiChunkInfo_t* cmd = ( wApiChunkInfo_t* )bcmd;
 
-	printf( "Received - offset: " F_SIZE_T ", size: " F_SIZE_T "\n",
+	O_Log( "Received - offset: " F_SIZE_T ", size: " F_SIZE_T "\n",
 		cmd->offset, cmd->size );
 
 	gFIOChain->Read( cmd->offset, cmd->size );
@@ -558,7 +573,7 @@ void ReadFile_Chunk( char* bcmd, int size )
 
 void TraverseDirectory( char* dir, int size )
 {
-	puts( "Worker: TraverseDirectory entering" );
+	O_Log( "%s",  "Worker: TraverseDirectory entering" );
 
 	if ( InitSystem( TraverseDirectory_Proxy, dir, size ) )
 	{
@@ -568,8 +583,6 @@ void TraverseDirectory( char* dir, int size )
 
 void ReadImage( char* path, int size )
 {
-	//puts( "Worker: ReadImage entering" );
-
 	if ( InitSystem( ReadImage_Proxy, path, size ) )
 	{
 		ReadImage_Proxy( path, size );
@@ -586,7 +599,6 @@ void MountPackage( char* path, int size )
 
 void UnmountPackages( char* data, int size )
 {
-
 	if ( InitSystem( UnmountPackages_Proxy, nullptr, 0 ) )
 	{
 		UnmountPackages_Proxy( nullptr, 0 );

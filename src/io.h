@@ -1,26 +1,10 @@
 #pragma once
 
 #include "common.h"
-#include "em_api.h"
-
-struct bspFace_t;
-struct bspMeshVertex_t;
-class Q3BspMap;
-
-struct drawSurface_t;
-struct gTextureHandle_t;
-struct gTextureImage_t;
-struct mapData_t;
-struct shaderStage_t;
-
-void LogWriteAtlasTexture( std::stringstream& sstream,
-						   const gTextureHandle_t& texHandle,
-						   const shaderStage_t* stage );
-
-void LogBSPData( int bspDataType, void* data, int length );
 
 void O_Log( const char* header, const char* priority, const char* fmt, ... );
-void O_LogBuffer( const char* header, const char* priority, const char* fmt, ... );
+void O_LogBuffer( const char* header, const char* priority,
+	const char* fmt, ... );
 void O_LogF( FILE* f, const char* header, const char* fmt, ... );
 void MyDateTime( const char* format, char* outBuffer, int length );
 
@@ -28,24 +12,23 @@ float GetTimeSeconds( void );
 
 void ExitOnGLError( int line, const char* glFunc, const char* callerFunc );
 
-void InitSysLog( void );
-void InitLogBSPData( Q3BspMap* map );
-
-void KillSysLog( void );
-
 // Returns true if a trailing slash is needed in the path, otherwise false.
 // Either way, the default OS_PATH_SEPARATOR is thrown in outSlash,
-// or an alternative separator if the string already contains it (i.e., we're on Windows and
-// the path isn't using back slashes...)
+// or an alternative separator if the string already contains it
+// (i.e., we're on Windows and the path isn't using back slashes...)
 bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 
-// TODO: rewrite this so all log handlers call into this function; MLOG_ERROR would pass false to condition, where as
-// any other default would be "true". MLOG_ASSERT would pass strictly the condition specified by its caller, of course.
-//void MLogError( bool condition, const char* filename, int32_t line, const char* funcname, ... );
+// TODO: rewrite this so all log handlers call into this function;
+// MLOG_ERROR would pass false to condition, where as
+// any other default would be "true". MLOG_ASSERT would pass
+// strictly the condition specified by its caller, of course.
+// void MLogError( bool condition, const char* filename, int32_t line,
+// const char* funcname, ... );
 
 #define MLOG_INFO( ... ) ( O_Log( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
-#define MLOG_INFOB( ... ) ( O_LogBuffer( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
+#define MLOG_INFOB( ... ) ( O_LogBuffer( ( _FUNC_NAME_ ), "INFO", \
+	__VA_ARGS__ ) )
 
 #define MLOG_ERROR( ... )									\
 	do                                                      \
@@ -55,9 +38,11 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 	}                                                       \
 	while( 0 )
 
-#define MLOG_WARNING( ... ) ( O_Log( ( _FUNC_NAME_ ), "WARNING", __VA_ARGS__ ) )
+#define MLOG_WARNING( ... ) ( O_Log( ( _FUNC_NAME_ ), "WARNING", \
+	__VA_ARGS__ ) )
 
-#define MLOG_WARNING_SANS_FUNCNAME( title, ... ) ( O_Log( ( title ), "WARNING", __VA_ARGS__ )  )
+#define MLOG_WARNING_SANS_FUNCNAME( title, ... ) ( O_Log( ( title ), \
+	"WARNING", __VA_ARGS__ )  )
 
 #ifdef DEBUG
 #	define MLOG_ASSERT( condition, ... )		\
@@ -85,17 +70,18 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 #	define MLOG_ASSERT( condition, ... )
 #endif
 
-#define MLOG_OFFSET(type, member) \
+#define MLOG_OFFSET( type, member ) \
 	do { \
 		size_t count = ( size_t )( &( ( ( type* )0 )->member ) ); \
 		printf( "OFFSET OF " #type "::" #member ": " F_SIZE_T "\n", count ); \
 	} while ( 0 )
 
 /*!
-	Provides the file extension of a file, without the period.
-	A return of true indicates we have an extension; we also allow for the index to be returned
-	for the rare case that we want to do something specific in the same
-	location. It's totally optional though
+ * Provides the file extension of a file, without the period.
+ * A return of true indicates we have an extension; we also allow
+ * for the index to be returned
+ * for the rare case that we want to do something specific in the same
+ * location. It's totally optional though
 */
 static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex,
 	const std::string& filename )
@@ -118,7 +104,8 @@ static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex,
 
 static INLINE std::string File_StripPath( const std::string& path )
 {
-	// We check for both path separators, considering that having two separators simultaneously
+	// We check for both path separators,
+	// considering that having two separators simultaneously
 	// is totally possible anywhere.
 	size_t slash = path.find_last_of( '/' );
 	size_t criminal = path.find_last_of( '\\' );
