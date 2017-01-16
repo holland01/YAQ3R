@@ -1,0 +1,268 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Emscripten">
+      <Configuration>Debug</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Emscripten">
+      <Configuration>Release</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\aabb.h" />
+    <ClInclude Include="..\..\..\src\bsp_data.h" />
+    <ClInclude Include="..\..\..\src\common.h" />
+    <ClInclude Include="..\..\..\src\commondef.h" />
+    <ClInclude Include="..\..\..\src\debug_draw.h" />
+    <ClInclude Include="..\..\..\src\deform.h" />
+    <ClInclude Include="..\..\..\src\effect_shader.h" />
+    <ClInclude Include="..\..\..\src\em_api.h" />
+    <ClInclude Include="..\..\..\src\eu_ang.h" />
+    <ClInclude Include="..\..\..\src\extern\gl_atlas.h" />
+    <ClInclude Include="..\..\..\src\extern\stb_image.h" />
+    <ClInclude Include="..\..\..\src\frustum.h" />
+    <ClInclude Include="..\..\..\src\global.h" />
+    <ClInclude Include="..\..\..\src\glutil.h" />
+    <ClInclude Include="..\..\..\src\input.h" />
+    <ClInclude Include="..\..\..\src\io.h" />
+    <ClInclude Include="..\..\..\src\lib\async_image_io.h" />
+    <ClInclude Include="..\..\..\src\lib\circle_buffer.h" />
+    <ClInclude Include="..\..\..\src\lib\cstring_util.h" />
+    <ClInclude Include="..\..\..\src\lib\math.h" />
+    <ClInclude Include="..\..\..\src\lib\random.h" />
+    <ClInclude Include="..\..\..\src\lib\stats.h" />
+    <ClInclude Include="..\..\..\src\lightmodel.h" />
+    <ClInclude Include="..\..\..\src\model.h" />
+    <ClInclude Include="..\..\..\src\opengl.h" />
+    <ClInclude Include="..\..\..\src\plane.h" />
+    <ClInclude Include="..\..\..\src\q3bsp.h" />
+    <ClInclude Include="..\..\..\src\renderer.h" />
+    <ClInclude Include="..\..\..\src\renderer\buffer.h" />
+    <ClInclude Include="..\..\..\src\renderer\context_window.h" />
+    <ClInclude Include="..\..\..\src\renderer\draw_buffer.h" />
+    <ClInclude Include="..\..\..\src\renderer\program.h" />
+    <ClInclude Include="..\..\..\src\renderer\renderer_local.h" />
+    <ClInclude Include="..\..\..\src\renderer\shader_gen.h" />
+    <ClInclude Include="..\..\..\src\renderer\shared.h" />
+    <ClInclude Include="..\..\..\src\renderer\texture.h" />
+    <ClInclude Include="..\..\..\src\renderer\util.h" />
+    <ClInclude Include="..\..\..\src\render_data.h" />
+    <ClInclude Include="..\..\..\src\shader.h" />
+    <ClInclude Include="..\..\..\src\tests\test.h" />
+    <ClInclude Include="..\..\..\src\tests\test_util.h" />
+    <ClInclude Include="..\..\..\src\tests\trenderer.h" />
+    <ClInclude Include="..\..\..\src\worker\wapi.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\aabb.cpp" />
+    <ClCompile Include="..\..\..\src\bsp_data.cpp" />
+    <ClCompile Include="..\..\..\src\deform.cpp" />
+    <ClCompile Include="..\..\..\src\effect_shader.cpp" />
+    <ClCompile Include="..\..\..\src\em_api.cpp" />
+    <ClCompile Include="..\..\..\src\eu_ang.cpp" />
+    <ClCompile Include="..\..\..\src\extern\stb_image.cpp" />
+    <ClCompile Include="..\..\..\src\frustum.cpp" />
+    <ClCompile Include="..\..\..\src\glutil.cpp" />
+    <ClCompile Include="..\..\..\src\input.cpp" />
+    <ClCompile Include="..\..\..\src\io.cpp" />
+    <ClCompile Include="..\..\..\src\lib\async_image_io.cpp" />
+    <ClCompile Include="..\..\..\src\lib\cstring_util.cpp" />
+    <ClCompile Include="..\..\..\src\main.cpp" />
+    <ClCompile Include="..\..\..\src\model.cpp" />
+    <ClCompile Include="..\..\..\src\q3bsp.cpp" />
+    <ClCompile Include="..\..\..\src\renderer.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\buffer.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\context_window.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\draw_buffer.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\program.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\shader_gen.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\texture.cpp" />
+    <ClCompile Include="..\..\..\src\renderer\util.cpp" />
+    <ClCompile Include="..\..\..\src\render_data.cpp" />
+    <ClCompile Include="..\..\..\src\shader.cpp" />
+    <ClCompile Include="..\..\..\src\tests\test.cpp" />
+    <ClCompile Include="..\..\..\src\tests\trenderer.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{429B6186-46A7-4FB3-8E16-B5857B08D226}</ProjectGuid>
+    <RootNamespace>yaq3r</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'" Label="Configuration">
+    <ConfigurationType>HTMLPage</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>emcc</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>emcc</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <CppLanguageStandard>c++14</CppLanguageStandard>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <AdditionalIncludeDirectories>C:\Users\holla\.emscripten_cache\asmjs\ports-builds\sdl2\include;$(ProjectDir)..\..\..\src\extern;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <VerboseOutput>VerboseOutputMode</VerboseOutput>
+      <EchoCommandLines>true</EchoCommandLines>
+      <PreprocessorDefinitions>EMSCRIPTEN=1;GL_ATLAS_EGL=1;ASYNC_FILE_TRAVERSAL</PreprocessorDefinitions>
+      <AdditionalOptions>-Wall -Wextra -pedantic -Werror -Wno-dollar-in-identifier-extension -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wno-self-assign -Wno-unused-value -Wno-dollar-in-identifier-extension -Wno-unused-parameter %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <JsLibrary>
+      </JsLibrary>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>-s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912 -s SAFE_HEAP=1 -s USE_SDL=2 --emrun %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>cd $(ProjectDir)..\..\..\build
+gen_workers.bat</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>xcopy $(ProjectDir)..\..\..\worker $(TargetDir)worker\ /E /S /Y
+xcopy $(ProjectDir)..\..\..\js $(TargetDir)js /E /S /Y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src\extern;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>EMSCRIPTEN=1;GL_ATLAS_EGL=1;EM_USE_WORKER_THREAD</PreprocessorDefinitions>
+      <AdditionalOptions>-Wall -Wextra -pedantic -Werror
+ -Wno-dollar-in-identifier-extension
+ -Wno-unused-function
+ -s SAFE_HEAP=1 -s USE_SDL=2 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreBuildEvent>
+      <Command>cd $(ProjectDir)..\..\..\build
+gen_workers.bat</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
