@@ -10,6 +10,9 @@ Global
 		Debug|Emscripten = Debug|Emscripten
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Rel|Emscripten = Rel|Emscripten
+		Rel|x64 = Rel|x64
+		Rel|x86 = Rel|x86
 		Release|Emscripten = Release|Emscripten
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
@@ -21,6 +24,12 @@ Global
 		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Debug|x64.Build.0 = Debug|x64
 		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Debug|x86.ActiveCfg = Debug|Win32
 		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Debug|x86.Build.0 = Debug|Win32
+		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Rel|Emscripten.ActiveCfg = Rel|Emscripten
+		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Rel|Emscripten.Build.0 = Rel|Emscripten
+		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Rel|x64.ActiveCfg = Rel|x64
+		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Rel|x64.Build.0 = Rel|x64
+		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Rel|x86.ActiveCfg = Rel|Win32
+		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Rel|x86.Build.0 = Rel|Win32
 		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Release|Emscripten.ActiveCfg = Release|Emscripten
 		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Release|Emscripten.Build.0 = Release|Emscripten
 		{429B6186-46A7-4FB3-8E16-B5857B08D226}.Release|x64.ActiveCfg = Release|x64
