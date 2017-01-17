@@ -5,7 +5,7 @@ AL.bundleLoadPort = '6931';
 AL.DATA_DIR_NAME = 'working';
 AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, ' +
 	'and/or on load finish callback';
-AL.CONTENT_PIPELINE_MSG = AL.CONTENT_PIPELINE_MSG || true;
+AL.CONTENT_PIPELINE_MSG = false;
 
 AL.fetchNode = function(pathName) {
 	var node = null;
@@ -27,9 +27,16 @@ AL.mountPackages = function(packages) {
 	if (!FS.isMountpoint(node)) {
 		FS.mount(WORKERFS, {packages: packages},
 				'/' + AL.DATA_DIR_NAME);
-		console.log("Mount succeeded");
+
+		if (AL.CONTENT_PIPELINE_MSG) {
+			console.log("Mount succeeded");
+		}
 	} else {
-		console.log("Mount failed");
+		if (AL.CONTENT_PIPELINE_MSG) {
+			console.log("Mount failed");
+		} else {
+			throw "Mount failed for " + JSON.stringify(packages);
+		}
 	}
 }
 
@@ -90,8 +97,6 @@ AL.BundleLoader = function(bundle, params) {
 	this.bundle = bundle;
 	this.packageRef = {metadata:null, blob:null};
 	this.fin = {metadata:false, blob:false};
-
-	AL.CONTENT_PIPELINE_MSG = AL.CONTENT_PIPELINE_MSG || false;
 
 	if (!params
 		|| (typeof(params.size) === 'undefined')
