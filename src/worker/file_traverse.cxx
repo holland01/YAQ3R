@@ -488,11 +488,6 @@ static void ReadImage_Proxy( char* path, int size )
 		std::string firstExt;
 		volatile bool hasExt = GetExt( full, firstExt );
 
-		if ( !hasExt )
-		{
-			__nop();
-		}
-
 		for ( size_t i = 0; i < candidates.size(); ++i )
 		{
 			if ( hasExt && firstExt == candidates[ i ] )
