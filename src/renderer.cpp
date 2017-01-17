@@ -209,24 +209,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_SHADERS ] ) );
-
-	// Sometimes a white image is necessary for certain shader passes.
-	// So, we just allocate a small extra set of texels here and add them to
-	// the atlas before layer generation.
-	{
-		std::vector< uint8_t > whiteImage(
-			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4, 0xFF );
-
-		gla::push_atlas_image(
-			*( textures[ TEXTURE_ATLAS_MAIN ] ),
-			&whiteImage[ 0 ],
-			BSP_LIGHTMAP_WIDTH,
-			BSP_LIGHTMAP_HEIGHT,
-			4,
-			false
-		);
-	}
-
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
 
 	// And then generate all of the lightmaps
@@ -626,8 +608,8 @@ void BSPRenderer::DrawMapPass(
 	{
 		BindTexture(
 			main,
-			textures[ TEXTURE_ATLAS_MAIN ],
-			textures[ TEXTURE_ATLAS_MAIN ]->num_images - 1,
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ],
+			textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1,
 			"mainImage",
 			0
 		);
