@@ -232,7 +232,7 @@
       <CppLanguageStandard>c++14</CppLanguageStandard>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AdditionalIncludeDirectories>C:\Users\holla\.emscripten_cache\asmjs\ports-builds\sdl2\include;$(ProjectDir)..\..\..\src\extern;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <VerboseOutput>VerboseOutputMode</VerboseOutput>
+      <VerboseOutput>NoVerboseOutput</VerboseOutput>
       <EchoCommandLines>true</EchoCommandLines>
       <PreprocessorDefinitions>EMSCRIPTEN=1;GL_ATLAS_EGL=1;ASYNC_FILE_TRAVERSAL</PreprocessorDefinitions>
       <AdditionalOptions>-Wall -Wextra -pedantic -Werror -Wno-dollar-in-identifier-extension -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wno-self-assign -Wno-unused-value -Wno-dollar-in-identifier-extension -Wno-unused-parameter %(AdditionalOptions)</AdditionalOptions>
@@ -244,8 +244,8 @@
       <AdditionalOptions>-s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912 -s SAFE_HEAP=1 -s USE_SDL=2 --emrun %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>cd $(ProjectDir)..\..\..\build
-gen_workers.bat</Command>
+      <Command>cd $(ProjectDir)..\..\..
+build\gen_workers.bat</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy $(ProjectDir)..\..\..\worker $(TargetDir)worker\ /E /S /Y
@@ -277,8 +277,8 @@ xcopy $(ProjectDir)..\..\..\bundle $(TargetDir)bundle\ /E /S /Y</Command>
       <RunClosureCompiler>false</RunClosureCompiler>
     </Link>
     <PreBuildEvent>
-      <Command>cd $(ProjectDir)..\..\..\build
-gen_workers.bat</Command>
+      <Command>cd $(ProjectDir)..\..\..
+build/gen_workers.bat</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy $(ProjectDir)..\..\..\worker $(TargetDir)worker\ /E /S /Y
