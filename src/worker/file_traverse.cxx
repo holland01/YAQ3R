@@ -257,7 +257,97 @@ struct file_t
 	}
 };
 
+const std::string&
+
 static std::unique_ptr< file_t > gFIOChain( nullptr );
+
+class Bundle
+{
+	enum
+	{
+		BUNDLE_PATH_SIZE = 64
+	};
+
+	struct bundleMeta_t
+	{
+		int32_t start_offset;
+		int32_t end_offset;
+		char filepath[ BUNDLE_PATH_SIZE ];
+	};
+
+	std::vector< bundleMeta_t > metadata;
+	std::vector< char > blob;
+
+	size_t iterator = 0;
+
+public:
+
+	size_t GetIterator( void ) const { return iterator; }
+
+	size_t GetNumFiles( void ) const { return metadata.size(); }
+
+	void Clear( void )
+	{
+		iterator = 0;
+		metadata.clear();
+		blob.clear();
+	}
+
+	// "buffer" contains two sets of data:
+	// one for the blob and the other for the metadata.
+	// Each set is prefixed with 4 bytes, which provides
+	// the byte length of the corresponding data.
+	void Load( const char* buffer, int size )
+	{
+		Clear();
+
+		uint32_t metaLen = WAPI_Fetch32( buffer, size, 0 );
+		metadata.resize( metaLen / sizeof( bundleMeta_t ) );
+		memcpy( &metadata[ 0 ], &buffer[ 4 ], metaLen );
+
+		uint32_t blobLen = WAPI_Fetch32( buffer, size, metaLen + 4 );
+		blob.resize( blobLen, 0 );
+		memcpy( &blob[ 0 ], &buffer[ metaLen + 8 ], blobLen );
+	}
+
+	char* GetFile( uint32_t metadataIndex, int& outSize )
+	{
+		const bundleMeta_t& m = metadata[ metadataIndex ];
+		outSize = ( int ) m.end_offset - ( int ) m.start_offset;
+		return &blob[ m.start_offset ];
+	}
+
+	char* GetFile( const char* path, int& outSize )
+	{
+		size_t len = strlen( path );
+		for ( uint32_t i = 0; i < metadata.size(); ++i )
+		{
+			if ( strncmp( path, metadata[ i ].filepath, len ) == 0 )
+			{
+				return GetFile( i, outSize );
+			}
+		}
+
+		return nullptr;
+	}
+
+	void SendNextFile( void )
+	{
+		if ( iterator < metadata.size() )
+		{
+			int size;
+			char* file = GetFile( iterator++, size );
+			emscripten_worker_respond_provisionally( file, size );
+		}
+		else
+		{
+			Clear();
+			emscripten_worker_respond( 0, 0 );
+		}
+	}
+};
+
+static std::unique_ptr< Bundle > gBundle( new Bundle() );
 
 static INLINE std::string FullPath( const char* path, size_t pathLen )
 {
@@ -267,8 +357,6 @@ static INLINE std::string FullPath( const char* path, size_t pathLen )
 	std::string strPath = "/";
 	strPath.append( path, pathLen );
 	root.append( strPath );
-
-	//O_Log( "Path Received: %s\n", root.c_str() );
 
 	return root;
 }
@@ -335,10 +423,8 @@ static INLINE bool SplitDataWithBundle( std::string& bundleName,
 	return false;
 }
 
-static void SendFile_OnLoad( char* path, int size )
+static void SendMapFile( char* path, int size )
 {
-	O_Log( "%s", "SendFile_OnLoad reached.");
-
 	const std::string& fp = FullPath( path, size );
 
 	gFIOChain.reset( new file_t( fp ) );
@@ -364,7 +450,7 @@ static INLINE bool SplitBundlePath( std::string& bundleName,
 	return true;
 }
 
-static void ReadFile_Proxy( char* data, int size )
+static void ReadMapFile_Proxy( char* data, int size )
 {
 	std::string bundleName;
 	std::vector< char > remData;
@@ -372,85 +458,29 @@ static void ReadFile_Proxy( char* data, int size )
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	EM_ASM_ARGS( {
-		self.fetchBundleAsync($0, $1, $2, $3, $4);
-	},
-	bundleName.c_str(),
-	SendFile_OnLoad,
-	&remData[ 0 ],
-	remData.size() - 1, // don't include null term
-	port );
-}
-
-static void SendShader_OnLoad( char* path, int size )
-{
-	if ( !path && !size )
-	{
-		O_Log( "%s",  "Last shader path found." );
-		emscripten_worker_respond( nullptr, 0 );
-		return;
-	}
-
-	std::string strPath( path, size );
-
-	gFIOChain.reset( new file_t( strPath ) );
-
-	if ( !gFIOChain->Read() )
-	{
-		FailOpen( path, size );
-		return;
-	}
-
-	std::vector< char > buffer( gFIOChain->readBuff.size() + size + 1, 0 );
-
-	memcpy( &buffer[ 0 ], path, size );
-	memcpy( &buffer[ size + 1 ], &gFIOChain->readBuff[ 0 ],
-			gFIOChain->readBuff.size() );
-
-	buffer[ size ] = AL_STRING_DELIM;
-
-	// memory held is useless at this point; so, just free it.
-	gFIOChain.reset();
-
-	emscripten_worker_respond_provisionally( &buffer[ 0 ],
-		buffer.size() );
-}
-
-static void TraverseDirectory_Read( char* dir, int size )
-{
-	if ( !dir )
-	{
-		FailOpen( dir, size );
-		return;
-	}
-
-	std::string mountDir( FullPath( dir, size ) );
-
-	char error[ 256 ];
-	memset( error, 0, sizeof( error ) );
-
-	int code = EM_ASM_ARGS({
-			try {
-				return self.walkFileDirectory($0, $1, $2);
-			} catch (e) {
-				console.log(e.message);
-				return 0;
-			}
+	EM_ASM_ARGS(
+		{
+			self.fetchBundleAsync($0, $1, $2, $3, $4);
 		},
-		mountDir.c_str(),
-		SendShader_OnLoad,
-		error
+		bundleName.c_str(),
+		SendMapFile,
+		&remData[ 0 ],
+		remData.size() - 1, // don't include null term
+		port
 	);
-
-	if ( !code )
-	{
-		O_Log( "Failed to traverse \'%s\'\n", dir );
-	}
-
-	O_Log( "%s",  "TraverseDirectory_Read finished" );
 }
 
-static void TraverseDirectory_Proxy( char* data, int size )
+static void LoadShadersAndStream( char* data, int size )
+{
+	gBundle->Load( data, size );
+
+	while ( gBundle->GetIterator() < gBundle->GetNumFiles() )
+	{
+		gBundle->SendNextFile();
+	}
+}
+
+static void ReadShaders_Proxy( char* data, int size )
 {
 	std::string bundleName;
 	std::vector< char > remData;
@@ -462,10 +492,10 @@ static void TraverseDirectory_Proxy( char* data, int size )
 		&remData[ 0 ] );
 
 	EM_ASM_ARGS({
-			self.fetchBundleAsync($0, $1, $2, $3);
+			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
 		bundleName.c_str(),
-		TraverseDirectory_Read,
+		LoadShadersAndStream,
 		&remData[ 0 ],
 		remData.size() - 1, // don't include null term
 		port
@@ -538,7 +568,7 @@ void MountPackage_Proxy( char* data, int size )
 	const char* port = EM_SERV_ASSET_PORT;
 
 	EM_ASM_ARGS({
-			self.fetchBundleAsync($0, $1, $2, $3, $4);
+			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
 		data,
 		emscripten_worker_respond,
@@ -550,17 +580,17 @@ void MountPackage_Proxy( char* data, int size )
 
 extern "C" {
 
-void ReadFile_Begin( char* path, int size )
+void ReadMapFile_Begin( char* path, int size )
 {
-	O_Log( "%s",  "Worker: ReadFile_Begin entering" );
+	O_Log( "%s",  "Worker: ReadMapFile_Begin entering" );
 
-	if ( InitSystem( ReadFile_Proxy, path, size ) )
+	if ( InitSystem( ReadMapFile_Proxy, path, size ) )
 	{
-		ReadFile_Proxy( path, size );
+		ReadMapFile_Proxy( path, size );
 	}
 }
 
-void ReadFile_Chunk( char* bcmd, int size )
+void ReadMapFile_Chunk( char* bcmd, int size )
 {
 	if ( !gFIOChain || !( *gFIOChain ) )
 	{
@@ -578,13 +608,13 @@ void ReadFile_Chunk( char* bcmd, int size )
 	gFIOChain->Send();
 }
 
-void TraverseDirectory( char* dir, int size )
+void ReadShaders( char* dir, int size )
 {
-	O_Log( "%s",  "Worker: TraverseDirectory entering" );
+	O_Log( "%s",  "Worker: ReadShaders entering" );
 
-	if ( InitSystem( TraverseDirectory_Proxy, dir, size ) )
+	if ( InitSystem( ReadShaders_Proxy, dir, size ) )
 	{
-		TraverseDirectory_Proxy( dir, size );
+		ReadShaders_Proxy( dir, size );
 	}
 }
 
