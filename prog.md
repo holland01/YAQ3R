@@ -2022,3 +2022,39 @@ giant buffer (using the corresponding metadata for paths, so the client BSP code
 have to be modified) may honestly be the way to go for everything but the maps
 
 bundle (since only one file is read).
+
+**1/18/2017**
+
+### Load Times, Pt. 2
+
+It actually does seem like just loading the fetched blob all it once into
+RAM is going to improve performance. Furthermore, there's a number of
+validation checks that are being performed client side in effect_shader.cpp.
+
+These should be performed on the server, in file_traverse.cxx in the Bundle.
+The checks of note are:
+
+	- Ensuring that the file received is a shader file. `Bundle::SendNextFile()`
+	Should do this instead:
+		```
+			# IsShader is another method which checks the iterator to see if the file pointed to
+			# has the ".shader" extension
+			while not IsShader():   
+				iterator++
+		```
+
+	- Assessing whether or not the shader is designed to correspond to a single map,
+	using `Q3BspMap::IsMapOnlyShader`. This just strips the shader extension
+	from the path and compares it with the name of the map being loaded - if the
+	shader filename is the same, then the loader uses that information further
+	down in the parser. The `ReadMapFile_Begin` function in `file_traverse` can
+	take the name of the map and just store it server side, and then use that
+	to make the check in `Bundle::SendNextFile`. That said, the client is only
+	going to know this if it's possible to read some kind of value in the
+	received stream. There might a useful (and simple....) encoding mechanism
+	to put to use, because I'd like to avoid dynamic allocation where ever
+	possible. (Ideally a kind of encoding could be put to use as well for the
+		image data which is sent later down the road)
+
+Also, change `Bundle::SendNextFile()` to `Bundle::SendNextShader()`: it's only
+actually being used for shaders anyway.
