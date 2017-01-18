@@ -549,11 +549,11 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 		DestroyMap();
 	}
 
-	payload.reset(new renderPayload_t());
+	payload.reset( new renderPayload_t() );
 
-	for (gla_atlas_ptr_t& atlas: payload->textureData)
+	for ( gla_atlas_ptr_t& atlas: payload->textureData )
 	{
-		atlas.reset(new gla::atlas_t());
+		atlas.reset( new gla::atlas_t() );
 	}
 
 	readFinishEvent = finishCallback;
