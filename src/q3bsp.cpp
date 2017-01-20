@@ -207,7 +207,7 @@ static void ReadChunk( char* data, int size, void* param );
 
 static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
 {
-	gFileWebWorker.Await( ReadChunk, "ReadFile_Chunk",
+	gFileWebWorker.Await( ReadChunk, "ReadMapFile_Chunk",
 		( char* )&info, sizeof( info ), param );
 }
 
@@ -403,7 +403,7 @@ static void ReadBegin( char* data, int size, void* param )
 
 	if ( !data )
 	{
-		MLOG_ERROR( "Bailing out; Worker ReadFile_Begin failed." );
+		MLOG_ERROR( "Bailing out; Worker ReadMapFile_Begin failed." );
 		return;
 	}
 
@@ -563,7 +563,7 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	std::string readParams( "maps|" );
 	readParams.append( filepath );
 
-	gFileWebWorker.Await( ReadBegin, "ReadFile_Begin", readParams, this );
+	gFileWebWorker.Await( ReadBegin, "ReadMapFile_Begin", readParams, this );
 }
 
 mapEntity_t Q3BspMap::GetFirstSpawnPoint( void ) const
