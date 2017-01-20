@@ -32,7 +32,7 @@ static inline uint32_t WAPI_Fetch32( const char* buffer, int size, int ofs )
 	uint32_t x = 0;
 	for ( int32_t y = 0; y < 4; ++y )
 	{
-		x |= ( ( uint32_t )( buffer[ y ] ) & 0xFF ) << ( y << 3 );
+		x |= ( ( uint32_t )( buffer[ ofs + y ] ) & 0xFF ) << ( y << 3 );
 	}
 	return x;
 }

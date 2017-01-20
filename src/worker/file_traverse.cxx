@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <array>
 #include <memory>
@@ -10,6 +11,9 @@
 #include "wapi.h"
 #include "commondef.h"
 #include <extern/stb_image.h>
+
+#define DEBUG
+#define CONTENT_PIPELINE_IO
 
 #define AL_STRING_DELIM '|'
 
@@ -26,12 +30,86 @@ static void O_Log( const char* fmt, ... )
 	va_list arg;
 
 	va_start( arg, fmt );
-	vfO_Log( stdout, fmt, arg );
-	fO_Log( "%s",  "\n", stdout );
+	vfprintf( stdout, fmt, arg );
+	fputs( "\n", stdout );
 	va_end( arg );
 #else
 	UNUSED( fmt );
 #endif
+}
+
+static INLINE std::string FullPath( const char* path, size_t pathLen )
+{
+	const char* croot = "/working";
+	std::string root( croot );
+
+	std::string strPath = "/";
+	strPath.append( path, pathLen );
+	root.append( strPath );
+
+	return root;
+}
+
+static INLINE bool GetExt( const std::string& name, std::string& outExt )
+{
+	size_t index = name.find_last_of( '.' );
+
+	if ( index == std::string::npos )
+	{
+		outExt = "";
+		return false;
+	}
+
+	outExt = name.substr( index, name.size() - index );
+
+	return true;
+}
+
+static INLINE std::string StripExt( const std::string& name )
+{
+	size_t index = name.find_last_of( '.' );
+
+	if ( index == std::string::npos )
+	{
+		return name;
+	}
+
+	return name.substr( 0, index );
+}
+
+static std::string ReplaceExt( const std::string& path,
+	const std::string& ext )
+{
+	std::string f( StripExt( path ) );
+
+	f.append( ext );
+
+	return f;
+}
+
+static INLINE void FailOpen( const char* path, size_t pathLen )
+{
+	uint32_t m = WAPI_FALSE;
+	std::string strPath( path, pathLen );
+	O_Log( "fopen for \'%s\' failed\n", strPath.c_str() );
+	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
+}
+
+static INLINE bool SplitDataWithBundle( std::string& bundleName,
+	std::vector< char >& chopData, char* data, int size )
+{
+	for ( int i = 0; i < size; ++i ) {
+		if ( data[i] == AL_STRING_DELIM ) {
+			bundleName = std::string( data, i );
+			O_Log( "Bundle Name Found: %s\n", bundleName.c_str() );
+
+			chopData.resize( size - i + 1, 0 );
+			memcpy( &chopData[ 0 ], data + i + 1, size - i );
+			return true;
+		}
+	}
+
+	return false;
 }
 
 typedef void ( *callback_t )( char* data, int size );
@@ -78,53 +156,6 @@ struct asyncArgs_t
 
 static std::unique_ptr< asyncArgs_t > gTmpArgs( nullptr );
 
-static void InitSystem_OnError( void* arg )
-{
-	( void )arg;
-	O_Log( "%s", "emscripten_async_wget_data inject fetch failed" );
-}
-
-static void InitSystem_OnLoad( void* arg, void* data, int size )
-{
-	asyncArgs_t* args = ( asyncArgs_t* )arg;
-
-	std::vector< char > copyData( size + 1, 0 );
-	memcpy( &copyData[ 0 ], data, size );
-	emscripten_run_script( &copyData[ 0 ] );
-
-	args->proxy( args->buff.data, args->buff.size );
-}
-
-static bool InitSystem( callback_t proxy, char* data, int size )
-{
-	if ( !gInitialized )
-	{
-		gTmpArgs.reset( new asyncArgs_t( proxy, data, size ) );
-
-		char urlString[ 36 ];
-		memset( urlString, 0, sizeof( urlString ) );
-
-		const char* port = EM_SERV_ASSET_PORT;
-
-		strncat( urlString, "http://localhost:", 17 );
-		strncat( urlString, port, 4 );
-		strncat( urlString, "/js/fetch.js", 12 );
-
-		emscripten_async_wget_data( urlString, ( void* ) gTmpArgs.get(),
-				InitSystem_OnLoad, InitSystem_OnError );
-
-		gInitialized = true;
-		return false;
-	}
-
-	return true;
-}
-
-static int Ceil( int n )
-{
-	return n + 1;
-}
-
 struct file_t
 {
 	FILE* ptr;
@@ -150,8 +181,6 @@ struct file_t
 		}
 
 		ptr = fopen( path.c_str(), "rb" );
-
-		//O_Log( "Attempting fopen for \'%s\'...\n", path.c_str() );
 	}
 
 	bool ReadImage( void )
@@ -257,8 +286,6 @@ struct file_t
 	}
 };
 
-const std::string&
-
 static std::unique_ptr< file_t > gFIOChain( nullptr );
 
 class Bundle
@@ -293,6 +320,22 @@ public:
 		blob.clear();
 	}
 
+	void PrintMetadata( void ) const
+	{
+		std::stringstream out;
+		for ( uint32_t i = 0; i < metadata.size(); ++i )
+		{
+			out << "[" << i << "]:\n"
+				<< "\tpath: " << metadata[ i ].filepath
+				<< "\tstart: " << metadata[ i ].start_offset
+				<< "\tend: " << metadata[ i ].end_offset
+				<< "\n";
+		}
+
+		O_Log( "Entries:\n %s", out.str().c_str() );
+	}
+
+
 	// "buffer" contains two sets of data:
 	// one for the blob and the other for the metadata.
 	// Each set is prefixed with 4 bytes, which provides
@@ -307,37 +350,102 @@ public:
 
 		uint32_t blobLen = WAPI_Fetch32( buffer, size, metaLen + 4 );
 		blob.resize( blobLen, 0 );
-		memcpy( &blob[ 0 ], &buffer[ metaLen + 8 ], blobLen );
+		memcpy( &blob[ 0 ], &buffer[ metaLen + 8 ], blobLen );		
 	}
 
 	char* GetFile( uint32_t metadataIndex, int& outSize )
 	{
 		const bundleMeta_t& m = metadata[ metadataIndex ];
-		outSize = ( int ) m.end_offset - ( int ) m.start_offset;
+		outSize = static_cast< int >( m.end_offset - m.start_offset );
 		return &blob[ m.start_offset ];
 	}
 
-	char* GetFile( const char* path, int& outSize )
+	int FindFile( const char* path )
 	{
 		size_t len = strlen( path );
+
 		for ( uint32_t i = 0; i < metadata.size(); ++i )
 		{
 			if ( strncmp( path, metadata[ i ].filepath, len ) == 0 )
 			{
-				return GetFile( i, outSize );
+				return i;
 			}
+		}
+
+		return -1;
+	}
+
+	char* GetFile( const char* path, int& outSize )
+	{
+		int index = FindFile( path );
+
+		if ( index >= 0 )
+		{
+			return GetFile( index, outSize );
 		}
 
 		return nullptr;
 	}
 
-	void SendNextFile( void )
+	bool IsShader( void ) const
 	{
+		std::string filepath( metadata[ iterator ].filepath );
+		std::string ext;
+		GetExt( filepath, ext );
+
+		return ext == ".shader";
+	}
+
+	// Stitches two buffers together, 
+	// inserting a '|' delimiter between both of them
+	std::vector< char > MakeBuffer(
+		const char* a, int sizeA,
+		const char* b, int sizeB,
+		bool addNull
+	)
+	{
+		std::vector< char > buffer( sizeA + sizeB + ( addNull? 2 : 1 ), 0 );
+		buffer[ sizeA ] = AL_STRING_DELIM;
+
+		memcpy( &buffer[ 0 ], a, sizeA );
+		memcpy( &buffer[ sizeA + 1 ], b, sizeB );
+
+		return buffer;
+	}
+
+	void SendFileProvisionally( int index )
+	{
+		if ( index == -1 )
+		{
+			return;
+		}
+
+		int size;
+		
+		char* file = GetFile( index, size );
+
+		std::vector< char > transfer( MakeBuffer(
+			metadata[ index ].filepath,
+			strlen( metadata[ index ].filepath ),
+			file,
+			size,
+			true	// Add null, since shader parser uses c string functions on it
+		) );
+
+		emscripten_worker_respond_provisionally( &transfer[ 0 ], transfer.size() );
+	}
+
+	void SendNextShader( void )
+	{
+		while ( !IsShader() )
+		{
+			iterator++;
+		}
+
 		if ( iterator < metadata.size() )
 		{
-			int size;
-			char* file = GetFile( iterator++, size );
-			emscripten_worker_respond_provisionally( file, size );
+			SendFileProvisionally( iterator );
+			iterator++;
 		}
 		else
 		{
@@ -349,78 +457,46 @@ public:
 
 static std::unique_ptr< Bundle > gBundle( new Bundle() );
 
-static INLINE std::string FullPath( const char* path, size_t pathLen )
+static void InitSystem_OnError( void* arg )
 {
-	const char* croot = "/working";
-	std::string root( croot );
-
-	std::string strPath = "/";
-	strPath.append( path, pathLen );
-	root.append( strPath );
-
-	return root;
+	( void )arg;
+	O_Log( "%s", "emscripten_async_wget_data inject fetch failed" );
 }
 
-static INLINE bool GetExt( const std::string& name, std::string& outExt )
+static void InitSystem_OnLoad( void* arg, void* data, int size )
 {
-	size_t index = name.find_last_of( '.' );
+	asyncArgs_t* args = ( asyncArgs_t* )arg;
 
-	if ( index == std::string::npos )
+	std::vector< char > copyData( size + 1, 0 );
+	memcpy( &copyData[ 0 ], data, size );
+	emscripten_run_script( &copyData[ 0 ] );
+
+	args->proxy( args->buff.data, args->buff.size );
+}
+
+static bool InitSystem( callback_t proxy, char* data, int size )
+{
+	if ( !gInitialized )
 	{
-		outExt = "";
+		gTmpArgs.reset( new asyncArgs_t( proxy, data, size ) );
+
+		char urlString[ 36 ];
+		memset( urlString, 0, sizeof( urlString ) );
+
+		const char* port = EM_SERV_ASSET_PORT;
+
+		strncat( urlString, "http://localhost:", 17 );
+		strncat( urlString, port, 4 );
+		strncat( urlString, "/js/fetch.js", 12 );
+
+		emscripten_async_wget_data( urlString, ( void* ) gTmpArgs.get(),
+				InitSystem_OnLoad, InitSystem_OnError );
+
+		gInitialized = true;
 		return false;
 	}
 
-	outExt = name.substr( index, name.size() - index );
-
 	return true;
-}
-
-static INLINE std::string StripExt( const std::string& name )
-{
-	size_t index = name.find_last_of( '.' );
-
-	if ( index == std::string::npos )
-	{
-		return name;
-	}
-
-	return name.substr( 0, index );
-}
-
-static std::string ReplaceExt( const std::string& path,
-	const std::string& ext )
-{
-	std::string f( StripExt( path ) );
-
-	f.append( ext );
-
-	return f;
-}
-
-static INLINE void FailOpen( const char* path, size_t pathLen )
-{
-	uint32_t m = WAPI_FALSE;
-	std::string strPath( path, pathLen );
-	O_Log( "fopen for \'%s\' failed\n", strPath.c_str() );
-	emscripten_worker_respond( ( char* ) &m, sizeof( m ) );
-}
-
-static INLINE bool SplitDataWithBundle( std::string& bundleName,
-	std::vector< char >& chopData, char* data, int size )
-{
-	for ( int i = 0; i < size; ++i ) {
-		if ( data[i] == AL_STRING_DELIM ) {
-			bundleName = std::string( data, i );
-			O_Log( "Bundle Name Found: %s\n", bundleName.c_str() );
-
-			chopData.resize( size - i + 1, 0 );
-			memcpy( &chopData[ 0 ], data + i + 1, size - i );
-			return true;
-		}
-	}
-
-	return false;
 }
 
 static void SendMapFile( char* path, int size )
@@ -454,7 +530,9 @@ static void ReadMapFile_Proxy( char* data, int size )
 {
 	std::string bundleName;
 	std::vector< char > remData;
-	if ( !SplitBundlePath( bundleName, remData, data, size ) ) return;
+
+	if ( !SplitBundlePath( bundleName, remData, data, size ) )
+		return;
 
 	const char* port = EM_SERV_ASSET_PORT;
 
@@ -476,7 +554,7 @@ static void LoadShadersAndStream( char* data, int size )
 
 	while ( gBundle->GetIterator() < gBundle->GetNumFiles() )
 	{
-		gBundle->SendNextFile();
+		gBundle->SendNextShader();
 	}
 }
 
@@ -484,14 +562,20 @@ static void ReadShaders_Proxy( char* data, int size )
 {
 	std::string bundleName;
 	std::vector< char > remData;
-	if ( !SplitBundlePath( bundleName, remData, data, size ) ) return;
+
+	if ( !SplitBundlePath( bundleName, remData, data, size ) )
+		return;
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	O_Log( "Bundle Name: %s\n Rem Data: %s\n", bundleName.c_str(),
-		&remData[ 0 ] );
+	O_Log(
+		"Bundle Name: %s\n Rem Data: %s\n",
+		bundleName.c_str(),
+		&remData[ 0 ]
+	);
 
-	EM_ASM_ARGS({
+	EM_ASM_ARGS(
+		{
 			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
 		bundleName.c_str(),
@@ -601,8 +685,11 @@ void ReadMapFile_Chunk( char* bcmd, int size )
 
 	wApiChunkInfo_t* cmd = ( wApiChunkInfo_t* )bcmd;
 
-	O_Log( "Received - offset: " F_SIZE_T ", size: " F_SIZE_T "\n",
-		cmd->offset, cmd->size );
+	O_Log(
+		"Received - offset: " F_SIZE_T ", size: " F_SIZE_T "\n",
+		cmd->offset,
+		cmd->size
+	);
 
 	gFIOChain->Read( cmd->offset, cmd->size );
 	gFIOChain->Send();

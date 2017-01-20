@@ -61,8 +61,6 @@ AL.setBundleLoadPort = function(port) {
 	AL.bundleLoadPort = AL.getMaybeCString(port);
 }
 
-AL.METADATA_ELEM_SIZE_BYTES = 72;
-
 // If we choose to "map" directly into memory then we just use a
 // custom binary format: everything becomes a simple memory access
 //---------------
@@ -71,31 +69,36 @@ AL.METADATA_ELEM_SIZE_BYTES = 72;
 // [0] 4 byte int -> start (start offset for the segment in the blob)
 // [1] 4 byte int -> end (end offset for the segment in the blob)
 // [2] string [64] -> filepath (path of the file; used when a pathname is passed)
+
+AL.MD_ELEM_START_OFFSET = 0;
+AL.MD_ELEM_END_OFFSET = 4;
+AL.MD_ELEM_PATH_OFFSET = 8;
+AL.MD_ELEM_PATH_MAX_SIZE = 64;
+
+AL.MD_ELEM_SIZE_BYTES = 4 * 2 + AL.MD_ELEM_PATH_MAX_SIZE;
+
 AL.binifyMetadata = function(buffer, metadata) {
-	const START_OFFSET = 0;
-	const END_OFFSET = 4;
-	const PATH_OFFSET = 8;
-	const PATH_MAX_SIZE = 64;
+	
 
 	for (let file = 0; file < metadata.files.length; file++) {
-		if (metadata.files[file].filename.length >= PATH_MAX_SIZE) {
+		if (metadata.files[file].filename.length >= AL.MD_ELEM_PATH_MAX_SIZE) {
 			throw 'File found with excessive large size: '
 				+ metadata.files[file].filename +
 			'; size: ' + metadata.files[file].filename.length;
 		}
 
-		let elem = buffer + file * AL.METADATA_ELEM_SIZE_BYTES;
+		let elem = buffer + file * AL.MD_ELEM_SIZE_BYTES;
 
 		// write the start offset
-		HEAP32[(elem + START_OFFSET) >> 2] = metadata.files[file].start;
+		HEAP32[(elem + AL.MD_ELEM_START_OFFSET) >> 2] = metadata.files[file].start;
 		// write the end offset
-		HEAP32[(elem + END_OFFSET) >> 2] = metadata.files[file].end;
+		HEAP32[(elem + AL.MD_ELEM_END_OFFSET) >> 2] = metadata.files[file].end;
 		// zero out the string
-		Module._memset(elem + PATH_OFFSET, 0, PATH_MAX_SIZE);
+		Module._memset(elem + AL.MD_ELEM_PATH_OFFSET, 0, AL.MD_ELEM_PATH_MAX_SIZE);
 		// passing 'true' ensures that a null term isn't added
 		Module.writeStringToMemory(
 			metadata.files[file].filename,
-			elem + PATH_OFFSET,
+			elem + AL.MD_ELEM_PATH_OFFSET,
 			true
 		);
 	}
@@ -104,16 +107,18 @@ AL.binifyMetadata = function(buffer, metadata) {
 AL.loadFinished = function(loader) {
 	let pbuf = 0;
 	let pbufLen = 0;
+	let msb = null;
 
 	if (loader.params.map) {
-		msb = Date.now();
+		if (AL.CONTENT_PIPELINE_MSG) {
+			msb = Date.now();
+		}
 
 		let fileReader = new FileReaderSync();
 		let readbuf = fileReader.readAsArrayBuffer(loader.packageRef.blob);
 
-		// prefix both lengths with 4 so that we can store each component's
-		// respective byte sizes in the buffer
-		const METADATA_BYTELEN = 4 + loader.packageRef.metadata.files.length * AL.METADATA_ELEM_SIZE_BYTES;
+		// first 4 bytes represents the length of the buffer segment (we have 2 of them)
+		const METADATA_BYTELEN = 4 + loader.packageRef.metadata.files.length * AL.MD_ELEM_SIZE_BYTES;
 		const BLOB_BYTELEN = 4 + readbuf.byteLength;
 
 		pbufLen = METADATA_BYTELEN + BLOB_BYTELEN;
@@ -123,19 +128,25 @@ AL.loadFinished = function(loader) {
 
 		AL.binifyMetadata(pbuf + 4, loader.packageRef.metadata);
 
-		console.log(
-			"Load Time: ",
-			Date.now() - msb,
-			"; ",
-			loader.bundle, "; ",
-			loader.params.path, "mdbin size: ", (METADATA_BYTELEN - 4).toString(),
-			"; Blob size: ", (BLOB_BYTELEN - 4).toString()
-		);
+		if (AL.CONTENT_PIPELINE_MSG) {
+			console.log(
+				"Load Time: ",
+				Date.now() - msb,
+				"; ",
+				loader.bundle, "; ",
+				loader.params.path, "mdbin size: ",
+				METADATA_BYTELEN - 4,
+				"; Blob size: ",
+				BLOB_BYTELEN - 4
+			);
+		}
 
 		HEAP32[(pbuf + METADATA_BYTELEN) >> 2] = BLOB_BYTELEN - 4;
 
+		let readbufu8 = new Uint8Array(readbuf);
+
 		Module.writeArrayToMemory(
-			new Uint8Array(readbuf),
+			readbufu8,
 			pbuf + METADATA_BYTELEN + 4
 		);
 	}

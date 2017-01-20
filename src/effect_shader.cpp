@@ -694,19 +694,21 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	// only by the current map
 	const char* delim = strchr( buffer, '|' );
 
+	if ( !delim )
+	{
+		MLOG_WARNING( "No delimiter found! aborting" );
+		return;
+	}
+
 	{
 		char tmp[ 1024 ];
+
 		memset( tmp, 0, sizeof( tmp ) );
 		memcpy( tmp, buffer, ( ptrdiff_t )( delim - buffer ) );
+
 		std::string path( tmp );
 
-		std::string ext;
-		bool res = File_GetExt( ext, nullptr, path );
-		if ( !res || ext != "shader" )
-		{
-			return;
-		}
-
+		MLOG_INFO( "Shader filepath read from buffer: %s", path.c_str() );
 		isMapShader = map->IsMapOnlyShader( path );
 	}
 
@@ -715,8 +717,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	const char* pChar = &delim[ 1 ];
 	const char* end = ( const char* ) &buffer[ size - 1 ];
 	ptrdiff_t range = ( ptrdiff_t )( end - pChar );
-
-	//uint32_t entryCount = 0;
 
 	while ( range > 0 )
 	{
@@ -766,7 +766,7 @@ void S_LoadShaders( Q3BspMap* map )
 	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
 
 	gFileWebWorker.Await( OnShaderRead,
-		"TraverseDirectory", shaderRootDir, map );
+		"ReadShaders", shaderRootDir, map );
 }
 
 bool operator == (
