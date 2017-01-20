@@ -9,10 +9,6 @@
 #	define EM_SERV_ASSET_PORT "6931"
 #endif
 
-#if defined( DEBUG )
-#	define _DEBUG_USE_GL_GET_ERR
-#endif
-
 #if defined( _WIN32 )
 #	include <Windows.h>
 #	define GL_PROC APIENTRY
