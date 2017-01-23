@@ -295,76 +295,89 @@ class Bundle
 		BUNDLE_PATH_SIZE = 64
 	};
 
+	struct bufferMeta_t 
+	{
+		int32_t sliceOffset;
+		int32_t sliceSize;
+		int32_t metaByteLen;
+		int32_t blobByteLen; // size of the entire blob, including the current slice
+	};
+
 	struct bundleMeta_t
 	{
-		int32_t start_offset;
-		int32_t end_offset;
+		int32_t startOffset;
+		int32_t endOffset;
 		char filepath[ BUNDLE_PATH_SIZE ];
 	};
 
-	std::vector< bundleMeta_t > metadata;
-	std::vector< char > blob;
+	const char* bundle = nullptr;
 
+	size_t numMetaEntries = 0;
 	size_t iterator = 0;
 
-public:
+	const bufferMeta_t* bufferInfo = nullptr; // is not a buffer of memory: just one struct "instance"
+	const bundleMeta_t* metadata = nullptr; // *is* a buffer of memory, there's going to be X count of entries.
 
+public:
 	size_t GetIterator( void ) const { return iterator; }
 
-	size_t GetNumFiles( void ) const { return metadata.size(); }
+	size_t GetNumFiles( void ) const { return numMetaEntries; }
 
 	void Clear( void )
 	{
 		iterator = 0;
-		metadata.clear();
-		blob.clear();
+		bundle = nullptr;
+		bufferInfo = nullptr;
+		metadata = nullptr;
+		numMetaEntries = 0;
+		//EM_ASM({ AL.freeBufferStore(); });
 	}
 
 	void PrintMetadata( void ) const
 	{
 		std::stringstream out;
-		for ( uint32_t i = 0; i < metadata.size(); ++i )
+		for ( uint32_t i = 0; i < numMetaEntries; ++i )
 		{
 			out << "[" << i << "]:\n"
 				<< "\tpath: " << metadata[ i ].filepath
-				<< "\tstart: " << metadata[ i ].start_offset
-				<< "\tend: " << metadata[ i ].end_offset
+				<< "\tstart: " << metadata[ i ].startOffset
+				<< "\tend: " << metadata[ i ].endOffset
 				<< "\n";
 		}
 
 		O_Log( "Entries:\n %s", out.str().c_str() );
 	}
 
-
-	// "buffer" contains two sets of data:
-	// one for the blob and the other for the metadata.
-	// Each set is prefixed with 4 bytes, which provides
-	// the byte length of the corresponding data.
+	// Three different structures: the bundle itself (in javascript is represented as blob),
+	// the metadata for the bundle,
+	// and the metadata for the buffer.
+	// The order goes:
+	// [0] -> bufferMeta_t: metadata for the buffer
+	// [1] -> bundleMeta_t: metadata for the blob
+	// [2] -> char*: the bundle
 	void Load( const char* buffer, int size )
 	{
 		Clear();
 
-		uint32_t metaLen = WAPI_Fetch32( buffer, size, 0 );
-		metadata.resize( metaLen / sizeof( bundleMeta_t ) );
-		memcpy( &metadata[ 0 ], &buffer[ 4 ], metaLen );
+		bufferInfo = ( const bufferMeta_t* ) &buffer[ 0 ];
+		metadata = ( const bundleMeta_t* ) &buffer[ sizeof( *bufferInfo ) ];
+		bundle = &buffer[ sizeof( *bufferInfo ) + bufferInfo->metaByteLen ];
 
-		uint32_t blobLen = WAPI_Fetch32( buffer, size, metaLen + 4 );
-		blob.resize( blobLen, 0 );
-		memcpy( &blob[ 0 ], &buffer[ metaLen + 8 ], blobLen );		
+		numMetaEntries = bufferInfo->metaByteLen / sizeof( *metadata );
 	}
 
-	char* GetFile( uint32_t metadataIndex, int& outSize )
+	const char* GetFile( uint32_t metadataIndex, int& outSize ) const
 	{
 		const bundleMeta_t& m = metadata[ metadataIndex ];
-		outSize = static_cast< int >( m.end_offset - m.start_offset );
-		return &blob[ m.start_offset ];
+		outSize = static_cast< int >( m.endOffset - m.startOffset );
+		return &bundle[ m.startOffset ];
 	}
 
-	int FindFile( const char* path )
+	int FindFile( const char* path ) const
 	{
 		size_t len = strlen( path );
 
-		for ( uint32_t i = 0; i < metadata.size(); ++i )
+		for ( uint32_t i = 0; i < numMetaEntries; ++i )
 		{
 			if ( strncmp( path, metadata[ i ].filepath, len ) == 0 )
 			{
@@ -375,7 +388,7 @@ public:
 		return -1;
 	}
 
-	char* GetFile( const char* path, int& outSize )
+	const char* GetFile( const char* path, int& outSize ) const
 	{
 		int index = FindFile( path );
 
@@ -402,7 +415,7 @@ public:
 		const char* a, int sizeA,
 		const char* b, int sizeB,
 		bool addNull
-	)
+	) const
 	{
 		std::vector< char > buffer( sizeA + sizeB + ( addNull? 2 : 1 ), 0 );
 		buffer[ sizeA ] = AL_STRING_DELIM;
@@ -413,7 +426,7 @@ public:
 		return buffer;
 	}
 
-	void SendFileProvisionally( int index )
+	void SendFileProvisionally( int index ) const
 	{
 		if ( index == -1 )
 		{
@@ -422,7 +435,7 @@ public:
 
 		int size;
 		
-		char* file = GetFile( index, size );
+		const char* file = GetFile( index, size );
 
 		std::vector< char > transfer( MakeBuffer(
 			metadata[ index ].filepath,
@@ -435,6 +448,12 @@ public:
 		emscripten_worker_respond_provisionally( &transfer[ 0 ], transfer.size() );
 	}
 
+	void FinishShaderStream( void )
+	{
+		Clear();
+		emscripten_worker_respond( 0, 0 );
+	}
+
 	void SendNextShader( void )
 	{
 		while ( !IsShader() )
@@ -442,15 +461,10 @@ public:
 			iterator++;
 		}
 
-		if ( iterator < metadata.size() )
+		if ( iterator < GetNumFiles() )
 		{
 			SendFileProvisionally( iterator );
 			iterator++;
-		}
-		else
-		{
-			Clear();
-			emscripten_worker_respond( 0, 0 );
 		}
 	}
 };
@@ -556,6 +570,8 @@ static void LoadShadersAndStream( char* data, int size )
 	{
 		gBundle->SendNextShader();
 	}
+
+	gBundle->FinishShaderStream();
 }
 
 static void ReadShaders_Proxy( char* data, int size )
