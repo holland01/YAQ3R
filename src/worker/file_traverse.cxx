@@ -299,8 +299,8 @@ class Bundle
 	{
 		int32_t sliceOffset;
 		int32_t sliceSize;
+		int32_t slicesLeft;
 		int32_t metaByteLen;
-		int32_t blobByteLen; // size of the entire blob, including the current slice
 	};
 
 	struct bundleMeta_t
@@ -364,6 +364,8 @@ public:
 		bundle = &buffer[ sizeof( *bufferInfo ) + bufferInfo->metaByteLen ];
 
 		numMetaEntries = bufferInfo->metaByteLen / sizeof( *metadata );
+
+		PrintMetadata();
 	}
 
 	const char* GetFile( uint32_t metadataIndex, int& outSize ) const

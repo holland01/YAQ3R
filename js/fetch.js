@@ -67,13 +67,6 @@ AL.writeBufferWord = function(buffer, offset, word) {
 	}
 }
 
-AL.readBufferWord = function(buffer, offset) {
-	if (buffer) {
-		return HEAP32[(buffer + offset) >> 2];
-	}
-	return 0;
-}
-
 // If we choose to "map" directly into memory then we just use a
 // custom binary format: everything becomes a simple memory access
 //---------------
@@ -151,83 +144,99 @@ AL.finishTime = function(msb, loader, metaByteLen, blobByteLen) {
 	}
 }
 
+AL.buffer = {
+	ptr: 0,
+	size: 0,
+	blobOffset: 0,
+	metaByteLen: 0,
+	blobByteLen: 0,
+	hasMetaData: false,
+	loader: null
+};
+
+AL.sliceMeta = [];
+
 // -------------
 // Format for the entire buffer
 // -------------
-// We ultimately pass a buffer which consists of a) the metadata as described above and b) a slice of the blob 
+// We ultimately pass a buffer to the loader callback which 
+// consists of a) the metadata as described above and b) a slice of the blob 
 // the metadata corresponds to (this might be the entire blob, or just a slice).
+
 // If it's a slice, then memory offsets need to be taken into account,
 // since the metadata is used to index into the blob memory.
 
-// There are some extra 4 byte parameters that are also prefixed to the stream:
+// These are the 4 byte parameters that are at the beginning of the stream:
+
 // [0] 4 byte int -> offset of the blob slice
 // [1] 4 byte int -> size of the blob slice
-// [2] 4 byte int -> size of the metadata
-// [3] 4 byte int -> the total blob size: this is used to allow the web worker
-// 		to determine whether or not they need to query the data a second time.
+// [2] 4 byte int -> the number of slices left to be received by the client.
+// [3] 4 byte int -> metadata byte length
 
 // metadata for the transfer buffer
 AL.BUFFER_PARAM_SLICE_OFFSET = 0;
 AL.BUFFER_PARAM_SLICE_SIZE = 4; 
-AL.BUFFER_PARAM_MD_LEN = 8;
-AL.BUFFER_PARAM_TOTAL_BLOB_SIZE = 12;
+AL.BUFFER_PARAM_SLICES_LEFT = 8;
+AL.BUFFER_PARAM_MD_LEN = 12; 
 
 AL.BUFFER_PARAM_SIZE_BYTES = 4 * 4;
 
-AL.freeBufferStore = function() {
+AL.freeBuffer = function() {
 	if (AL.buffer.ptr) {
 		Module._free(AL.buffer.ptr);
 		AL.buffer.ptr = 0;
 	}
 }
 
-AL.buffer = {
-	ptr: 0,
-	size: 0,
-	blobOffset: 0,
-	metaByteLen: 0,
-	blobByteLen: 0
-};
+AL.clearBuffer = function() {
+	AL.freeBuffer();
+	
+	AL.buffer.size = 0;
+	AL.buffer.blobOffset = 0;
+	AL.buffer.metaByteLen = 0;
+	AL.buffer.blobByteLen = 0;
+	AL.buffer.hasMetaData = false;
+	AL.buffer.loader = null;
+
+	AL.sliceMeta = [];
+}
 
 // Allocate a slice of the blob 
 // and then store it within the heap.
 // Ideally, we can store the entire blob...
 AL.allocSlice = function(loader, start, end) {	
-	let fileReader = new FileReaderSync();
-	let blobBuff = null;
-
-	if (start && end) { 
-		blobBuff = fileReader.readAsArrayBuffer(loader.packageRef.blob.slice(start, end));
-	} else {
-		blobBuff = fileReader.readAsArrayBuffer(loader.packageRef.blob);
+	if (!loader || typeof(start) == undefined || typeof(end) == undefined) {
+		throw "Undefined or null param received - this isn't allowed.";
 	}
 
-	AL.buffer.blobOffset = start || 0;
+	let fileReader = new FileReaderSync();
+	let blobBuff = null;
+	let slicesLeft = 0;
+ 
+	blobBuff = fileReader.readAsArrayBuffer(loader.packageRef.blob.slice(start, end));
+	slicesLeft =  AL.sliceMeta.length - 1;
+	AL.buffer.blobOffset = start; 
+
 	AL.buffer.metaByteLen = loader.packageRef.metadata.files.length * AL.MD_ELEM_SIZE_BYTES;
 	AL.buffer.blobByteLen = blobBuff.byteLength;
 
 	// See if we need to grab some memory.
-	// Even if AL.buffer.ptr is null this will work fine
-	let alBlobSize = AL.readBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_SIZE);
-	
-	if (alBlobSize !== AL.buffer.blobByteLen) {
+	if (!AL.buffer.ptr) {
 		AL.buffer.size = AL.BUFFER_PARAM_SIZE_BYTES + AL.buffer.metaByteLen + AL.buffer.blobByteLen;
-		if (AL.buffer.blobByteLen > alBlobSize) {
-			AL.freeBufferStore();
-			AL.buffer.ptr = Module._malloc(AL.buffer.size);
-		}
+		AL.buffer.ptr = Module._malloc(AL.buffer.size);
 	}
 
 	// Write out prefix data
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_OFFSET, AL.buffer.blobOffset);
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_SIZE, AL.buffer.blobByteLen);
+	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICES_LEFT, slicesLeft);
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_MD_LEN, AL.buffer.metaByteLen);
-	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_TOTAL_BLOB_SIZE, 
-		loader.packageRef.blob.size);
 
 	// Write out blob metadata
-	AL.binifyMetadata(AL.buffer.ptr + AL.BUFFER_PARAM_SIZE_BYTES, 
-		loader.packageRef.metadata);
+	if (!AL.buffer.hasMetaData) {
+		AL.binifyMetadata(AL.buffer.ptr + AL.BUFFER_PARAM_SIZE_BYTES, loader.packageRef.metadata);
+		AL.buffer.hasMetaData = true;
+	}
 
 	// Write out the blob slice
 	let blobBytes = new Uint8Array(blobBuff);
@@ -237,16 +246,87 @@ AL.allocSlice = function(loader, start, end) {
 	);
 }
 
-AL.loaderCache = null;
+//---------------------------
+// Slices
+//---------------------------
+//
+// When a bundle is first loaded,
+// each slice range of the blob 
+// is precomputed and stored;
+// the client can then query the
+// next slice as necessary
+
+AL.addSliceMeta = function(metadata, blobSize) {
+	let fileIter = 0;
+	let begin = 0;
+
+	if (AL.sliceMeta.length !== 0) {
+		begin = fileIter = AL.sliceMeta[AL.sliceMeta.length - 1].lastFile;
+	}
+
+	// Allocate 20 MB and leave about 13 MB free. Should be enough.
+	const SEGMENT_SIZE = Math.min(TOTAL_MEMORY * 0.6, blobSize);
+
+	let accumSize = 0;
+
+	// We might be in a situation where we can just load
+	// the entire blob and forget about it; if so,
+	// there's no need to actually iterate.
+	if (begin !== 0 || SEGMENT_SIZE < blobSize) {
+		while (fileIter < metadata.length && accumSize < SEGMENT_SIZE) {
+			accumSize += metadata.files[fileIter].end - metadata.files[fileIter].start;
+			fileIter++;
+		}
+	} else {
+		fileIter = metadata.files.length;
+	}
+
+	// We get the end via metadata[lastFile - 1].end
+	AL.sliceMeta.push({
+		start: metadata.files[begin].start,
+		lastFile: fileIter
+	});
+
+	return fileIter === metadata.files.length;
+} 
+
+AL.nextSlice = function(msb) {
+	AL.allocSlice(
+		AL.buffer.loader, 
+		AL.sliceMeta[0].start, 
+		AL.buffer.loader.packageRef.metadata.files[AL.sliceMeta[0].lastFile - 1].end
+	);
+
+	AL.sliceMeta.shift();
+
+	AL.finishTime(
+		msb, 
+		AL.buffer.loader, 
+		AL.buffer.metaByteLen, 
+		AL.buffer.blobByteLen
+	);
+
+	AL.callLoaderCB(AL.buffer.loader, AL.buffer.ptr, AL.buffer.size);
+
+	if (AL.sliceMeta.length === 0) {
+		AL.clearBuffer();
+	}
+}
 
 AL.loadFinished = function(loader) {
 	if (loader.params.map) {
 		let msb = AL.startTime();		
 
-		AL.allocSlice(loader);
-		AL.callLoaderCB(loader, AL.buffer.ptr, AL.buffer.size);
+		AL.clearBuffer();
+
+		AL.buffer.loader = loader;
 		
-		AL.finishTime(msb, loader, AL.buffer.metaByteLen, AL.buffer.blobByteLen);
+		while (
+			!AL.addSliceMeta(AL.buffer.loader.packageRef.metadata, 
+				AL.buffer.loader.packageRef.blob.size)
+		);
+
+		AL.nextSlice(msb);
 	} else {
 		AL.mountPackages([loader.packageRef]);
 		
