@@ -2058,3 +2058,20 @@ The checks of note are:
 
 Also, change `Bundle::SendNextFile()` to `Bundle::SendNextShader()`: it's only
 actually being used for shaders anyway.
+
+**1/24/2017**
+
+Yeap: more changes are necessary. Chunking the bundle blob isn't viable though because the assets necessary
+for that chunk may not hold the data for the current path received from the renderer client in
+the `ReadImage` function.
+
+So, the best thing to do is to just send a pipe-delimited list of files to the server
+and have it concat the blobs for those files into one buffer. Then, the corresponding
+start/end values which belong to a given file for a blob can just be relative
+to this new blob. 
+
+I'm thinking that a streaming approach for the images (similar to what's done with the shaders, on the worker end) 
+is probably going to be much simpler than the current setup: the way it's being done now is just messy and convoluted.
+
+It'll be important to keep the portion of the code which sends off the list of files to fetch, though (the bundle packaging code
+in renderer/util.cpp which is executed for both shader-pass images and normal images). 

@@ -98,8 +98,10 @@ static INLINE void FailOpen( const char* path, size_t pathLen )
 static INLINE bool SplitDataWithBundle( std::string& bundleName,
 	std::vector< char >& chopData, char* data, int size )
 {
-	for ( int i = 0; i < size; ++i ) {
-		if ( data[i] == AL_STRING_DELIM ) {
+	for ( int i = 0; i < size; ++i ) 
+	{
+		if ( data[i] == AL_STRING_DELIM ) 
+		{
 			bundleName = std::string( data, i );
 			O_Log( "Bundle Name Found: %s\n", bundleName.c_str() );
 
@@ -330,7 +332,6 @@ public:
 		bufferInfo = nullptr;
 		metadata = nullptr;
 		numMetaEntries = 0;
-		//EM_ASM({ AL.freeBufferStore(); });
 	}
 
 	void PrintMetadata( void ) const
@@ -409,6 +410,49 @@ public:
 		GetExt( filepath, ext );
 
 		return ext == ".shader";
+	}
+
+	std::vector<char> ReadImage( const char* filename )
+	{
+		std::vector<char> imgBuff;
+
+		int width, height, bpp; // bpp is in bytes...
+		
+		int outSize;
+		const char* ptr = GetFile( filename, outSize );
+
+		if ( !ptr ) 
+		{
+			O_Log( "ERROR: Could not find image file: %s", filename );
+			return imgBuff;	
+		}
+
+		stbi_uc* buf = stbi_load_from_memory( ( const stbi_uc* ) ptr, outSize, &width, &height, &bpp, STBI_default );
+
+		if ( !buf )
+		{
+			O_Log( "ERROR: STBI rejected the image file %s", filename );
+			return imgBuff;
+		}
+
+		size_t size = width * height * bpp;
+		size_t cap = size + 8;
+
+		imgBuff.resize( cap, 0 );
+		memcpy( &imgBuff[ 8 ], buf, size );
+
+		// There's no way that we'll need more
+		// Than 16 bits for each dimension.
+		// Remaining 3 bytes are for padding.
+		imgBuff[ 0 ] = ( unsigned char )( width & 0xFF );
+		imgBuff[ 1 ] = ( unsigned char )( ( width >> 8 ) & 0xFF );
+		imgBuff[ 2 ] = ( unsigned char )( height & 0xFF );
+		imgBuff[ 3 ] = ( unsigned char )( ( height >> 8 ) & 0xFF );
+		imgBuff[ 4 ] = ( unsigned char )( bpp );
+
+		stbi_image_free( buf );
+
+		return imgBuff;
 	}
 
 	// Stitches two buffers together, 
@@ -604,13 +648,20 @@ static void ReadShaders_Proxy( char* data, int size )
 	);
 }
 
-static void ReadImage_Proxy( char* path, int size )
+static void LoadImages( char* buffer, int size )
 {
-	std::string full( FullPath( path, size - 1 ) );
+	gBundle->Load( buffer, size );
+	emscripten_worker_respond( nullptr, 0 );
+}
 
-	gFIOChain.reset( new file_t( full ) );
+static void ReadImage_Proxy( char* path, int size )
+{	
+	std::string full( "/" );
+	full.append( path );
 
-	if ( !( *gFIOChain ) )
+	std::vector< char > imgBuff = gBundle->ReadImage( full.c_str() );
+
+	if ( imgBuff.empty() )
 	{
 		std::array< std::string, 3 > candidates =
 		{
@@ -629,28 +680,22 @@ static void ReadImage_Proxy( char* path, int size )
 
 			full = ReplaceExt( full, candidates[ i ] );
 
-			gFIOChain->Open( full );
+			imgBuff = gBundle->ReadImage( full.c_str() );
 
-			if ( *gFIOChain )
+			if ( !imgBuff.empty() )
 			{
 				break;
 			}
 		}
 
-		if ( !( *gFIOChain ) )
+		if ( imgBuff.empty() )
 		{
 			FailOpen( path, size  );
 			return;
 		}
 	}
 
-	if ( !gFIOChain->ReadImage() )
-	{
-		FailOpen( path, size );
-		return;
-	}
-
-	gFIOChain->Send();
+	emscripten_worker_respond( &imgBuff[ 0 ], imgBuff.size() );
 }
 
 void UnmountPackages_Proxy( char* data, int size )
@@ -665,15 +710,15 @@ void UnmountPackages_Proxy( char* data, int size )
 	emscripten_worker_respond( ( char* ) &success, sizeof( success ) );
 }
 
-void MountPackage_Proxy( char* data, int size )
+void MountPackage_Proxy( char* path, int size )
 {
 	const char* port = EM_SERV_ASSET_PORT;
 
 	EM_ASM_ARGS({
 			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
-		data,
-		emscripten_worker_respond,
+		path,
+		LoadImages,
 		0,
 		0,
 		port
