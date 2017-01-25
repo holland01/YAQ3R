@@ -114,6 +114,8 @@ static INLINE bool SplitDataWithBundle( std::string& bundleName,
 	return false;
 }
 
+static void ReadImage_Proxy( const char* path, int size );
+
 typedef void ( *callback_t )( char* data, int size );
 
 static bool gInitialized = false;
@@ -290,6 +292,7 @@ struct file_t
 
 static std::unique_ptr< file_t > gFIOChain( nullptr );
 
+
 class Bundle
 {
 	enum
@@ -325,13 +328,18 @@ public:
 
 	size_t GetNumFiles( void ) const { return numMetaEntries; }
 
-	void Clear( void )
+	void Clear( bool freeBuffer = true )
 	{
 		iterator = 0;
 		bundle = nullptr;
 		bufferInfo = nullptr;
 		metadata = nullptr;
 		numMetaEntries = 0;
+
+		if ( freeBuffer )
+		{
+			EM_ASM({ self.clearBuffer(); });
+		}
 	}
 
 	void PrintMetadata( void ) const
@@ -358,7 +366,7 @@ public:
 	// [2] -> char*: the bundle
 	void Load( const char* buffer, int size )
 	{
-		Clear();
+		Clear( false );
 
 		bufferInfo = ( const bufferMeta_t* ) &buffer[ 0 ];
 		metadata = ( const bundleMeta_t* ) &buffer[ sizeof( *bufferInfo ) ];
@@ -513,6 +521,29 @@ public:
 			iterator++;
 		}
 	}
+
+	void FailStream( void )
+	{
+		O_Log( "Could not stream image file: %s", metadata[ iterator ].filepath );
+		emscripten_worker_respond( nullptr, 0 );
+	}
+
+	void SendNextImage( void )
+	{
+		if ( iterator < GetNumFiles() )
+		{
+			ReadImage_Proxy( 
+				metadata[ iterator ].filepath, 
+				strlen( metadata[ iterator ].filepath ) 
+			);
+			iterator++;
+		}
+	}
+
+	~Bundle( void )
+	{
+		Clear();
+	}
 };
 
 static std::unique_ptr< Bundle > gBundle( new Bundle() );
@@ -648,16 +679,9 @@ static void ReadShaders_Proxy( char* data, int size )
 	);
 }
 
-static void LoadImages( char* buffer, int size )
-{
-	gBundle->Load( buffer, size );
-	emscripten_worker_respond( nullptr, 0 );
-}
-
-static void ReadImage_Proxy( char* path, int size )
+static void ReadImage_Proxy( const char* path, int size )
 {	
-	std::string full( "/" );
-	full.append( path );
+	std::string full( path );
 
 	std::vector< char > imgBuff = gBundle->ReadImage( full.c_str() );
 
@@ -671,7 +695,7 @@ static void ReadImage_Proxy( char* path, int size )
 		std::string firstExt;
 		volatile bool hasExt = GetExt( full, firstExt );
 
-		for ( size_t i = 0; i < candidates.size(); ++i )
+		for ( size_t i = 0; i < candidates.size() && imgBuff.empty(); ++i )
 		{
 			if ( hasExt && firstExt == candidates[ i ] )
 			{
@@ -681,31 +705,35 @@ static void ReadImage_Proxy( char* path, int size )
 			full = ReplaceExt( full, candidates[ i ] );
 
 			imgBuff = gBundle->ReadImage( full.c_str() );
-
-			if ( !imgBuff.empty() )
-			{
-				break;
-			}
 		}
 
 		if ( imgBuff.empty() )
 		{
-			FailOpen( path, size  );
+			gBundle->FailStream();
 			return;
 		}
 	}
 
-	emscripten_worker_respond( &imgBuff[ 0 ], imgBuff.size() );
+	emscripten_worker_respond_provisionally( &imgBuff[ 0 ], imgBuff.size() );
+}
+
+static void LoadAndStreamImages( char* buffer, int size )
+{
+	gBundle->Load( buffer, size );
+	while ( gBundle->GetIterator() < gBundle->GetNumFiles() ) 
+	{
+		gBundle->SendNextImage();
+	}
+	emscripten_worker_respond( nullptr, 0 );
 }
 
 void UnmountPackages_Proxy( char* data, int size )
 {
 	gFIOChain.reset();
-
+	gBundle->Clear();
 	EM_ASM({
 		self.unmountPackages();
 	});
-
 	uint32_t success = WAPI_TRUE;
 	emscripten_worker_respond( ( char* ) &success, sizeof( success ) );
 }
@@ -714,13 +742,28 @@ void MountPackage_Proxy( char* path, int size )
 {
 	const char* port = EM_SERV_ASSET_PORT;
 
-	EM_ASM_ARGS({
+	char* bundle = strchr( path, '|' );
+	const char* paths = nullptr;
+	size_t pathslen = 0; 
+
+	// Replace the first pipe (marking the end of the bundle path)
+	// with a null byte to keep the rest of the filepaths separate
+	// from the bundle.
+	if ( bundle )
+	{
+		*bundle = '\0';
+		paths = bundle + 1;
+		pathslen = size - 1 - strlen( path );
+	}
+
+	EM_ASM_ARGS(
+		{
 			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
 		path,
-		LoadImages,
-		0,
-		0,
+		LoadAndStreamImages,
+		paths,
+		pathslen,
 		port
 	);
 }
@@ -770,10 +813,8 @@ void ReadShaders( char* dir, int size )
 
 void ReadImage( char* path, int size )
 {
-	if ( InitSystem( ReadImage_Proxy, path, size ) )
-	{
-		ReadImage_Proxy( path, size );
-	}
+	UNUSED( path );
+	UNUSED( size );
 }
 
 void MountPackage( char* path, int size )

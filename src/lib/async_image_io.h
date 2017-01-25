@@ -77,6 +77,7 @@ void AIIO_FixupAssetPath( gPathMap_t& pathMap );
 
 void AIIO_ReadImages(
 	Q3BspMap& map,
+	const std::string& bundlePath,
 	std::vector< gPathMap_t > pathInfo,
 	onFinishEvent_t finish,
 	gla::atlas_t& destAtlas,

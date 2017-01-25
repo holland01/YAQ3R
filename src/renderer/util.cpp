@@ -47,13 +47,18 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 			continue;
 		}
 
+		MLOG_INFO( "BEFORE Fixup: %s", source.path.c_str() );
+
 		AIIO_FixupAssetPath( source );
+
+		MLOG_INFO( "AFTER Fixup: %s", source.path.c_str() );
+
 
 		// Grab the path segment in between
 		// the first two slashes: this is our
 		// bundle we wish to assign
 		// the current path source.
-		const char* path = &source.path[ 0 ];
+		const char* path = &source.path[ 1 ]; // We skip, since the first char is a slash.
 		const char* slash0 = strstr( path, "/" );
 		const char* slash1 = strstr( slash0 + 1, "/" );
 
@@ -161,21 +166,6 @@ static void LoadImagesEnd( void* param )
 	);
 }
 
-static void LoadImages( char* mem, int size, void* param )
-{
-	UNUSED( mem );
-	UNUSED( size );
-	UNUSED( param );
-
-	AIIO_ReadImages(
-		*gImageLoadState.map,
-		gImageLoadState.currNode->paths,
-		LoadImagesEnd,
-		*( gImageLoadState.destAtlas ),
-		gImageLoadState.keyMapped
-	);
-}
-
 static void LoadImagesBegin( char* mem, int size, void* param )
 {
 	UNUSED( mem );
@@ -184,11 +174,13 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 
 	if ( gImageLoadState.currNode )
 	{
-		gFileWebWorker.Await(
-			LoadImages,
-			"MountPackage",
+		AIIO_ReadImages(
+			*gImageLoadState.map,
 			gImageLoadState.currNode->bundle,
-			nullptr
+			gImageLoadState.currNode->paths,
+			LoadImagesEnd,
+			*( gImageLoadState.destAtlas ),
+			gImageLoadState.keyMapped
 		);
 	}
 	else

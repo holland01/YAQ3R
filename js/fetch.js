@@ -5,7 +5,7 @@ AL.bundleLoadPort = '6931';
 AL.DATA_DIR_NAME = 'working';
 AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, ' +
 	'and/or on load finish callback';
-AL.CONTENT_PIPELINE_MSG = false;
+AL.CONTENT_PIPELINE_MSG = true;
 
 AL.fetchNode = function(pathName) {
 	var node = null;
@@ -86,24 +86,24 @@ AL.MD_ELEM_PATH_MAX_SIZE = 64;
 AL.MD_ELEM_SIZE_BYTES = 4 * 2 + AL.MD_ELEM_PATH_MAX_SIZE;
 
 AL.binifyMetadata = function(buffer, files) {
-	for (let file = 0; file < files.files.length; file++) {
-		if (files.files[file].filename.length >= AL.MD_ELEM_PATH_MAX_SIZE) {
+	for (let file = 0; file < files.length; file++) {
+		if (files[file].filename.length >= AL.MD_ELEM_PATH_MAX_SIZE) {
 			throw 'File found with excessive large size: '
-				+ files.files[file].filename +
-			'; size: ' + files.files[file].filename.length;
+				+ files[file].filename +
+			'; size: ' + files[file].filename.length;
 		}
 
 		let elem = buffer + file * AL.MD_ELEM_SIZE_BYTES;
 
-		AL.writeBufferWord(elem, AL.MD_ELEM_START_OFFSET, files.files[file].start);
-		AL.writeBufferWord(elem, AL.MD_ELEM_END_OFFSET, files.files[file].end);
+		AL.writeBufferWord(elem, AL.MD_ELEM_START_OFFSET, files[file].start);
+		AL.writeBufferWord(elem, AL.MD_ELEM_END_OFFSET, files[file].end);
 
 		// zero out the string
 		Module._memset(elem + AL.MD_ELEM_PATH_OFFSET, 0, AL.MD_ELEM_PATH_MAX_SIZE);
 
 		// passing 'true' ensures that a null term isn't added
 		Module.writeStringToMemory(
-			files.files[file].filename,
+			files[file].filename,
 			elem + AL.MD_ELEM_PATH_OFFSET,
 			true
 		);
@@ -220,7 +220,6 @@ AL.allocMem = function(loader, metadata) {
 		// In the event that metadata === AL.sliceMeta, 
 		// we're taking only what we need from the bundle,
 		// so we need to adjust the offsets accordingly for the client.
-		
 		let start = AL.buffer.blobByteLen;
 		AL.buffer.blobByteLen += AL.sliceMeta[i].end - AL.sliceMeta[i].start;
 		let end = AL.buffer.blobByteLen;
@@ -238,8 +237,6 @@ AL.allocMem = function(loader, metadata) {
 		AL.sliceMeta[i].end = end;
 	}
 
-	// TODO: get rid of "AL.buffer.blobOffset" - this is no longer necessary.
-	AL.buffer.blobOffset = 0;
 	AL.buffer.metaByteLen = metadata.length * AL.MD_ELEM_SIZE_BYTES;
 
 	// See if we need to grab some memory.
@@ -250,9 +247,9 @@ AL.allocMem = function(loader, metadata) {
 	}
 
 	// Write out prefix data
-	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_OFFSET, AL.buffer.blobOffset);
+	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_OFFSET, 0);
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_SIZE, AL.buffer.blobByteLen);
-	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICES_LEFT, AL.buffer.slicesLeft);
+	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICES_LEFT, 0);
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_MD_LEN, AL.buffer.metaByteLen);
 
 	// Write out blob metadata
@@ -302,10 +299,11 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 		files = files.split('|');
 
-		for (let i = 0; i < metadata.files.length; ++i) {
-			if (!metadata.files[i])
-				continue;
+		if (AL.CONTENT_PIPELINE_MSG) {
+			console.log('Fetching ', files.length, ' files...');
+		}
 
+		for (let i = 0; i < metadata.files.length; ++i) {
 			for (let j = 0; j < files.length; ++j) {
 				if (!files[j])
 					continue;
@@ -319,10 +317,11 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 						filename: metadata.files[i].filename
 					});
 
-					AL.buffer.slicesLeft--;
+					if (AL.CONTENT_PIPELINE_MSG) {
+						console.log('Caught: ', files[j], '. Slice Count: ', AL.sliceMeta.length);
+					}
 
 					delete files[j];
-					delete metadata.files[i];
 				}
 			}
 		}
@@ -338,10 +337,8 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 		return AL.sliceMeta;
 	} else {
-		AL.buffer.slicesLeft = 0;
-		// We get the end via metadata[lastFile - 1].end
 		AL.sliceMeta.push({
-			start: metadata.files[begin].start,
+			start: metadata.files[0].start,
 			end: metadata.files[metadata.files.length - 1].end
 		});
 
@@ -371,15 +368,15 @@ AL.loadFinished = function(loader) {
 
 		AL.clearBuffer();
 
-		AL.buffer.slicesLeft = loader.packageRef.metadata.files.length;
 		AL.buffer.loader = loader;
 		
 		let metaFiles = AL.addSliceMeta(
 			AL.buffer.loader.packageRef.metadata, 
-			AL.buffer.loader.packageRef.blob.size
+			AL.buffer.loader.packageRef.blob.size,
+			AL.buffer.loader.params.path
 		);
 
-		AL.nextSlice(msb, metaFiles);
+		AL.nextSlice(msb, metaFiles, AL.buffer.loader.params.path);
 	} else {
 		AL.mountPackages([loader.packageRef]);
 		
@@ -468,6 +465,11 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 	xhr.send();
 }
 
+// params "path" and "pathLength" can represent one of two types of strings:
+// 1) a single file path which is going to be sent to the callback after the
+// bundle's been mounted in the worker filesystem.
+// 2) a pipe-delimited list of filepaths which are sent to the global Bundle instance
+// in the client
 AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port, map) {
 	var loader = new AL.BundleLoader(
 		AL.getMaybeCString(bundleName), {
@@ -485,6 +487,7 @@ AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port, map
 self.fetchBundleAsync = AL.fetchBundleAsync;
 self.unmountPackages = AL.unmountPackages;
 self.mountPackages = AL.mountPackages;
+self.clearBuffer = AL.clearBuffer;
 
 function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 	 var path = UTF8ToString(pathPtr);
