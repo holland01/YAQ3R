@@ -2075,3 +2075,7 @@ is probably going to be much simpler than the current setup: the way it's being 
 
 It'll be important to keep the portion of the code which sends off the list of files to fetch, though (the bundle packaging code
 in renderer/util.cpp which is executed for both shader-pass images and normal images). 
+
+**1/25/2017**
+
+Look at OnImageRead and see if there's anything odd going on there: it could be, for example, calling the finishevent too early (which would screw everything else up).
