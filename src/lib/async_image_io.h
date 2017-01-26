@@ -31,7 +31,8 @@ using extFallbackBuff_t = std::vector< std::string >;
 // every stage with a texture image knows the index used to access the
 // "image slot" within the texture atlas.
 
-namespace gla {
+namespace gla 
+{
 	struct atlas_t;
 }
 
