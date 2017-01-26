@@ -12,8 +12,8 @@
 #include "commondef.h"
 #include <extern/stb_image.h>
 
-#define DEBUG
-#define CONTENT_PIPELINE_IO
+//#define DEBUG
+//#define CONTENT_PIPELINE_IO
 
 #define AL_STRING_DELIM '|'
 
@@ -344,6 +344,7 @@ public:
 
 	void PrintMetadata( void ) const
 	{
+#if defined( CONTENT_PIPELINE_IO ) && defined( DEBUG ) 
 		std::stringstream out;
 		for ( uint32_t i = 0; i < numMetaEntries; ++i )
 		{
@@ -353,8 +354,8 @@ public:
 				<< "\tend: " << metadata[ i ].endOffset
 				<< "\n";
 		}
-
 		O_Log( "Entries:\n %s", out.str().c_str() );
+#endif
 	}
 
 	// Three different structures: the bundle itself (in javascript is represented as blob),
