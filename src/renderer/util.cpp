@@ -47,12 +47,7 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 			continue;
 		}
 
-		MLOG_INFO( "BEFORE Fixup: %s", source.path.c_str() );
-
 		AIIO_FixupAssetPath( source );
-
-		MLOG_INFO( "AFTER Fixup: %s", source.path.c_str() );
-
 
 		// Grab the path segment in between
 		// the first two slashes: this is our
@@ -231,6 +226,7 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
+	MLOG_INFO( "Called" );
 	LoadImageState( map, sources, TEXTURE_ATLAS_SHADERS );
 }
 
@@ -251,5 +247,6 @@ void GU_LoadMainTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
+	MLOG_INFO( "Called" );
 	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }
