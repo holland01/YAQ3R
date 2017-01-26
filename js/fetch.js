@@ -5,7 +5,7 @@ AL.bundleLoadPort = '6931';
 AL.DATA_DIR_NAME = 'working';
 AL.BUNDLE_REQUIRED_PARAMS_EXCEPT = 'Missing path, path length, ' +
 	'and/or on load finish callback';
-AL.CONTENT_PIPELINE_MSG = true;
+AL.CONTENT_PIPELINE_MSG = false;
 
 AL.fetchNode = function(pathName) {
 	var node = null;
@@ -119,7 +119,7 @@ AL.callLoaderCB = function(loader, dataPtr, len)
 	Runtime.stackRestore(stack);
 }
 
-AL.CONTENT_PIPELINE_BENCHMARK = true;
+AL.CONTENT_PIPELINE_BENCHMARK = false;
 
 AL.startTime = function() {
 	let msb = null;
@@ -156,6 +156,11 @@ AL.buffer = {
 };
 
 AL.sliceMeta = [];
+
+AL.texType = {
+	SHADER: 0,
+	DEFAULT: 1
+};
 
 // -------------
 // Format for the entire buffer
@@ -303,18 +308,32 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 			console.log('Fetching ', files.length, ' files...');
 		}
 
-		for (let i = 0; i < metadata.files.length; ++i) {
+		let undefCounter = 0;
+
+		for (let i = 0; i < metadata.files.length && undefCounter < files.length; ++i) {
 			for (let j = 0; j < files.length; ++j) {
-				if (!files[j])
+				// Yeah, it's only a string comparison but it's an O(1) check vs O(N) so w/e
+				if (!files[j]) 
 					continue;
 
-				if (metadata.files[i].filename === files[j]) {
+				let cmp = metadata.files[i].filename;
+
+				// Remove extension for accurate comparison
+				if (files[j].indexOf('.') === -1) {
+					let c = cmp.length - 1;
+					while (cmp.charAt(c) !== '.') {
+						c--;
+					}
+					cmp = cmp.substring(0, c);
+				}
+
+				if (cmp === files[j]) {
 					accumSize += metadata.files[i].end - metadata.files[i].start;
 
 					AL.sliceMeta.push({
 						start: metadata.files[i].start,
 						end: metadata.files[i].end,
-						filename: metadata.files[i].filename
+						filename: cmp
 					});
 
 					if (AL.CONTENT_PIPELINE_MSG) {
@@ -322,6 +341,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 					}
 
 					delete files[j];
+					undefCounter++;
 				}
 			}
 		}
@@ -472,7 +492,8 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 // in the client
 AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port, map) {
 	var loader = new AL.BundleLoader(
-		AL.getMaybeCString(bundleName), {
+		AL.getMaybeCString(bundleName), 
+		{
 			proxy: callback,
 			path: AL.getMaybeCString(path),
 			size: pathLength,
