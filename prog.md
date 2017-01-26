@@ -2079,3 +2079,16 @@ in renderer/util.cpp which is executed for both shader-pass images and normal im
 **1/25/2017**
 
 Look at OnImageRead and see if there's anything odd going on there: it could be, for example, calling the finishevent too early (which would screw everything else up).
+
+**1/26/2017**
+
+Issue was due to an edge case for file comparisons in `AL.addMetaSlice` (src/fetch.js). Anyway, while the requested files appear to be loading fine, there's some
+memory corruption issues happening as well which cause the renderer to load the map, but as soon as the map as loaded and a new texture is introduced into the scene 
+(once the viewer moves around or rotates the camera) everything immediately crashes, and there's a report of a bad texture index being stored in one of the effect shader
+passes. 
+
+Furthermore, the walls themselves do seem kinda off, and ditto can be said about the colors of the jump pads. For the walls, it's almost as if they're the wrong image (it's hard to tell what the problem is exactly).
+
+So, I'm gonna start by rendering them in a separate asset loading test and see if I can spot any major issues. A good way to go about this would be to just refactor a specific
+
+portion of base rendering components (make program, bind texture, corresponding class members, etc.) into a separate base class. It will be cleaner because it can be reused...
