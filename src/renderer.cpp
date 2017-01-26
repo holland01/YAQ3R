@@ -40,6 +40,8 @@ static counts_t gCounts = { 0, 0, 0, 0 };
 static uint64_t frameCount = 0;
 
 //--------------------------------------------------------------
+// drawPass_t
+//--------------------------------------------------------------
 drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 	: isSolid( true ),
 	  envmap( false ),
@@ -55,6 +57,31 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 	facesVisited.resize( map.data.numFaces, 0 );
 }
 
+//--------------------------------------------------------------
+// RenderBase
+//--------------------------------------------------------------
+RenderBase::RenderBase( Q3BspMap& m )
+	:	apiHandles( {{ 0, 0 }} ),
+		map( m )
+{
+}
+
+void RenderBase::MakeProg( const std::string& name, const std::string& vertSrc,
+	const std::string& fragSrc, const std::vector< std::string >& uniforms,
+	const std::vector< std::string >& attribs )
+{
+	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc,
+		fragSrc, uniforms, attribs ) );
+}
+
+RenderBase::~RenderBase( void )
+{
+	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
+	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
+}
+
+//--------------------------------------------------------------
+// BSPRenderer
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 	:	glEffects( {
@@ -98,7 +125,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 		} ),
 		currLeaf( nullptr ),
 		map( map_ ), frustum( new Frustum() ),
-		apiHandles( {{ 0, 0 }} ),
+		apiHandles(  ),
 		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
 		alwaysWriteDepth( false ),
@@ -112,16 +139,6 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 
 BSPRenderer::~BSPRenderer( void )
 {
-	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
-	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
-}
-
-void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc,
-	const std::string& fragSrc, const std::vector< std::string >& uniforms,
-	const std::vector< std::string >& attribs )
-{
-	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc,
-		fragSrc, uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
@@ -163,8 +180,10 @@ void BSPRenderer::Prep( void )
 	}
 }
 
-bool BSPRenderer::IsTransFace( int32_t faceIndex,
-	const shaderInfo_t* shader ) const
+bool BSPRenderer::IsTransFace( 
+	int32_t faceIndex,
+	const shaderInfo_t* shader 
+) const
 {
 	UNUSED( shader );
 	const bspFace_t* face = &map.data.faces[ faceIndex ];
@@ -212,7 +231,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
 
 	// And then generate all of the lightmaps
-
 	for ( bspLightmap_t& lightmap: map.data.lightmaps )
 	{
 		gla::push_atlas_image(
