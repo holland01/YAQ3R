@@ -2092,3 +2092,39 @@ Furthermore, the walls themselves do seem kinda off, and ditto can be said about
 So, I'm gonna start by rendering them in a separate asset loading test and see if I can spot any major issues. A good way to go about this would be to just refactor a specific
 
 portion of base rendering components (make program, bind texture, corresponding class members, etc.) into a separate base class. It will be cleaner because it can be reused...
+
+
+**1/27/2017**
+
+This:
+
+```
+ $7 = __ZNK3gla7atlas_t5layerEt($1, $2) | 0;
+ SAFE_HEAP_STORE($0 >> 0 | 0, $7 | 0, 1);
+ $8 = $0 + 4 | 0;
+ $9 = __ZNK3gla7atlas_t8origin_xEt($1, $2) | 0;
+ SAFE_HEAP_STORE($3 | 0, $9 | 0, 2);
+ $10 = __ZNK3gla7atlas_t8origin_yEt($1, $2) | 0;
+ SAFE_HEAP_STORE($4 | 0, $10 | 0, 2);
+ __ZN3glm5tvec2IfLNS_9precisionE0EEC2IttEERKT_RKT0_($8, $3, $4);
+ $11 = $0 + 12 | 0;
+ $12 = $7 & 255;
+ $13 = $1 + 20 | 0;
+ $14 = SAFE_HEAP_LOAD($13 | 0, 4, 0) | 0 | 0;
+ $15 = $14 + ($12 << 1) | 0;
+ $16 = SAFE_HEAP_LOAD($15 | 0, 2, 0) | 0 | 0;		<---- crash here
+ $17 = +($16 & 65535);
+ $18 = 1.0 / $17;
+ SAFE_HEAP_STORE_D($5 | 0, +$18, 4);
+ $19 = $1 + 32 | 0;
+ $20 = SAFE_HEAP_LOAD($19 | 0, 4, 0) | 0 | 0;
+ $21 = $20 + ($12 << 1) | 0;
+ $22 = SAFE_HEAP_LOAD($21 | 0, 2, 0) | 0 | 0;
+ ```
+
+ Is important. In a nutshell: it's from `gla::atlas_t::image_info()` and it grabs the layer index (`$7`), masks it with 255 (since its type is `uint8_t`),
+ and then assigns it to the variable `$12`. I'm pretty sure `$1` is the $this pointer, and `$13` is the width vector: I'd have to double check the size
+ of std::vector to be sure. Either way, the base address of the vector's buffer is loaded via `$13`, assigned to `$14`. The next address calculation
+ stored in `$15` is what causes the "seg fault": it's an unaligned memory access (or something of that nature) detected by the following call to
+ `SAFE_HEAP_LOAD`. 
+
