@@ -171,7 +171,34 @@ enum {
 	TEXTURE_ATLAS_LIGHTMAPS = 0x2
 };
 
-class BSPRenderer
+class RenderBase 
+{
+protected:
+	programMap_t glPrograms;
+
+	std::array< GLuint, 2 >	apiHandles;
+
+	Q3BspMap& map;
+	
+	std::unique_ptr< Frustum > frustum;
+
+	void 			MakeProg(
+						const std::string& name,
+						const std::string& vertPath,
+						const std::string& fragPath,
+						const std::vector< std::string >& uniforms,
+						const std::vector< std::string >& attribs
+					);
+
+public:
+	virtual void Load( renderPayload_t& payload );
+
+	RenderBase( Q3BspMap& m );
+
+	virtual ~RenderBase( void );
+};
+
+class BSPRenderer : public RenderBase
 {
 private:
 
@@ -197,16 +224,11 @@ private:
 	// face indices - is only used when debugging for immediate data
 	std::vector< debugFace_t > glDebugFaces;
 
-	programMap_t		glPrograms;
-
 	effectMap_t			glEffects;
 
 	const bspLeaf_t*    currLeaf;
 
-	Q3BspMap& map;
-	std::unique_ptr< Frustum > frustum;
 
-	std::array< GLuint, 2 >	apiHandles;
 
 	float               deltaTime;
 
@@ -234,14 +256,6 @@ private:
 							const mapModel_t& m,
 							const shaderInfo_t* shader
 						) const;
-
-	void				MakeProg(
-							const std::string& name,
-							const std::string& vertPath,
-							const std::string& fragPath,
-							const std::vector< std::string >& uniforms,
-							const std::vector< std::string >& attribs
-						);
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
@@ -331,7 +345,7 @@ public:
 
 	void		Prep( void );
 
-	void		Load( renderPayload_t& payload );
+	void		Load( renderPayload_t& payload ) override;
 
 	void		Sample( void );
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #define ASSET_Q3_ROOT "asset"
+#define ASSET_ASCII_DELIMITER "|"
 
 #define C_OFFSETOF_P(p, m) ( uintptr_t( &( ( p )->m ) ) - uintptr_t( ( p ) ) )
 #define C_OFFSETOF_T(t, s) C_OFFSETOF_P( ( t* )0x1000, s )

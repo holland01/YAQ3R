@@ -16,14 +16,11 @@ static const uint32_t WAPI_ERROR = 0xFFFFFFFF;
 static const uint32_t WAPI_TRUE = 1;
 static const uint32_t WAPI_FALSE = 0;
 
-// This may seem like overkill, but it's more _secure_
-// than just assuming that buffer is of size >= 4
-static inline uint32_t WAPI_Fetch32( char* buffer, int size, int ofs )
+static inline uint32_t WAPI_Fetch32( const char* buffer, int size, int ofs )
 {
 	if ( !buffer ) return WAPI_FALSE; // <- not necessarily an error, because
 									  // this may be called knowing that
 									  // the buffer may not exist
-
 	int32_t diff = size - 4;
 	if ( ( ofs ) > diff )
 	{
@@ -35,7 +32,7 @@ static inline uint32_t WAPI_Fetch32( char* buffer, int size, int ofs )
 	uint32_t x = 0;
 	for ( int32_t y = 0; y < 4; ++y )
 	{
-		x |= ( ( uint32_t )( buffer[ y ] ) & 0xFF ) << ( y << 3 );
+		x |= ( ( uint32_t )( buffer[ ofs + y ] ) & 0xFF ) << ( y << 3 );
 	}
 	return x;
 }

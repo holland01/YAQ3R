@@ -18,7 +18,9 @@ struct meta_t
 	{
 		if ( logProgramGen )
 		{
-			fprintf( stdout, "[ %i ] [ \n\n %s \n\n%s \n\n ]",
+			fprintf(
+				stdout,
+				"[ %i ] [ \n\n %s \n\n%s \n\n ]",
 				stage,
 				title.c_str(),
 				source.c_str() );

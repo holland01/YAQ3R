@@ -66,3 +66,14 @@ var getHexString = function(str) {
 	}
 	return hex;
 };
+
+var buildStringFromU8 = function(array, start, end) {
+	if (!end) {
+		end = Number.MAX_SAFE_INTEGER >> 32; // so we don't potentially wait for an eternity
+	}
+	let str = "";
+	for (let i = start; array[i] !== 0 && i < array.length && i < end; ++i) {
+		str += String.fromCharCode(array[i]);
+	}
+	return str;
+}

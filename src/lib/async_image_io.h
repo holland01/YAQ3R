@@ -31,7 +31,8 @@ using extFallbackBuff_t = std::vector< std::string >;
 // every stage with a texture image knows the index used to access the
 // "image slot" within the texture atlas.
 
-namespace gla {
+namespace gla 
+{
 	struct atlas_t;
 }
 
@@ -77,6 +78,7 @@ void AIIO_FixupAssetPath( gPathMap_t& pathMap );
 
 void AIIO_ReadImages(
 	Q3BspMap& map,
+	const std::string& bundlePath,
 	std::vector< gPathMap_t > pathInfo,
 	onFinishEvent_t finish,
 	gla::atlas_t& destAtlas,

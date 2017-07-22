@@ -2022,3 +2022,109 @@ giant buffer (using the corresponding metadata for paths, so the client BSP code
 have to be modified) may honestly be the way to go for everything but the maps
 
 bundle (since only one file is read).
+
+**1/18/2017**
+
+### Load Times, Pt. 2
+
+It actually does seem like just loading the fetched blob all it once into
+RAM is going to improve performance. Furthermore, there's a number of
+validation checks that are being performed client side in effect_shader.cpp.
+
+These should be performed on the server, in file_traverse.cxx in the Bundle.
+The checks of note are:
+
+	- Ensuring that the file received is a shader file. `Bundle::SendNextFile()`
+	Should do this instead:
+		```
+			# IsShader is another method which checks the iterator to see if the file pointed to
+			# has the ".shader" extension
+			while not IsShader():   
+				iterator++
+		```
+
+	- Assessing whether or not the shader is designed to correspond to a single map,
+	using `Q3BspMap::IsMapOnlyShader`. This just strips the shader extension
+	from the path and compares it with the name of the map being loaded - if the
+	shader filename is the same, then the loader uses that information further
+	down in the parser. The `ReadMapFile_Begin` function in `file_traverse` can
+	take the name of the map and just store it server side, and then use that
+	to make the check in `Bundle::SendNextFile`. That said, the client is only
+	going to know this if it's possible to read some kind of value in the
+	received stream. There might a useful (and simple....) encoding mechanism
+	to put to use, because I'd like to avoid dynamic allocation where ever
+	possible. (Ideally a kind of encoding could be put to use as well for the
+		image data which is sent later down the road)
+
+Also, change `Bundle::SendNextFile()` to `Bundle::SendNextShader()`: it's only
+actually being used for shaders anyway.
+
+**1/24/2017**
+
+Yeap: more changes are necessary. Chunking the bundle blob isn't viable though because the assets necessary
+for that chunk may not hold the data for the current path received from the renderer client in
+the `ReadImage` function.
+
+So, the best thing to do is to just send a pipe-delimited list of files to the server
+and have it concat the blobs for those files into one buffer. Then, the corresponding
+start/end values which belong to a given file for a blob can just be relative
+to this new blob. 
+
+I'm thinking that a streaming approach for the images (similar to what's done with the shaders, on the worker end) 
+is probably going to be much simpler than the current setup: the way it's being done now is just messy and convoluted.
+
+It'll be important to keep the portion of the code which sends off the list of files to fetch, though (the bundle packaging code
+in renderer/util.cpp which is executed for both shader-pass images and normal images). 
+
+**1/25/2017**
+
+Look at OnImageRead and see if there's anything odd going on there: it could be, for example, calling the finishevent too early (which would screw everything else up).
+
+**1/26/2017**
+
+Issue was due to an edge case for file comparisons in `AL.addMetaSlice` (src/fetch.js). Anyway, while the requested files appear to be loading fine, there's some
+memory corruption issues happening as well which cause the renderer to load the map, but as soon as the map as loaded and a new texture is introduced into the scene 
+(once the viewer moves around or rotates the camera) everything immediately crashes, and there's a report of a bad texture index being stored in one of the effect shader
+passes. 
+
+Furthermore, the walls themselves do seem kinda off, and ditto can be said about the colors of the jump pads. For the walls, it's almost as if they're the wrong image (it's hard to tell what the problem is exactly).
+
+So, I'm gonna start by rendering them in a separate asset loading test and see if I can spot any major issues. A good way to go about this would be to just refactor a specific
+
+portion of base rendering components (make program, bind texture, corresponding class members, etc.) into a separate base class. It will be cleaner because it can be reused...
+
+
+**1/27/2017**
+
+This:
+
+```
+ $7 = __ZNK3gla7atlas_t5layerEt($1, $2) | 0;
+ SAFE_HEAP_STORE($0 >> 0 | 0, $7 | 0, 1);
+ $8 = $0 + 4 | 0;
+ $9 = __ZNK3gla7atlas_t8origin_xEt($1, $2) | 0;
+ SAFE_HEAP_STORE($3 | 0, $9 | 0, 2);
+ $10 = __ZNK3gla7atlas_t8origin_yEt($1, $2) | 0;
+ SAFE_HEAP_STORE($4 | 0, $10 | 0, 2);
+ __ZN3glm5tvec2IfLNS_9precisionE0EEC2IttEERKT_RKT0_($8, $3, $4);
+ $11 = $0 + 12 | 0;
+ $12 = $7 & 255;
+ $13 = $1 + 20 | 0;
+ $14 = SAFE_HEAP_LOAD($13 | 0, 4, 0) | 0 | 0;
+ $15 = $14 + ($12 << 1) | 0;
+ $16 = SAFE_HEAP_LOAD($15 | 0, 2, 0) | 0 | 0;		<---- crash here
+ $17 = +($16 & 65535);
+ $18 = 1.0 / $17;
+ SAFE_HEAP_STORE_D($5 | 0, +$18, 4);
+ $19 = $1 + 32 | 0;
+ $20 = SAFE_HEAP_LOAD($19 | 0, 4, 0) | 0 | 0;
+ $21 = $20 + ($12 << 1) | 0;
+ $22 = SAFE_HEAP_LOAD($21 | 0, 2, 0) | 0 | 0;
+ ```
+
+ Is important. In a nutshell: it's from `gla::atlas_t::image_info()` and it grabs the layer index (`$7`), masks it with 255 (since its type is `uint8_t`),
+ and then assigns it to the variable `$12`. I'm pretty sure `$1` is the $this pointer, and `$13` is the width vector: I'd have to double check the size
+ of std::vector to be sure. Either way, the base address of the vector's buffer is loaded via `$13`, assigned to `$14`. The next address calculation
+ stored in `$15` is what causes the "seg fault": it's an unaligned memory access (or something of that nature) detected by the following call to
+ `SAFE_HEAP_LOAD`. 
+

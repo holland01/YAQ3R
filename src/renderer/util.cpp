@@ -54,7 +54,7 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 		// the first two slashes: this is our
 		// bundle we wish to assign
 		// the current path source.
-		const char* path = &source.path[ 0 ];
+		const char* path = &source.path[ 1 ]; // We skip, since the first char is a slash.
 		const char* slash0 = strstr( path, "/" );
 		const char* slash1 = strstr( slash0 + 1, "/" );
 
@@ -162,21 +162,6 @@ static void LoadImagesEnd( void* param )
 	);
 }
 
-static void LoadImages( char* mem, int size, void* param )
-{
-	UNUSED( mem );
-	UNUSED( size );
-	UNUSED( param );
-
-	AIIO_ReadImages(
-		*gImageLoadState.map,
-		gImageLoadState.currNode->paths,
-		LoadImagesEnd,
-		*( gImageLoadState.destAtlas ),
-		gImageLoadState.keyMapped
-	);
-}
-
 static void LoadImagesBegin( char* mem, int size, void* param )
 {
 	UNUSED( mem );
@@ -185,11 +170,13 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 
 	if ( gImageLoadState.currNode )
 	{
-		gFileWebWorker.Await(
-			LoadImages,
-			"MountPackage",
+		AIIO_ReadImages(
+			*gImageLoadState.map,
 			gImageLoadState.currNode->bundle,
-			nullptr
+			gImageLoadState.currNode->paths,
+			LoadImagesEnd,
+			*( gImageLoadState.destAtlas ),
+			gImageLoadState.keyMapped
 		);
 	}
 	else
@@ -240,6 +227,7 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
+	MLOG_INFO( "Called" );
 	LoadImageState( map, sources, TEXTURE_ATLAS_SHADERS );
 }
 
@@ -255,7 +243,7 @@ void GU_LoadMainTextures( Q3BspMap& map )
 
 		initial.path = std::string( map.data.shaders[ key ].name );
 
-		size_t slashPos = source.path.find_first_of( "/" );
+		size_t slashPos = initial.path.find_first_of( "/" );
 
 		// This is an invalid path, because it doesn't belong
 		// to a bundle. So, let the map sort it out when it feels right,
@@ -276,5 +264,6 @@ void GU_LoadMainTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
+	MLOG_INFO( "Called" );
 	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }

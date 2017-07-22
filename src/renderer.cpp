@@ -40,6 +40,8 @@ static counts_t gCounts = { 0, 0, 0, 0 };
 static uint64_t frameCount = 0;
 
 //--------------------------------------------------------------
+// drawPass_t
+//--------------------------------------------------------------
 drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 	: isSolid( true ),
 	  envmap( false ),
@@ -56,8 +58,37 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 }
 
 //--------------------------------------------------------------
+// RenderBase
+//--------------------------------------------------------------
+RenderBase::RenderBase( Q3BspMap& m )
+	:	apiHandles( {{ 0, 0 }} ),
+		map( m ),
+		frustum( new Frustum() )
+{
+}
+
+void RenderBase::MakeProg( const std::string& name, const std::string& vertSrc,
+	const std::string& fragSrc, const std::vector< std::string >& uniforms,
+	const std::vector< std::string >& attribs )
+{
+	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc,
+		fragSrc, uniforms, attribs ) );
+}
+
+RenderBase::~RenderBase( void )
+{
+	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
+	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
+}
+
+//--------------------------------------------------------------
+// BSPRenderer
+//--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
-	:	glEffects( {
+	:
+		RenderBase( map_ ), // Parent class
+
+		glEffects( {
 			{
 				"tcModTurb",
 				[]( const Program& p, const effect_t& e ) -> void
@@ -97,8 +128,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 			}
 		} ),
 		currLeaf( nullptr ),
-		map( map_ ), frustum( new Frustum() ),
-		apiHandles( {{ 0, 0 }} ),
+
 		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
 		targetFPS( 0.0f ),
@@ -113,16 +143,6 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 
 BSPRenderer::~BSPRenderer( void )
 {
-	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
-	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
-}
-
-void BSPRenderer::MakeProg( const std::string& name, const std::string& vertSrc,
-	const std::string& fragSrc, const std::vector< std::string >& uniforms,
-	const std::vector< std::string >& attribs )
-{
-	glPrograms[ name ] = std::unique_ptr< Program >( new Program( vertSrc,
-		fragSrc, uniforms, attribs ) );
 }
 
 void BSPRenderer::Prep( void )
@@ -164,8 +184,10 @@ void BSPRenderer::Prep( void )
 	}
 }
 
-bool BSPRenderer::IsTransFace( int32_t faceIndex,
-	const shaderInfo_t* shader ) const
+bool BSPRenderer::IsTransFace(
+	int32_t faceIndex,
+	const shaderInfo_t* shader
+) const
 {
 	UNUSED( shader );
 	const bspFace_t* face = &map.data.faces[ faceIndex ];

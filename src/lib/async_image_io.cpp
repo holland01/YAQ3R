@@ -51,99 +51,78 @@ static void OnImageRead( char* buffer, int size, void* param )
 		return;
 	}
 
-	UNUSED( param );
-
-	// We may have an invalid path, or a path which exists but with
-	// a different extension
-
-	uint32_t testDims = WAPI_Fetch32( buffer, size, 0 );
-
-	if ( !testDims )
-	{
-		goto next_image;
-	}
-
-	// Grab image data that we need; copy it over.
-	{
-		int32_t width = WAPI_Fetch16( buffer, 0, size );
-		int32_t height = WAPI_Fetch16( buffer, 2, size );
-		int32_t bpp = ( int32_t ) buffer[ 4 ];
-
-		if ( !width || !height || !bpp )
-		{
-			MLOG_ERROR( "zero portion of metadata received. "
-				DATA_FMT_STRING( 0 ) );
-			return;
-		}
-
-		size_t imageDataSize = width * height * bpp + 8;
-
-		if ( ( unsigned ) size != imageDataSize )
-		{
-			MLOG_ERROR(
-				"buffer size does not match "\
-		 		"interpreted metadata criteria. "
-				DATA_FMT_STRING( imageDataSize )
-			);
-			return;
-		}
-
-		gla::push_atlas_image(
-			gImageTracker->destAtlas,
-			( uint8_t* ) &buffer[ 8 ],
-			width,
-			height,
-			bpp
-		);
-
-		if ( gImageTracker->isKeyMapped )
-		{
-			size_t keyMap =
-				( size_t ) gImageTracker->
-					textureInfo[ gImageTracker->iterator ].param;
-
-			gImageTracker->destAtlas.map_key_to_image(
-				keyMap,
-				gImageTracker->destAtlas.num_images - 1
-			);
-		}
-		else
-		{
-			shaderStage_t* stage =
-				( shaderStage_t* )gImageTracker->
-					textureInfo[ gImageTracker->iterator ].param;
-
-			// This index will persist in the texture array it's going into
-			stage->textureIndex = gImageTracker->destAtlas.num_images - 1;
-		}
-	}
-
-next_image:
-	if ( ( size_t ) ++gImageTracker->iterator ==
-			gImageTracker->textureInfo.size() )
+	if ( !buffer || !size || ( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size() )
 	{
 		if ( gImageTracker->finishEvent )
 		{
 			gImageTracker->finishEvent( &gImageTracker );
 		}
+		return;
+	}
+
+	int32_t width = WAPI_Fetch16( buffer, 0, size );
+	int32_t height = WAPI_Fetch16( buffer, 2, size );
+	int32_t bpp = ( int32_t ) buffer[ 4 ];
+
+	if ( !width || !height || !bpp )
+	{
+		MLOG_ERROR( "zero portion of metadata received. " DATA_FMT_STRING( 0 ) );
+		return;
+	}
+
+	size_t imageDataSize = width * height * bpp + 8;
+
+	if ( ( size_t ) size != imageDataSize )
+	{
+		MLOG_ERROR(
+			"buffer size does not match "\
+	 		"interpreted metadata criteria. "
+			DATA_FMT_STRING( imageDataSize )
+		);
+		return;
+	}
+
+	gla::push_atlas_image(
+		gImageTracker->destAtlas,
+		( uint8_t* ) &buffer[ 8 ],
+		width,
+		height,
+		bpp
+	);
+
+	if ( gImageTracker->isKeyMapped )
+	{
+		size_t keyMap =
+			( size_t ) gImageTracker->
+				textureInfo[ gImageTracker->iterator ].param;
+
+		gImageTracker->destAtlas.map_key_to_image(
+			keyMap,
+			gImageTracker->destAtlas.num_images - 1
+		);
 	}
 	else
 	{
-		const std::string& next =
-			gImageTracker->textureInfo[ gImageTracker->iterator ].path;
+		shaderStage_t* stage =
+			( shaderStage_t* )gImageTracker->
+				textureInfo[ gImageTracker->iterator ].param;
 
-		gFileWebWorker.Await( OnImageRead, "ReadImage", next, nullptr );
+		// This index will persist in the texture array it's going into
+		stage->textureIndex = gImageTracker->destAtlas.num_images - 1;
 	}
+
+	gImageTracker->iterator++;
 }
 #undef DATA_FMT_STRING
 
 void AIIO_FixupAssetPath( gPathMap_t& pm )
 {
-	std::string rootFolder( ASSET_Q3_ROOT );
+	std::string rootFolder( "/" );
+	rootFolder.append( ASSET_Q3_ROOT );
 
 	if ( pm.path[ 0 ] != '/' )
 	{
-		rootFolder += "/";
+		rootFolder.append( 1, '/' );
 	}
 
 	pm.path = rootFolder + pm.path;
@@ -151,6 +130,7 @@ void AIIO_FixupAssetPath( gPathMap_t& pm )
 
 void AIIO_ReadImages(
 	Q3BspMap& map,
+	const std::string& bundlePath,
 	std::vector< gPathMap_t > pathInfo,
 	onFinishEvent_t finish,
 	gla::atlas_t& destAtlas,
@@ -167,10 +147,23 @@ void AIIO_ReadImages(
 		)
 	);
 
+	std::stringstream bundlePaths;
+	bundlePaths << bundlePath << ASSET_ASCII_DELIMITER;
+
+	for ( uint32_t i = 0; i < pathInfo.size(); ++i )
+	{
+		bundlePaths << pathInfo[ i ].path;
+
+		if ( ( i + 1 ) < pathInfo.size() )
+		{
+			bundlePaths << ASSET_ASCII_DELIMITER;
+		}
+	}
+
 	gFileWebWorker.Await(
 		OnImageRead,
-		"ReadImage",
-		gImageTracker->textureInfo[ 0 ].path,
+		"MountPackage",
+		bundlePaths.str(),
 		nullptr
 	);
 }
