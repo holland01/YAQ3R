@@ -442,6 +442,30 @@ Q3BspMap::~Q3BspMap( void )
 	DestroyMap();
 }
 
+void Q3BspMap::MarkBadTexture( ssize_t index )
+{
+	badTextures.push_back( index );
+}
+
+void Q3BspMap::SweepBadTextures( void )
+{
+	// Yup, it's N^2. At the moment there aren't any performance
+	// issues, so it's fine.
+	for ( ssize_t bad: badTextures )
+	{
+		if ( 0 <= bad && bad < ( ssize_t ) data.shaders.size() )
+		{
+			for ( bspFace_t& f: data.faces )
+			{
+				if ( f.textureIndex == ( int ) bad )
+				{
+					f.textureIndex = -1;
+				}
+			}
+		}
+	}
+}
+
 void Q3BspMap::OnShaderReadFinish( void )
 {
 	gFileWebWorker.Await( UnmountShadersFin,
@@ -462,6 +486,8 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 	Q3BspMap& map = ( *imageTracker )->map;
 
 	imageTracker->reset();
+
+	SweepBadTextures();
 
 	puts( "Main images finished." );
 	map.mapAllocated = true;

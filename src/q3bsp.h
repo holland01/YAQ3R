@@ -15,6 +15,8 @@ struct mapEntity_t
 	std::string className;
 };
 
+struct gPathMap_t;
+
 class Q3BspMap
 {
 private:
@@ -28,6 +30,8 @@ private:
 
 	std::string							name;
 
+	std::vector< ssize_t >				badTextures;
+
 public:
 
 	std::unique_ptr< renderPayload_t > 	payload;
@@ -40,6 +44,10 @@ public:
 	~Q3BspMap( void );
 
 	mapData_t					data;
+
+	void 						MarkBadTexture( ssize_t index );
+
+	void  						SweepBadTextures( void );	// called on map load finish
 
 	void 						OnShaderReadFinish( void );
 

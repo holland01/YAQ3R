@@ -38,6 +38,7 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 	for ( gPathMap_t& source: sources )
 	{
 		size_t slashPos = source.path.find_first_of( "/" );
+
 		if ( slashPos == std::string::npos )
 		{
 			MLOG_INFO(
@@ -246,12 +247,28 @@ void GU_LoadMainTextures( Q3BspMap& map )
 {
 	std::vector< gPathMap_t> sources;
 
+	MLOG_INFO( "MAPPING: %i SHADERS", ( int ) map.data.shaders.size() );
+
 	for ( size_t key = 0; key < map.data.shaders.size(); ++key )
 	{
 		gPathMap_t initial;
 
 		initial.path = std::string( map.data.shaders[ key ].name );
-		initial.param = ( void* ) key;
+
+		size_t slashPos = source.path.find_first_of( "/" );
+
+		// This is an invalid path, because it doesn't belong
+		// to a bundle. So, let the map sort it out when it feels right,
+		// and we just skip it for now.
+		if ( slashPos == std::string::npos )
+		{
+			map.MarkBadTexture( ( ssize_t ) key );
+			continue;
+		}
+		else
+		{
+			initial.param = ( void* ) key;
+		}
 
 		sources.push_back( initial );
 	}

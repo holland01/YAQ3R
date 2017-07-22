@@ -98,7 +98,9 @@ enum
 	BSP_SURFACE_DUST = 0x40000, // leave a dust trail when walking
 
 	// It always looks cooler in hex.
-	BSP_MAX_SHADER_TOKEN_LENGTH = 0x40
+	BSP_MAX_SHADER_TOKEN_LENGTH = 0x40,
+
+	BSP_BAD_IMAGE_INDEX = -1
 };
 
 // Map loader-specific flags

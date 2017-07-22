@@ -9,6 +9,8 @@
 #	define EM_SERV_ASSET_PORT "6931"
 #endif
 
+#define O_INTERVAL_LOGGING // see io.h
+
 #if defined( DEBUG )
 #	define _DEBUG_USE_GL_GET_ERR
 #endif

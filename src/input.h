@@ -54,20 +54,27 @@ public:
 
 	InputCamera( float width, float height, const glm::mat4& view, const glm::mat4& projection );
 
-	float	moveStep;
+	float	moveStep; // units per frame
 
 	void    EvalKeyPress( int key );
+
 	void    EvalKeyRelease( int key );
+
 	void    EvalMouseMove( float x, float y );
 
-	void    Update( void );
+	void    Update( float moveStepScale = 1.0f );
 
 	void    Walk( float amount );
+
 	void    Strafe( float amount );
+
 	void    Raise( float amount );
 
-	void    SetPerspective( float fovy, float width, float height, float znear, float zfar );
+	void    SetPerspective( float fovy, float width, float height, float znear,
+		float zfar );
+
 	void	SetClipTransform( const glm::mat4& proj );
+
 	void	SetViewTransform( const glm::mat4& view );
 
 	void	SetViewOrigin( const glm::vec3& origin );

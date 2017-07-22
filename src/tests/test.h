@@ -10,10 +10,14 @@
 
 class Q3BspMap;
 
+#define TEST_FPS_UNDEFINED -1.0f
+#define TEST_FPS_60 0.01666f
+
 class Test
 {
 public:
 	float			deltaTime;
+	float			lastTime;
 
 	InputCamera*    camPtr;
 
@@ -29,18 +33,28 @@ public:
 
 	gContextHandles_t base;
 
-	Test( int width, int height, bool fullscreen,
-	 	const char* bspFilePath, onFinishEvent_t mapReadFinish = nullptr );
+	Test(
+		int width,
+		int height,
+		bool fullscreen,
+	 	const char* bspFilePath,
+		onFinishEvent_t mapReadFinish = nullptr
+	);
 
-	virtual ~Test( void );
+	virtual 		~Test( void );
 
-	int          Exec( void );
+	int          	Exec( void );
 
-	virtual void Load( void ) = 0;
+	virtual void 	Load( void ) = 0;
 
-	virtual void Run( void ) = 0;
+	virtual void 	Run( void ) = 0;
 
-	virtual void OnInputEvent( SDL_Event* e );
+	// ret true: keep polling for events; ret false: break out of poll loop.
+	virtual bool 	OnInputEvent( SDL_Event* e );
+
+	void 		 	UpdateTime( void );
+
+	virtual float 	GetDesiredFPS( void ) const { return TEST_FPS_UNDEFINED; }
 };
 
 class IOTest

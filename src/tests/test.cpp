@@ -14,9 +14,7 @@ Test* gAppTest = nullptr;
 static void DefaultOnMapReadFin( void* nullParam )
 {
 	UNUSED( nullParam );
-
 	gAppTest->base.running = true;
-
 	gAppTest->Exec();
 }
 
@@ -28,6 +26,13 @@ static void OnFrameIteration( void )
 	if ( !gAppTest )
 		return;
 
+	SDL_Event e;
+	while ( SDL_PollEvent( &e ) )
+	{
+		if ( !gAppTest->OnInputEvent( &e ) )
+			break;
+	}
+
 	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
@@ -35,23 +40,23 @@ static void OnFrameIteration( void )
 
 	SDL_GL_SwapWindow( gAppTest->base.window );
 
-	SDL_Event e;
-	while ( SDL_PollEvent( &e ) )
-	{
-		gAppTest->OnInputEvent( &e );
-	}
+	float t = GetTimeSeconds();
+
+	gAppTest->deltaTime = ( float )( t - gAppTest->lastTime );
+	gAppTest->lastTime = t;
 }
 
 Test::Test( int w, int h, bool fullscreen_,
 	const char* bspFilePath, onFinishEvent_t mapReadFinish )
-	: deltaTime( 0.0f ),
-	  camPtr( nullptr ),
-	  mouseX( 0.0f ),
-	  mouseY( 0.0f ),
-	  lastMouseX( 0.0f ),
-	  lastMouseY( 0.0f ),
-	  map( new Q3BspMap() ),
-	  base( w, h, fullscreen_ )
+	: 	deltaTime( 0.0f ),
+		lastTime( 0.0f ),
+	  	camPtr( nullptr ),
+	  	mouseX( 0.0f ),
+	  	mouseY( 0.0f ),
+	  	lastMouseX( 0.0f ),
+	  	lastMouseY( 0.0f ),
+	  	map( new Q3BspMap() ),
+	  	base( w, h, fullscreen_ )
 {
 	if ( bspFilePath )
 	{
@@ -105,8 +110,6 @@ int Test::Exec( void )
 	emscripten_set_main_loop( OnFrameIteration, 0, 1 );
 #else
 
-	float lastTime = 0.0f;
-
 	while( base.running )
 	{
 		OnFrameIteration();
@@ -119,10 +122,10 @@ int Test::Exec( void )
 	return 0;
 }
 
-void Test::OnInputEvent( SDL_Event* e )
+bool Test::OnInputEvent( SDL_Event* e )
 {
 	if ( !e )
-		return;
+		return true;
 
 	switch ( e->type )
 	{
@@ -153,6 +156,8 @@ void Test::OnInputEvent( SDL_Event* e )
 					}
 					break;
 			}
+
+			return false;
 			break;
 
 		case SDL_KEYUP:
@@ -177,4 +182,6 @@ void Test::OnInputEvent( SDL_Event* e )
 		default:
 			break;
 	}
+
+	return true;
 }

@@ -5,7 +5,6 @@
 
 class TRenderer : public Test
 {
-
 private:
 	glm::vec3 lightSamplerPos;
 
@@ -14,14 +13,15 @@ private:
 	void Run( void );
 
 public:
-
 	std::unique_ptr< BSPRenderer > renderer;
 
 	TRenderer( const std::string& mapFilepath );
 
 	~TRenderer( void );
 
-	void Load( void );
+	void 	Load( void );
 
-	void OnInputEvent( SDL_Event* e );
+	bool 	OnInputEvent( SDL_Event* e );
+
+	float 	GetDesiredFPS( void ) const { return TEST_FPS_60; } // 60 FPS
 };

@@ -2,6 +2,13 @@
 
 #include "common.h"
 
+// Writes to stdout are incredibly slow in browser, so we define a simple API
+// for more explicit management ( and possibly other facilities ).
+// Be sure to define O_INTERVAL_LOGGING, otherwise this
+// becomes a no-op
+void O_IntervalLogUpdateFrameTick( float dt );
+void O_IntervalLogSetInterval( float interval );
+
 void O_Log( const char* header, const char* priority, const char* fmt, ... );
 void O_LogBuffer( const char* header, const char* priority,
 	const char* fmt, ... );

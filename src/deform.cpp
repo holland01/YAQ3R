@@ -111,7 +111,10 @@ deformGlobal_t deformCache =
 		}
 
 		return ret;
-	}()
+	}(),
+
+	// frameTime
+	1.0f
 };
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
@@ -128,12 +131,24 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 			{
 			case VERTEXDEFORM_FUNC_TRIANGLE:
 				{
-					// Distribute the "weight" of the tessellation spread across the length of the vertex position vector, where the vertex's tail is located at the world origin.
+					// Distribute the "weight" of the tessellation spread
+					// across the length of the vertex position vector,
+					// where the vertex's tail is located at the world origin.
 					float offset =
-							shader->deformParms.data.wave.phase + ( position.x + position.y + position.z ) * shader->deformParms.data.wave.spread;
+							shader->deformParms.data.wave.phase
+							+ ( position.x + position.y + position.z )
+							* shader->deformParms.data.wave.spread;
 
-					return DEFORM_CALC_TABLE( deformCache.triTable, shader->deformParms.data.wave.base, offset, GetTimeSeconds(), shader->deformParms.data.wave.frequency,
-						shader->deformParms.data.wave.amplitude );
+					float t = GetTimeSeconds();
+
+					return DEFORM_CALC_TABLE(
+						deformCache.triTable,
+						shader->deformParms.data.wave.base,
+						offset,
+						t,
+						shader->deformParms.data.wave.frequency,
+						shader->deformParms.data.wave.amplitude
+					);
 				}
 				break;
 			default:
@@ -151,8 +166,15 @@ float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader )
 }
 
 //----------------------------------------------------------
-
-void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t* shader, int controlPointStart, int indexOffset )
+// Adapted from http://graphics.cs.brown.edu/games/quake/quake3.html
+// In particular, the "Rendering Faces" section.
+void GenPatch(
+	gIndexBuffer_t& outIndices,
+	mapPatch_t* model,
+	const shaderInfo_t* shader,
+	int controlPointStart,
+	int indexOffset
+)
 {
 	if ( !model->subdivLevel )
 	{
@@ -220,8 +242,10 @@ void GenPatch( gIndexBuffer_t& outIndices, mapPatch_t* model, const shaderInfo_t
 	{
 		for ( int x = 0; x < L1; ++x )
 		{
-			outIndices[ indexStart + ( y * L1 + x ) * 2 + 0 ] = indexOffset + vertexStart + ( y + 1 ) * L1 + x;
-			outIndices[ indexStart + ( y * L1 + x ) * 2 + 1 ] = indexOffset + vertexStart + ( y + 0 ) * L1 + x;
+			outIndices[ indexStart + ( y * L1 + x ) * 2 + 0 ] =
+				indexOffset + vertexStart + ( y + 1 ) * L1 + x;
+			outIndices[ indexStart + ( y * L1 + x ) * 2 + 1 ] =
+				indexOffset + vertexStart + ( y + 0 ) * L1 + x;
 		}
 	}
 }
@@ -238,7 +262,8 @@ void TessellateTri(
 	const bspVertex_t& c
 )
 {
-	auto LPassedC = [ &c ]( const glm::vec3& point, const glm::vec3& sig ) -> bool
+	auto LPassedC = [ &c ]( const glm::vec3& point,
+		const glm::vec3& sig ) -> bool
 	{
 		return ( glm::sign( c.position - point ) != sig );
 	};
@@ -250,7 +275,8 @@ void TessellateTri(
 	glm::vec3 aSig = glm::sign( c.position - a.position );
 	glm::vec3 bSig = glm::sign( c.position - b.position );
 
-	std::unique_ptr< baryCoordSystem_t > triCoordSys( new baryCoordSystem_t( a.position, b.position, c.position ) );
+	std::unique_ptr< baryCoordSystem_t > triCoordSys(
+		new baryCoordSystem_t( a.position, b.position, c.position ) );
 
 	bspVertex_t bToC( ( c - b ) * step );
 	bspVertex_t aToC( ( c - a ) * step );
@@ -264,7 +290,8 @@ void TessellateTri(
 
 	while ( true )
 	{
-		if ( glm::any( glm::isnan( a2.position ) ) || glm::any( glm::isnan( b2.position ) ) )
+		if ( glm::any( glm::isnan( a2.position ) )
+		|| glm::any( glm::isnan( b2.position ) ) )
 			break;
 
 		// If either of these are set to true, then we'll have
@@ -280,7 +307,8 @@ void TessellateTri(
 
 		float walk = 0.0f;
 		float walkLength = 0.0f;
-		float walkStep = glm::length( aToBStep.position ) / glm::length( aToB.position );
+		float walkStep = glm::length( aToBStep.position )
+			/ glm::length( aToB.position );
 		float endLength = glm::length( aToB.position );
 
 		while ( walkLength < endLength )
@@ -300,7 +328,8 @@ void TessellateTri(
 
 			// There should be a reasonable workaround for this; maybe scale
 			// the vertices or something like that.
-			if ( !triCoordSys->IsInTri( gv3.position ) || !triCoordSys->IsInTri( gv2.position ) )
+			if ( !triCoordSys->IsInTri( gv3.position )
+			|| !triCoordSys->IsInTri( gv2.position ) )
 				goto end_iteration;
 
 			numVertices = outVerts.size();
@@ -321,7 +350,8 @@ void TessellateTri(
 					t1.indices[ 0 ] = v1Iter - outVerts.begin();
 				}
 
-				auto v2Iter = std::find( outVerts.begin(), outVerts.end(), gv2 );
+				auto v2Iter = std::find( outVerts.begin(), outVerts.end(),
+					gv2 );
 				if ( v2Iter == outVerts.end() )
 				{
 					outVerts.push_back( gv2 );
@@ -332,7 +362,8 @@ void TessellateTri(
 					t1.indices[ 1 ] = v2Iter - outVerts.begin();
 				}
 
-				auto v3Iter = std::find( outVerts.begin(), outVerts.end(), gv3 );
+				auto v3Iter = std::find( outVerts.begin(), outVerts.end(),
+					gv3 );
 				if ( v3Iter == outVerts.end() )
 				{
 					outVerts.push_back( gv3 );
@@ -352,7 +383,8 @@ void TessellateTri(
 				goto end_iteration;
 
 			{
-				auto v4Iter = std::find( outVerts.begin(), outVerts.end(), gv4 );
+				auto v4Iter = std::find( outVerts.begin(), outVerts.end(),
+					gv4 );
 
 				triangle_t t2 =
 				{
@@ -388,4 +420,3 @@ end_iteration:
 		b2 += bToC;
 	}
 }
-

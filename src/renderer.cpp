@@ -101,6 +101,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 		apiHandles( {{ 0, 0 }} ),
 		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
+		targetFPS( 0.0f ),
 		alwaysWriteDepth( false ),
 		camera( new InputCamera() ),
 		curView( VIEW_MAIN )
@@ -212,7 +213,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
 
 	// And then generate all of the lightmaps
-
 	for ( bspLightmap_t& lightmap: map.data.lightmaps )
 	{
 		gla::push_atlas_image(
@@ -230,7 +230,9 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	// the atlas before layer generation.
 	{
 		std::vector< uint8_t > whiteImage(
-			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4, 0xFF );
+			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4,
+			0xFF
+		);
 
 		gla::push_atlas_image(
 			*( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ),
@@ -265,7 +267,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
 }
-
 
 //---------------------------------------------------------------------
 // Generate our face/render data
@@ -356,6 +357,25 @@ void BSPRenderer::Render( void )
 	frameTime = GetTimeSeconds() - startTime;
 
 	frameCount++;
+}
+
+void BSPRenderer::Update( float dt )
+{
+	float fpsScalar = dt / ( targetFPS == 0.0f ? 1.0f : targetFPS );
+
+	camera->Update( fpsScalar );
+
+	viewParams_t& view = camera->ViewDataMut();
+
+	SetNearFar(
+		view.clipTransform,
+		G_STATIC_NEAR_PLANE,
+		G_STATIC_FAR_PLANE
+	);
+
+	frustum->Update( view, false );
+
+	deltaTime = dt;
 }
 
 void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
@@ -483,18 +503,6 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	GL_CHECK( glDisable( GL_CULL_FACE ) );
 }
 
-void BSPRenderer::Update( float dt )
-{
-	camera->Update();
-
-	viewParams_t& view = camera->ViewDataMut();
-	SetNearFar( view.clipTransform, G_STATIC_NEAR_PLANE, G_STATIC_FAR_PLANE );
-
-	frustum->Update( view, false );
-
-	deltaTime = dt;
-}
-
 void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 {
 	if ( nodeIndex < 0 )
@@ -614,7 +622,7 @@ void BSPRenderer::DrawMapPass(
 			0
 		);
 	}
-	else
+	else // key_image textureIndex
 	{
 		BindTexture(
 			main,
@@ -779,7 +787,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	int lightmapIndex = std::get< 3 >( data );
 	bool isSolid = std::get< 4 >( data );
 
-	// Each effect pass is allowed only one texture, so we don't need a second texcoord
+	// Each effect pass is allowed only one texture,
+	// so we don't need a second texcoord
 	GL_CHECK( glDisableVertexAttribArray( 3 ) );
 
 	// Assess the current culling situation; if the current

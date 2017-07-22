@@ -316,6 +316,8 @@ private:
 	void				LoadVertexData( void );
 
 public:
+	float				targetFPS;
+
 	bool				alwaysWriteDepth;
 
 	std::unique_ptr< InputCamera > camera;

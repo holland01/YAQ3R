@@ -28,6 +28,8 @@ struct deformGlobal_t
 {
 	std::array< float, DEFORM_TABLE_SIZE > sinTable;
 	std::array< float, DEFORM_TABLE_SIZE > triTable;
+
+	float waveFormScalar;
 };
 
 extern deformGlobal_t deformCache;

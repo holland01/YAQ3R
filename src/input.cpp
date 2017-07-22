@@ -49,6 +49,8 @@ InputCamera::InputCamera( float width, float height, const glm::mat4& view, cons
 	viewData.right = Right();
 	viewData.width = width;
 	viewData.height = height;
+
+	moveStep = DEF_MOVE_STEP_SPEED;
 }
 
 void InputCamera::EvalMouseMove( float x, float y )
@@ -136,20 +138,23 @@ void InputCamera::EvalKeyRelease( int key )
 	}
 }
 
-void InputCamera::Update( void )
+void InputCamera::Update( float moveStepScale )
 {
 	 //currRot.Normalize();
+	moveStepScale = glm::abs( moveStepScale );
 
-	 lastRot = currRot;
+	lastRot = currRot;
 
-	if ( keysPressed[ KEY_FORWARD ] ) Walk( moveStep );
-	if ( keysPressed[ KEY_BACKWARD ] ) Walk( -moveStep );
-	if ( keysPressed[ KEY_RIGHT ] ) Strafe( moveStep );
-	if ( keysPressed[ KEY_LEFT ] ) Strafe( -moveStep );
-	if ( keysPressed[ KEY_UP ] ) Raise( moveStep );
-	if ( keysPressed[ KEY_DOWN ] ) Raise( -moveStep );
-	if ( keysPressed[ KEY_IN ] ) currRot.roll += moveStep;
-	if ( keysPressed[ KEY_OUT ] ) currRot.roll -= moveStep;
+	float step = moveStep * moveStepScale;
+
+	if ( keysPressed[ KEY_FORWARD ] ) Walk( step );
+	if ( keysPressed[ KEY_BACKWARD ] ) Walk( -step );
+	if ( keysPressed[ KEY_RIGHT ] ) Strafe( step );
+	if ( keysPressed[ KEY_LEFT ] ) Strafe( -step );
+	if ( keysPressed[ KEY_UP ] ) Raise( step );
+	if ( keysPressed[ KEY_DOWN ] ) Raise( -step );
+	if ( keysPressed[ KEY_IN ] ) currRot.roll += step;
+	if ( keysPressed[ KEY_OUT ] ) currRot.roll -= step;
 
 	//currRot.Normalize();
 

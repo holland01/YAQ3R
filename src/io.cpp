@@ -11,6 +11,51 @@ extern void FlagExit( void );
 #	define OS_PATH_SEPARATOR '/'
 #endif
 
+#if defined( O_INTERVAL_LOGGING )
+struct frameTick_t
+{
+	float accum = 0.0f;
+	float interval = 5.0f;
+	bool hitInterval = false;
+};
+
+static frameTick_t gFrameTick;
+
+void O_IntervalLogUpdateFrameTick( float dt )
+{
+	gFrameTick.accum += glm::abs( dt );
+
+	if ( gFrameTick.accum < gFrameTick.interval )
+	{
+		gFrameTick.hitInterval = false;
+	}
+	else
+	{
+		gFrameTick.accum = 0.0f;
+		gFrameTick.hitInterval = true;
+	}
+}
+
+void O_IntervalLogSetInterval( float interval )
+{
+	// Security? Maybe: if the interval < 0 then
+	// hitInterval will always be true. Things slow down,
+	// and potential doors open. There's far more that would need
+	// to be done, but I'd consider this good practice.
+	gFrameTick.interval = glm::abs( interval );
+}
+#else
+void O_IntervalLogUpdateFrameTick( float dt )
+{
+	UNUSED( dt );
+}
+
+void O_IntervalLogSetInterval( float interval )
+{
+	UNUSED( interval );
+}
+#endif
+
 void O_Log( const char* header, const char* priority, const char* fmt, ... )
 {
 #ifdef DEBUG
@@ -21,6 +66,17 @@ void O_Log( const char* header, const char* priority, const char* fmt, ... )
 	vfprintf( stdout, fmt, arg );
 	fputs( "\n", stdout );
 	va_end( arg );
+#elif defined( O_INTERVAL_LOGGING )
+	if ( gFrameTick.hitInterval )
+	{
+		va_list arg;
+
+		va_start( arg, fmt );
+		fprintf( stdout, "\n[ %s | %s ]: ", header, priority );
+		vfprintf( stdout, fmt, arg );
+		fputs( "\n", stdout );
+		va_end( arg );
+	}
 #else
 	UNUSED( header );
 	UNUSED( priority );

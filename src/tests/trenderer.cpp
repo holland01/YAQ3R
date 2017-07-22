@@ -21,14 +21,17 @@ static void OnMapFinish( void* param )
 	app->map->payload.reset();
 	app->camPtr = app->renderer->camera.get();
 
+	app->renderer->targetFPS = app->GetDesiredFPS();
+
 	app->Exec();
 }
 
 TRenderer::TRenderer( const std::string& filepath )
 	: Test( 1366, 768, false, filepath.c_str(), OnMapFinish ),
-	  moveRateChangeRate( 0.3f ),
+	  moveRateChangeRate( 1.0f ),
 	  renderer( nullptr )
 {
+	O_IntervalLogSetInterval( 5.0f );
 }
 
 TRenderer::~TRenderer( void )
@@ -38,6 +41,8 @@ TRenderer::~TRenderer( void )
 
 void TRenderer::Run( void )
 {
+	O_IntervalLogUpdateFrameTick( deltaTime );
+
 	renderer->Update( deltaTime );
 	renderer->Render();
 }
@@ -56,9 +61,9 @@ void TRenderer::Load( void )
 	#endif
 }
 
-void TRenderer::OnInputEvent( SDL_Event* e )
+bool TRenderer::OnInputEvent( SDL_Event* e )
 {
-	Test::OnInputEvent( e );
+	bool topRet = Test::OnInputEvent( e );
 
 	switch ( e->type )
 	{
@@ -89,8 +94,11 @@ void TRenderer::OnInputEvent( SDL_Event* e )
 				default:
 					break;
 			}
+			return false;
 			break;
 		default:
 			break;
 	}
+
+	return topRet;
 }
