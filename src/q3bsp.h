@@ -5,6 +5,7 @@
 #include "bsp_data.h"
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 struct shaderInfo_t;
 struct renderPayload_t;
@@ -30,7 +31,7 @@ private:
 
 	std::string							name;
 
-	std::vector< ssize_t >				badTextures;
+	std::unordered_set< ssize_t >		badTextures;
 
 public:
 

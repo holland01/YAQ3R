@@ -115,4 +115,12 @@ and causes the crash. The index is 99, so apparently that would be
 the flareShader entry.
 
 What's left to do is finish up the Mark/Sweep deal so that once the map load has finished
-the list of bad indices can be iterated over so the map data is modified as needed. 
+the list of bad indices can be iterated over so the map data is modified as needed.
+
+### 7/23/2017
+
+There are going to be shaders without valid filepaths; these are still important to
+keep, though, because the bspFace_t list will likely contain faces which refer
+to them via the shader/texture index being lsited. For some reason one shader
+in particular is elusive in the sense that it's never even detected by the
+async_io image loader...WTF???

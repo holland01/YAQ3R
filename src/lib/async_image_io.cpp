@@ -48,6 +48,13 @@ static void AssignIndex( uint16_t assignIndex )
 			keyMap,
 			assignIndex
 		);
+
+		if ( assignIndex == gla::atlas_t::no_image_index )
+		{
+			gImageTracker->map.MarkBadTexture( keyMap );
+		}
+
+		MLOG_INFO( "KEY MAP: %i. AssignIndex: %i", keyMap, assignIndex );
 	}
 	else
 	{

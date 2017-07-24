@@ -444,15 +444,21 @@ Q3BspMap::~Q3BspMap( void )
 
 void Q3BspMap::MarkBadTexture( ssize_t index )
 {
-	badTextures.push_back( index );
+	badTextures.insert( index );
 }
 
 void Q3BspMap::SweepBadTextures( void )
 {
+	std::stringstream sweeplog;
+
+	sweeplog << "DOING TEXTURE SWEEP\n\n";
+
 	// Yup, it's N^2. At the moment there aren't any performance
 	// issues, so it's fine.
 	for ( ssize_t bad: badTextures )
 	{
+		sweeplog << "\t[" << bad << "]\n";
+
 		for ( bspFace_t& f: data.faces )
 		{
 			if ( f.shader == ( int ) bad )
@@ -461,6 +467,8 @@ void Q3BspMap::SweepBadTextures( void )
 			}
 		}
 	}
+
+	MLOG_INFO( "%s", sweeplog.str().c_str() );
 }
 
 void Q3BspMap::OnShaderReadFinish( void )

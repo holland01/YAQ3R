@@ -246,17 +246,16 @@ void GU_LoadMainTextures( Q3BspMap& map )
 		size_t slashPos = initial.path.find_first_of( "/" );
 
 		// This is an invalid path, because it doesn't belong
-		// to a bundle. So, let the map sort it out when it feels right,
-		// and we just skip it for now.
+		// to a bundle. The bspShader_t (i.e. texture) referred to
+		// by the index still exists, though, and needs to be accounted
+		// for in the bsp map, so we continue processing with a dummy
+		// path.
 		if ( slashPos == std::string::npos )
 		{
-			map.MarkBadTexture( ( ssize_t ) key );
-			continue;
+			initial.path = "textures/dummy_image";
 		}
-		else
-		{
-			initial.param = ( void* ) key;
-		}
+
+		initial.param = ( void* ) key;
 
 		sources.push_back( initial );
 	}
