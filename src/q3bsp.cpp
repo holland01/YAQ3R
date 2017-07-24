@@ -457,7 +457,7 @@ void Q3BspMap::SweepBadTextures( void )
 		{
 			if ( f.shader == ( int ) bad )
 			{
-				f.shader = -1;
+				f.shader = -1; // default to white image
 			}
 		}
 	}
@@ -486,7 +486,6 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 
 	map.SweepBadTextures();
 
-	puts( "Main images finished." );
 	map.mapAllocated = true;
 	map.readFinishEvent( &map );
 }

@@ -47,6 +47,8 @@ public:
 
 	void 						MarkBadTexture( ssize_t index );
 
+	void  						MarkBadStageTexture( shaderStage_t * stage );
+
 	void  						SweepBadTextures( void );	// called on map load finish
 
 	void 						OnShaderReadFinish( void );

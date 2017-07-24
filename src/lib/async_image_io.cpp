@@ -36,6 +36,29 @@ void gImageLoadTracker_t::LogImages( void )
 	gImageTracker->textureInfo[ gImageTracker->iterator ].path.c_str()
 
 // It's assumed that lightmaps aren't passed into this callback...
+static void AssignIndex( uint16_t assignIndex )
+{
+	if ( gImageTracker->isKeyMapped )
+	{
+		size_t keyMap =
+			( size_t ) gImageTracker->
+				textureInfo[ gImageTracker->iterator ].param;
+
+		gImageTracker->destAtlas.map_key_to_image(
+			keyMap,
+			assignIndex
+		);
+	}
+	else
+	{
+		shaderStage_t* stage =
+			( shaderStage_t* ) gImageTracker->
+				textureInfo[ gImageTracker->iterator ].param;
+
+		// This index will persist in the texture array it's going into
+		stage->textureIndex = assignIndex;
+	}
+}
 
 // First 8 bytes follow this format:
 // 0, 1 -> width
@@ -51,8 +74,16 @@ static void OnImageRead( char* buffer, int size, void* param )
 		return;
 	}
 
-	if ( !buffer || !size || ( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size() )
+	bool atEnd =
+		( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size();
+
+	if ( !buffer || !size || atEnd )
 	{
+		if ( !atEnd )
+		{
+			AssignIndex( gla::atlas_t::no_image_index );
+		}
+
 		if ( gImageTracker->finishEvent )
 		{
 			gImageTracker->finishEvent( &gImageTracker );
@@ -90,26 +121,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 		bpp
 	);
 
-	if ( gImageTracker->isKeyMapped )
-	{
-		size_t keyMap =
-			( size_t ) gImageTracker->
-				textureInfo[ gImageTracker->iterator ].param;
-
-		gImageTracker->destAtlas.map_key_to_image(
-			keyMap,
-			gImageTracker->destAtlas.num_images - 1
-		);
-	}
-	else
-	{
-		shaderStage_t* stage =
-			( shaderStage_t* )gImageTracker->
-				textureInfo[ gImageTracker->iterator ].param;
-
-		// This index will persist in the texture array it's going into
-		stage->textureIndex = gImageTracker->destAtlas.num_images - 1;
-	}
+	AssignIndex( gImageTracker->destAtlas.num_images - 1 );
 
 	gImageTracker->iterator++;
 }

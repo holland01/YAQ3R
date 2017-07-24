@@ -221,6 +221,23 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
 	}
 }
 
+static void AddWhiteImage( gla_atlas_ptr_t& atlas )
+{
+	std::vector< uint8_t > whiteImage(
+		BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4,
+		0xFF
+	);
+
+	gla::push_atlas_image(
+		*atlas,
+		&whiteImage[ 0 ],
+		BSP_LIGHTMAP_WIDTH,
+		BSP_LIGHTMAP_HEIGHT,
+		4,
+		false
+	);
+}
+
 void BSPRenderer::Load( renderPayload_t& payload )
 {
 	Prep();
@@ -231,10 +248,20 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	GL_CHECK( glGetIntegerv( GL_UNPACK_ALIGNMENT, &oldAlign ) );
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
 
+	// White images for both the shaders and main atlasses
+	// are dummy fallbacks for erronous image indices / invalid image paths
+	AddWhiteImage( textures[ TEXTURE_ATLAS_SHADERS ] );
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_SHADERS ] ) );
-	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
+	textures[ TEXTURE_ATLAS_SHADERS ]->default_image =
+		textures[ TEXTURE_ATLAS_SHADERS ]->num_images - 1;
 
-	// And then generate all of the lightmaps
+	AddWhiteImage( textures[ TEXTURE_ATLAS_MAIN ] );
+	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_MAIN ] ) );
+	textures[ TEXTURE_ATLAS_MAIN ]->default_image =
+		textures[ TEXTURE_ATLAS_MAIN ]->num_images - 1;
+
+	// Iterate through lightmaps and generate corresponding
+	// texture data
 	for ( bspLightmap_t& lightmap: map.data.lightmaps )
 	{
 		gla::push_atlas_image(
@@ -247,26 +274,12 @@ void BSPRenderer::Load( renderPayload_t& payload )
 		);
 	}
 
-	// Sometimes a white image is necessary for certain shader passes.
-	// So, we just allocate a small extra set of texels here and add them to
-	// the atlas before layer generation.
-	{
-		std::vector< uint8_t > whiteImage(
-			BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 4,
-			0xFF
-		);
-
-		gla::push_atlas_image(
-			*( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ),
-			&whiteImage[ 0 ],
-			BSP_LIGHTMAP_WIDTH,
-			BSP_LIGHTMAP_HEIGHT,
-			4,
-			false
-		);
-	}
-
+	// Sometimes a white image is explicitly desired for certain shader passes;
+	// this will also serve as a fallback if needed.
+	AddWhiteImage( textures[ TEXTURE_ATLAS_LIGHTMAPS ] );
 	gla::gen_atlas_layers( *( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ) );
+	textures[ TEXTURE_ATLAS_LIGHTMAPS ]->default_image =
+		textures[ TEXTURE_ATLAS_LIGHTMAPS ]->num_images - 1;
 
 	GL_CHECK( glPixelStorei( GL_UNPACK_ALIGNMENT, oldAlign ) );
 

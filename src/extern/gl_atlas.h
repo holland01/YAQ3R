@@ -210,6 +210,10 @@ namespace gla {
 	};
 
 	struct atlas_t {
+		static const uint16_t no_image_index = 0xFFFF;
+
+		uint16_t default_image;
+
 		uint32_t num_images;
 
 		uint32_t area_accum;
@@ -233,25 +237,48 @@ namespace gla {
 
 		std::unordered_map<size_t, uint16_t> key_map;	// optional
 
+		uint16_t check_index(uint16_t index) const
+		{
+			if (num_images <= index)
+			{
+				if (default_image == no_image_index)
+				{
+					gla_logf(
+						"%s",
+						"FATAL: atlas_t default_image == no_image_index");
+					atlas_error_exit();
+				}
+
+				return default_image;
+			}
+
+			return index;
+		}
+
 		uint16_t origin_x(uint16_t image) const
 		{
-			return coords_x[image];
+			return coords_x[check_index(image)];
 		}
 
 		uint16_t origin_y(uint16_t image) const
 		{
-			return coords_y[image];
+			return coords_y[check_index(image)];
 		}
 
 		uint8_t layer(uint16_t image) const
 		{
 			assert(image < layers.size());
+
+			image = check_index(image);
+
 			assert(layers[image] != 0xFF);
 			return layers[image];
 		}
 
 		atlas_image_info_t image_info(uint16_t image) const
 		{
+			image = check_index(image);
+
 			uint8_t L = layer(image);
 
 			atlas_image_info_t img {
@@ -297,7 +324,7 @@ namespace gla {
 			if (layers.size() != num_images)
 				layers.resize(num_images, 0xFF);
 
-			layers[image] = layer;
+			layers[check_index(image)] = layer;
 		}
 
 		void bind(uint8_t layer) const
@@ -324,6 +351,8 @@ namespace gla {
 
 		void write_origins(uint16_t image, uint16_t x, uint16_t y)
 		{
+			image = check_index(image);
+
 			if (coords_x.size() != num_images)
 				coords_x.resize(num_images, 0);
 
@@ -384,6 +413,7 @@ namespace gla {
 
 			num_images = 0;
 			area_accum = 0;
+			default_image = no_image_index;
 
 			widths.clear();
 			heights.clear();
@@ -404,7 +434,8 @@ namespace gla {
 		}
 
 		atlas_t(void)
-			: 	num_images(0),
+			: 	default_image(no_image_index),
+				num_images(0),
 				area_accum(0)
 		{}
 	};
@@ -447,7 +478,6 @@ namespace gla {
 
 		// The "lines" (expressed implicitly) will only have
 		// positive normals that face either to the right, or upward.
-
 		struct node_t {
 			bool region;
 			int32_t image;
@@ -704,10 +734,12 @@ namespace gla {
 		// Basic idea is to keep track of each image
 		// and the layer it belongs to; every image
 		// which has yet to be assigned to a layer
-		// remains in this map after a given iteration
+		// remains in this map after a given iteration.
+		// As soon as an image is inserted, its corresponding
+		// flags is set to 1 and we remove it from this list.
 		image_fill_map_t global_unfill;
 		for (uint16_t i = 0; i < atlas.num_images; ++i) {
-			global_unfill[i];
+			global_unfill[i] = 0;
 		}
 
 		uint8_t layer = 0;
