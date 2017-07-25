@@ -1,0 +1,17 @@
+[ Load | INFO ]: [RenderBase]
+bspviewer.html:1237 	glPrograms => 4
+bspviewer.html:1237 	apiHandles => 24
+bspviewer.html:1237 	map => 4294963378
+bspviewer.html:1237 	frustum => 36
+bspviewer.html:1237 [BSPRenderer]
+bspviewer.html:1237 	textures => 40
+bspviewer.html:1237 	glFaces => 52
+bspviewer.html:1237 	glDebugFaces => 64
+bspviewer.html:1237 	glEffects => 76
+bspviewer.html:1237 	currLeaf => 96
+bspviewer.html:1237 	deltaTime => 100
+bspviewer.html:1237 	frameTime => 104
+bspviewer.html:1237 	targetFPS => 112
+bspviewer.html:1237 	alwaysWriteDepth => 116
+bspviewer.html:1237 	camera => 120
+bspviewer.html:1237 	curView => 124

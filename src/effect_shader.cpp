@@ -643,10 +643,14 @@ static const char* ParseEntry(
 			// so decrease our level by 1 and add on to our stageCount
 			else
 			{
+				stage.owningShader = outInfo;
 				outInfo->stageBuffer.push_back( stage );
+
 				stage = shaderStage_t();
+
 				outInfo->stageCount += 1;
 				level -= 1;
+
 				continue;
 			}
 		}

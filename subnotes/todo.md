@@ -124,3 +124,11 @@ keep, though, because the bspFace_t list will likely contain faces which refer
 to them via the shader/texture index being lsited. For some reason one shader
 in particular is elusive in the sense that it's never even detected by the
 async_io image loader...WTF???
+
+### 7/24/2017
+
+There's some helper functions in debug_util.js which will help you get
+the values of BSPRenderer::map and Q3BspMap::name. What you want is to write
+another helper function which will give you the name of a bspShader_t entry
+given an index. In this case, you want to look up entry 68, as the name
+for that shader should provide some insight as to what is going on... 

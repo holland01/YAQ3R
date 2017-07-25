@@ -8,6 +8,14 @@ var printHeapString = function(address) {
 	return str;
 };
 
+var BSPRenderer_map = function($pRenderer) {
+    return HEAP32[($pRenderer + 32) >> 2];
+}
+
+var Q3BspMap_name = function($pMap) {
+    return getStdString_c_str($pMap + 8);
+}
+
 var stringLen= function(address) {
 	var c = address;
 	while (HEAP8[c] != 0) {

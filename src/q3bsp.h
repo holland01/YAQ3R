@@ -91,6 +91,8 @@ public:
 
 	void						DestroyMap( void );
 
+	std::string 				GetBinLayoutString( void ) const;
+
 	std::string					GetPrintString( const std::string& title = "." ) const;
 
 	friend class BSPRenderer;

@@ -505,6 +505,8 @@ struct effect_t
 
 class Program;
 
+struct shaderInfo_t;
+
 struct shaderStage_t
 {
 	bool						depthPass = false;
@@ -555,11 +557,11 @@ struct shaderStage_t
 
 	std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH > texturePath;
 
-	gProgramHandle_t program;
+	gProgramHandle_t program { ( uint16_t ) G_UNSPECIFIED };
+
+	const shaderInfo_t* owningShader = nullptr;
 
 	shaderStage_t( void )
-	//	: program( nullptr )
-		: program( { ( uint16_t ) G_UNSPECIFIED } )
 	{
 		texturePath.fill( 0 );
 	}

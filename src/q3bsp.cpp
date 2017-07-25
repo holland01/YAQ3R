@@ -494,6 +494,8 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 
 	map.SweepBadTextures();
 
+	MLOG_INFO( "Q3BspMap Binary Layout: \n%s", map.GetBinLayoutString().c_str() );
+
 	map.mapAllocated = true;
 	map.readFinishEvent( &map );
 }
@@ -751,6 +753,74 @@ bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
 	unsigned char visSet = data.bitsetSrc[ i ];
 
 	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
+}
+
+std::string Q3BspMap::GetBinLayoutString( void ) const
+{
+	std::stringstream ss;
+
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, scaleFactor );
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, mapAllocated );
+
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, name );
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, badTextures );
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, payload );
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, readFinishEvent );
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, effectShaders );
+
+	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, data );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, header );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, entitiesSrc );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, shaders );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, planes );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, nodes );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, leaves );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, leafFaces );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, models );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, brushes );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, brushSides );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, vertexes );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, meshVertexes );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, fogs );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, faces );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, lightmaps );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, lightvols );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, bitsetSrc );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, entities );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, visdata );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, entityStringLen );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numNodes );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numLeaves );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numLeafFaces );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numLeafBrushes );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numPlanes );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numVertexes );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numBrushes );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numBrushSides );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numShaders );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numModels );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numFogs );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numFaces );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numMeshVertexes );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numLightmaps );
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numLightvols );
+
+	ss << SSTREAM_BYTE_OFFSET2( mapData_t, numVisdataVecs );
+
+	return ss.str();
 }
 
 std::string Q3BspMap::GetPrintString( const std::string& title ) const

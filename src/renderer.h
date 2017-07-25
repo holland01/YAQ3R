@@ -171,15 +171,15 @@ enum {
 	TEXTURE_ATLAS_LIGHTMAPS = 0x2
 };
 
-class RenderBase 
+class RenderBase
 {
-protected:
+public:
 	programMap_t glPrograms;
 
 	std::array< GLuint, 2 >	apiHandles;
 
 	Q3BspMap& map;
-	
+
 	std::unique_ptr< Frustum > frustum;
 
 	void 			MakeProg(
@@ -193,6 +193,8 @@ protected:
 public:
 	virtual void Load( renderPayload_t& payload );
 
+	virtual std::string GetBinLayoutString( void ) const;
+
 	RenderBase( Q3BspMap& m );
 
 	virtual ~RenderBase( void );
@@ -200,7 +202,7 @@ public:
 
 class BSPRenderer : public RenderBase
 {
-private:
+public:
 
 	// [0] void* -> surface/face data to render
 	// [1] const shaderInfo_t* -> relevant shader information
@@ -356,6 +358,8 @@ public:
 	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
 	void		Update( float dt );
+
+	virtual std::string GetBinLayoutString( void ) const override;
 };
 
 INLINE void BSPRenderer::DrawFaceList(

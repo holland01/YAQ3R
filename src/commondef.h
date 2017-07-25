@@ -6,6 +6,9 @@
 #define C_OFFSETOF_P(p, m) ( uintptr_t( &( ( p )->m ) ) - uintptr_t( ( p ) ) )
 #define C_OFFSETOF_T(t, s) C_OFFSETOF_P( ( t* )0x1000, s )
 
+#define SSTREAM_BYTE_OFFSET( T,  name ) "\t" #name " => " << C_OFFSETOF_T( T, name ) << "\n"
+#define SSTREAM_BYTE_OFFSET2( T, name ) "\t" SSTREAM_BYTE_OFFSET( T, name )
+
 #if defined( EMSCRIPTEN )
 #	define EM_SERV_ASSET_PORT "6931"
 #endif

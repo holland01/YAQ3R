@@ -75,6 +75,19 @@ void RenderBase::MakeProg( const std::string& name, const std::string& vertSrc,
 		fragSrc, uniforms, attribs ) );
 }
 
+std::string RenderBase::GetBinLayoutString( void ) const
+{
+	std::stringstream ss;
+
+	ss << "[RenderBase]\n";
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, glPrograms );
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, apiHandles );
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, map );
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, frustum );
+
+	return ss.str();
+}
+
 RenderBase::~RenderBase( void )
 {
 	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
@@ -301,6 +314,41 @@ void BSPRenderer::Load( renderPayload_t& payload )
 
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
+
+	MLOG_INFO( "%s", GetBinLayoutString().c_str() );
+}
+
+std::string BSPRenderer::GetBinLayoutString( void ) const
+{
+	std::stringstream ss;
+/*
+	ss << "[RenderBase]\n";
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, glPrograms );
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, apiHandles );
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, map );
+	ss << SSTREAM_BYTE_OFFSET( RenderBase, frustum );
+
+	return ss.str();
+	*/
+
+	std::string first = RenderBase::GetBinLayoutString();
+
+	ss << first;
+
+	ss << "[BSPRenderer]\n";
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, textures );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glFaces );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glDebugFaces );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glEffects );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, currLeaf );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, deltaTime );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, frameTime );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, targetFPS );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, alwaysWriteDepth );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, camera );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, curView );
+
+	return ss.str();
 }
 
 //---------------------------------------------------------------------
