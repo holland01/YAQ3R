@@ -165,8 +165,8 @@ AL.texType = {
 // -------------
 // Format for the entire buffer
 // -------------
-// We ultimately pass a buffer to the loader callback which 
-// consists of a) the metadata as described above and b) a slice of the blob 
+// We ultimately pass a buffer to the loader callback which
+// consists of a) the metadata as described above and b) a slice of the blob
 // the metadata corresponds to (this might be the entire blob, or just a slice).
 
 // If it's a slice, then memory offsets need to be taken into account,
@@ -181,9 +181,9 @@ AL.texType = {
 
 // metadata for the transfer buffer
 AL.BUFFER_PARAM_SLICE_OFFSET = 0;
-AL.BUFFER_PARAM_SLICE_SIZE = 4; 
+AL.BUFFER_PARAM_SLICE_SIZE = 4;
 AL.BUFFER_PARAM_SLICES_LEFT = 8;
-AL.BUFFER_PARAM_MD_LEN = 12; 
+AL.BUFFER_PARAM_MD_LEN = 12;
 
 AL.BUFFER_PARAM_SIZE_BYTES = 4 * 4;
 
@@ -196,7 +196,7 @@ AL.freeBuffer = function() {
 
 AL.clearBuffer = function() {
 	AL.freeBuffer();
-	
+
 	AL.buffer.size = 0;
 	AL.buffer.blobOffset = 0;
 	AL.buffer.metaByteLen = 0;
@@ -204,25 +204,25 @@ AL.clearBuffer = function() {
 	AL.buffer.hasMetaData = false;
 	AL.buffer.loader = null;
 	AL.buffer.slicesLeft = 0;
-	
+
 	AL.sliceMeta = [];
 }
 
-// Allocate a slice of the blob 
+// Allocate a slice of the blob
 // and then store it within the heap.
 // Ideally, we can store the entire blob...
-AL.allocMem = function(loader, metadata) {	
+AL.allocMem = function(loader, metadata) {
 	if (!loader || typeof(start) == undefined || typeof(end) == undefined) {
 		throw "Undefined or null param received - this isn't allowed.";
 	}
 
 	let fileReader = new FileReaderSync();
 	let blobBuff = [];
- 
+
 	AL.buffer.blobByteLen = 0;
 	for (let i = 0; i < AL.sliceMeta.length; ++i) {
 
-		// In the event that metadata === AL.sliceMeta, 
+		// In the event that metadata === AL.sliceMeta,
 		// we're taking only what we need from the bundle,
 		// so we need to adjust the offsets accordingly for the client.
 		let start = AL.buffer.blobByteLen;
@@ -232,7 +232,7 @@ AL.allocMem = function(loader, metadata) {
 		blobBuff.push(
 			fileReader.readAsArrayBuffer(
 				loader.packageRef.blob.slice(
-					AL.sliceMeta[i].start, 
+					AL.sliceMeta[i].start,
 					AL.sliceMeta[i].end
 				)
 			)
@@ -253,13 +253,19 @@ AL.allocMem = function(loader, metadata) {
 
 	// Write out prefix data
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_OFFSET, 0);
-	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_SIZE, AL.buffer.blobByteLen);
+
+	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICE_SIZE,
+		AL.buffer.blobByteLen);
+
 	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_SLICES_LEFT, 0);
-	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_MD_LEN, AL.buffer.metaByteLen);
+
+	AL.writeBufferWord(AL.buffer.ptr, AL.BUFFER_PARAM_MD_LEN,
+		AL.buffer.metaByteLen);
 
 	// Write out blob metadata
 	if (!AL.buffer.hasMetaData) {
-		AL.binifyMetadata(AL.buffer.ptr + AL.BUFFER_PARAM_SIZE_BYTES, metadata);
+		AL.binifyMetadata(AL.buffer.ptr + AL.BUFFER_PARAM_SIZE_BYTES,
+			metadata);
 		AL.buffer.hasMetaData = true;
 	}
 
@@ -284,20 +290,23 @@ AL.allocMem = function(loader, metadata) {
 //---------------------------
 //
 // When a bundle is first loaded,
-// each slice range of the blob 
+// each slice range of the blob
 // is precomputed and stored;
 // the client can then query the
 // next slice as necessary
 
+// metadata contains the actual files on disk,
+// whereas files is the list we've received from the
+// client to fetch - this requested list may or may _not_
+// have extensions for each name.
 AL.addSliceMeta = function(metadata, blobSize, files) {
 	const SEGMENT_SIZE = Math.min((TOTAL_MEMORY * 0.6)|0, blobSize);
 
 	let accumSize = 0;
 
-	// We might be in a situation where we can just load
-	// the entire blob and forget about it; if so,
-	// there's no need to actually iterate.
+	// If we're at our RAM limit then yes: we need to do this piece-by-piece.
 	if (SEGMENT_SIZE < blobSize) {
+
 		if (!files) {
 			throw 'Expected a pipe delimited list of file paths for the bundle';
 		}
@@ -313,7 +322,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 		for (let i = 0; i < metadata.files.length && undefCounter < files.length; ++i) {
 			for (let j = 0; j < files.length; ++j) {
 				// Yeah, it's only a string comparison but it's an O(1) check vs O(N) so w/e
-				if (!files[j]) 
+				if (!files[j])
 					continue;
 
 				let cmp = metadata.files[i].filename;
@@ -337,7 +346,8 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 					});
 
 					if (AL.CONTENT_PIPELINE_MSG) {
-						console.log('Caught: ', files[j], '. Slice Count: ', AL.sliceMeta.length);
+						console.log('Caught: ', files[j], '. Slice Count: ',
+							AL.sliceMeta.length);
 					}
 
 					delete files[j];
@@ -346,16 +356,24 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 			}
 		}
 
-		// Here we're done: we only care about requested files that exist in the bundle
-		// at this point. If we find that enough images supersede our memory constraints then
-		// the implementation will be altered.
+		// Here we're done: we only care about requested files that exist in
+		// the bundle at this point. If we find that enough images
+		// supersede our memory constraints then the implementation
+		// will be altered.
 		metadata.files = null;
 
 		if (accumSize > SEGMENT_SIZE) {
-			throw 'accumSize too large: ' + accumSize + '. Must not exceed: ' + SEGMENT_SIZE;
-		}		
+			if (AL.CONTENT_PIPELINE_MSG) {
+				console.log('accumSize > SEGMENT_SIZE exception thrown!');
+			}
+			throw 'accumSize too large: ' + accumSize + '. Must not exceed: '
+				+ SEGMENT_SIZE;
+		}
 
 		return AL.sliceMeta;
+
+	// Otherwise, we're in a situation where we can just load
+	// the entire blob and forget about it
 	} else {
 		AL.sliceMeta.push({
 			start: metadata.files[0].start,
@@ -364,18 +382,18 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 		return metadata.files;
 	}
-} 
+}
 
 AL.nextSlice = function(msb, metaFiles) {
 	AL.allocMem(
-		AL.buffer.loader, 
+		AL.buffer.loader,
 		metaFiles
 	);
 
 	AL.finishTime(
-		msb, 
-		AL.buffer.loader, 
-		AL.buffer.metaByteLen, 
+		msb,
+		AL.buffer.loader,
+		AL.buffer.metaByteLen,
 		AL.buffer.blobByteLen
 	);
 
@@ -384,22 +402,22 @@ AL.nextSlice = function(msb, metaFiles) {
 
 AL.loadFinished = function(loader) {
 	if (loader.params.map) {
-		let msb = AL.startTime();		
+		let msb = AL.startTime();
 
 		AL.clearBuffer();
 
 		AL.buffer.loader = loader;
-		
+
 		let metaFiles = AL.addSliceMeta(
-			AL.buffer.loader.packageRef.metadata, 
+			AL.buffer.loader.packageRef.metadata,
 			AL.buffer.loader.packageRef.blob.size,
-			AL.buffer.loader.params.path
+			AL.buffer.loader.params.path // is a list of paths, not one "path"
 		);
 
 		AL.nextSlice(msb, metaFiles, AL.buffer.loader.params.path);
 	} else {
 		AL.mountPackages([loader.packageRef]);
-		
+
 		let pbuf = 0;
 		let pbufLen = 0;
 
@@ -492,7 +510,7 @@ AL.BundleLoader.prototype.xhrRequest = function(responseType,  packRefKey, ext) 
 // in the client
 AL.fetchBundleAsync = function(bundleName, callback, path, pathLength, port, map) {
 	var loader = new AL.BundleLoader(
-		AL.getMaybeCString(bundleName), 
+		AL.getMaybeCString(bundleName),
 		{
 			proxy: callback,
 			path: AL.getMaybeCString(path),

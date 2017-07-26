@@ -1,9 +1,60 @@
-var BSP_STRUCT_SIZES = {
+var STRUCT_SIZES = {
     bspShader_t: {
         name: 0,
         surfaceFlags: 64,
         contentsFlags: 68,
         SIZEOF: 72
+    },
+
+    mapData_t: {
+        header: 0,
+        entitiesSrc: 144,
+        shaders: 156,
+        planes: 168,
+        nodes: 180,
+        leaves: 192,
+        leafFaces: 204,
+        models: 228,
+        brushes: 240,
+        brushSides: 252,
+        vertexes: 264,
+        meshVertexes: 276,
+        fogs: 288,
+        faces: 300,
+        lightmaps: 312,
+        lightvols: 324,
+        bitsetSrc: 336,
+        entities: 348,
+        visdata: 352,
+        entityStringLen: 360,
+        numNodes: 364,
+        numLeaves: 368,
+        numLeafFaces: 372,
+        numLeafBrushes: 376,
+        numPlanes: 380,
+        numVertexes: 384,
+        numBrushes: 388,
+        numBrushSides: 392,
+        numShaders: 396,
+        numModels: 400,
+        numFogs: 404,
+        numFaces: 408,
+        numMeshVertexes: 412,
+        numLightmaps: 416,
+        numLightvols: 420,
+        numVisdataVecs: 424,
+        SIZEOF: 428
+    }
+};
+
+var CLASS_SIZES = {
+    BSPRenderer: {
+        map: 32
+    },
+
+    Q3BspMap: {
+        name: 8,
+        data: 68
     }
 };
 
@@ -118,15 +169,15 @@ var addListNames = function(listTitle, list) {
 };
 
 var mapData_t_getShaderInfo = function($pData, index) {
-    var offset = index * BSP_STRUCT_SIZES.bspShader_t.SIZEOF;
+    var offset = index * STRUCT_SIZES.bspShader_t.SIZEOF;
 
     var shadersBuff = mapData_t_shaders($pData);
 
     var pElem = shadersBuff + offset;
 
-    var name = getHeapString(pElem + BSP_STRUCT_SIZES.bspShader_t.name);
-    var surfaceFlags = HEAP32[(pElem + BSP_STRUCT_SIZES.bspShader_t.surfaceFlags) >> 2];
-    var contentFlags = HEAP32[(pElem + BSP_STRUCT_SIZES.bspShader_t.contentsFlags) >> 2];
+    var name = getHeapString(pElem + STRUCT_SIZES.bspShader_t.name);
+    var surfaceFlags = HEAP32[(pElem + STRUCT_SIZES.bspShader_t.surfaceFlags) >> 2];
+    var contentFlags = HEAP32[(pElem + STRUCT_SIZES.bspShader_t.contentsFlags) >> 2];
 
     var surfaceFlagNames = makeFlagNameList(BSP_SURFACE_FLAGS, surfaceFlags);
     var contentsFlagNames = makeFlagNameList(BSP_CONTENTS_FLAGS, contentFlags);

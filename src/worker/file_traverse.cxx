@@ -98,9 +98,9 @@ static INLINE void FailOpen( const char* path, size_t pathLen )
 static INLINE bool SplitDataWithBundle( std::string& bundleName,
 	std::vector< char >& chopData, char* data, int size )
 {
-	for ( int i = 0; i < size; ++i ) 
+	for ( int i = 0; i < size; ++i )
 	{
-		if ( data[i] == AL_STRING_DELIM ) 
+		if ( data[i] == AL_STRING_DELIM )
 		{
 			bundleName = std::string( data, i );
 			O_Log( "Bundle Name Found: %s\n", bundleName.c_str() );
@@ -300,7 +300,7 @@ class Bundle
 		BUNDLE_PATH_SIZE = 64
 	};
 
-	struct bufferMeta_t 
+	struct bufferMeta_t
 	{
 		int32_t sliceOffset;
 		int32_t sliceSize;
@@ -344,7 +344,7 @@ public:
 
 	void PrintMetadata( void ) const
 	{
-#if defined( CONTENT_PIPELINE_IO ) && defined( DEBUG ) 
+#if defined( CONTENT_PIPELINE_IO ) && defined( DEBUG )
 		std::stringstream out;
 		for ( uint32_t i = 0; i < numMetaEntries; ++i )
 		{
@@ -426,14 +426,14 @@ public:
 		std::vector<char> imgBuff;
 
 		int width, height, bpp; // bpp is in bytes...
-		
+
 		int outSize;
 		const char* ptr = GetFile( filename, outSize );
 
-		if ( !ptr ) 
+		if ( !ptr )
 		{
 			O_Log( "ERROR: Could not find image file: %s", filename );
-			return imgBuff;	
+			return imgBuff;
 		}
 
 		stbi_uc* buf = stbi_load_from_memory( ( const stbi_uc* ) ptr, outSize, &width, &height, &bpp, STBI_default );
@@ -464,7 +464,7 @@ public:
 		return imgBuff;
 	}
 
-	// Stitches two buffers together, 
+	// Stitches two buffers together,
 	// inserting a '|' delimiter between both of them
 	std::vector< char > MakeBuffer(
 		const char* a, int sizeA,
@@ -489,7 +489,7 @@ public:
 		}
 
 		int size;
-		
+
 		const char* file = GetFile( index, size );
 
 		std::vector< char > transfer( MakeBuffer(
@@ -533,9 +533,9 @@ public:
 	{
 		if ( iterator < GetNumFiles() )
 		{
-			ReadImage_Proxy( 
-				metadata[ iterator ].filepath, 
-				strlen( metadata[ iterator ].filepath ) 
+			ReadImage_Proxy(
+				metadata[ iterator ].filepath,
+				strlen( metadata[ iterator ].filepath )
 			);
 			iterator++;
 		}
@@ -681,7 +681,7 @@ static void ReadShaders_Proxy( char* data, int size )
 }
 
 static void ReadImage_Proxy( const char* path, int size )
-{	
+{
 	std::string full( path );
 
 	std::vector< char > imgBuff = gBundle->ReadImage( full.c_str() );
@@ -721,7 +721,7 @@ static void ReadImage_Proxy( const char* path, int size )
 static void LoadAndStreamImages( char* buffer, int size )
 {
 	gBundle->Load( buffer, size );
-	while ( gBundle->GetIterator() < gBundle->GetNumFiles() ) 
+	while ( gBundle->GetIterator() < gBundle->GetNumFiles() )
 	{
 		gBundle->SendNextImage();
 	}
@@ -743,9 +743,11 @@ void MountPackage_Proxy( char* path, int size )
 {
 	const char* port = EM_SERV_ASSET_PORT;
 
+	// 'bundle' is misleading: this is really the null-terminator-to-be
+	// of the bundle string
 	char* bundle = strchr( path, '|' );
 	const char* paths = nullptr;
-	size_t pathslen = 0; 
+	size_t pathslen = 0;
 
 	// Replace the first pipe (marking the end of the bundle path)
 	// with a null byte to keep the rest of the filepaths separate
@@ -754,14 +756,14 @@ void MountPackage_Proxy( char* path, int size )
 	{
 		*bundle = '\0';
 		paths = bundle + 1;
-		pathslen = size - 1 - strlen( path );
+		pathslen = size - 1 - strlen( path ); // path = bundle
 	}
 
 	EM_ASM_ARGS(
 		{
 			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
-		path,
+		path, // this is the bundle
 		LoadAndStreamImages,
 		paths,
 		pathslen,
