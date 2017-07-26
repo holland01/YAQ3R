@@ -131,4 +131,86 @@ There's some helper functions in debug_util.js which will help you get
 the values of BSPRenderer::map and Q3BspMap::name. What you want is to write
 another helper function which will give you the name of a bspShader_t entry
 given an index. In this case, you want to look up entry 68, as the name
-for that shader should provide some insight as to what is going on... 
+for that shader should provide some insight as to what is going on...
+
+### 7/25/2017
+
+
+**First Bit**
+
+
+IMPORTANT: binary layout for basic_string is the definition used when
+_LIBCPP_ABI_ALTERNATE_STRING_LAYOUT IS defined
+
+(at least on Linux - this may or may not vary between platforms)
+
+```
+struct __long
+{
+    pointer   __data_;
+    size_type __size_;
+    size_type __cap_;
+};
+
+struct __short
+{
+    value_type __data_[__min_cap];
+    struct
+        : __padding<value_type>
+    {
+        unsigned char __size_;
+    };
+};
+
+struct __raw
+{
+    size_type __words[__n_words];
+};
+
+struct __rep
+{
+    union
+    {
+        __long  __l;
+        __short __s;
+        __raw   __r;
+    };
+};
+```
+
+"textures/gothic_door/tim_dmarch01"
+
+**Second Bit**
+
+The data for q3dm13 is large enough to where the SEGMENT_SIZE variable
+in fetch.js:AL.addSliceMeta is less than the blob's data. When this was
+originally written, an outline was created which handled the data accordingly,
+but didn't finish the necessary lifting required for fetching remaining slices
+necessary.
+
+You'll need to modify this fetch.js code (and probably some code in other
+areas, including file_traverse.cxx) so that it continuously loads the next
+slice as needed. This will involve a back-and-forth like mechanism
+between LoadAndStreamImages() and AL.loadFinished - the code in async_image_io
+shouldn't have to worry about this at all, unless the iterator information
+it has is inconsistent, which is possible (compare the termination mechanism
+being used).
+
+Starting on line 358 in fetch.js is this:
+
+```
+// Here we're done: we only care about requested files that exist in
+// the bundle at this point. If we find that enough images
+// supersede our memory constraints then the implementation
+// will be altered.
+metadata.files = null;
+```
+
+You want to comment out this line, given that the comment above insinuates that
+this was pretty much during the time when slices weren't necessary. They
+are now, though.
+
+You could also ditch this entire content pipeline deal and throw together
+a tool which packages all data necessary for one single map into a binary
+file. This would eliminate load time issues altogether, because a smaller
+image can just be preloaded into the binary as was the case originally.
