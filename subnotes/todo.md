@@ -214,3 +214,58 @@ You could also ditch this entire content pipeline deal and throw together
 a tool which packages all data necessary for one single map into a binary
 file. This would eliminate load time issues altogether, because a smaller
 image can just be preloaded into the binary as was the case originally.
+
+### 7/26/17
+
+1) Make sure slice offsets are kept track of.
+
+NOTE: there's a crash which happens in the compiled version of LoadImagesBegin.
+Looks like there's an issue involving the gPathMap_t vector. It could
+be inlining AIIO_ReadImages, and there's areas where the vector is
+passed to a constructor and hence possibly moved (it's not a reference pass).
+
+If so, there's code right after which uses the now-empty vector variable and
+that could be causing issues. It's been replaced with the image tracker's buffer,
+so just test it and make sure it works.
+
+One last thing: the issue seems to be similar to what was happening before,
+so move semantics may also be playing a role here, outside of just the
+amount of data obtained.
+
+### 7/28/17
+
+Somehow a bad bundle path is getting passed via GU_LoadShaderTextures
+
+bspviewer.html:1237
+bspviewer.html:1237 [ GU_LoadShaderTextures | INFO ]: Called
+file_traverse.js:171 ALL = |
+file_traverse.js:171 BUNDLE = ; PATHS =
+VM26:72 TYPEOF STR =  number ; STRING VALUE =  5267280 ; ret =  
+VM26:72 TYPEOF STR =  number ; STRING VALUE =  5267281 ; ret =  
+VM26:72 TYPEOF STR =  number ; STRING VALUE =  10288 ; ret =  6931
+worker/file_traverse.js:171 ALL = |
+worker/file_traverse.js:171 BUNDLE = ; PATHS =
+3(unknown) TYPEOF STR =
+bundle/.data Failed to load resource: the server responded with a status of 404 (File not found: /home/amsterdam/Devel/proj/yaq3r/bundle/.data)
+bundle/.js.metadata Failed to load resource: the server responded with a status of 404 (File not found: /home/amsterdam/Devel/proj/yaq3r/bundle/.js.metadata)
+VM26:430 THE PATH =  
+(unknown) THE PATH =
+VM26:329 Uncaught Expected a pipe delimited list of file paths for the bundle
+worker/file_traverse.js:329 Uncaught Expected a pipe delimited list of file paths for the bundle
+
+
+NOTES
+====
+
+* There shouldn't be any issues with sending the files provisionally: it looks
+like the event queue works itself out here and prevents race conditions, so
+things remain synchronous.
+
+* Don't forget that if one image file isn't found for a given bundle
+that bundle will get sacked; consider just sending provisional NULL data
+so the client can adjust the data for the renderer accordingly
+
+* The "paths" which are passed to the loader aren't being used; you don't
+want to load the entire blob, but only mere slices of the blob corresponding to the
+files you wanted to send. That's why the setup was working in the manner it was.
+The fetch.js file is reverted so this should be taken care of now.
