@@ -74,8 +74,9 @@ ifneq ($(filter-out clean, $(MAKECMDGOALS)),)
 -include Makefile.dep
 endif
 
-CC = em++ -v
-CXX = em++ -v
+# Add -v to both for verbosity
+CC = em++
+CXX = em++
 CXXO =
 
 ifdef DEBUG
