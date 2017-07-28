@@ -76,6 +76,8 @@ static void AssignIndex( uint16_t assignIndex )
 	debugOut << "\n";
 
 	MLOG_INFO( "%s", debugOut.str().c_str() );
+
+	gImageTracker->iterator++;
 }
 
 // First 8 bytes follow this format:
@@ -92,20 +94,22 @@ static void OnImageRead( char* buffer, int size, void* param )
 		return;
 	}
 
+	MLOG_INFO( "ITERATOR VALUE: %i", gImageTracker->iterator );
+
 	bool atEnd =
 		( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size();
 
 	if ( !buffer || !size || atEnd )
 	{
-		if ( !atEnd )
+		if ( atEnd && gImageTracker->finishEvent )
+		{
+			gImageTracker->finishEvent( &gImageTracker );
+		}
+		else
 		{
 			AssignIndex( gla::atlas_t::no_image_index );
 		}
 
-		if ( gImageTracker->finishEvent )
-		{
-			gImageTracker->finishEvent( &gImageTracker );
-		}
 		return;
 	}
 
@@ -140,8 +144,6 @@ static void OnImageRead( char* buffer, int size, void* param )
 	);
 
 	AssignIndex( gImageTracker->destAtlas.num_images - 1 );
-
-	gImageTracker->iterator++;
 }
 #undef DATA_FMT_STRING
 
@@ -180,11 +182,11 @@ void AIIO_ReadImages(
 	std::stringstream bundlePaths;
 	bundlePaths << bundlePath << ASSET_ASCII_DELIMITER;
 
-	for ( uint32_t i = 0; i < pathInfo.size(); ++i )
+	for ( uint32_t i = 0; i < gImageTracker->textureInfo.size(); ++i )
 	{
-		bundlePaths << pathInfo[ i ].path;
+		bundlePaths << gImageTracker->textureInfo[ i ].path;
 
-		if ( ( i + 1 ) < pathInfo.size() )
+		if ( ( i + 1 ) < gImageTracker->textureInfo.size() )
 		{
 			bundlePaths << ASSET_ASCII_DELIMITER;
 		}

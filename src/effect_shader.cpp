@@ -741,6 +741,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 	}
 }
 
+
 static void OnShaderRead( char* buffer, int size, void* param )
 {
 	Q3BspMap* map = ( Q3BspMap* )param;

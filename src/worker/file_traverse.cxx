@@ -13,7 +13,7 @@
 #include <extern/stb_image.h>
 
 //#define DEBUG
-//#define CONTENT_PIPELINE_IO
+#define CONTENT_PIPELINE_IO
 
 #define AL_STRING_DELIM '|'
 
@@ -336,6 +336,10 @@ public:
 		metadata = nullptr;
 		numMetaEntries = 0;
 
+		// If the AL.buffer.ptr is already freed then this will nop since
+		// the free function makes sure that AL.buffer.ptr != 0
+		// before proceeding. AL.buffer.ptr is set to 0
+		// after each free.
 		if ( freeBuffer )
 		{
 			EM_ASM({ self.clearBuffer(); });
@@ -500,13 +504,19 @@ public:
 			true	// Add null, since shader parser uses c string functions on it
 		) );
 
-		emscripten_worker_respond_provisionally( &transfer[ 0 ], transfer.size() );
+		emscripten_worker_respond_provisionally(
+			&transfer[ 0 ], transfer.size() );
 	}
 
-	void FinishShaderStream( void )
+	void SendEmptyProvisionally( void ) const
+	{
+		emscripten_worker_respond_provisionally( nullptr, 0 );
+	}
+
+	void FinishStream( void )
 	{
 		Clear();
-		emscripten_worker_respond( 0, 0 );
+		emscripten_worker_respond( nullptr, 0 );
 	}
 
 	void SendNextShader( void )
@@ -525,8 +535,9 @@ public:
 
 	void FailStream( void )
 	{
-		O_Log( "Could not stream image file: %s", metadata[ iterator ].filepath );
-		emscripten_worker_respond( nullptr, 0 );
+		O_Log( "Could not stream image file: %s",
+			metadata[ iterator ].filepath );
+		FinishStream();
 	}
 
 	void SendNextImage( void )
@@ -537,6 +548,7 @@ public:
 				metadata[ iterator ].filepath,
 				strlen( metadata[ iterator ].filepath )
 			);
+
 			iterator++;
 		}
 	}
@@ -649,7 +661,7 @@ static void LoadShadersAndStream( char* data, int size )
 		gBundle->SendNextShader();
 	}
 
-	gBundle->FinishShaderStream();
+	gBundle->FinishStream();
 }
 
 static void ReadShaders_Proxy( char* data, int size )
@@ -710,7 +722,7 @@ static void ReadImage_Proxy( const char* path, int size )
 
 		if ( imgBuff.empty() )
 		{
-			gBundle->FailStream();
+			gBundle->SendEmptyProvisionally();
 			return;
 		}
 	}
@@ -718,14 +730,14 @@ static void ReadImage_Proxy( const char* path, int size )
 	emscripten_worker_respond_provisionally( &imgBuff[ 0 ], imgBuff.size() );
 }
 
-static void LoadAndStreamImages( char* buffer, int size )
+static void LoadImagesAndStream( char* buffer, int size )
 {
 	gBundle->Load( buffer, size );
 	while ( gBundle->GetIterator() < gBundle->GetNumFiles() )
 	{
 		gBundle->SendNextImage();
 	}
-	emscripten_worker_respond( nullptr, 0 );
+	gBundle->FinishStream();
 }
 
 void UnmountPackages_Proxy( char* data, int size )
@@ -749,6 +761,9 @@ void MountPackage_Proxy( char* path, int size )
 	const char* paths = nullptr;
 	size_t pathslen = 0;
 
+	O_Log( "ALL = %s", path );
+
+
 	// Replace the first pipe (marking the end of the bundle path)
 	// with a null byte to keep the rest of the filepaths separate
 	// from the bundle.
@@ -759,12 +774,15 @@ void MountPackage_Proxy( char* path, int size )
 		pathslen = size - 1 - strlen( path ); // path = bundle
 	}
 
+	O_Log( "BUNDLE = %s; PATHS = %s", path, paths );
+
+
 	EM_ASM_ARGS(
 		{
 			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
 		},
 		path, // this is the bundle
-		LoadAndStreamImages,
+		LoadImagesAndStream,
 		paths,
 		pathslen,
 		port
