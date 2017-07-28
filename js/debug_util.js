@@ -1,4 +1,4 @@
-var STRUCT_SIZES = {
+var STRUCT_LAYOUT_INFO = {
     bspShader_t: {
         name: 0,
         surfaceFlags: 64,
@@ -47,14 +47,23 @@ var STRUCT_SIZES = {
     }
 };
 
-var CLASS_SIZES = {
+var CLASS_LAYOUT_INFO = {
     BSPRenderer: {
-        map: 32
+        map: 32         // Q3BspMap
     },
 
     Q3BspMap: {
-        name: 8,
-        data: 68
+        name: 8,        // std::string
+        data: 68        // mapData_t
+    },
+
+    // see line 2138
+    // allocator_traits has no actual members,
+    // just definitions/static methods.
+    // same with __vector_base_common
+    vector: {
+        storage: 0,     // __storage_pointer
+        size: 4         // size_type
     }
 };
 
@@ -169,15 +178,15 @@ var addListNames = function(listTitle, list) {
 };
 
 var mapData_t_getShaderInfo = function($pData, index) {
-    var offset = index * STRUCT_SIZES.bspShader_t.SIZEOF;
+    var offset = index * STRUCT_LAYOUT_INFO.bspShader_t.SIZEOF;
 
     var shadersBuff = mapData_t_shaders($pData);
 
     var pElem = shadersBuff + offset;
 
-    var name = getHeapString(pElem + STRUCT_SIZES.bspShader_t.name);
-    var surfaceFlags = HEAP32[(pElem + STRUCT_SIZES.bspShader_t.surfaceFlags) >> 2];
-    var contentFlags = HEAP32[(pElem + STRUCT_SIZES.bspShader_t.contentsFlags) >> 2];
+    var name = getHeapString(pElem + STRUCT_LAYOUT_INFO.bspShader_t.name);
+    var surfaceFlags = HEAP32[(pElem + STRUCT_LAYOUT_INFO.bspShader_t.surfaceFlags) >> 2];
+    var contentFlags = HEAP32[(pElem + STRUCT_LAYOUT_INFO.bspShader_t.contentsFlags) >> 2];
 
     var surfaceFlagNames = makeFlagNameList(BSP_SURFACE_FLAGS, surfaceFlags);
     var contentsFlagNames = makeFlagNameList(BSP_CONTENTS_FLAGS, contentFlags);

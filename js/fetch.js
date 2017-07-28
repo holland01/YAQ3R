@@ -54,6 +54,10 @@ AL.getMaybeCString = function(str) {
 	} else if (typeof(str) !== 'string') {
 		throw 'Invalid string received';
 	}
+
+	console.log('TYPEOF STR = ', typeof(str), '; STRING VALUE = ', str,
+		'; ret = ', ret);
+
 	return ret;
 }
 
@@ -305,7 +309,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 	let accumSize = 0;
 
 	// If we're at our RAM limit then yes: we need to do this piece-by-piece.
-	if (SEGMENT_SIZE < blobSize) {
+//	if (SEGMENT_SIZE < blobSize) {
 
 		if (!files) {
 			throw 'Expected a pipe delimited list of file paths for the bundle';
@@ -374,7 +378,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 	// Otherwise, we're in a situation where we can just load
 	// the entire blob and forget about it
-	} else {
+/*	} else {
 		AL.sliceMeta.push({
 			start: metadata.files[0].start,
 			end: metadata.files[metadata.files.length - 1].end
@@ -382,6 +386,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 		return metadata.files;
 	}
+*/
 }
 
 AL.nextSlice = function(msb, metaFiles) {
@@ -407,6 +412,8 @@ AL.loadFinished = function(loader) {
 		AL.clearBuffer();
 
 		AL.buffer.loader = loader;
+
+		console.log('THE PATH = ', AL.buffer.loader.params.path);
 
 		let metaFiles = AL.addSliceMeta(
 			AL.buffer.loader.packageRef.metadata,
