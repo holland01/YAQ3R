@@ -269,3 +269,11 @@ so the client can adjust the data for the renderer accordingly
 want to load the entire blob, but only mere slices of the blob corresponding to the
 files you wanted to send. That's why the setup was working in the manner it was.
 The fetch.js file is reverted so this should be taken care of now.
+
+### 7/30/17
+
+* Fix heap corruption
+
+* Do an `MLOG_INFO` purge
+
+* See if you can render without a crash.
