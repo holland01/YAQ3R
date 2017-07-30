@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd build
+./gen_workers.sh
