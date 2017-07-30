@@ -44,6 +44,22 @@ var STRUCT_LAYOUT_INFO = {
         numLightvols: 420,
         numVisdataVecs: 424,
         SIZEOF: 428
+    },
+
+    shaderInfo_t: {
+        deform: 0,  // bool
+        deformCmd: 4,   // vertexDeformCmd_t
+        deformFn: 8,    // vertexDeformFunc_t
+        deformParms: 12,    // effect_t
+        cullFace: 52,   // uint32_t
+        surfaceParms: 56,   // uint32_t
+        localLoadFlags: 60,   // uint8_t
+        tessSize: 64,   // float
+        stageCount: 68,     // int
+        surfaceLight: 72,   // float
+        name: 76,       // std::array<char, BSP_MAX_SHADER_TOKEN_LENGTH>
+        stageBuffer: 140,   // std::vector<shaderStage_t>
+        SIZEOF: 152
     }
 };
 

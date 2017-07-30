@@ -515,6 +515,7 @@ public:
 
 	void FinishStream( void )
 	{
+		O_Log( "%s", "STREAM FINISHED" );
 		Clear();
 		emscripten_worker_respond( nullptr, 0 );
 	}
@@ -535,7 +536,7 @@ public:
 
 	void FailStream( void )
 	{
-		O_Log( "Could not stream image file: %s",
+		O_Log( "[ERROR] Could not stream image file: %s",
 			metadata[ iterator ].filepath );
 		FinishStream();
 	}
@@ -674,12 +675,6 @@ static void ReadShaders_Proxy( char* data, int size )
 
 	const char* port = EM_SERV_ASSET_PORT;
 
-	O_Log(
-		"Bundle Name: %s\n Rem Data: %s\n",
-		bundleName.c_str(),
-		&remData[ 0 ]
-	);
-
 	EM_ASM_ARGS(
 		{
 			self.fetchBundleAsync($0, $1, $2, $3, $4, true);
@@ -722,11 +717,13 @@ static void ReadImage_Proxy( const char* path, int size )
 
 		if ( imgBuff.empty() )
 		{
+			O_Log( "%s", "PING FAIL" );
 			gBundle->SendEmptyProvisionally();
 			return;
 		}
 	}
 
+	O_Log( "%s", "PING SUCCESS" );
 	emscripten_worker_respond_provisionally( &imgBuff[ 0 ], imgBuff.size() );
 }
 

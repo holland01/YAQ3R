@@ -23,20 +23,24 @@ static onFinishEvent_t gTmpMapReadFinish = nullptr;
 
 static void OnFrameIteration( void )
 {
+	MLOG_INFO( "%s", "ONE" );
+
 	if ( !gAppTest )
 		return;
 
+	MLOG_INFO( "%s", "TWO" );
+/*
 	SDL_Event e;
 	while ( SDL_PollEvent( &e ) )
 	{
 		if ( !gAppTest->OnInputEvent( &e ) )
 			break;
 	}
-
+*/
 	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
-	gAppTest->Run();
+//	gAppTest->Run();
 
 	SDL_GL_SwapWindow( gAppTest->base.window );
 

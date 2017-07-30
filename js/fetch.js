@@ -55,9 +55,6 @@ AL.getMaybeCString = function(str) {
 		throw 'Invalid string received';
 	}
 
-	console.log('TYPEOF STR = ', typeof(str), '; STRING VALUE = ', str,
-		'; ret = ', ret);
-
 	return ret;
 }
 
@@ -289,6 +286,8 @@ AL.allocMem = function(loader, metadata) {
 	}
 }
 
+
+
 //---------------------------
 // Slices
 //---------------------------
@@ -304,12 +303,28 @@ AL.allocMem = function(loader, metadata) {
 // client to fetch - this requested list may or may _not_
 // have extensions for each name.
 AL.addSliceMeta = function(metadata, blobSize, files) {
-	const SEGMENT_SIZE = Math.min((TOTAL_MEMORY * 0.6)|0, blobSize);
-
 	let accumSize = 0;
 
-	// If we're at our RAM limit then yes: we need to do this piece-by-piece.
-//	if (SEGMENT_SIZE < blobSize) {
+	let isShader = false;
+
+	for (let k = 0; k < metadata.files.length; ++k) {
+		if (metadata.files[k].filename.indexOf('.shader') !== -1) {
+			isShader = true;
+			break;
+		}
+	}
+
+	// Every shader is significant, because the shaders themselves usually
+	// aren't designed for a single map.
+	if (isShader) {
+		AL.sliceMeta.push({
+			start: metadata.files[0].start,
+			end: metadata.files[metadata.files.length - 1].end
+		});
+
+		return metadata.files;
+	} else {
+		// Other files are map dependent, so we are selective here.
 
 		if (!files) {
 			throw 'Expected a pipe delimited list of file paths for the bundle';
@@ -323,30 +338,44 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 		let undefCounter = 0;
 
+		// Apparently chrome doesn't copy strings on assignment. Even if it
+		// doesn't have this issue anymore, the fact that different browsers
+		// have differing semantics like this is bad mmk.
+		// https://stackoverflow.com/a/31733628
+		function cloneString(toClone) {
+			return (' ' + toClone).slice(1);
+		}
+
+		function stripExt(filename) {
+			let copy = cloneString(filename);
+			while (copy.indexOf('.') !== -1) {
+				let c = copy.length - 1;
+				while (copy.charAt(c) !== '.') {
+					c--;
+				}
+				copy = copy.substring(0, c);
+			}
+			return copy;
+		}
+
 		for (let i = 0; i < metadata.files.length && undefCounter < files.length; ++i) {
 			for (let j = 0; j < files.length; ++j) {
 				// Yeah, it's only a string comparison but it's an O(1) check vs O(N) so w/e
 				if (!files[j])
 					continue;
 
-				let cmp = metadata.files[i].filename;
+				// Strip both extensions, given that some image filenames
+				// end in .tga but only have .jpg equivalents
+				let f0 = stripExt(metadata.files[i].filename);
+				let f1 = stripExt(files[j]);
 
-				// Remove extension for accurate comparison
-				if (files[j].indexOf('.') === -1) {
-					let c = cmp.length - 1;
-					while (cmp.charAt(c) !== '.') {
-						c--;
-					}
-					cmp = cmp.substring(0, c);
-				}
-
-				if (cmp === files[j]) {
+				if (f0.valueOf() === f1.valueOf()) {
 					accumSize += metadata.files[i].end - metadata.files[i].start;
 
 					AL.sliceMeta.push({
 						start: metadata.files[i].start,
 						end: metadata.files[i].end,
-						filename: cmp
+						filename: cloneString(metadata.files[i].filename)
 					});
 
 					if (AL.CONTENT_PIPELINE_MSG) {
@@ -366,6 +395,8 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 		// will be altered.
 		metadata.files = null;
 
+		const SEGMENT_SIZE = Math.min((TOTAL_MEMORY * 0.6)|0, blobSize);
+
 		if (accumSize > SEGMENT_SIZE) {
 			if (AL.CONTENT_PIPELINE_MSG) {
 				console.log('accumSize > SEGMENT_SIZE exception thrown!');
@@ -375,18 +406,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 		}
 
 		return AL.sliceMeta;
-
-	// Otherwise, we're in a situation where we can just load
-	// the entire blob and forget about it
-/*	} else {
-		AL.sliceMeta.push({
-			start: metadata.files[0].start,
-			end: metadata.files[metadata.files.length - 1].end
-		});
-
-		return metadata.files;
 	}
-*/
 }
 
 AL.nextSlice = function(msb, metaFiles) {
@@ -412,8 +432,6 @@ AL.loadFinished = function(loader) {
 		AL.clearBuffer();
 
 		AL.buffer.loader = loader;
-
-		console.log('THE PATH = ', AL.buffer.loader.params.path);
 
 		let metaFiles = AL.addSliceMeta(
 			AL.buffer.loader.packageRef.metadata,

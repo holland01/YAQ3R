@@ -28,6 +28,12 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 	}
 }
 
+static void PrintInfo( const std::string& title,
+	const std::vector< gPathMap_t > source )
+{
+	MLOG_INFO( "%s\n\tCount: %i", title.c_str(), ( int ) source.size() );
+}
+
 static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 {
 	std::vector< gPathMap_t > env, gfx, models,
@@ -87,6 +93,12 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 			MLOG_ERROR( "%s", "Invalid bundle module received" );
 		}
 	}
+
+	PrintInfo( "models", models );
+	PrintInfo( "env", env );
+	PrintInfo( "gfx", gfx );
+	PrintInfo( "sprites", sprites );
+	PrintInfo( "textures", textures );
 
 	gImageMountNode_t* h = new gImageMountNode_t();
 	gImageMountNode_t** pn = &h;
@@ -208,6 +220,7 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 	}
 
 	std::vector< gPathMap_t > sources;
+
 	for ( auto& entry: map.effectShaders )
 	{
 		for ( shaderStage_t& stage: entry.second.stageBuffer )
@@ -227,7 +240,7 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
-	MLOG_INFO( "Called" );
+	PrintInfo( "GU_LoadShaderTextures", sources );
 	LoadImageState( map, sources, TEXTURE_ATLAS_SHADERS );
 }
 
@@ -235,7 +248,7 @@ void GU_LoadMainTextures( Q3BspMap& map )
 {
 	std::vector< gPathMap_t> sources;
 
-	MLOG_INFO( "MAPPING: %i SHADERS", ( int ) map.data.shaders.size() );
+	//MLOG_INFO( "MAPPING: %i SHADERS", ( int ) map.data.shaders.size() );
 
 	for ( size_t key = 0; key < map.data.shaders.size(); ++key )
 	{
@@ -263,6 +276,6 @@ void GU_LoadMainTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
-	MLOG_INFO( "Called" );
+	//MLOG_INFO( "Called" );
 	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }

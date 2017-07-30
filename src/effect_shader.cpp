@@ -643,7 +643,6 @@ static const char* ParseEntry(
 			// so decrease our level by 1 and add on to our stageCount
 			else
 			{
-				stage.owningShader = outInfo;
 				outInfo->stageBuffer.push_back( stage );
 
 				stage = shaderStage_t();
@@ -732,9 +731,21 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		if ( used )
 		{
+			std::string key( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) );
+
 			map->effectShaders.insert( shaderMapEntry_t(
-				std::string( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) ),
-				entry ) );
+				key,
+				entry
+			) );
+
+			// Add names after entry's been copied; these are mostly
+			// used for debugging.
+			shaderInfo_t& infoEntry = map->effectShaders[ key ];
+
+			for ( size_t i = 0; i < infoEntry.stageBuffer.size(); ++i )
+			{
+				infoEntry.stageBuffer[ i ].owningShader = &infoEntry;
+			}
 		}
 
 		range = ( ptrdiff_t )( end - pChar );

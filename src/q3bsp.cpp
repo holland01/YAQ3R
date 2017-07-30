@@ -449,26 +449,21 @@ void Q3BspMap::MarkBadTexture( ssize_t index )
 
 void Q3BspMap::SweepBadTextures( void )
 {
-	std::stringstream sweeplog;
-
-	sweeplog << "DOING TEXTURE SWEEP\n\n";
-
-	// Yup, it's N^2. At the moment there aren't any performance
-	// issues, so it's fine.
-	for ( ssize_t bad: badTextures )
+	for ( size_t i = 0; i < data.faces.size(); ++i )
 	{
-		sweeplog << "\t[" << bad << "]\n";
+		bspFace_t& f = data.faces[ i ];
 
-		for ( bspFace_t& f: data.faces )
+		for ( auto j = badTextures.begin(); j != badTextures.end(); ++j )
 		{
+			ssize_t bad = *j;
+
 			if ( f.shader == ( int ) bad )
 			{
 				f.shader = -1; // default to white image
+				break;
 			}
 		}
 	}
-
-	MLOG_INFO( "%s", sweeplog.str().c_str() );
 }
 
 void Q3BspMap::OnShaderReadFinish( void )
@@ -490,11 +485,9 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap& map = ( *imageTracker )->map;
 
-	imageTracker->reset();
+	//imageTracker->reset();
 
 	map.SweepBadTextures();
-
-	MLOG_INFO( "Q3BspMap Binary Layout: \n%s", map.GetBinLayoutString().c_str() );
 
 	map.mapAllocated = true;
 	map.readFinishEvent( &map );

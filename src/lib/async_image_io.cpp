@@ -38,10 +38,6 @@ void gImageLoadTracker_t::LogImages( void )
 // It's assumed that lightmaps aren't passed into this callback...
 static void AssignIndex( uint16_t assignIndex )
 {
-	std::stringstream debugOut;
-
-	debugOut << "INDEX: " << assignIndex << "|";
-
 	if ( gImageTracker->isKeyMapped )
 	{
 		size_t keyMap =
@@ -57,8 +53,6 @@ static void AssignIndex( uint16_t assignIndex )
 		{
 			gImageTracker->map.MarkBadTexture( keyMap );
 		}
-
-		debugOut << "KEY MAP: " << keyMap;
 	}
 	else
 	{
@@ -68,14 +62,7 @@ static void AssignIndex( uint16_t assignIndex )
 
 		// This index will persist in the texture array it's going into
 		stage->textureIndex = assignIndex;
-
-		debugOut << "SHADER STAGE OWNER: " << &stage->owningShader->name[0];
-		debugOut << "|SHADER STAGE PATH: " << &stage->texturePath[0];
 	}
-
-	debugOut << "\n";
-
-	MLOG_INFO( "%s", debugOut.str().c_str() );
 
 	gImageTracker->iterator++;
 }
@@ -94,11 +81,9 @@ static void OnImageRead( char* buffer, int size, void* param )
 		return;
 	}
 
-	MLOG_INFO( "ITERATOR VALUE: %i", gImageTracker->iterator );
-
 	bool atEnd =
-		( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size();
-
+		( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size() - 1;
+		
 	if ( !buffer || !size || atEnd )
 	{
 		if ( atEnd && gImageTracker->finishEvent )

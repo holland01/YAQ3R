@@ -568,6 +568,29 @@ struct shaderStage_t
 
 	const Program& GetProgram( void ) const
 	{ return *GQueryProgram( program ); }
+
+	static std::string GetBinLayoutString( void )
+	{
+		std::stringstream ss;
+
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, depthPass );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, textureIndex );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, tcgen );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, blendSrc );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, blendDest );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, depthFunc );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, rgbGen );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, alphaFunc );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, mapCmd );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, mapType );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, effects );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, alphaGen );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, texturePath );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, program );
+		ss << SSTREAM_BYTE_OFFSET( shaderStage_t, owningShader );
+
+		return ss.str();
+	}
 };
 
 struct shaderInfo_t
@@ -608,6 +631,26 @@ struct shaderInfo_t
 	}
 
 	void PrintStageTextureNames( void ) const;
+
+	static std::string GetBinLayoutString( void )
+	{
+		std::stringstream ss;
+
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deform );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deformCmd );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deformFn );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deformParms );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, cullFace );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, surfaceParms );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, localLoadFlags );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, tessSize );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, stageCount );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, surfaceLight );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, name );
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, stageBuffer );
+
+		return ss.str();
+	}
 };
 
 bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b );
