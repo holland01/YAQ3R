@@ -272,6 +272,43 @@ The fetch.js file is reverted so this should be taken care of now.
 
 ### 7/30/17
 
+This is bad:
+
+```
+bool atEnd =
+    ( size_t ) gImageTracker->iterator >=
+        gImageTracker->textureInfo.size() - 1;
+```
+
+The server will iterate through each filename matched in the bundle's data,
+and if any of the files iterated turn out to be unusable, a nullptr is sent
+to indicate failure.
+
+Furthermore, the final message is always sent after every file has been iterated
+over, so definitely is an N + 1 sequence here.
+
+That said, there is always the chance that some of the requested files aren't
+found in the  bundle loader's serialization code path (during the initial
+"slice" creation).
+
+One requested file not being available would explain why `atEnd` wasn't true
+during the final call to `OnImageRead()`; `AssignIndex()` is what increments
+the iterator, and it's called irrespective of whether or not there is a
+failure, but it's not supposed to be called during `OnImageRead()`'s ending
+final call: it should at that point be equal to the size of `textureInfo`.
+
+So, the only realistic explanation for why `atEnd` didn't resolve to true when
+it should have is that there's a mismatch between `textureInfo.size()`
+and `gBundle->GetNumFiles()`.
+
+A method has to be devised to ensure that there is proper synchronization;
+if any of the requested files aren't found. You can compare `undefCounter` with
+the length of the generated `files` list in `AL.addSliceMeta()` to
+determine this: if they're not equal then obviously there's a hiccup.
+
+That said, this is also going to affect the indexing used to generate the
+texture atlasses, since they depend on `gImageTracker->iterator`.
+
 * Fix heap corruption
 
 * Do an `MLOG_INFO` purge
