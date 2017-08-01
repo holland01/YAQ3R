@@ -1,7 +1,9 @@
 #pragma once
 
 #include "common.h"
+#include "io.h"
 #include <memory>
+#include <unordered_map>
 
 class Q3BspMap;
 
@@ -31,7 +33,7 @@ using extFallbackBuff_t = std::vector< std::string >;
 // every stage with a texture image knows the index used to access the
 // "image slot" within the texture atlas.
 
-namespace gla 
+namespace gla
 {
 	struct atlas_t;
 }
@@ -40,31 +42,46 @@ struct gImageLoadTracker_t
 {
 	bool isKeyMapped : 1;
 
-	int16_t iterator;
-	int16_t extIterator;
-
 	onFinishEvent_t finishEvent;
 
-	glm::ivec2 maxDims;
+	Q3BspMap* map;
 
-	Q3BspMap& map;
+	std::unordered_map< std::string, void* > textureInfo;
 
-	std::vector< gPathMap_t > textureInfo;
+	size_t serverImageCount;
+	size_t iterator;
 
-	gla::atlas_t& destAtlas;
+	gla::atlas_t* destAtlas;
 
-	gImageLoadTracker_t( Q3BspMap& map_,
-		std::vector< gPathMap_t > textureInfo_,
+	std::unordered_map< std::string, void* >
+		GenInfoMap( const std::vector< gPathMap_t >& info ) const
+	{
+		std::unordered_map< std::string, void* > infoMap;
+
+		for ( auto& entry: info )
+		{
+			// Server will send image filenames without extensions:
+			// there are a fair amount of paths referenced in the shader
+			// files which exist on disk, but in different formats
+			// than what is specified in their corresponding shader entries.
+			infoMap[ File_StripExt( entry.path ) ] = entry.param;
+		}
+
+		return infoMap;
+	}
+
+	gImageLoadTracker_t(
+		Q3BspMap* map_,
+		const std::vector< gPathMap_t >& textureInfo_,
 		onFinishEvent_t finishEvent_,
-		gla::atlas_t& destAtlas_,
-		bool isKeyMapped_ )
-		:	isKeyMapped( isKeyMapped_ ),
-			iterator( 0 ),
-			extIterator( 0 ),
+		gla::atlas_t* destAtlas_,
+		bool isKeyMapped_
+	)	:	isKeyMapped( isKeyMapped_ ),
 			finishEvent( finishEvent_ ),
-			maxDims( 0.0f ),
 			map( map_ ),
-			textureInfo( textureInfo_ ),
+			textureInfo( GenInfoMap( textureInfo_ ) ),
+			serverImageCount( 0 ),
+			iterator( 0 ),
 			destAtlas( destAtlas_ )
 	{
 	}
@@ -77,10 +94,10 @@ using gImageLoadTrackerPtr_t = std::unique_ptr< gImageLoadTracker_t >;
 void AIIO_FixupAssetPath( gPathMap_t& pathMap );
 
 void AIIO_ReadImages(
-	Q3BspMap& map,
+	Q3BspMap* map,
 	const std::string& bundlePath,
-	std::vector< gPathMap_t > pathInfo,
+	const std::vector< gPathMap_t >& pathInfo,
 	onFinishEvent_t finish,
-	gla::atlas_t& destAtlas,
+	gla::atlas_t* destAtlas,
 	bool keyMapped
 );

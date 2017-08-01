@@ -11,9 +11,12 @@ void gImageLoadTracker_t::LogImages( void )
 {
 	std::stringstream ss;
 	ss << "Reading Images: \n";
-	for ( size_t i = 0; i < gImageTracker->textureInfo.size(); ++i )
+
+	uint32_t i = 0;
+
+	for ( auto& kv : gImageTracker->textureInfo )
 	{
-		ss << gImageTracker->textureInfo[ i ].path;
+		ss << kv.first;
 
 		if ( i < gImageTracker->textureInfo.size() - 1 )
 		{
@@ -24,6 +27,8 @@ void gImageLoadTracker_t::LogImages( void )
 		{
 			ss << "\n";
 		}
+
+		++i;
 	}
 
 	printf( "---------\n%s\n----------\n", ss.str().c_str() );
@@ -32,33 +37,33 @@ void gImageLoadTracker_t::LogImages( void )
 #define DATA_FMT_STRING( bufferSize ) \
 	"Received: width->%i, height->%i, bpp->%i, size->%i, copy buffer size->%i,"\
  	"For path: \'%s\'.",\
-	width, height, bpp, size, ( bufferSize ),\
-	gImageTracker->textureInfo[ gImageTracker->iterator ].path.c_str()
+	imageInfo->width, imageInfo->height, imageInfo->bpp, size, ( bufferSize ),\
+	&imageInfo->name[ 0 ]
 
 // It's assumed that lightmaps aren't passed into this callback...
-static void AssignIndex( uint16_t assignIndex )
+static void AssignIndex( wApiImageInfo_t* info, uint16_t assignIndex )
 {
+	std::string pathString( info->name );
+
 	if ( gImageTracker->isKeyMapped )
 	{
 		size_t keyMap =
-			( size_t ) gImageTracker->
-				textureInfo[ gImageTracker->iterator ].param;
+			( size_t ) gImageTracker->textureInfo[ pathString ];
 
-		gImageTracker->destAtlas.map_key_to_image(
+		gImageTracker->destAtlas->map_key_to_image(
 			keyMap,
 			assignIndex
 		);
 
 		if ( assignIndex == gla::atlas_t::no_image_index )
 		{
-			gImageTracker->map.MarkBadTexture( keyMap );
+			gImageTracker->map->MarkBadTexture( keyMap );
 		}
 	}
 	else
 	{
 		shaderStage_t* stage =
-			( shaderStage_t* ) gImageTracker->
-				textureInfo[ gImageTracker->iterator ].param;
+			( shaderStage_t* ) gImageTracker->textureInfo[ pathString ];
 
 		// This index will persist in the texture array it's going into
 		stage->textureIndex = assignIndex;
@@ -67,53 +72,113 @@ static void AssignIndex( uint16_t assignIndex )
 	gImageTracker->iterator++;
 }
 
-// First 8 bytes follow this format:
-// 0, 1 -> width
-// 2, 3 -> height
-// 4 -> bpp
-// 5, 6, 7 -> padding
-// What follows is the image data.
+// Bytes follow this format:
+
+// [0, 63] -> filepath
+// 64, 65 -> width
+// 66, 67 -> height
+// 68 -> bpp
+// [69, 71] -> padding
+
+// What follows afterward is the image data.
+
+// The first send will always report the amount of file paths actually
+// accepted: sometimes a client-requested path or two won't actually be on
+// disk, and nothing similar will be available either; if we don't actually
+// send this then there's a good chance that that the finish function
+// won't be called.
+
+// Once finished, we send the address of gImageTracker to
+// gImageTracker->finishEvent(). gImageTracker is a unique_ptr.
 static void OnImageRead( char* buffer, int size, void* param )
 {
 	if ( !gImageTracker )
 	{
-		MLOG_ERROR( "Image tracker is NULL" );
+		MLOG_ERROR( "%s", "gImageTracker is NULL" );
 		return;
 	}
 
-	bool atEnd =
-		( size_t ) gImageTracker->iterator >= gImageTracker->textureInfo.size() - 1;
-		
-	if ( !buffer || !size || atEnd )
+	if ( !gImageTracker->finishEvent )
 	{
-		if ( atEnd && gImageTracker->finishEvent )
+		MLOG_ERROR( "%s", "No finishEvent assigned in gImageTracker!" );
+		return;
+	}
+
+	wApiImageInfo_t* imageInfo = ( wApiImageInfo_t* ) buffer;
+
+	bool atEnd = gImageTracker->serverImageCount > 0
+		&& gImageTracker->iterator >= gImageTracker->serverImageCount;
+
+	if ( atEnd )
+	{
+		gImageTracker->finishEvent( &gImageTracker );
+
+		return;
+	}
+
+	if ( !imageInfo )
+	{
+		MLOG_ERROR( "%s", "nullptr should NOT be received at this stage" );
+
+		return;
+	}
+
+	// A zero size implies an image which couldn't be found, so we
+	// take the name from our info and use it to assign an invalid index.
+	if ( !size )
+	{
+		AssignIndex(
+			imageInfo,
+			gla::atlas_t::no_image_index
+		);
+
+		return;
+	}
+
+	if ( !gImageTracker->serverImageCount )
+	{
+		if ( strncmp(
+				&imageInfo->name[ 0 ],
+				WAPI_IMAGE_SERVER_IMAGE_COUNT,
+				strlen( WAPI_IMAGE_SERVER_IMAGE_COUNT ) ) == 0 )
 		{
-			gImageTracker->finishEvent( &gImageTracker );
+			gImageTracker->serverImageCount = ( size_t ) imageInfo->width;
+
+			// There may not be any needed images for this current bundle.
+			// Even if that's the case, the server will still provide its
+			// final "ending" call, so here we make sure that atEnd will
+			// resolve to true naturally on the final run.
+			if ( !gImageTracker->serverImageCount )
+			{
+				gImageTracker->serverImageCount = 0x7FFFFFFF;
+				gImageTracker->iterator = 0x7FFFFFFF;
+			}
 		}
 		else
 		{
-			AssignIndex( gla::atlas_t::no_image_index );
+			MLOG_ERROR(
+				"%s",
+				"ERROR: first wApiImageInfo_t sent MUST be the header"
+			);
 		}
 
 		return;
 	}
 
-	int32_t width = WAPI_Fetch16( buffer, 0, size );
-	int32_t height = WAPI_Fetch16( buffer, 2, size );
-	int32_t bpp = ( int32_t ) buffer[ 4 ];
-
-	if ( !width || !height || !bpp )
+	if ( !imageInfo->width || !imageInfo->height || !imageInfo->bpp )
 	{
-		MLOG_ERROR( "zero portion of metadata received. " DATA_FMT_STRING( 0 ) );
+		MLOG_ERROR(
+			"zero portion of metadata received. " DATA_FMT_STRING( 0 ) );
 		return;
 	}
 
-	size_t imageDataSize = width * height * bpp + 8;
+	size_t imageDataSize = imageInfo->width * imageInfo->height * imageInfo->bpp
+		+ sizeof( *imageInfo );
 
 	if ( ( size_t ) size != imageDataSize )
 	{
 		MLOG_ERROR(
-			"buffer size does not match "\
+			"buffer size does not match " \
 	 		"interpreted metadata criteria. "
 			DATA_FMT_STRING( imageDataSize )
 		);
@@ -121,14 +186,16 @@ static void OnImageRead( char* buffer, int size, void* param )
 	}
 
 	gla::push_atlas_image(
-		gImageTracker->destAtlas,
-		( uint8_t* ) &buffer[ 8 ],
-		width,
-		height,
-		bpp
+		*( gImageTracker->destAtlas ),
+		( uint8_t* ) &buffer[ sizeof( *imageInfo ) ],
+		imageInfo->width,
+		imageInfo->height,
+		imageInfo->bpp
 	);
 
-	AssignIndex( gImageTracker->destAtlas.num_images - 1 );
+	AssignIndex(
+	 	imageInfo,
+		gImageTracker->destAtlas->num_images - 1 );
 }
 #undef DATA_FMT_STRING
 
@@ -146,11 +213,11 @@ void AIIO_FixupAssetPath( gPathMap_t& pm )
 }
 
 void AIIO_ReadImages(
-	Q3BspMap& map,
+	Q3BspMap* map,
 	const std::string& bundlePath,
-	std::vector< gPathMap_t > pathInfo,
+	const std::vector< gPathMap_t >& pathInfo,
 	onFinishEvent_t finish,
-	gla::atlas_t& destAtlas,
+	gla::atlas_t* destAtlas,
 	bool keyMapped
 )
 {
@@ -167,11 +234,11 @@ void AIIO_ReadImages(
 	std::stringstream bundlePaths;
 	bundlePaths << bundlePath << ASSET_ASCII_DELIMITER;
 
-	for ( uint32_t i = 0; i < gImageTracker->textureInfo.size(); ++i )
+	for ( uint32_t i = 0; i < pathInfo.size(); ++i )
 	{
-		bundlePaths << gImageTracker->textureInfo[ i ].path;
+		bundlePaths << pathInfo[ i ].path;
 
-		if ( ( i + 1 ) < gImageTracker->textureInfo.size() )
+		if ( ( i + 1 ) < pathInfo.size() )
 		{
 			bundlePaths << ASSET_ASCII_DELIMITER;
 		}

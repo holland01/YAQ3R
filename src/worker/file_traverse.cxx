@@ -17,6 +17,8 @@
 
 #define AL_STRING_DELIM '|'
 
+#define BSP_MAX_PATH_LENGTH 64
+
 void TestFile( unsigned char* path )
 {
 	char* strpath = ( char* )path;
@@ -378,8 +380,22 @@ public:
 		bundle = &buffer[ sizeof( *bufferInfo ) + bufferInfo->metaByteLen ];
 
 		numMetaEntries = bufferInfo->metaByteLen / sizeof( *metadata );
+	}
 
-		PrintMetadata();
+	void SendImageStreamHeader( void ) const
+	{
+		wApiImageInfo_t header;
+		memset( &header, 0, sizeof( header ) );
+
+		memcpy( &header.name[ 0 ], WAPI_IMAGE_SERVER_IMAGE_COUNT,
+			strlen( WAPI_IMAGE_SERVER_IMAGE_COUNT ) );
+
+		header.width = ( uint16_t ) numMetaEntries;
+
+		emscripten_worker_respond_provisionally(
+			( char* ) &header,
+			sizeof( header )
+		);
 	}
 
 	const char* GetFile( uint32_t metadataIndex, int& outSize ) const
@@ -425,9 +441,9 @@ public:
 		return ext == ".shader";
 	}
 
-	std::vector<char> ReadImage( const char* filename )
+	std::vector< char > ReadImage( const char* filename )
 	{
-		std::vector<char> imgBuff;
+		std::vector< char > imgBuff;
 
 		int width, height, bpp; // bpp is in bytes...
 
@@ -440,7 +456,9 @@ public:
 			return imgBuff;
 		}
 
-		stbi_uc* buf = stbi_load_from_memory( ( const stbi_uc* ) ptr, outSize, &width, &height, &bpp, STBI_default );
+		stbi_uc* buf = stbi_load_from_memory(
+			( const stbi_uc* ) ptr, outSize, &width, &height, &bpp,
+			STBI_default );
 
 		if ( !buf )
 		{
@@ -449,19 +467,37 @@ public:
 		}
 
 		size_t size = width * height * bpp;
-		size_t cap = size + 8;
 
+		// Prefix with the filepath: this will always be 64 bytes.
+		// 8 bytes afterward for width, height, and bpp.
+		// Then the actual image data follows.
+		size_t cap = BSP_MAX_PATH_LENGTH + 8 + size;
 		imgBuff.resize( cap, 0 );
-		memcpy( &imgBuff[ 8 ], buf, size );
 
-		// There's no way that we'll need more
-		// Than 16 bits for each dimension.
+		// Write image data...
+		memcpy( &imgBuff[ BSP_MAX_PATH_LENGTH + 8 ], buf, size );
+
+		// NOTE: extension has to be stripped always in order for the client
+		// to interpret the data properly: a lot of image paths specified
+		// in the shaders will refer to images that _do_ exist but not in the
+		// requested format. More often than not the shader path refers to a
+		// .tga file, and there's really only a .jpg variant of
+		// that path on disk.
+		std::string strippedPath( StripExt( std::string( filename ) ) );
+
+		memcpy( &imgBuff[ 0 ], strippedPath.c_str(), strippedPath.size() );
+
+		// There's no way that we'll need more than 16 bits for each dimension.
 		// Remaining 3 bytes are for padding.
-		imgBuff[ 0 ] = ( unsigned char )( width & 0xFF );
-		imgBuff[ 1 ] = ( unsigned char )( ( width >> 8 ) & 0xFF );
-		imgBuff[ 2 ] = ( unsigned char )( height & 0xFF );
-		imgBuff[ 3 ] = ( unsigned char )( ( height >> 8 ) & 0xFF );
-		imgBuff[ 4 ] = ( unsigned char )( bpp );
+		imgBuff[ BSP_MAX_PATH_LENGTH + 0 ] = ( unsigned char )( width & 0xFF );
+		imgBuff[ BSP_MAX_PATH_LENGTH + 1 ] =
+			( unsigned char )( ( width >> 8 ) & 0xFF );
+
+		imgBuff[ BSP_MAX_PATH_LENGTH + 2 ] = ( unsigned char )( height & 0xFF );
+		imgBuff[ BSP_MAX_PATH_LENGTH + 3 ] =
+			( unsigned char )( ( height >> 8 ) & 0xFF );
+
+		imgBuff[ BSP_MAX_PATH_LENGTH + 4 ] = ( unsigned char )( bpp );
 
 		stbi_image_free( buf );
 
@@ -689,9 +725,9 @@ static void ReadShaders_Proxy( char* data, int size )
 
 static void ReadImage_Proxy( const char* path, int size )
 {
-	std::string full( path );
+	std::string pathString( path );
 
-	std::vector< char > imgBuff = gBundle->ReadImage( full.c_str() );
+	std::vector< char > imgBuff = gBundle->ReadImage( pathString.c_str() );
 
 	if ( imgBuff.empty() )
 	{
@@ -701,7 +737,7 @@ static void ReadImage_Proxy( const char* path, int size )
 		};
 
 		std::string firstExt;
-		volatile bool hasExt = GetExt( full, firstExt );
+		volatile bool hasExt = GetExt( pathString, firstExt );
 
 		for ( size_t i = 0; i < candidates.size() && imgBuff.empty(); ++i )
 		{
@@ -710,30 +746,31 @@ static void ReadImage_Proxy( const char* path, int size )
 				continue;
 			}
 
-			full = ReplaceExt( full, candidates[ i ] );
+			pathString = ReplaceExt( pathString, candidates[ i ] );
 
-			imgBuff = gBundle->ReadImage( full.c_str() );
+			imgBuff = gBundle->ReadImage( pathString.c_str() );
 		}
 
 		if ( imgBuff.empty() )
 		{
-			O_Log( "%s", "PING FAIL" );
-			gBundle->SendEmptyProvisionally();
+			std::vector< char > blankBuffer( 64 + 8 );
 			return;
 		}
 	}
 
-	O_Log( "%s", "PING SUCCESS" );
 	emscripten_worker_respond_provisionally( &imgBuff[ 0 ], imgBuff.size() );
 }
 
 static void LoadImagesAndStream( char* buffer, int size )
 {
 	gBundle->Load( buffer, size );
+	gBundle->SendImageStreamHeader();
+
 	while ( gBundle->GetIterator() < gBundle->GetNumFiles() )
 	{
 		gBundle->SendNextImage();
 	}
+
 	gBundle->FinishStream();
 }
 

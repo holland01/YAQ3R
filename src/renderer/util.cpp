@@ -183,11 +183,11 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 	if ( gImageLoadState.currNode )
 	{
 		AIIO_ReadImages(
-			*gImageLoadState.map,
+			gImageLoadState.map,
 			gImageLoadState.currNode->bundle,
 			gImageLoadState.currNode->paths,
 			LoadImagesEnd,
-			*( gImageLoadState.destAtlas ),
+			gImageLoadState.destAtlas,
 			gImageLoadState.keyMapped
 		);
 	}
@@ -207,7 +207,7 @@ static void LoadImageState(
 	gImageLoadState.map = &map;
 	gImageLoadState.head = BundleImagePaths( sources );
 	gImageLoadState.currNode = gImageLoadState.head.get();
-	gImageLoadState.destAtlas = map.payload->textureData[atlas].get();
+	gImageLoadState.destAtlas = map.payload->textureData[ atlas ].get();
 
 	LoadImagesBegin( nullptr, 0, 0 );
 }

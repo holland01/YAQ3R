@@ -6,6 +6,8 @@
 
 extern "C" {
 
+// Used by Q3BspMap (q3bsp.h/.cpp) to
+
 struct wApiChunkInfo_t
 {
 	size_t offset;
@@ -15,6 +17,28 @@ struct wApiChunkInfo_t
 static const uint32_t WAPI_ERROR = 0xFFFFFFFF;
 static const uint32_t WAPI_TRUE = 1;
 static const uint32_t WAPI_FALSE = 0;
+
+// What follows is used for transferring images over to the main thread.
+// Basic idea: send a header which describes N images to receive,
+// and everything after that is an image. wApiChunk_t is also used
+// for the header though: name param is WAPI_CHUNK_SERVER_IMAGE_COUNT
+
+#define WAPI_IMAGE_MAX_NAME_LENGTH 64
+#define WAPI_IMAGE_IMAGE_INFO_LENGTH 8
+#define WAPI_IMAGE_SERVER_IMAGE_COUNT "SERVER_IMAGE_COUNT"
+
+struct wApiImageInfo_t
+{
+	char 		name[ WAPI_IMAGE_MAX_NAME_LENGTH ];
+
+	uint16_t 	width;
+	uint16_t 	height;
+
+	uint8_t 	bpp;
+	uint8_t 	pad[ 3 ];
+
+	// Image data is here...
+};
 
 static inline uint32_t WAPI_Fetch32( const char* buffer, int size, int ofs )
 {
@@ -49,11 +73,15 @@ static inline uint32_t WAPI_Fetch16( char* buffer, int ofs, int size )
 	return x | ( y << 8 );
 }
 
-static inline uint32_t WAPI_StrEquals( register const char* a,
-	register const char* b, int n, int* stopIndex )
+static inline uint32_t WAPI_StrEquals(
+	register const char* a,
+	register const char* b,
+	int n,
+	int* stopIndex
+)
 {
 	int k = 0;
-	while (	a[k] == b[k] && k < n )
+	while (	a[ k ] == b[ k ] && k < n )
 	{
 		k++;
 	}
