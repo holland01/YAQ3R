@@ -315,7 +315,7 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
 
-	MLOG_INFO( "%s", GetBinLayoutString().c_str() );
+	//MLOG_INFO( "%s", GetBinLayoutString().c_str() );
 }
 
 std::string BSPRenderer::GetBinLayoutString( void ) const
@@ -908,10 +908,17 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		GL_CHECK( glDepthMask( GL_TRUE ) );
 	}
 
+	//std::stringstream errorInfo;
+
+	//errorInfo << shader->GetInfoString();
+
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
 		const Program& stageProg = stage.GetProgram();
+
+		//errorInfo 	<< "\n-------------------\n[" << i << "]\n"
+		//			<< stage.GetInfoString();
 
 		stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
 
@@ -953,8 +960,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		if ( texIndex < 0 )
 		{
-			FlagExit();
-			puts( "Bad texture index in effect pass." );
+			//FlagExit();
+		//	MLOG_INFO( "texIndex: %i\n\n %s", texIndex, errorInfo.str().c_str() );
 			return;
 		}
 

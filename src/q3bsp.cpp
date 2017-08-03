@@ -418,9 +418,9 @@ static void UnmountShadersFin( char* data, int size, void* arg )
 	UNUSED( data );
 	UNUSED( size );
 
-	MLOG_INFO( "===============\n"\
-		"Loading images from effect shaders..."\
-		"\n===============" );
+	//MLOG_INFO( "===============\n"\
+	//	"Loading images from effect shaders..."\
+	//	"\n===============" );
 
 	GU_LoadShaderTextures( *( ( Q3BspMap* ) arg ) );
 }
@@ -449,6 +449,11 @@ void Q3BspMap::MarkBadTexture( ssize_t index )
 
 void Q3BspMap::SweepBadTextures( void )
 {
+	if ( badTextures.empty() )
+	{
+		return;
+	}
+
 	for ( size_t i = 0; i < data.faces.size(); ++i )
 	{
 		bspFace_t& f = data.faces[ i ];
@@ -483,14 +488,13 @@ void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 void Q3BspMap::OnMainLoadImagesFinish( void* param )
 {
 	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
-	Q3BspMap& map = *( ( *imageTracker )->map );
+	Q3BspMap* map = ( *imageTracker )->map;
 
 	//imageTracker->reset();
 
-	map.SweepBadTextures();
-
-	map.mapAllocated = true;
-	map.readFinishEvent( &map );
+	map->SweepBadTextures();
+	map->mapAllocated = true;
+	map->readFinishEvent( map );
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const

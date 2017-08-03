@@ -569,6 +569,29 @@ struct shaderStage_t
 	const Program& GetProgram( void ) const
 	{ return *GQueryProgram( program ); }
 
+	std::string GetInfoString( void ) const
+	{
+		std::stringstream ss;
+
+		ss << SSTREAM_INFO_BEGIN( shaderStage_t );
+		ss << SSTREAM_INFO_PARAM( depthPass );
+		ss << SSTREAM_INFO_PARAM( textureIndex );
+		ss << SSTREAM_INFO_PARAM( tcgen );
+		ss << SSTREAM_INFO_PARAM( blendSrc );
+		ss << SSTREAM_INFO_PARAM( blendDest );
+		ss << SSTREAM_INFO_PARAM( depthFunc );
+		ss << SSTREAM_INFO_PARAM( rgbGen );
+		ss << SSTREAM_INFO_PARAM( alphaFunc );
+		ss << SSTREAM_INFO_PARAM( mapCmd );
+		ss << SSTREAM_INFO_PARAM( mapType );
+		ss << SSTREAM_INFO_PARAM_OMIT( effects );
+		ss << SSTREAM_INFO_PARAM( alphaGen );
+		ss << SSTREAM_INFO_PARAM( &texturePath[ 0 ] );
+		ss << SSTREAM_INFO_END();
+
+		return ss.str();
+	}
+
 	static std::string GetBinLayoutString( void )
 	{
 		std::stringstream ss;
@@ -612,7 +635,7 @@ struct shaderInfo_t
 
 	uint32_t			surfaceParms = 0; // global surface parameters
 
-	uint8_t				localLoadFlags;
+	uint32_t			localLoadFlags = 0;
 
 	float				tessSize = 0.0f; // 0 if none
 
@@ -631,6 +654,28 @@ struct shaderInfo_t
 	}
 
 	void PrintStageTextureNames( void ) const;
+
+	std::string GetInfoString( void ) const
+	{
+		std::stringstream ss;
+
+		ss << SSTREAM_INFO_BEGIN( shaderInfo_t );
+		ss << SSTREAM_INFO_PARAM( deform );
+		ss << SSTREAM_INFO_PARAM( deformCmd );
+		ss << SSTREAM_INFO_PARAM( deformFn );
+		ss << SSTREAM_INFO_PARAM_OMIT( deformParms );
+		ss << SSTREAM_INFO_PARAM( cullFace );
+		ss << SSTREAM_INFO_PARAM( surfaceParms );
+		ss << SSTREAM_INFO_PARAM( localLoadFlags );
+		ss << SSTREAM_INFO_PARAM( tessSize );
+		ss << SSTREAM_INFO_PARAM( stageCount );
+		ss << SSTREAM_INFO_PARAM( surfaceLight );
+		ss << SSTREAM_INFO_PARAM( &name[ 0 ] );
+		ss << SSTREAM_INFO_PARAM_OMIT( stageBuffer );
+		ss << SSTREAM_INFO_END();
+
+		return ss.str();
+	}
 
 	static std::string GetBinLayoutString( void )
 	{

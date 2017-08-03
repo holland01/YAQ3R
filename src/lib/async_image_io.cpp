@@ -55,10 +55,10 @@ static void AssignIndex( wApiImageInfo_t* info, uint16_t assignIndex )
 			assignIndex
 		);
 
-		if ( assignIndex == gla::atlas_t::no_image_index )
-		{
-			gImageTracker->map->MarkBadTexture( keyMap );
-		}
+	//	if ( assignIndex == gla::atlas_t::no_image_index )
+	//	{
+	//		gImageTracker->map->MarkBadTexture( keyMap );
+	//	}
 	}
 	else
 	{
@@ -195,7 +195,8 @@ static void OnImageRead( char* buffer, int size, void* param )
 
 	AssignIndex(
 	 	imageInfo,
-		gImageTracker->destAtlas->num_images - 1 );
+		gImageTracker->destAtlas->num_images - 1
+	);
 }
 #undef DATA_FMT_STRING
 

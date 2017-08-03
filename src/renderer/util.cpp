@@ -31,7 +31,7 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 static void PrintInfo( const std::string& title,
 	const std::vector< gPathMap_t > source )
 {
-	MLOG_INFO( "%s\n\tCount: %i", title.c_str(), ( int ) source.size() );
+	//MLOG_INFO( "%s\n\tCount: %i", title.c_str(), ( int ) source.size() );
 }
 
 static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )

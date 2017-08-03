@@ -711,7 +711,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		std::string path( tmp );
 
-		MLOG_INFO( "Shader filepath read from buffer: %s", path.c_str() );
+		//MLOG_INFO( "Shader filepath read from buffer: %s", path.c_str() );
 		isMapShader = map->IsMapOnlyShader( path );
 	}
 
@@ -763,7 +763,7 @@ static void OnShaderRead( char* buffer, int size, void* param )
 	}
 	else
 	{
-		MLOG_INFO( "End of shader reading." );
+		//MLOG_INFO( "End of shader reading." );
 		map->OnShaderReadFinish();
 	}
 }

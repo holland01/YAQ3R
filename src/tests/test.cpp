@@ -23,24 +23,23 @@ static onFinishEvent_t gTmpMapReadFinish = nullptr;
 
 static void OnFrameIteration( void )
 {
-	MLOG_INFO( "%s", "ONE" );
-
 	if ( !gAppTest )
 		return;
 
-	MLOG_INFO( "%s", "TWO" );
-/*
 	SDL_Event e;
 	while ( SDL_PollEvent( &e ) )
 	{
+		// some keys are subject to being processed
+		// more than once for this frame, which isn't desired,
+		// so we force a break if any of those are pressed
 		if ( !gAppTest->OnInputEvent( &e ) )
 			break;
 	}
-*/
+
 	GL_CHECK( glClearColor( 1.0f, 0.0f, 0.0f, 1.0f ) );
 	GL_CHECK( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
 
-//	gAppTest->Run();
+	gAppTest->Run();
 
 	SDL_GL_SwapWindow( gAppTest->base.window );
 
@@ -161,6 +160,10 @@ bool Test::OnInputEvent( SDL_Event* e )
 					break;
 			}
 
+			// This forces us to break out of the loop:
+			// any of the keys in this block
+			// are otherwise subject to being processed
+			// more than once for this frame, which isn't desired.
 			return false;
 			break;
 
