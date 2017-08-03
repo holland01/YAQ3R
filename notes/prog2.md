@@ -314,3 +314,170 @@ texture atlasses, since they depend on `gImageTracker->iterator`.
 * Do an `MLOG_INFO` purge
 
 * See if you can render without a crash.
+
+### 8/3/17
+
+There's a .tga texture file used in a shader stage
+that should be producing a textureIndex != -1 for the stage
+after the map data has been read, but isn't.
+
+The last stage in the following dump is the offender.
+
+Need to figure out why this is happening.
+
+```
+[ DrawEffectPass | INFO ]: texIndex: -1
+bspviewer.html:1237
+bspviewer.html:1237  shaderInfo_t{
+bspviewer.html:1237 	deform: 0,
+bspviewer.html:1237 	deformCmd: 255,
+bspviewer.html:1237 	deformFn: 255,
+bspviewer.html:1237 	deformParms: <stubbed out>,
+bspviewer.html:1237 	cullFace: 0,
+bspviewer.html:1237 	surfaceParms: 8568832,
+bspviewer.html:1237 	localLoadFlags: 0,
+bspviewer.html:1237 	tessSize: 0,
+bspviewer.html:1237 	stageCount: 3,
+bspviewer.html:1237 	surfaceLight: 0,
+bspviewer.html:1237 	&name[ 0 ]: textures/sfx/flame1side,
+bspviewer.html:1237 	stageBuffer: <stubbed out>,
+bspviewer.html:1237 }
+bspviewer.html:1237
+bspviewer.html:1237 -------------------
+bspviewer.html:1237 [0]
+bspviewer.html:1237 shaderStage_t{
+bspviewer.html:1237 	depthPass: 0,
+bspviewer.html:1237 	textureIndex: -1,
+bspviewer.html:1237 	tcgen: 0,
+bspviewer.html:1237 	blendSrc: 1,
+bspviewer.html:1237 	blendDest: 1,
+bspviewer.html:1237 	depthFunc: 515,
+bspviewer.html:1237 	rgbGen: 255,
+bspviewer.html:1237 	alphaFunc: 0,
+bspviewer.html:1237 	mapCmd: 0,
+bspviewer.html:1237 	mapType: 0,
+bspviewer.html:1237 	effects: <stubbed out>,
+bspviewer.html:1237 	alphaGen: 0,
+bspviewer.html:1237 	&texturePath[ 0 ]: ,
+bspviewer.html:1237 }
+bspviewer.html:1237
+bspviewer.html:1237 -------------------
+bspviewer.html:1237 [1]
+bspviewer.html:1237 shaderStage_t{
+bspviewer.html:1237 	depthPass: 0,
+bspviewer.html:1237 	textureIndex: -1,
+bspviewer.html:1237 	tcgen: 0,
+bspviewer.html:1237 	blendSrc: 1,
+bspviewer.html:1237 	blendDest: 1,
+bspviewer.html:1237 	depthFunc: 515,
+bspviewer.html:1237 	rgbGen: 255,
+bspviewer.html:1237 	alphaFunc: 0,
+bspviewer.html:1237 	mapCmd: 0,
+bspviewer.html:1237 	mapType: 0,
+bspviewer.html:1237 	effects: <stubbed out>,
+bspviewer.html:1237 	alphaGen: 0,
+bspviewer.html:1237 	&texturePath[ 0 ]: ,
+bspviewer.html:1237 }
+bspviewer.html:1237
+bspviewer.html:1237 -------------------
+bspviewer.html:1237 [2]
+bspviewer.html:1237 shaderStage_t{
+bspviewer.html:1237 	depthPass: 0,
+bspviewer.html:1237 	textureIndex: -1,
+bspviewer.html:1237 	tcgen: 0,
+bspviewer.html:1237 	blendSrc: 1,
+bspviewer.html:1237 	blendDest: 1,
+bspviewer.html:1237 	depthFunc: 515,
+bspviewer.html:1237 	rgbGen: 255,
+bspviewer.html:1237 	alphaFunc: 0,
+bspviewer.html:1237 	mapCmd: 2,
+bspviewer.html:1237 	mapType: 1,
+bspviewer.html:1237 	effects: <stubbed out>,
+bspviewer.html:1237 	alphaGen: 0,
+bspviewer.html:1237 	&texturePath[ 0 ]: textures/sfx/flameball.tga,
+bspviewer.html:1237 }
+```
+
+Also, so far, this really seems to be the only file list (sent to fetch.js)
+which actually has missing paths - that said, these are all "files" (really
+just shader entry titles) acquired from GU_LoadMainTextures.
+```
+Array(88)
+9
+:
+"/asset/textures/dummy_image"
+10
+:
+"/asset/textures/common/caulk"
+21
+:
+"/asset/textures/skies/tim_dm3_red"
+34
+:
+"/asset/textures/common/clip"
+35
+:
+"/asset/textures/organics/wire02_f2"
+36
+:
+"/asset/textures/common/hint"
+39
+:
+"/asset/textures/gothic_trim/pitted_rust2_trans"
+45
+:
+"/asset/textures/gothic_light/ironcrosslt2_5000"
+46
+:
+"/asset/textures/gothic_light/ironcrosslt2_3000"
+48
+:
+"/asset/textures/gothic_block/killblock_i4b"
+49
+:
+"/asset/textures/gothic_light/ironcrosslt2_10000"
+50
+:
+"/asset/textures/gothic_light/pentagram_light1_5K"
+54
+:
+"/asset/textures/liquids/lavahellflat_400"
+55
+:
+"/asset/textures/common/nodraw"
+56
+:
+"/asset/textures/sfx/flame1side"
+60
+:
+"/asset/textures/gothic_light/ironcrosslt2_1000"
+64
+:
+"/asset/textures/common/weapclip"
+74
+:
+"/asset/textures/sfx/flame1dark"
+79
+:
+"/asset/textures/common/donotenter"
+81
+:
+"/asset/textures/gothic_block/killtrim_trans"
+82
+:
+"/asset/textures/skin/skin5_trans"
+83
+:
+"/asset/textures/skin/skin6_trans"
+86
+:
+"/asset/textures/dummy_image"
+87
+:
+"/asset/textures/common/trigger"
+```
+
+Entry 56 "flame1side" is the shader entry which uses the offending stage.
+
+It might be that using GU_LoadMainTextures isn't necessary at all, and is
+only causing issues. Maybe.
