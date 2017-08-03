@@ -286,3 +286,37 @@ var buildStringFromU8 = function(array, start, end) {
 	}
 	return str;
 };
+
+var dumpMem8 = function(ptr, len, lineLength) {
+    let bytes = '';
+    let ascii = '';
+    let all = '';
+    let lineCount = 0;
+
+    lineLength = lineLength || 6;
+
+    for (let i = 0; i < len; ++i) {
+        let b = HEAP8[ptr + i];
+
+        let n0 = b & 0xF;
+        let n1 = (b & 0xF0) >> 4;
+
+    //    console.log('n0: ', n0, ', n1: ', n1);
+
+        bytes += '0x' + n1.toString(16) + n0.toString(16) + ' ';
+        if (0x20 <= b && b <= 0x7E) {
+            ascii += String.fromCharCode(b);
+        } else {
+            ascii += '.';
+        }
+
+        if ((i + 1) % lineLength == 0) {
+            all += '[\t' + lineCount + '\t]' + bytes + '\t|\t' + ascii + '\n';
+            bytes = '';
+            ascii = '';
+            lineCount++;
+        }
+    }
+
+    return '\n\n' + all + '\n\n';
+}
