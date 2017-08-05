@@ -155,6 +155,10 @@ var BSPRenderer_map = function($pRenderer) {
     return HEAP32[($pRenderer + 32) >> 2];
 };
 
+var BSPRenderer_map_data = function($pRenderer) {
+    return Q3BspMap_data(BSPRenderer_map($pRenderer));
+}
+
 var Q3BspMap_name = function($pMap) {
     return $pMap + 8;
 };
@@ -215,6 +219,10 @@ var mapData_t_getShaderInfo = function($pData, index) {
     outString += addListNames('[CONTENTS FLAGS]', contentsFlagNames);
 
     return outString;
+};
+
+var shaderInfo_t_printName = function($pShader) {
+    printHeapString($pShader + STRUCT_LAYOUT_INFO.shaderInfo_t.name);
 };
 
 var stringLen = function(address) {

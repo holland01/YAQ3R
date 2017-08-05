@@ -286,9 +286,18 @@ static void MapReadFin( Q3BspMap* map )
 		SwizzleCoords( map->data.models[ i ].boxMin );
 	}
 
+	std::stringstream faceBuffer;
+
 	for ( size_t i = 0; i < map->data.faces.size(); ++i )
 	{
 		bspFace_t& face = map->data.faces[ i ];
+
+	//	faceBuffer << "\t[" << i << "]: " << face.shader << "\n";
+
+		if ( face.shader < 0 || face.shader >= ( int ) map->data.shaders.size() )
+		{
+			faceBuffer << "\t[" << i << "]: " << face.shader << "\n";
+		}
 
 		ScaleCoords( face.normal, ( float ) map->GetScaleFactor() );
 
@@ -304,6 +313,8 @@ static void MapReadFin( Q3BspMap* map )
 		SwizzleCoords( face.lightmapStVecs[ 0 ] );
 		SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
+
+	MLOG_INFO( "SHADER INDICES:\n%s", faceBuffer.str().c_str() );
 
 	gFileWebWorker.Await(
 		MapReadFin_UnmountFin,
@@ -479,10 +490,12 @@ void Q3BspMap::OnShaderReadFinish( void )
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 {
-	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
-	Q3BspMap& map = *( ( *imageTracker )->map );
+	//gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
+	//Q3BspMap& map = *( ( *imageTracker )->map );
 
-	GU_LoadMainTextures( map );
+//	GU_LoadMainTextures( map );
+
+	OnMainLoadImagesFinish( param );
 }
 
 void Q3BspMap::OnMainLoadImagesFinish( void* param )
@@ -492,7 +505,7 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 
 	//imageTracker->reset();
 
-	map->SweepBadTextures();
+//	map->SweepBadTextures();
 	map->mapAllocated = true;
 	map->readFinishEvent( map );
 }

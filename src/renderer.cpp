@@ -517,7 +517,7 @@ void BSPRenderer::DrawList( drawSurfaceList_t& list, bool solid )
 		gCounts.numTransNormal += list.surfaces.size();
 	}
 
-	DrawSurfaceList( list.surfaces, solid );
+//	DrawSurfaceList( list.surfaces, solid );
 	DrawSurfaceList( list.effectSurfaces, solid );
 	list.surfaces = surfaceContainer_t();
 	list.effectSurfaces = surfaceContainer_t();
@@ -956,6 +956,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		{
 			atlas = &textures[ TEXTURE_ATLAS_LIGHTMAPS ];
 			texIndex = lightmapIndex;
+		}
+
+		if ( strcmp( &shader->name[ 0 ], "textures/sfx/flame1side" ) == 0 )
+		{
+			printf( "LightmapIndex: %i\n", lightmapIndex );
 		}
 
 		if ( texIndex < 0 )
