@@ -481,3 +481,15 @@ Entry 56 "flame1side" is the shader entry which uses the offending stage.
 
 It might be that using GU_LoadMainTextures isn't necessary at all, and is
 only causing issues. Maybe.
+
+### 8/5/17
+
+There's a default shader going on in the quake code that's designed to handle images
+which aren't bound to a shader. So, it's going ot be important to figure out how exactly
+this is the case - i.e., are there texture paths in the shaders buffer and not just actual shader names?
+
+What is the default shader index in the quake code, and where is the default shader actually defined? 
+
+Note that s_worldData.shaders is loaded strictlyf rom the map file lump. 
+
+Also, remember that for thsi map no face->shader indices are out of bounds of the shader buffer.
