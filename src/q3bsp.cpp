@@ -446,6 +446,8 @@ void Q3BspMapTest_ShaderNameTagMain( const char* name )
 #ifdef DEBUG
 	std::string key( name );
 	gTestShaderName[ key ].isMain = true;
+#else
+	UNUSED( name );
 #endif
 }
 
@@ -454,6 +456,8 @@ void Q3BspMapTest_ShaderNameTagShader( const char* name )
 #ifdef DEBUG
 	std::string key( name );
 	gTestShaderName[ key ].isShader = true;
+#else
+	UNUSED( name );
 #endif
 }
 

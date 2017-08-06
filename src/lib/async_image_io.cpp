@@ -92,6 +92,8 @@ static void AssignIndex( wApiImageInfo_t* info, uint16_t assignIndex )
 // gImageTracker->finishEvent(). gImageTracker is a unique_ptr.
 static void OnImageRead( char* buffer, int size, void* param )
 {
+	UNUSED( param );
+
 	if ( !gImageTracker )
 	{
 		MLOG_ERROR( "%s", "gImageTracker is NULL" );

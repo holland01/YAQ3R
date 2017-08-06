@@ -31,7 +31,13 @@ void DestroyImageMountNodes( gImageMountNode_t* n )
 static void PrintInfo( const std::string& title,
 	const std::vector< gPathMap_t > source )
 {
-	//MLOG_INFO( "%s\n\tCount: %i", title.c_str(), ( int ) source.size() );
+#ifdef DEBUG
+	MLOG_INFO( "%s\n\tCount: %i", title.c_str(), ( int ) source.size() );
+#else
+	UNUSED( PrintInfo );
+	UNUSED( title );
+	UNUSED( source );
+#endif
 }
 
 static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
@@ -93,12 +99,6 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 			MLOG_ERROR( "%s", "Invalid bundle module received" );
 		}
 	}
-
-	PrintInfo( "models", models );
-	PrintInfo( "env", env );
-	PrintInfo( "gfx", gfx );
-	PrintInfo( "sprites", sprites );
-	PrintInfo( "textures", textures );
 
 	gImageMountNode_t* h = new gImageMountNode_t();
 	gImageMountNode_t** pn = &h;
@@ -242,7 +242,6 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;
 
-	PrintInfo( "GU_LoadShaderTextures", sources );
 	LoadImageState( map, sources, TEXTURE_ATLAS_SHADERS );
 }
 

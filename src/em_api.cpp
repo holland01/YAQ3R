@@ -46,6 +46,7 @@ void EM_FWW_Dummy( char* data, int byteSize, void* destVector )
 {
 	UNUSED( data );
 	UNUSED( destVector );
+	UNUSED( byteSize );
 
 //	MLOG_INFO( "Worker finished. Byte size of data returned is %i", byteSize );
 }
