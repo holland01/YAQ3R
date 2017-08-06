@@ -490,27 +490,27 @@ this is the case - i.e., are there texture paths in the shaders buffer and not j
 
 What is the default shader index in the quake code, and where is the default shader actually defined?
 
-Note that s_worldData.shaders is loaded strictly from the map file lump. 
+Note that s_worldData.shaders is loaded strictly from the map file lump.
 
 Also, remember that for thsi map no face->shader indices are out of bounds of the shader buffer.
 
 ### 8/5/17
 
-There's a number of token identifiers in the shader files which vary between upper/lower case. 
-One token will often fluctuate between one or the other. This was initially attempted to be brute forced 
+There's a number of token identifiers in the shader files which vary between upper/lower case.
+One token will often fluctuate between one or the other. This was initially attempted to be brute forced
 by just lowering every token read from the shader, but that brought about other complications - notably,
 the crashing issues and the odd inconsistences that have been happening.
 
 At the moment, looks like things are on the right track. There's some really weird clipping issues happening, though.
 
 The rgbgen entry in the effect shaders defaults to vertex coloring if the corresponding token isn't recognized; a better
-default for this would be the "identity" option. 
+default for this would be the "identity" option.
 
 Your TODO is in this order:
 
-* For now, really make sure there isn't any duplication going on between effectShaders and non-effect shader images. 
+* For now, really make sure there isn't any duplication going on between effectShaders and non-effect shader images.
 If an effect shader refers to a given image in one of its stages, that very same texture should never be loaded in
-the "noshader" image texture atlas. 
+the "noshader" image texture atlas.
 
 * Cleanup the MLOG_INFO calls.
 
@@ -518,5 +518,4 @@ the "noshader" image texture atlas.
 be due to issues with the frustum culling or it could just be major problems with the GPU and CPU synchronization
 given that the code is clearly executing slowly.
 
-* Assuming no issues are happening, you want to test chrome/firefox on Windows, Mac, Linux. 
-
+* Assuming no issues are happening, you want to test chrome/firefox on Windows, Mac, Linux.
