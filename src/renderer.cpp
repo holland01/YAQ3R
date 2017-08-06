@@ -958,15 +958,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			texIndex = lightmapIndex;
 		}
 
-		if ( strcmp( &shader->name[ 0 ], "textures/sfx/flame1side" ) == 0 )
-		{
-			printf( "LightmapIndex: %i\n", lightmapIndex );
-		}
-
 		if ( texIndex < 0 )
 		{
-			//FlagExit();
-		//	MLOG_INFO( "texIndex: %i\n\n %s", texIndex, errorInfo.str().c_str() );
 			return;
 		}
 
