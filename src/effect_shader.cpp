@@ -722,8 +722,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		return;
 	}
 
-	bool printEntries = false;
-
 	{
 		char tmp[ 1024 ];
 
@@ -734,13 +732,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		//MLOG_INFO( "Shader filepath read from buffer: %s", path.c_str() );
 		isMapShader = map->IsMapOnlyShader( path );
-
-		MLOG_INFO( "Path Got: %s", path.c_str() );
-
-		if ( path == "/asset/scripts/gfx.shader" )
-		{
-			printEntries = true;
-		}
 	}
 
 	// Parse each entry. We use the range/difference method here,
@@ -756,11 +747,6 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		bool used = false;
 		entry.localLoadFlags = 0;
 		pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
-
-		if ( printEntries )
-		{
-			MLOG_INFO( "Found: %s", &entry.name[ 0 ] );
-		}
 
 		if ( used )
 		{
