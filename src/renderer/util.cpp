@@ -235,6 +235,8 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 				sources.push_back( initial );
 			}
 		}
+
+		Q3BspMapTest_ShaderNameTagShader( &entry.second.name[ 0 ] );
 	}
 
 	gImageLoadState.keyMapped = false;
@@ -248,26 +250,12 @@ void GU_LoadMainTextures( Q3BspMap& map )
 {
 	std::vector< gPathMap_t> sources;
 
-	//MLOG_INFO( "MAPPING: %i SHADERS", ( int ) map.data.shaders.size() );
-
 	for ( size_t key = 0; key < map.data.shaders.size(); ++key )
 	{
 		gPathMap_t initial;
 
 		initial.path = std::string( map.data.shaders[ key ].name );
-/*
-		size_t slashPos = initial.path.find_first_of( "/" );
 
-		// This is an invalid path, because it doesn't belong
-		// to a bundle. The bspShader_t (i.e. texture) referred to
-		// by the index still exists, though, and needs to be accounted
-		// for in the bsp map, so we continue processing with a dummy
-		// path.
-		if ( slashPos == std::string::npos )
-		{
-			initial.path = "textures/dummy_image";
-		}
-*/
 		bool needed = true;
 
 		for ( auto& entry: map.effectShaders )
@@ -281,31 +269,16 @@ void GU_LoadMainTextures( Q3BspMap& map )
 
 		if ( needed )
 		{
+			Q3BspMapTest_ShaderNameTagMain(
+				&map.data.shaders[ key ].name[ 0 ] );
+
 			initial.param = ( void* ) key;
 			sources.push_back( initial );
 		}
 	}
 
-	{
-		MLOG_INFO(
-			"Paths Found: %lu/%lu",
-			sources.size(),
-			map.data.shaders.size()
-		);
-
-		std::stringstream ss;
-
-		for ( size_t i = 0; i < sources.size(); ++i )
-		{
-			ss << "\t[" << i << "]: " << sources[ i ].path << "\n";
-		}
-
-		MLOG_INFO( "%s", ss.str().c_str() );
-	}
-
 	gImageLoadState.keyMapped = true;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
-	//MLOG_INFO( "Called" );
 	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }
