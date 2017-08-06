@@ -389,9 +389,6 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 			}
 		}
 
-		console.log('Remaining Size: ', files.length - undefCounter,
-			'. Remaining: ', files)
-
 		// Here we're done: we only care about requested files that exist in
 		// the bundle at this point. If we find that enough images
 		// supersede our memory constraints then the implementation
