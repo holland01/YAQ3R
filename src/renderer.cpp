@@ -517,7 +517,7 @@ void BSPRenderer::DrawList( drawSurfaceList_t& list, bool solid )
 		gCounts.numTransNormal += list.surfaces.size();
 	}
 
-//	DrawSurfaceList( list.surfaces, solid );
+	DrawSurfaceList( list.surfaces, solid );
 	DrawSurfaceList( list.effectSurfaces, solid );
 	list.surfaces = surfaceContainer_t();
 	list.effectSurfaces = surfaceContainer_t();

@@ -19,4 +19,6 @@ const char* StrReadToken( char* out, const char* buffer );
 
 const char* StrNextNumber( const char* buffer );
 
+void LowerString( char* str );
+
 float StrReadFloat( const char*& buffer );

@@ -118,7 +118,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				{
 					outInfo->deformFn = VERTEXDEFORM_FUNC_SAWTOOTH;
 				}
-				else if ( strcmp( token, "inversesawtooth" ) == 0 )
+				else if ( strcmp( token, "inverseSawtooth" ) == 0 )
 				{
 					outInfo->deformFn = VERTEXDEFORM_FUNC_INV_SAWTOOTH;
 				}
@@ -282,6 +282,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				GLsizei blendFactor = GL_EnumFromStr( token );
 				if ( blendFactor == -1 )
 				{
+					theStage.blendDest = theStage.blendSrc = GL_ONE;
 					return false;
 				}
 
@@ -312,15 +313,15 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			ZEROTOK( token );
 			buffer = StrReadToken( token, buffer );
 
-			if ( strcmp( token, "ge128" ) == 0 )
+			if ( strcmp( token, "GE128" ) == 0 )
 			{
 				theStage.alphaFunc = ALPHA_FUNC_GEQUAL_128;
 			}
-			else if ( strcmp( token, "gT0" ) == 0 )
+			else if ( strcmp( token, "GT0" ) == 0 )
 			{
 				theStage.alphaFunc = ALPHA_FUNC_GTHAN_0;
 			}
-			else if ( strcmp( token, "lt128" ) == 0 )
+			else if ( strcmp( token, "LT128" ) == 0 )
 			{
 				theStage.alphaFunc = ALPHA_FUNC_LTHAN_128;
 			}
@@ -341,6 +342,9 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			ZEROTOK( token );
 			buffer = StrReadToken( token, buffer );
 
+			// rgbgen Vertex has both lowercase and uppercase entries
+			LowerString( token );
+
 			if ( strcmp( token, "vertex" ) == 0 )
 			{
 				theStage.rgbGen = RGBGEN_VERTEX;
@@ -355,7 +359,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			}
 			else
 			{
-				return false;
+				theStage.rgbGen = RGBGEN_VERTEX;
 			}
 
 			return true;
@@ -397,6 +401,10 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			ZEROTOK( token );
 			buffer = StrReadToken( token, buffer );
+
+			// tcmod Scroll or tcmod scroll is possible
+
+			LowerString( token );
 
 			if ( strcmp( token, "scale" ) == 0 )
 			{
@@ -512,30 +520,36 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 static INLINE GLsizei GL_EnumFromStr( const char* str )
 {
+	// some gl enum entries in the shader files are lowercase,
+	// and some aren't.
+	char copytok[ 64 ];
+	memset( copytok, 0, sizeof( copytok ) );
+	strcpy( copytok, str );
+
 	// blending
-	if ( strcmp( str, "gl_one_minus_src_alpha" ) == 0 )
+	if ( strcmp( copytok, "gl_one_minus_src_alpha" ) == 0 )
 		return GL_ONE_MINUS_SRC_ALPHA;
-	if ( strcmp( str, "gl_one_minus_src_color" ) == 0 )
+	if ( strcmp( copytok, "gl_one_minus_src_color" ) == 0 )
 		return GL_ONE_MINUS_SRC_COLOR;
-	if ( strcmp( str, "gl_one_minus_dst_alpha" ) == 0 )
+	if ( strcmp( copytok, "gl_one_minus_dst_alpha" ) == 0 )
 		return GL_ONE_MINUS_DST_ALPHA;
 
-	if ( strcmp( str, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
-	if ( strcmp( str, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
-	if ( strcmp( str, "gl_src_alpha" ) == 0 ) return GL_SRC_ALPHA;
+	if ( strcmp( copytok, "gl_dst_color" ) == 0 ) return GL_DST_COLOR;
+	if ( strcmp( copytok, "gl_src_color" ) == 0 ) return GL_SRC_COLOR;
+	if ( strcmp( copytok, "gl_src_alpha" ) == 0 ) return GL_SRC_ALPHA;
 
-	if ( strcmp( str, "gl_zero" ) == 0 ) return GL_ZERO;
-	if ( strcmp( str, "gl_one" ) == 0 ) return GL_ONE;
+	if ( strcmp( copytok, "gl_zero" ) == 0 ) return GL_ZERO;
+	if ( strcmp( copytok, "gl_one" ) == 0 ) return GL_ONE;
 
 	// depth funcs
-	if ( strcmp( str, "gl_never" ) == 0 ) return GL_NEVER;
-	if ( strcmp( str, "gl_less" ) == 0 ) return GL_LESS;
-	if ( strcmp( str, "gl_equal" ) == 0 ) return GL_EQUAL;
-	if ( strcmp( str, "gl_lequal" ) == 0 ) return GL_LEQUAL;
-	if ( strcmp( str, "gl_greater" ) == 0 ) return GL_GREATER;
-	if ( strcmp( str, "gl_notequal" ) == 0 ) return GL_NOTEQUAL;
-	if ( strcmp( str, "gl_gequal" ) == 0 ) return GL_GEQUAL;
-	if ( strcmp( str, "gl_always" ) == 0 ) return GL_ALWAYS;
+	if ( strcmp( copytok, "gl_never" ) == 0 ) return GL_NEVER;
+	if ( strcmp( copytok, "gl_less" ) == 0 ) return GL_LESS;
+	if ( strcmp( copytok, "gl_equal" ) == 0 ) return GL_EQUAL;
+	if ( strcmp( copytok, "gl_lequal" ) == 0 ) return GL_LEQUAL;
+	if ( strcmp( copytok, "gl_greater" ) == 0 ) return GL_GREATER;
+	if ( strcmp( copytok, "gl_notequal" ) == 0 ) return GL_NOTEQUAL;
+	if ( strcmp( copytok, "gl_gequal" ) == 0 ) return GL_GEQUAL;
+	if ( strcmp( copytok, "gl_always" ) == 0 ) return GL_ALWAYS;
 
 	return -1;
 }
@@ -545,7 +559,8 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str )
 	if ( strcmp( str, "equal" ) == 0 ) return GL_EQUAL;
 	if ( strcmp( str, "lequal" ) == 0 ) return GL_LEQUAL;
 
-	// The manual seems to insinuate that gl_ prefixes won't be used for depth functions. However, this is used just in case...
+	// The manual seems to insinuate that gl_ prefixes won't be used for depth
+	// functions. However, this is used just in case...
 	return GL_EnumFromStr( str );
 }
 
@@ -616,8 +631,10 @@ static const char* ParseEntry(
 	while ( true )
 	{
 		memset( token, 0, sizeof( token ) );
+		buffer = StrReadToken( token, buffer );
 
-		if ( !*( buffer = StrReadToken( token, buffer ) ) )
+		// Unlikely (but possible) check for null term
+		if ( !( *buffer ) )
 		{
 			break;
 		}
@@ -673,6 +690,8 @@ static const char* ParseEntry(
 			continue;
 		}
 
+		LowerString( token );
+
 		const std::string strToken( token );
 		if ( stageReadFuncs.find( strToken ) == stageReadFuncs.end() )
 		{
@@ -681,7 +700,7 @@ static const char* ParseEntry(
 
 		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
 		{
-			continue;
+			// TODO: default resolution here
 		}
 	}
 
@@ -703,6 +722,8 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		return;
 	}
 
+	bool printEntries = false;
+
 	{
 		char tmp[ 1024 ];
 
@@ -713,6 +734,13 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		//MLOG_INFO( "Shader filepath read from buffer: %s", path.c_str() );
 		isMapShader = map->IsMapOnlyShader( path );
+
+		MLOG_INFO( "Path Got: %s", path.c_str() );
+
+		if ( path == "/asset/scripts/gfx.shader" )
+		{
+			printEntries = true;
+		}
 	}
 
 	// Parse each entry. We use the range/difference method here,
@@ -728,6 +756,11 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 		bool used = false;
 		entry.localLoadFlags = 0;
 		pChar = ParseEntry( &entry, isMapShader, used, pChar, 0, map );
+
+		if ( printEntries )
+		{
+			MLOG_INFO( "Found: %s", &entry.name[ 0 ] );
+		}
 
 		if ( used )
 		{
@@ -763,7 +796,6 @@ static void OnShaderRead( char* buffer, int size, void* param )
 	}
 	else
 	{
-		//MLOG_INFO( "End of shader reading." );
 		map->OnShaderReadFinish();
 	}
 }
@@ -779,10 +811,7 @@ void S_LoadShaders( Q3BspMap* map )
 	shaderRootDir.append( ASSET_Q3_ROOT );
 	shaderRootDir.append( "/scripts" );
 
-	printf( "Traversing Directory: %s\n", shaderRootDir.c_str() );
-
-	gFileWebWorker.Await( OnShaderRead,
-		"ReadShaders", shaderRootDir, map );
+	gFileWebWorker.Await( OnShaderRead, "ReadShaders", shaderRootDir, map );
 }
 
 bool operator == (

@@ -255,7 +255,7 @@ void GU_LoadMainTextures( Q3BspMap& map )
 		gPathMap_t initial;
 
 		initial.path = std::string( map.data.shaders[ key ].name );
-
+/*
 		size_t slashPos = initial.path.find_first_of( "/" );
 
 		// This is an invalid path, because it doesn't belong
@@ -267,10 +267,40 @@ void GU_LoadMainTextures( Q3BspMap& map )
 		{
 			initial.path = "textures/dummy_image";
 		}
+*/
+		bool needed = true;
 
-		initial.param = ( void* ) key;
+		for ( auto& entry: map.effectShaders )
+		{
+			if ( entry.first == initial.path )
+			{
+				needed = false;
+				break;
+			}
+		}
 
-		sources.push_back( initial );
+		if ( needed )
+		{
+			initial.param = ( void* ) key;
+			sources.push_back( initial );
+		}
+	}
+
+	{
+		MLOG_INFO(
+			"Paths Found: %lu/%lu",
+			sources.size(),
+			map.data.shaders.size()
+		);
+
+		std::stringstream ss;
+
+		for ( size_t i = 0; i < sources.size(); ++i )
+		{
+			ss << "\t[" << i << "]: " << sources[ i ].path << "\n";
+		}
+
+		MLOG_INFO( "%s", ss.str().c_str() );
 	}
 
 	gImageLoadState.keyMapped = true;

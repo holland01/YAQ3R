@@ -73,11 +73,14 @@ public:
 
 	bspLeaf_t*					FindClosestLeaf( const glm::vec3& camPos );
 
-	bool						IsClusterVisible( int sourceCluster, int testCluster );
+	bool						IsClusterVisible( int sourceCluster,
+									int testCluster );
 
-	bool						IsAllocated( void ) const { return mapAllocated; }
+	bool						IsAllocated( void ) const
+									{ return mapAllocated; }
 
-	void 						MakeAllocated( void ) { mapAllocated = true; }
+	void 						MakeAllocated( void )
+									{ mapAllocated = true; }
 
 	const shaderInfo_t*			GetShaderInfo( const char* name ) const;
 
@@ -85,7 +88,8 @@ public:
 
 	const std::string&			GetFileName( void ) const { return name; }
 
-	int							GetScaleFactor( void ) const { return scaleFactor; }
+	int							GetScaleFactor( void ) const
+									{ return scaleFactor; }
 
 	bool						IsMapOnlyShader( const std::string& filepath ) const;
 

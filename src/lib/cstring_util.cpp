@@ -54,7 +54,7 @@ const char* StrReadToken( char* out, const char* buffer )
 			break;
 		}
 
-		*pOut++ = tolower( *buffer++ );
+		*pOut++ = *buffer++;
 	}
 
 	return buffer;
@@ -73,6 +73,17 @@ const char* StrNextNumber( const char* buffer )
 	}
 
 	return buffer;
+}
+
+void LowerString( char * str )
+{
+	char * p = str;
+
+	while ( *p )
+	{
+		*p = tolower( *p );
+		p++;
+	}
 }
 
 float StrReadFloat( const char*& buffer )
