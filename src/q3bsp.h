@@ -31,8 +31,6 @@ private:
 
 	std::string							name;
 
-	std::unordered_set< ssize_t >		badTextures;
-
 public:
 
 	std::unique_ptr< renderPayload_t > 	payload;
@@ -45,12 +43,6 @@ public:
 	~Q3BspMap( void );
 
 	mapData_t					data;
-
-	void 						MarkBadTexture( ssize_t index );
-
-	void  						MarkBadStageTexture( shaderStage_t * stage );
-
-	void  						SweepBadTextures( void );	// called on map load finish
 
 	void 						OnShaderReadFinish( void );
 
@@ -101,3 +93,11 @@ public:
 
 	friend class BSPRenderer;
 };
+
+// Debug only: will be no-op if called in release build.
+// These rare used to verify that each name found in
+// mapData_t::shaders doesn't belong to both
+// categories (main - no shader entries, or actual shader entries)
+void Q3BspMapTest_ShaderNameTagMain( const char* name );
+void Q3BspMapTest_ShaderNameTagShader( const char* name );
+void Q3BspMapTest_ShaderNameRun( void );

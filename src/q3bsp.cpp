@@ -426,6 +426,66 @@ static void UnmountShadersFin( char* data, int size, void* arg )
 }
 
 //------------------------------------------------------------------------------
+// Q3BspMapTest
+//------------------------------------------------------------------------------
+
+#ifdef DEBUG
+struct q3BspMapTestShaderName_t
+{
+	bool isShader;
+	bool isMain;
+};
+
+static
+std::unordered_map< std::string, q3BspMapTestShaderName_t > gTestShaderName;
+
+#endif
+
+void Q3BspMapTest_ShaderNameTagMain( const char* name )
+{
+#ifdef DEBUG
+	std::string key( name );
+	gTestShaderName[ key ].isMain = true;
+#endif
+}
+
+void Q3BspMapTest_ShaderNameTagShader( const char* name )
+{
+#ifdef DEBUG
+	std::string key( name );
+	gTestShaderName[ key ].isShader = true;
+#endif
+}
+
+void Q3BspMapTest_ShaderNameRun( void )
+{
+#ifdef DEBUG
+	std::vector< std::string > names;
+
+	for ( const auto& entry: gTestShaderName )
+	{
+		if ( entry.second.isMain && entry.second.isShader )
+		{
+			names.push_back( entry.first );
+		}
+	}
+
+	if ( !names.empty() )
+	{
+		std::stringstream ss;
+
+		for ( size_t i = 0; i < names.size(); ++i )
+		{
+			ss << "\t[" << i << "]" << names[ i ] << "\n";
+		}
+
+		MLOG_ERROR( "Found at least one misplaced or duplicated shader:\n%s",
+	 		ss.str().c_str() );
+	}
+#endif
+}
+
+//------------------------------------------------------------------------------
 // Q3BspMap
 //------------------------------------------------------------------------------
 Q3BspMap::Q3BspMap( void )
@@ -442,16 +502,6 @@ Q3BspMap::~Q3BspMap( void )
 	DestroyMap();
 }
 
-void Q3BspMap::MarkBadTexture( ssize_t index )
-{
-	badTextures.insert( index );
-}
-
-void Q3BspMap::SweepBadTextures( void )
-{
-
-}
-
 void Q3BspMap::OnShaderReadFinish( void )
 {
 	gFileWebWorker.Await( UnmountShadersFin,
@@ -464,8 +514,6 @@ void Q3BspMap::OnShaderLoadImagesFinish( void* param )
 	Q3BspMap& map = *( ( *imageTracker )->map );
 
 	GU_LoadMainTextures( map );
-
-//	OnMainLoadImagesFinish( param );
 }
 
 void Q3BspMap::OnMainLoadImagesFinish( void* param )
@@ -473,9 +521,8 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap* map = ( *imageTracker )->map;
 
-	//imageTracker->reset();
+	Q3BspMapTest_ShaderNameRun();
 
-//	map->SweepBadTextures();
 	map->mapAllocated = true;
 	map->readFinishEvent( map );
 }
@@ -743,7 +790,6 @@ std::string Q3BspMap::GetBinLayoutString( void ) const
 	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, mapAllocated );
 
 	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, name );
-	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, badTextures );
 	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, payload );
 	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, readFinishEvent );
 	ss << SSTREAM_BYTE_OFFSET( Q3BspMap, effectShaders );
