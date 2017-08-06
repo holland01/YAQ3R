@@ -73,5 +73,5 @@ void shaderInfo_t::PrintStageTextureNames( void ) const
 		ss << "\n";
 	}
 
-	MLOG_INFO( "%s", ss.str().c_str() );
+//	MLOG_INFO( "%s", ss.str().c_str() );
 }
