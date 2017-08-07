@@ -359,7 +359,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			}
 			else
 			{
-				theStage.rgbGen = RGBGEN_VERTEX;
+				theStage.rgbGen = RGBGEN_IDENTITY; 
 			}
 
 			return true;
