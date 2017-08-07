@@ -1,4 +1,9 @@
-1) In `BSPRenderer::DrawEffectPass()`, there's this:
+
+[priority]
+1) bugfix/any_wall_clip_weirdness
+
+[unnamed]
+2) In `BSPRenderer::DrawEffectPass()`, there's this:
 
     ```
     if ( texIndex < 0 )
