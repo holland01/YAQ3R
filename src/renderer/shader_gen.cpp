@@ -201,7 +201,7 @@ static INLINE void WriteTexture(
 
 		if ( UsesColor( stage ) )
 		{
-			 colorAssign << " * vec4( frag_Color.rgb, alphaGen )";
+			 colorAssign << " * vec4( frag_Color.rgb, 1.0 )";
 		}
 	}
 	else
@@ -333,7 +333,7 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	};
 
 	// Add our base image data
-	std::initializer_list<std::string> data  =
+	std::initializer_list< std::string > data  =
 	{
 		"uniform sampler2D sampler0;",
 		"uniform vec4 imageTransform;",
