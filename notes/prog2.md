@@ -519,3 +519,23 @@ be due to issues with the frustum culling or it could just be major problems wit
 given that the code is clearly executing slowly.
 
 * Assuming no issues are happening, you want to test chrome/firefox on Windows, Mac, Linux.
+
+### 8/6/17
+
+**bugfix/any_wall_clip_weirdness**
+
+Right, so the faces are ordered according to the following criteria:
+
+type->lightmap->shader->drawSurface_t 
+
+This is only efficient, though, if there's a significant amount of drawSurface_t's packed together
+in a single bucket list. Otherwise, you're still going to get a large frequency of different texture bindings for both
+lightmaps and normal images.
+
+Furthermore, these aren't being depth sorted. The depth sort should obviously happen relative to the view-transform, for
+both solids and transparent groups.
+
+So, a new method needs to be put together.
+
+For now, forget grouping according to attributes apart from transparency and depth. Get rid of the quadruple loop and
+the crazy hashmap setup.
