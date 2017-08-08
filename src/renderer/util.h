@@ -2,15 +2,6 @@
 
 #include "glutil.h"
 
-static INLINE void GU_ClearDepth( float d )
-{
-#ifdef EMSCRIPTEN
-	GL_CHECK( glClearDepthf( d ) );
-#else
-	GL_CHECK( glClearDepth( d ) );
-#endif
-}
-
 using guOffset_t = intptr_t;
 using guBufferOffsetList_t = std::vector< guOffset_t >;
 using guBufferRangeList_t = std::vector< GLsizei >;
