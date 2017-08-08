@@ -190,8 +190,9 @@ static INLINE void WriteTexture(
 	colorAssign << "\tvec4 color = ";
 
 	// Some shader entries will incorporate specific alpha values
-	if ( stage.alphaGen != 0.0f )
+	/*if ( stage.alphaGen != 0.0f )
 	{
+		
 		fragmentSrc.push_back(
 			"\tconst float alphaGen = "
 			+ std::to_string( stage.alphaGen )
@@ -206,13 +207,14 @@ static INLINE void WriteTexture(
 	}
 	else
 	{
+		*/
 		colorAssign << sampleTextureExpr;
 
 		if ( UsesColor( stage ) )
 		{
 			colorAssign <<  " * frag_Color";
 		}
-	}
+	//}
 
 	colorAssign << ";";
 

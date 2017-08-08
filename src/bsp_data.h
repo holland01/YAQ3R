@@ -509,6 +509,9 @@ struct shaderInfo_t;
 
 struct shaderStage_t
 {
+	// enable to force writing to the depth buffer. Only relevant for non-opaque surfaces.
+	// name choice is admittedly poor: depthPass tends to imply an actual render pass.
+	// this literally just means "force write to depth buffer even if surface is color blended"
 	bool						depthPass = false;
 
 	int32_t						textureIndex = INDEX_UNDEFINED;
@@ -549,9 +552,8 @@ struct shaderStage_t
 
 	std::vector< effect_t >		effects;
 
-	// if 0, assume an alpha value of 1
-
-	float						alphaGen = 0.0f;
+	// same idea as rgb gen, using same functions, but with alpha channel.
+	rgbGen_t 					alphaGen = RGBGEN_UNDEFINED;	
 
 	// path to the texture image, if we have one
 
