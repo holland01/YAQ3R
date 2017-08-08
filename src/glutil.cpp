@@ -382,7 +382,7 @@ void GStateCheckReport( void )
 #else
 
 void GPrintBadProgram( void ) {}
-bool GHasBadProgram( void ) {}
+bool GHasBadProgram( void ) { return false; }
 void GStateCheckReport( void ) {}
 
 #endif // DEBUG
