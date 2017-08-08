@@ -6,6 +6,7 @@
 #include "deform.h"
 #include "model.h"
 #include "renderer/shader_gen.h"
+#include "renderer/context_window.h"
 #include "extern/gl_atlas.h"
 #include <glm/gtx/string_cast.hpp>
 #include <fstream>
@@ -22,7 +23,7 @@ struct config_t
 
 static config_t gConfig =
 {
-	false,
+	true,
 	false,
 	false,
 	false
@@ -316,6 +317,8 @@ void BSPRenderer::Load( renderPayload_t& payload )
 		camera->ViewData().clipTransform );
 
 	//MLOG_INFO( "%s", GetBinLayoutString().c_str() );
+
+	GPrintContextInfo();
 }
 
 std::string BSPRenderer::GetBinLayoutString( void ) const
@@ -912,6 +915,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 	//errorInfo << shader->GetInfoString();
 
+	GLenum lastDepth = GL_LEQUAL;
+
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
@@ -924,12 +929,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
+		lastDepth = stage.depthFunc;
 
 		if ( !alwaysWriteDepth )
 		{
-			if ( isSolid || ( stage.depthPass
-				&& !( stage.blendSrc == GL_ONE
-				&& stage.blendDest == GL_ZERO ) ) )
+			if ( isSolid || stage.depthPass )
 			{
 				GL_CHECK( glDepthMask( GL_TRUE ) );
 			}
@@ -1012,6 +1016,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		GL_CHECK( glDepthMask( GL_TRUE ) );
 	}
 
+	if ( lastDepth != GL_LEQUAL )
+	{
+		GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	}
+
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
 	// Did we bother checking earlier?
@@ -1034,8 +1043,22 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 void BSPRenderer::DrawFace( drawPass_t& pass )
 {
-//	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
-	//GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
+	GL_CHECK( glDepthFunc( GL_LEQUAL ) );
+
+	auto LEffectCallback = [ &pass, this ]( const void* param, const Program& prog,
+		const shaderStage_t* stage )
+	{
+		UNUSED( param );
+		UNUSED( prog );
+		DrawFaceVerts( pass, stage );
+	};
+
+	auto LNonEffectCallback = [ &pass, this ]( const Program& prog )
+	{
+		UNUSED( prog );
+		DrawFaceVerts( pass, nullptr );
+	};
 
 	switch ( pass.drawType )
 	{
@@ -1049,30 +1072,13 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 				pass.isSolid
 			);
 
-			DrawEffectPass(
-				data,
-				[ &pass, this ](
-					const void* param,
-					const Program& prog,
-					const shaderStage_t* stage
-				)
-				{
-					UNUSED( param );
-					UNUSED( prog );
-					DrawFaceVerts( pass, stage );
-				}
-			);
+			DrawEffectPass( data, LEffectCallback );
 		}
 			break;
 		default:
 		case PASS_DRAW_MAIN:
 
-			DrawMapPass( pass.face->shader, pass.face->lightmapIndex,
-				[ &pass, this ]( const Program& prog )
-			{
-				UNUSED( prog );
-				DrawFaceVerts( pass, nullptr );
-			});
+			DrawMapPass( pass.face->shader, pass.face->lightmapIndex, LNonEffectCallback );
 
 			break;
 	}
