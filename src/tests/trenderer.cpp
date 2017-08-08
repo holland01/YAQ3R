@@ -5,6 +5,9 @@
 
 static void OnMapFinish( void* param )
 {
+	
+	GStateCheckReport();
+	
 	UNUSED( param );
 
 	TRenderer* app = ( TRenderer* ) gAppTest;
