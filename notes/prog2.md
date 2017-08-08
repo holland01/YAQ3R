@@ -539,3 +539,20 @@ So, a new method needs to be put together.
 
 For now, forget grouping according to attributes apart from transparency and depth. Get rid of the quadruple loop and
 the crazy hashmap setup.
+
+### 8/8/17
+
+There might be some alpha channel issues with respect to SDL 2 and emscripten/webgl. It looks like SDL 2 doesn't provide
+an alpha-based pixel format. Trying to explicitly set this in the generated asm.js doesn't change anything either. 
+You need to research this more and see what the deal is. [This](https://stackoverflow.com/questions/35372291/alpha-rendering-difference-between-opengl-and-webgl) provides a little more insgiht, but it's not sufficient.
+
+Anyway, as far as the view-depth sort, your best bet is to do the following:
+
+  For each face:
+    define a transformation using the S,T vectors which come with it; take the cross product to produce the Z-axis. Make sure that 
+    the Z-axis direction is consistent with the front face culling method (should be CCW but only works with CW - might due to coordinate swizzling
+    which happens in the beginnign, honestly not sure and will need to think ont hat because it could be important). 
+
+
+
+
