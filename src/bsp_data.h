@@ -435,6 +435,19 @@ enum effectType_t
 	EFFECT_XYZW
 };
 
+// Usually either opaque or additive; the others are 
+// for more specific cases.
+enum depthSortHint_t 
+{
+	DEPTH_SORT_PORTAL = 1,
+	DEPTH_SORT_SKY = 2,
+	DEPTH_SORT_OPAQUE = 3,
+	DEPTH_SORT_BANNER = 6,
+	DEPTH_SORT_UNDERWATER = 8,
+	DEPTH_SORT_ADDITIVE = 9,
+	DEPTH_SORT_NEAREST = 16
+};
+
 struct normal_t
 {
 	float x;
