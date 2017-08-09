@@ -192,7 +192,7 @@ static void OnImageRead( char* buffer, int size, void* param )
 		( uint8_t* ) &buffer[ sizeof( *imageInfo ) ],
 		imageInfo->width,
 		imageInfo->height,
-		imageInfo->bpp
+		imageInfo->bpp, false
 	);
 
 	AssignIndex(
