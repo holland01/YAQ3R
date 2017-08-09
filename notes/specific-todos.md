@@ -1,9 +1,22 @@
 
 [priority]
-1) bugfix/any_wall_clip_weirdness
+* bugfix/any_wall_clip_weirdness 
 
 [unnamed]
-2) In `BSPRenderer::DrawEffectPass()`, there's this:
+* Some textures are flipped upside down when they shouldn't be. There doesn't appear to be a tcMod setting which causes this to happen, and disabling
+the 2D rotation effect by setting the matrix to its identity changes nothing. Swizzling all texture coordinates does produce what's desired for
+those specific textures, however every other texture is messed up.
+
+Likely want to assess how this will be interacting with the texture atlas, and then check Quake's code to see if there's any kind of coordinate swizzling
+for specific textures; there could be a shaders for some of these images which have relevant content/surface flags, for example. 
+
+[unnamed]
+
+* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
+renderer's current implementation.
+
+[unnamed]
+* In `BSPRenderer::DrawEffectPass()`, there's this:
 
     ```
     if ( texIndex < 0 )
@@ -18,7 +31,7 @@ Replace the return with a printf which confirms that texIndex < 0: you want
 to make sure that no crash occurs when the atlas resolves to its default image.
 
 [unnamed]
-3) Go through each effect function entry in the lookup table found in effect_shader.cpp.
+* Go through each effect function entry in the lookup table found in effect_shader.cpp.
 There should be a return false in the event that the evaluated token params aren't recognized.
 Log these.
 
