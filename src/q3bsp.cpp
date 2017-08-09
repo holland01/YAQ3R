@@ -16,21 +16,6 @@ using namespace std;
 // Data tweaking
 //------------------------------------------------------------------------------
 
-static void SwizzleCoords( glm::vec3& v )
-{
-	float tmp = v.y;
-	v.y = v.z;
-	v.z = -tmp;
-}
-
-// Straight outta copypasta ( for integer vectors )
-static void SwizzleCoords( glm::ivec3& v )
-{
-	int tmp = v.y;
-	v.y = v.z;
-	v.z = -tmp;
-}
-
 static void ScaleCoords( glm::vec3& v, float scale )
 {
 	v.x *= scale;
@@ -49,6 +34,26 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 	v.x *= scale;
 	v.y *= scale;
 	v.z *= scale;
+}
+
+void Q3Bsp_SwizzleCoords( glm::vec3& v )
+{
+	float tmp = v.y;
+	v.y = v.z;
+	v.z = -tmp;
+}
+
+// Straight outta copypasta
+void Q3Bsp_SwizzleCoords( glm::ivec3& v )
+{
+	int tmp = v.y;
+	v.y = v.z;
+	v.z = -tmp;
+}
+
+void Q3Bsp_SwizzleCoords( glm::vec2& v )
+{
+	v.t = 1.0f - v.t;
 }
 
 //------------------------------------------------------------------------------
@@ -238,8 +243,8 @@ static void MapReadFin( Q3BspMap* map )
 		ScaleCoords( map->data.nodes[ i ].boxMax, map->GetScaleFactor() );
 		ScaleCoords( map->data.nodes[ i ].boxMin, map->GetScaleFactor() );
 
-		SwizzleCoords( map->data.nodes[ i ].boxMax );
-		SwizzleCoords( map->data.nodes[ i ].boxMin );
+		Q3Bsp_SwizzleCoords( map->data.nodes[ i ].boxMax );
+		Q3Bsp_SwizzleCoords( map->data.nodes[ i ].boxMin );
 	}
 
 	for ( size_t i = 0; i < map->data.leaves.size(); ++i )
@@ -247,8 +252,8 @@ static void MapReadFin( Q3BspMap* map )
 		ScaleCoords( map->data.leaves[ i ].boxMax, map->GetScaleFactor() );
 		ScaleCoords( map->data.leaves[ i ].boxMin, map->GetScaleFactor() );
 
-		SwizzleCoords( map->data.leaves[ i ].boxMax );
-		SwizzleCoords( map->data.leaves[ i ].boxMin );
+		Q3Bsp_SwizzleCoords( map->data.leaves[ i ].boxMax );
+		Q3Bsp_SwizzleCoords( map->data.leaves[ i ].boxMin );
 	}
 
 	for ( size_t i = 0; i < map->data.planes.size(); ++i )
@@ -256,7 +261,7 @@ static void MapReadFin( Q3BspMap* map )
 		map->data.planes[ i ].distance *= map->GetScaleFactor();
 		ScaleCoords( map->data.planes[ i ].normal,
 			( float ) map->GetScaleFactor() );
-		SwizzleCoords( map->data.planes[ i ].normal );
+		Q3Bsp_SwizzleCoords( map->data.planes[ i ].normal );
 	}
 
 	for ( size_t i = 0; i < map->data.vertexes.size(); ++i )
@@ -271,8 +276,10 @@ static void MapReadFin( Q3BspMap* map )
 		ScaleCoords( map->data.vertexes[ i ].position,
 			( float ) map->GetScaleFactor() );
 
-		SwizzleCoords( map->data.vertexes[ i ].position );
-		SwizzleCoords( map->data.vertexes[ i ].normal );
+		Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].position );
+		Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].normal );
+		//Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].texCoords[ 0 ] );
+		//Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].texCoords[ 1 ] );
 	}
 
 	for ( size_t i = 0; i < map->data.models.size(); ++i )
@@ -282,8 +289,8 @@ static void MapReadFin( Q3BspMap* map )
 		ScaleCoords( map->data.models[ i ].boxMin,
 			( float ) map->GetScaleFactor() );
 
-		SwizzleCoords( map->data.models[ i ].boxMax );
-		SwizzleCoords( map->data.models[ i ].boxMin );
+		Q3Bsp_SwizzleCoords( map->data.models[ i ].boxMax );
+		Q3Bsp_SwizzleCoords( map->data.models[ i ].boxMin );
 	}
 
 	for ( size_t i = 0; i < map->data.faces.size(); ++i )
@@ -299,10 +306,10 @@ static void MapReadFin( Q3BspMap* map )
 		ScaleCoords( face.lightmapStVecs[ 1 ],
 			( float ) map->GetScaleFactor() );
 
-		SwizzleCoords( face.normal );
-		SwizzleCoords( face.lightmapOrigin );
-		SwizzleCoords( face.lightmapStVecs[ 0 ] );
-		SwizzleCoords( face.lightmapStVecs[ 1 ] );
+		Q3Bsp_SwizzleCoords( face.normal );
+		Q3Bsp_SwizzleCoords( face.lightmapOrigin );
+		Q3Bsp_SwizzleCoords( face.lightmapStVecs[ 0 ] );
+		Q3Bsp_SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
 	gFileWebWorker.Await(
@@ -683,7 +690,7 @@ end_iteration:
 			if ( found )
 			{
 				ret.origin = origin;
-				SwizzleCoords( ret.origin );
+				Q3Bsp_SwizzleCoords( ret.origin );
 				break;
 			}
 		}

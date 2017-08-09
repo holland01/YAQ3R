@@ -101,3 +101,7 @@ public:
 void Q3BspMapTest_ShaderNameTagMain( const char* name );
 void Q3BspMapTest_ShaderNameTagShader( const char* name );
 void Q3BspMapTest_ShaderNameRun( void );
+
+void Q3Bsp_SwizzleCoords( glm::vec3& v );
+void Q3Bsp_SwizzleCoords( glm::ivec3& v );
+void Q3Bsp_SwizzleCoords( glm::vec2& v );
