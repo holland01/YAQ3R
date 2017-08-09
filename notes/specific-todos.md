@@ -2,16 +2,17 @@
 [priority]
 * bugfix/any_wall_clip_weirdness 
 
+
+
 [unnamed]
-* Some textures are flipped upside down when they shouldn't be. There doesn't appear to be a tcMod setting which causes this to happen, and disabling
+* ~Some textures are flipped upside down when they shouldn't be. There doesn't appear to be a tcMod setting which causes this to happen, and disabling
 the 2D rotation effect by setting the matrix to its identity changes nothing. Swizzling all texture coordinates does produce what's desired for
-those specific textures, however every other texture is messed up.
+those specific textures, however every other texture is messed up.~
 
-Likely want to assess how this will be interacting with the texture atlas, and then check Quake's code to see if there's any kind of coordinate swizzling
-for specific textures; there could be a shaders for some of these images which have relevant content/surface flags, for example. 
+~Likely want to assess how this will be interacting with the texture atlas, and then check Quake's code to see if there's any kind of coordinate swizzling
+for specific textures; there could be a shaders for some of these images which have relevant content/surface flags, for example.~
 
 [unnamed]
-
 * Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
 renderer's current implementation.
 
