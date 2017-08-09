@@ -17,6 +17,10 @@ for specific textures; there could be a shaders for some of these images which h
 renderer's current implementation.
 
 [unnamed]
+* Allocate a separate default shader for models which always blends the color mapped value in the texture with the vertex diffuse light/color.
+
+
+[unnamed]
 * In `BSPRenderer::DrawEffectPass()`, there's this:
 
     ```
