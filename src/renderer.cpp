@@ -147,6 +147,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 		frameTime( 0.0f ),
 		targetFPS( 0.0f ),
 		alwaysWriteDepth( false ),
+		allowFaceCulling( true ),
 		camera( new InputCamera() ),
 		curView( VIEW_MAIN )
 {
@@ -579,14 +580,24 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 	pass.type = PASS_DRAW;
 
-	GL_CHECK( glEnable( GL_CULL_FACE ) );
-	GL_CHECK( glCullFace( GL_BACK ) );
-	GL_CHECK( glFrontFace( GL_CW ) );
+	if ( allowFaceCulling )
+	{
+		GL_CHECK( glEnable( GL_CULL_FACE ) );
+		GL_CHECK( glCullFace( GL_BACK ) );
+		GL_CHECK( glFrontFace( GL_CW ) );
+	}
+	else
+	{
+		GL_CHECK( glDisable( GL_CULL_FACE ) );
+	}
 
 	TraverseDraw( pass, true );
 	TraverseDraw( pass, false );
 
-	GL_CHECK( glDisable( GL_CULL_FACE ) );
+	if ( allowFaceCulling )
+	{
+		GL_CHECK( glDisable( GL_CULL_FACE ) );
+	}
 }
 
 void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
@@ -881,7 +892,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// shader uses a setting which differs from what's currently set,
 	// we restore our cull settings to their previous values after this draw
 	GLint oldCull = -1, oldCullMode = 0, oldFrontFace = 0;
-	if  ( shader->cullFace != G_UNSPECIFIED )
+
+	if  ( allowFaceCulling && shader->cullFace != G_UNSPECIFIED )
 	{
 		GL_CHECK( glGetIntegerv( GL_CULL_FACE, &oldCull ) );
 
@@ -1024,7 +1036,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	GL_CHECK( glEnableVertexAttribArray( 3 ) );
 
 	// Did we bother checking earlier?
-	if ( oldCull != -1 )
+	if ( allowFaceCulling && oldCull != -1 )
 	{
 		// If true, we had culling enabled previously, so
 		// restore previous settings; otherwise, we ensure it's disabled

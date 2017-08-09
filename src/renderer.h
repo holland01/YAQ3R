@@ -336,6 +336,8 @@ public:
 
 	bool				alwaysWriteDepth;
 
+	bool				allowFaceCulling;
+
 	std::unique_ptr< InputCamera > camera;
 
 	viewMode_t		curView;

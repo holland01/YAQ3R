@@ -93,7 +93,14 @@ bool TRenderer::OnInputEvent( SDL_Event* e )
 					break;
 				case SDLK_k:
 					renderer->alwaysWriteDepth = !renderer->alwaysWriteDepth;
+					printf( "BSPRenderer: alwaysWriteDepth = %s\n", 
+						renderer->alwaysWriteDepth ? "true" : "false" );
 					break;
+				case SDLK_l:
+					renderer->allowFaceCulling = !renderer->allowFaceCulling;
+					printf( "BSPRenderer: allowFaceCulling = %s\n", 
+						renderer->allowFaceCulling ? "true" : "false" );
+				break;
 				default:
 					break;
 			}
