@@ -583,8 +583,8 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	if ( allowFaceCulling )
 	{
 		GL_CHECK( glEnable( GL_CULL_FACE ) );
-		GL_CHECK( glCullFace( GL_BACK ) );
-		GL_CHECK( glFrontFace( GL_CW ) );
+		GL_CHECK( glCullFace( GL_FRONT ) );
+		GL_CHECK( glFrontFace( GL_CCW ) );
 	}
 	else
 	{
