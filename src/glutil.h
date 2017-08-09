@@ -54,9 +54,6 @@ void GPrintBadProgram( void );
 bool GHasBadProgram( void );
 void GStateCheckReport( void );
 
-
-void GLoadDefaultStateParams( void );
-
 enum
 {
 	GLUTIL_POLYGON_OFFSET_FILL = 1 << 0,

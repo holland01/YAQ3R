@@ -391,15 +391,6 @@ void GStateCheckReport( void ) {}
 // Main API
 //-------------------------------------------------------------------------------------------------
 
-void GLoadDefaultStateParams( void )
-{
-	GL_CHECK( glClearDepth( 1.0f ) );
-	GL_CHECK( glDepthRangef( 0.0f, 1.0f ) );
-	GL_CHECK( glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE ) );
-}
-
-//-------------------------------------------------------------------------------------------------
-
 static INLINE void DisableAllAttribs( void )
 {
 	for ( int i = 0; i < 5; ++i )
