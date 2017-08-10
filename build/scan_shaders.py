@@ -106,42 +106,61 @@ shader_names = [
 
 in_shader_files = {}
 only_images = {}
+shader_bodies = {}
 
 print ("total names: %i" % len(shader_names))
 
 def search_for_shader_in_file(shader, file):
-    with open(file, 'r') as handle:
-        for line in handle:
-            if line == shader + "\n":
-                return True
-    return False
+	ret = False
+	level = 0
+
+	line_str = []
+
+	with open(file, 'r', encoding="utf-8") as handle:
+		for line in handle:
+			if ret:
+				if "{" in line:
+					level += 1
+				elif "}" in line:
+					level -= 1
+
+				line_str.append(line)
+
+				if level == 0:
+					break
+
+			if line == shader + "\n":
+				ret = True
+		if ret:
+			shader_bodies[shader] = '\n'.join(line_str)
+	return ret
 
 def search_for_shader(dir):
-    # traverse root directory, and list directories as dirs and files as files
-    for root, dirs, files in os.walk("./asset/" + dir):
-        path = root.split(os.sep)
-        for name in shader_names:
-            for file in files:
-                if dir == "scripts":
-                    if search_for_shader_in_file(name, os.path.join(root, file)):
-                        in_shader_files[name] = file
-                    #    break
-                else:
-                    p = os.path.join(os.sep.join(path[2:]), file)
-                    #print(p)
-                    if p.startswith(name + "."):
-                        only_images[name] = file
-                        #break
+	# traverse root directory, and list directories as dirs and files as files
+	for root, dirs, files in os.walk("./asset/" + dir):
+		path = root.split(os.sep)
+		for name in shader_names:
+			for file in files:
+				if dir == "scripts":
+					if search_for_shader_in_file(name, os.path.join(root, file)):
+						in_shader_files[name] = file
+					#    break
+				else:
+					p = os.path.join(os.sep.join(path[2:]), file)
+					#print(p)
+					if p.startswith(name + "."):
+						only_images[name] = file
+						#break
 
 search_for_shader("scripts")
 search_for_shader("")
 
 def print_names(title, map):
-    print(title)
-    counter = 0
-    for entry in sorted(map.keys()):
-        print("\t[%i] %s => %s" % (counter, entry, map[entry]))
-        counter += 1
+	print(title)
+	counter = 0
+	for entry in sorted(map.keys()):
+		print("\t[%i] %s => %s" % (counter, entry, map[entry]))
+		counter += 1
 
 print_names("Shader File Matches", in_shader_files)
 print_names("Image File Matches", only_images)
@@ -149,15 +168,16 @@ print_names("Image File Matches", only_images)
 dupes = {}
 
 for key in in_shader_files:
-    if key in only_images:
-        dupes[key] = []
-        dupes[key].append(in_shader_files[key])
+	if key in only_images:
+		dupes[key] = []
+		dupes[key].append(in_shader_files[key])
 
 for key in only_images:
-    if key in in_shader_files:
-        dupes[key].append(only_images[key])
+	if key in in_shader_files:
+		dupes[key].append(only_images[key])
 
 print_names("Union", dupes)
 
 print("len(Shader File Matches) + len(Image File Matches) = %i" \
-    % (len(in_shader_files) + len(only_images)))
+	% (len(in_shader_files) + len(only_images)))
+print_names("Shader Bodies", shader_bodies)
