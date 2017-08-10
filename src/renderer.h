@@ -200,6 +200,8 @@ public:
 	virtual ~RenderBase( void );
 };
 
+using shaderList_t = std::vector< const shaderInfo_t * >;
+
 class BSPRenderer : public RenderBase
 {
 public:
@@ -230,11 +232,14 @@ public:
 
 	const bspLeaf_t*    currLeaf;
 
-
-
 	float               deltaTime;
 
 	double				frameTime;
+
+	std::unique_ptr< shaderInfo_t > defaultShader;
+
+	shaderList_t opaqueShaderList;
+	shaderList_t transparentShaderList;
 
 	void 				BindTexture(
 							const Program& program,
