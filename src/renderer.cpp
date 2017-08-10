@@ -201,19 +201,27 @@ void BSPRenderer::Prep( void )
 
 bool BSPRenderer::IsTransFace(
 	int32_t faceIndex,
-	const shaderInfo_t* shader
+	const shaderInfo_t* scriptShader
 ) const
 {
-	UNUSED( shader );
 	const bspFace_t* face = &map.data.faces[ faceIndex ];
 
 	if ( face && face->shader != -1 )
 	{
-		bspShader_t* s = &map.data.shaders[ face->shader ];
+		bspShader_t* mapShader = &map.data.shaders[ face->shader ];
 
-		return !!( s->contentsFlags & ( BSP_CONTENTS_WATER
-										| BSP_CONTENTS_TRANSLUCENT ) )
-			|| !!( s->surfaceFlags & ( BSP_SURFACE_NONSOLID ) );
+		if ( !!( mapShader->contentsFlags & ( BSP_CONTENTS_WATER | BSP_CONTENTS_TRANSLUCENT ) ) )
+		{
+			return true;
+		}
+
+		if ( scriptShader )
+		{
+			if ( !!( scriptShader->surfaceParms & ( SURFPARM_TRANS | SURFPARM_WATER ) ) )
+			{
+				return true;
+			}
+		}
 	}
 
 	return false;
