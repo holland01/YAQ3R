@@ -238,8 +238,8 @@ public:
 
 	std::unique_ptr< shaderInfo_t > defaultShader;
 
-	shaderList_t opaqueShaderList;
-	shaderList_t transparentShaderList;
+	shaderList_t 		opaqueShaderList;
+	shaderList_t 		transparentShaderList;
 
 	void 				BindTexture(
 							const Program& program,
@@ -265,10 +265,6 @@ public:
 						) const;
 
 	uint32_t			GetPassLayoutFlags( passType_t type );
-
-	bool				IsTransFace( int32_t faceIndex,
-							const shaderInfo_t* shader
-						) const;
 
 	void				LoadPassParams(
 							drawPass_t& pass,

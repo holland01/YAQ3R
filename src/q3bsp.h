@@ -85,6 +85,10 @@ public:
 
 	bool						IsMapOnlyShader( const std::string& filepath ) const;
 
+	bool 						IsTransparentShader( const shaderInfo_t * scriptShader ) const;
+
+	bool 						IsNoDrawShader( const shaderInfo_t * scriptShader ) const;
+
 	void						DestroyMap( void );
 
 	std::string 				GetBinLayoutString( void ) const;

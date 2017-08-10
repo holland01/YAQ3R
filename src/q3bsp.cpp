@@ -13,7 +13,7 @@
 using namespace std;
 
 //------------------------------------------------------------------------------
-// Data tweaking
+// Internal
 //------------------------------------------------------------------------------
 
 static void ScaleCoords( glm::vec3& v, float scale )
@@ -35,6 +35,46 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 	v.y *= scale;
 	v.z *= scale;
 }
+
+static bool TestShaderFlags( 
+	const shaderInfo_t * scriptShader, 
+	const mapData_t & data,
+	surfaceParm_t surfFlags, 
+	int contentsFlags, 
+	int surfaceFlags 
+)
+{
+	if ( !scriptShader )
+	{
+		return false;
+	}
+
+	if ( !!( scriptShader->surfaceParms & surfFlags ) )
+	{
+		return true;
+	}
+
+	if ( scriptShader->mapShaderIndex != INDEX_UNDEFINED )
+	{
+		const bspShader_t* mapShader = &data.shaders[ scriptShader->mapShaderIndex ];
+
+		if ( !!( mapShader->contentsFlags & contentsFlags ) )
+		{
+			return true;
+		}
+
+		if ( !!( mapShader->surfaceFlags & surfaceFlags ) )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//------------------------------------------------------------------------------
+// Global Functions
+//------------------------------------------------------------------------------
 
 void Q3Bsp_SwizzleCoords( glm::vec3& v )
 {
@@ -574,6 +614,28 @@ bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
 		File_StripExt( File_StripPath( shaderPath ) ) );
 
 	return shadername == name;
+}
+
+bool Q3BspMap::IsTransparentShader( const shaderInfo_t* scriptShader ) const
+{
+	return TestShaderFlags( 
+		scriptShader, 
+		data, 
+		SURFPARM_TRANS | SURFPARM_WATER,
+		BSP_CONTENTS_TRANSLUCENT | BSP_CONTENTS_WATER | BSP_CONTENTS_FOG, 
+		0 
+	);
+}
+
+bool Q3BspMap::IsNoDrawShader( const shaderInfo_t * scriptShader ) const
+{
+	return TestShaderFlags( 
+		scriptShader, 
+		data, 
+		SURFPARM_NO_DRAW,
+		0, 
+		BSP_SURFACE_NODRAW 
+	);
 }
 
 void Q3BspMap::ZeroData( void )

@@ -199,34 +199,6 @@ void BSPRenderer::Prep( void )
 	}
 }
 
-bool BSPRenderer::IsTransFace(
-	int32_t faceIndex,
-	const shaderInfo_t* scriptShader
-) const
-{
-	const bspFace_t* face = &map.data.faces[ faceIndex ];
-
-	if ( face && face->shader != -1 )
-	{
-		bspShader_t* mapShader = &map.data.shaders[ face->shader ];
-
-		if ( !!( mapShader->contentsFlags & ( BSP_CONTENTS_WATER | BSP_CONTENTS_TRANSLUCENT ) ) )
-		{
-			return true;
-		}
-
-		if ( scriptShader )
-		{
-			if ( !!( scriptShader->surfaceParms & ( SURFPARM_TRANS | SURFPARM_WATER ) ) )
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
 	passDrawType_t defaultPass ) const
 {
@@ -485,10 +457,17 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 
 	LoadPassParams( pass, index, PASS_DRAW_MAIN );
 
-	bool transparent = IsTransFace( pass.faceIndex, pass.shader );
+	if ( map.IsNoDrawShader( pass.shader ) )
+	{
+		// evaluating this on the next pass will be faster than
+		// the function call.
+		pass.facesVisited[ index ] = true; 
+		return;
+	}
 
-	bool add = ( !pass.isSolid && transparent )
-		|| ( pass.isSolid && !transparent );
+	bool transparent = map.IsTransparentShader( pass.shader );
+
+	bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
 
 	if ( add )
 	{
@@ -498,19 +477,13 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 		}
 		else
 		{
-			if ( pass.shader && !!( pass.shader->surfaceParms
-				& SURFPARM_NO_DRAW ) )
-			{
-				pass.facesVisited[ pass.faceIndex ] = true;
-				return;
-			}
 
 			drawSurfaceList_t& list =
-				( pass.face->type == BSP_FACE_TYPE_PATCH )? pass.patches:
+				( pass.face->type == BSP_FACE_TYPE_PATCH ) ? pass.patches :
 				pass.polymeshes;
 
 			AddSurface( pass.shader, pass.faceIndex,
-				pass.shader? list.effectSurfaces: list.surfaces );
+				pass.shader ? list.effectSurfaces : list.surfaces );
 			pass.facesVisited[ pass.faceIndex ] = true;
 		}
 	}
@@ -822,7 +795,7 @@ void BSPRenderer::MakeAddSurface(
 	surf.lightmapIndex = face->lightmapIndex;
 	surf.textureIndex = face->shader;
 	surf.faceType = face->type;
-	surf.transparent = IsTransFace( faceIndex, shader );
+	surf.transparent = map.IsTransparentShader( shader );
 
 	AddSurfaceData( surf, faceIndex, glFaces );
 
