@@ -634,7 +634,7 @@ static bool ShaderUsed( shaderInfo_t* outInfo, const Q3BspMap* map )
 		if ( strncmp( map->data.shaders[ i ].name, &outInfo->name[ 0 ],
 				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 		{
-			outInfo->shaderIndex = i;
+			outInfo->mapShaderIndex = i;
 			break;
 		}
 	}
@@ -644,12 +644,12 @@ static bool ShaderUsed( shaderInfo_t* outInfo, const Q3BspMap* map )
 		if ( strncmp( map->data.fogs[ i ].name, &outInfo->name[ 0 ],
 				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 		{
-			outInfo->fogIndex = i;
+			outInfo->mapFogIndex = i;
 			break;
 		}
 	}
 
-	return outInfo->fogIndex != -1 || outInfo->shaderIndex != -1;
+	return outInfo->mapFogIndex != -1 || outInfo->mapShaderIndex != -1;
 }
 
 static const char* SkipBlockAtLevel( const char* buffer, int8_t targetLevel )

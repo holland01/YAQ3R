@@ -119,6 +119,7 @@ enum
 };
 
 using bspShaderSort_t = uint32_t;
+using surfaceParm_t = uint32_t;
 
 // Map loader-specific flags
 enum
@@ -351,7 +352,7 @@ struct leafModel_t
 
 // Info can be obtained from http://toolz.nexuizninjaz.com/shader/
 //
-enum surfaceParms_t
+enum
 {
 	SURFPARM_ALPHA_SHADOW		= 1 << 0,
 	SURFPARM_AREA_PORTAL		= 1 << 1,
@@ -653,7 +654,7 @@ struct shaderInfo_t
 
 	uint32_t			cullFace = G_UNSPECIFIED;
 
-	uint32_t			surfaceParms = 0; // global surface parameters
+	surfaceParm_t		surfaceParms = 0; // global surface parameters
 
 	uint32_t			localLoadFlags = 0;
 
@@ -662,9 +663,9 @@ struct shaderInfo_t
 	// the amount of draw passes for this shader entry
 	int					stageCount = 0;
 
-	int 				shaderIndex = -1;	// index into corresponding bspShader_t; useful for surface/content flag lookups
+	int 				mapShaderIndex = INDEX_UNDEFINED;	// index into corresponding bspShader_t; useful for surface/content flag lookups
 
-	int 				fogIndex = -1;
+	int 				mapFogIndex = INDEX_UNDEFINED;
 
 	float				surfaceLight = 0.0f; // 0 if no light
 
