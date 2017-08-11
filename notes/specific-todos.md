@@ -2,6 +2,8 @@
 [priority]
 * bugfix/any_wall_clip_weirdness 
 
+verify that noshader is actually meant for drawing; if not, there will be faces which index into that shader and that will be drawn when they
+shouldn't be. An alternative name you can use is just "defaultshader" or something like that, for rendering objects without effect shaders
 
 
 [unnamed]
