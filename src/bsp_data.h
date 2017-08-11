@@ -652,7 +652,7 @@ struct shaderInfo_t
 
 	effect_t            deformParms; // arbitrary parameters for our deform
 
-	uint32_t			cullFace = G_UNSPECIFIED;
+	uint32_t			cullFace = GL_NONE;
 
 	surfaceParm_t		surfaceParms = 0; // global surface parameters
 
@@ -663,9 +663,13 @@ struct shaderInfo_t
 	// the amount of draw passes for this shader entry
 	int					stageCount = 0;
 
-	int 				mapShaderIndex = INDEX_UNDEFINED;	// index into corresponding bspShader_t; useful for surface/content flag lookups
+	// index into corresponding bspShader_t; useful for surface/content flag lookups
+	int 				mapShaderIndex = INDEX_UNDEFINED;	
 
 	int 				mapFogIndex = INDEX_UNDEFINED;
+
+	// Q3BspMap instance holds two lists of shaders necessary for proper draw order; the sort member above determines which list.
+	int 				sortListIndex = INDEX_UNDEFINED;	
 
 	float				surfaceLight = 0.0f; // 0 if no light
 

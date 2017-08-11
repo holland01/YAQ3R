@@ -53,49 +53,10 @@ using drawCall_t = std::function<
 	)
 >;
 
-struct drawSurface_t
+struct drawFace_t
 {
-	// Every face within a given surface must
-	// have the same following 4 values
-
-	bool					transparent;
-	int32_t					textureIndex;
-	int32_t					lightmapIndex;
-	int32_t					faceType;
-	const shaderInfo_t*		shader;
-
-	guBufferOffsetList_t			bufferOffsets;
-	guBufferRangeList_t				bufferRanges;
-
-	std::vector< int32_t >			drawFaceIndices;
-
-	std::vector< int32_t >			faceIndices; // for vertex deformations
-
-			drawSurface_t( void )
-				:	transparent( false ),
-					textureIndex( 0 ),
-					lightmapIndex( 0 ),
-					faceType( 0 ),
-					shader( nullptr )
-			{}
-};
-
-using surfKeyTier0_t = uint8_t; // type
-using surfKeyTier1_t = int8_t; // lightmap index
-using surfKeyTier2_t = int8_t; // shader index
-using surfKeyTier3_t = uintptr_t; // shaderInfo_t* address
-
-using surfMapTier3_t = std::unordered_map< surfKeyTier3_t, drawSurface_t >;
-using surfMapTier2_t = std::unordered_map< surfKeyTier2_t, surfMapTier3_t >;
-using surfMapTier1_t = std::unordered_map< surfKeyTier1_t, surfMapTier2_t >;
-
-using surfaceContainer_t = std::array< surfMapTier1_t, 4 >;
-
-struct drawPass_t;
-
-struct drawSurfaceList_t
-{
-	surfaceContainer_t surfaces, effectSurfaces;
+	int shaderSortedIndex;
+	int mapFaceIndex;
 };
 
 struct drawPass_t
@@ -118,10 +79,8 @@ struct drawPass_t
 	const viewParams_t& view;
 
 	std::vector< uint8_t > facesVisited;
-	std::vector< int32_t > transparent, opaque;
-
-	drawSurfaceList_t patches;
-	drawSurfaceList_t polymeshes;
+	
+	std::vector< drawFace_t > transparent, opaque;
 
 	drawPass_t( const Q3BspMap& map, const viewParams_t& viewData );
 };
@@ -200,8 +159,6 @@ public:
 	virtual ~RenderBase( void );
 };
 
-using shaderList_t = std::vector< const shaderInfo_t * >;
-
 class BSPRenderer : public RenderBase
 {
 public:
@@ -236,11 +193,6 @@ public:
 
 	double				frameTime;
 
-	std::unique_ptr< shaderInfo_t > defaultShader;
-
-	shaderList_t 		opaqueShaderList;
-	shaderList_t 		transparentShaderList;
-
 	void 				BindTexture(
 							const Program& program,
 							const gla_atlas_ptr_t& atlas,
@@ -253,11 +205,6 @@ public:
 							const drawPass_t& pass,
 							const Program& prog
 						) const;
-
-	void                SortDrawSurfaces(
-							std::vector< drawSurface_t >& surf,
-							bool transparent
-						);
 
 	void				DeformVertexes(
 							const mapModel_t& m,
@@ -278,16 +225,9 @@ public:
 							std::function< void( const Program& )> callback
 						);
 
-	void				MakeAddSurface(
-							const shaderInfo_t* shader,
-							int32_t faceIndex,
-							surfaceContainer_t& surfList
-						);
-
-	void				AddSurface(
-							const shaderInfo_t* shader,
-							int32_t faceIndex,
-							surfaceContainer_t& surfList
+	void				DrawEffectPass(
+							const drawTuple_t& data,
+							drawCall_t callback
 						);
 
 	void				ReflectFromTuple(
@@ -296,30 +236,15 @@ public:
 							const Program& program
 						);
 
-	void				DrawSurface( const drawSurface_t& surface ) const;
-
 	void				DrawFaceList(
 							drawPass_t& p,
 							const std::vector< int32_t >& list
 						);
 
-	void				DrawSurfaceList(
-							const surfaceContainer_t& list,
-							bool solid
-						);
-
-	void				DrawEffectPass(
-							const drawTuple_t& data,
-							drawCall_t callback
-						);
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
 
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
-
-	void				DrawList( drawSurfaceList_t& list, bool solid );
-
-	void				DrawClear( drawPass_t& pass, bool solid );
 
 	void				TraverseDraw( drawPass_t& pass, bool solid );
 

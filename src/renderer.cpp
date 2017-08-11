@@ -471,51 +471,7 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 
 	if ( add )
 	{
-		if ( gConfig.drawFacesOnly )
-		{
-			DrawFace( pass );
-		}
-		else
-		{
-
-			drawSurfaceList_t& list =
-				( pass.face->type == BSP_FACE_TYPE_PATCH ) ? pass.patches :
-				pass.polymeshes;
-
-			AddSurface( pass.shader, pass.faceIndex,
-				pass.shader ? list.effectSurfaces : list.surfaces );
-			pass.facesVisited[ pass.faceIndex ] = true;
-		}
-	}
-}
-
-void BSPRenderer::DrawList( drawSurfaceList_t& list, bool solid )
-{
-	if ( solid )
-	{
-		gCounts.numSolidEffect += list.effectSurfaces.size();
-		gCounts.numSolidNormal += list.surfaces.size();
-	}
-	else
-	{
-		gCounts.numTransEffect += list.effectSurfaces.size();
-		gCounts.numTransNormal += list.surfaces.size();
-	}
-
-	DrawSurfaceList( list.surfaces, solid );
-	DrawSurfaceList( list.effectSurfaces, solid );
-	list.surfaces = surfaceContainer_t();
-	list.effectSurfaces = surfaceContainer_t();
-}
-
-void BSPRenderer::DrawClear( drawPass_t& pass, bool solid )
-{
-	if ( !gConfig.drawFacesOnly )
-	{
-		DrawList( pass.polymeshes, solid );
-		DrawList( pass.patches, solid );
-		pass.shader = nullptr;
-		pass.face = nullptr;
+		
 	}
 }
 
@@ -523,7 +479,6 @@ void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
 {
 	pass.isSolid = solid;
 	DrawNode( pass, 0 );
-	DrawClear( pass, solid );
 }
 
 void BSPRenderer::RenderPass( const viewParams_t& view )
@@ -748,117 +703,6 @@ void BSPRenderer::DrawMapPass(
 	textures[ TEXTURE_ATLAS_LIGHTMAPS ]->release_from_active_slot( 1 );
 }
 
-namespace {
-	INLINE void AddSurfaceData(
-		drawSurface_t& surf,
-		int faceIndex,
-		modelBuffer_t& glFaces
-	)
-	{
-		mapModel_t& model = *( glFaces[ faceIndex ] );
-
-#if G_STREAM_INDEX_VALUES
-		surf.drawFaceIndices.push_back( faceIndex );
-#else
-		if ( surf.faceType == BSP_FACE_TYPE_PATCH )
-		{
-			mapPatch_t& patch = *( model.ToPatch() );
-
-			surf.bufferOffsets.insert( surf.bufferOffsets.end(),
-				patch.rowIndices.begin(), patch.rowIndices.end() );
-			surf.bufferRanges.insert( surf.bufferRanges.end(),
-				patch.trisPerRow.begin(), patch.trisPerRow.end() );
-		}
-		else
-		{
-			surf.bufferOffsets.push_back( model.iboOffset );
-			surf.bufferRanges.push_back( model.iboRange );
-		}
-#endif
-		if ( surf.shader && surf.shader->deform )
-		{
-			surf.faceIndices.push_back( faceIndex );
-		}
-	}
-}
-
-void BSPRenderer::MakeAddSurface(
-	const shaderInfo_t* shader,
-	int32_t faceIndex,
-	surfaceContainer_t& surfList )
-{
-	const bspFace_t* face = &map.data.faces[ faceIndex ];
-
-	drawSurface_t surf;
-
-	surf.shader = shader;
-	surf.lightmapIndex = face->lightmapIndex;
-	surf.textureIndex = face->shader;
-	surf.faceType = face->type;
-	surf.transparent = map.IsTransparentShader( shader );
-
-	AddSurfaceData( surf, faceIndex, glFaces );
-
-	surfList[ face->type - 1 ][ face->lightmapIndex ][ face->shader ]
-		[ ( uintptr_t ) shader ] = surf;
-}
-
-void BSPRenderer::AddSurface(
-	const shaderInfo_t* shader,
-	int32_t faceIndex,
-	surfaceContainer_t& surfList )
-{
-	const bspFace_t* face = &map.data.faces[ faceIndex ];
-
-	surfMapTier1_t& t1 = surfList[ face->type - 1 ];
-
-	auto t2 = t1.find( face->lightmapIndex );
-	if ( t2 != t1.end() )
-	{
-		auto t3 = t2->second.find( face->shader );
-		if ( t3 != t2->second.end() )
-		{
-			auto surfTest = t3->second.find( ( uintptr_t )shader );
-
-			if  ( surfTest != t3->second.end() )
-			{
-				AddSurfaceData( surfTest->second, faceIndex, glFaces );
-			}
-			else
-			{
-				MakeAddSurface( shader, faceIndex, surfList );
-			}
-		}
-		else
-		{
-			MakeAddSurface( shader, faceIndex, surfList );
-		}
-	}
-	else
-	{
-		MakeAddSurface( shader, faceIndex, surfList );
-	}
-}
-
-void BSPRenderer::DrawSurface( const drawSurface_t& surf ) const
-{
-	for ( int32_t i: surf.faceIndices )
-		DeformVertexes( *( glFaces[ i ] ), surf.shader );
-
-	GLenum mode = ( surf.faceType == BSP_FACE_TYPE_PATCH )?
-		GL_TRIANGLE_STRIP: GL_TRIANGLES;
-
-#if G_STREAM_INDEX_VALUES
-	for ( uint32_t i = 0; i < surf.drawFaceIndices.size(); ++i )
-	{
-		mapModel_t& m = *( glFaces[ surf.drawFaceIndices[ i ] ] );
-		GDrawFromIndices( m.indices, mode );
-	}
-#else
-	GU_MultiDrawElements( mode, surf.bufferOffsets, surf.bufferRanges );
-#endif
-}
-
 void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 {
 	const shaderInfo_t* shader = std::get< 1 >( data );
@@ -874,7 +718,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// we restore our cull settings to their previous values after this draw
 	GLint oldCull = -1, oldCullMode = 0, oldFrontFace = 0;
 
-	if  ( allowFaceCulling && shader->cullFace != G_UNSPECIFIED )
+	if  ( allowFaceCulling )
 	{
 		GL_CHECK( glGetIntegerv( GL_CULL_FACE, &oldCull ) );
 
@@ -886,16 +730,16 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		}
 
 		// Check for desired face culling
-		if ( shader->cullFace )
+		if ( shader->cullFace == GL_NONE )
+		{
+			GL_CHECK( glDisable( GL_CULL_FACE ) );
+		}
+		else
 		{
 			if ( !oldCull ) // Not enabled, so we need to activate it
 				GL_CHECK( glEnable( GL_CULL_FACE ) );
 
 			GL_CHECK( glCullFace( shader->cullFace ) );
-		}
-		else
-		{
-			GL_CHECK( glDisable( GL_CULL_FACE ) );
 		}
 	}
 
@@ -1075,64 +919,8 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 
 			break;
 	}
-
-	pass.facesVisited[ pass.faceIndex ] = true;
 }
 
-void BSPRenderer::DrawSurfaceList( const surfaceContainer_t& list, bool solid )
-{
-	UNUSED( solid );
-
-	auto LEffectCallback = [ this ]( const void* voidsurf, const Program& prog,
-		const shaderStage_t* stage )
-	{
-		UNUSED( stage );
-		UNUSED( prog );
-
-		const drawSurface_t& surf = *( ( const drawSurface_t* )( voidsurf ) );
-
-		DrawSurface( surf );
-	};
-
-	for ( auto i0 = list.begin(); i0 != list.end(); ++i0 )
-	{
-		for ( auto i1 = ( *i0 ).begin(); i1 != ( *i0 ).end(); ++i1 )
-		{
-			for ( auto i2 = i1->second.begin(); i2 != i1->second.end(); ++i2 )
-			{
-				for ( auto i3 = i2->second.begin(); i3 != i2->second.end();
-					++i3 )
-				{
-					const drawSurface_t& surf = i3->second;
-
-					if ( surf.shader )
-					{
-						drawTuple_t tuple = std::make_tuple(
-							( const void* )&surf,
-							surf.shader,
-							surf.textureIndex,
-							surf.lightmapIndex,
-							solid );
-						DrawEffectPass( tuple, LEffectCallback );
-					}
-					else
-					{
-						DrawMapPass(
-							surf.textureIndex,
-							surf.lightmapIndex,
-							// FIXME: Is the lexical scoping used
-							// with the surf param bad for performance?
-							[ &surf, this ]( const Program& main )
-							{
-								UNUSED( main );
-								DrawSurface( surf );
-							});
-					}
-				}
-			}
-		}
-	}
-}
 
 void BSPRenderer::DrawFaceVerts( const drawPass_t& pass,
 	const shaderStage_t* stage ) const
