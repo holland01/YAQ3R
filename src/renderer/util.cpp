@@ -219,25 +219,7 @@ void GU_LoadShaderTextures( Q3BspMap& map )
 		GMakeProgramsFromEffectShader( entry.second );
 	}
 
-	std::vector< gPathMap_t > sources;
-
-	for ( auto& entry: map.effectShaders )
-	{
-		for ( shaderStage_t& stage: entry.second.stageBuffer )
-		{
-			if ( stage.mapType == MAP_TYPE_IMAGE )
-			{
-				gPathMap_t initial;
-
-				initial.param = &stage;
-				initial.path = std::string( &stage.texturePath[ 0 ] );
-
-				sources.push_back( initial );
-			}
-		}
-
-		Q3BspMapTest_ShaderNameTagShader( &entry.second.name[ 0 ] );
-	}
+	std::vector< gPathMap_t > sources = map.GetShaderSourcesList();
 
 	gImageLoadState.keyMapped = false;
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnShaderLoadImagesFinish;

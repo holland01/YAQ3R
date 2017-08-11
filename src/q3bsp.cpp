@@ -541,6 +541,7 @@ void Q3BspMapTest_ShaderNameRun( void )
 //------------------------------------------------------------------------------
 Q3BspMap::Q3BspMap( void )
 	 :	scaleFactor( 1 ),
+	 	defaultShaderIndex( INDEX_UNDEFINED ),
 		mapAllocated( false ),
 		payload( nullptr ),
 		readFinishEvent( nullptr )
@@ -553,10 +554,85 @@ Q3BspMap::~Q3BspMap( void )
 	DestroyMap();
 }
 
-void Q3BspMap::OnShaderReadFinish( void )
+void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 {
+	std::string key( &effectShader.name[ 0 ], strlen( &effectShader.name[ 0 ] ) );
+
+	effectShaders.insert( shaderMapEntry_t(
+		key,
+		effectShader
+	) );
+
+	shaderInfo_t* afterInsert = &effectShaders[ key ];
+
+	// Default sort is opaque; if no sort param was specified,
+	// double check for any telling attributes which have us default
+	// to the generic transparent sort. 
+	bool transparent = IsTransparentShader( afterInsert );
+
+	if ( afterInsert->sort == BSP_SHADER_SORT_OPAQUE && transparent )
+	{
+		afterInsert->sort = BSP_SHADER_SORT_ADDITIVE;
+	}
+
+	if ( transparent )
+	{
+		afterInsert->sortListIndex = ( int ) transparentShaderList.size();
+		transparentShaderList.push_back( afterInsert );
+	}
+	else
+	{
+		afterInsert->sortListIndex = ( int ) opaqueShaderList.size();
+		opaqueShaderList.push_back( afterInsert );
+	}
+
+	// Add names after entry's been copied; these are mostly
+	// used for debugging.
+	for ( size_t i = 0; i < afterInsert->stageBuffer.size(); ++i )
+	{
+		afterInsert->stageBuffer[ i ].owningShader = afterInsert;
+	}
+}
+
+void Q3BspMap::OnShaderReadFinish( void )
+{	
+	// Add a default fallback shader, since there exist many faces which don't have one assigned.
+	{
+		shaderInfo_t noshader;
+
+		// ctor prefills name with zeros
+		strcpy( &noshader.name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME );
+
+		// will find and assign appropriate indices if we have an entry: 
+		// we can possibly benefit from content and surface flags.
+		IsShaderUsed( &noshader );
+
+		AddEffectShader( noshader );
+	}
+
+	auto LSortPredicate = []( const shaderInfo_t* a, const shaderInfo_t* b ) -> bool
+	{
+		return a->sort < b->sort;
+	};
+
+	std::sort( opaqueShaderList.begin(), opaqueShaderList.end(), LSortPredicate );
+	std::sort( transparentShaderList.begin(), transparentShaderList.end(), LSortPredicate );
+
+	// Find default shader index
+	{
+		for ( int i = 0; i < ( int ) opaqueShaderList.size(); ++i )
+		{
+			if ( strcmp( &opaqueShaderList[ i ]->name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME ) == 0 )
+			{
+				defaultShaderIndex = i;
+			}
+		}
+
+		assert( defaultShaderIndex > INDEX_UNDEFINED );
+	}
+
 	gFileWebWorker.Await( UnmountShadersFin,
-		"UnmountPackages", NULL, 0, this );
+		"UnmountPackages", nullptr, 0, this );
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
@@ -608,94 +684,29 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 	return shader;
 }
 
-bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
+std::vector< gPathMap_t > Q3BspMap::GetShaderSourcesList( void ) 
 {
-	const std::string shadername(
-		File_StripExt( File_StripPath( shaderPath ) ) );
+	std::vector< gPathMap_t > sources;
 
-	return shadername == name;
-}
-
-bool Q3BspMap::IsTransparentShader( const shaderInfo_t* scriptShader ) const
-{
-	return TestShaderFlags( 
-		scriptShader, 
-		data, 
-		SURFPARM_TRANS | SURFPARM_WATER,
-		BSP_CONTENTS_TRANSLUCENT | BSP_CONTENTS_WATER | BSP_CONTENTS_FOG, 
-		0 
-	);
-}
-
-bool Q3BspMap::IsNoDrawShader( const shaderInfo_t * scriptShader ) const
-{
-	return TestShaderFlags( 
-		scriptShader, 
-		data, 
-		SURFPARM_NO_DRAW,
-		0, 
-		BSP_SURFACE_NODRAW 
-	);
-}
-
-void Q3BspMap::ZeroData( void )
-{
-	memset( ( uint8_t* ) &data.entities, 0,
-		sizeof( data ) - offsetof( mapData_t, entities ) );
-
-	data.nodes.clear();
-	data.leaves.clear();
-	data.leafBrushes.clear();
-	data.leafFaces.clear();
-	data.planes.clear();
-	data.vertexes.clear();
-	data.brushes.clear();
-	data.brushSides.clear();
-	data.shaders.clear();
-	data.models.clear();
-	data.fogs.clear();
-	data.faces.clear();
-	data.meshVertexes.clear();
-	data.lightmaps.clear();
-	data.lightvols.clear();
-	data.bitsetSrc.clear();
-	data.entitiesSrc.clear();
-
-	payload.reset();
-}
-
-void Q3BspMap::DestroyMap( void )
-{
-	if ( mapAllocated )
+	for ( auto& entry: effectShaders )
 	{
-		ZeroData();
-		mapAllocated = false;
-	}
-}
+		for ( shaderStage_t& stage: entry.second.stageBuffer )
+		{
+			if ( stage.mapType == MAP_TYPE_IMAGE )
+			{
+				gPathMap_t initial;
 
-void Q3BspMap::Read( const std::string& filepath, int scale,
-	onFinishEvent_t finishCallback )
-{
-	if ( IsAllocated() )
-	{
-		DestroyMap();
+				initial.param = &stage;
+				initial.path = std::string( &stage.texturePath[ 0 ] );
+
+				sources.push_back( initial );
+			}
+		}
+
+		Q3BspMapTest_ShaderNameTagShader( &entry.second.name[ 0 ] );
 	}
 
-	payload.reset( new renderPayload_t() );
-
-	for ( gla_atlas_ptr_t& atlas: payload->textureData )
-	{
-		atlas.reset( new gla::atlas_t() );
-	}
-
-	readFinishEvent = finishCallback;
-	scaleFactor = scale;
-	name = File_StripExt( File_StripPath( filepath ) );
-
-	std::string readParams( "maps|" );
-	readParams.append( filepath );
-
-	gFileWebWorker.Await( ReadBegin, "ReadMapFile_Begin", readParams, this );
+	return sources;
 }
 
 mapEntity_t Q3BspMap::GetFirstSpawnPoint( void ) const
@@ -759,100 +770,6 @@ end_iteration:
 	}
 
 	return ret;
-}
-
-void Q3BspMap::WriteLumpToFile( uint32_t lump )
-{
-	FILE* f = nullptr;
-	byte* mem = nullptr;
-	std::string filepath;
-	size_t numBytes = 0;
-	(void)numBytes;
-
-	switch ( lump )
-	{
-		case BSP_LUMP_ENTITIES:
-			filepath = "log/entities.log";
-			mem = ( unsigned char* ) data.entities.infoString;
-			numBytes = data.header.directories[ BSP_LUMP_ENTITIES ].length;
-			break;
-
-		default:
-			return;
-	}
-
-	f = fopen( filepath.c_str(), "wb" );
-	fprintf( f, "%s\n", mem );
-}
-
-bool Q3BspMap::Validate( void )
-{
-	if ( data.header.id[ 0 ] != 'I' || data.header.id[ 1 ] != 'B'
-		|| data.header.id[ 2 ] != 'S' || data.header.id[ 3 ] != 'P' )
-	{
-		MLOG_WARNING( "Header ID does NOT match \'IBSP\'. ID read is: %s \n",
-			data.header.id );
-		return false;
-	}
-
-	if ( data.header.version != BSP_Q3_VERSION )
-	{
-		MLOG_WARNING( "Header version does NOT match %i. Version found is %i\n",
-			BSP_Q3_VERSION, data.header.version );
-		return false;
-	}
-
-	return true;
-}
-
-bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
-{
-	int nodeIndex = 0;
-
-	uint32_t count = 0;
-	while ( nodeIndex >= 0 )
-	{
-		const bspNode_t* const node = &data.nodes[ nodeIndex ];
-		const bspPlane_t* const plane = &data.planes[ node->plane ];
-
-		// If the distance from the camera to the plane is >= 0,
-		// then our needed camera data is
-		// in a leaf somewhere in front of this node,
-		// otherwise it's behind the node somewhere.
-		glm::vec3 planeNormal( plane->normal.x, plane->normal.y,
-			plane->normal.z );
-
-		float distance = glm::dot( planeNormal, camPos ) - plane->distance;
-
-		if ( distance >= 0 )
-		{
-			nodeIndex = node->children[ 0 ];
-		}
-		else
-		{
-			nodeIndex = node->children[ 1 ];
-		}
-
-		count++;
-	}
-
-	nodeIndex = -( nodeIndex + 1 );
-
-	return  &data.leaves[ nodeIndex ];
-}
-
-bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
-{
-	if ( data.bitsetSrc.empty() || ( sourceCluster < 0 ) )
-	{
-		return true;
-	}
-
-	int i = ( sourceCluster * data.visdata.sizeVector ) + ( testCluster >> 3 );
-
-	unsigned char visSet = data.bitsetSrc[ i ];
-
-	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
 }
 
 std::string Q3BspMap::GetBinLayoutString( void ) const
@@ -953,4 +870,232 @@ std::string Q3BspMap::GetPrintString( const std::string& title ) const
 	<< "\t\tlightvols.size(): " << data.lightvols.size() << "\n";
 
 	return ss.str();
+}
+
+bool Q3BspMap::IsDefaultShader( shaderInfo_t* info ) const
+{
+	return strcmp( &info->name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME) == 0;
+}
+
+bool Q3BspMap::IsShaderUsed( shaderInfo_t* outInfo ) const
+{
+	if ( outInfo->mapFogIndex != INDEX_UNDEFINED 
+		|| outInfo->mapShaderIndex != INDEX_UNDEFINED )
+	{
+		return true;
+	}
+
+	Q3Bsp_MatchShaderInfoFromName< bspShader_t >( data.shaders, &outInfo->name[ 0 ], 
+		outInfo->mapShaderIndex );
+
+	Q3Bsp_MatchShaderInfoFromName< bspFog_t >( data.fogs, &outInfo->name[ 0 ], 
+		outInfo->mapFogIndex );
+
+	return outInfo->mapFogIndex != INDEX_UNDEFINED 
+		|| outInfo->mapShaderIndex != INDEX_UNDEFINED;
+}
+
+bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
+{
+	const std::string shadername(
+		File_StripExt( File_StripPath( shaderPath ) ) );
+
+	return shadername == name;
+}
+
+bool Q3BspMap::IsTransparentShader( const shaderInfo_t* scriptShader ) const
+{
+	if ( TestShaderFlags( 
+		scriptShader, 
+		data, 
+		SURFPARM_TRANS | SURFPARM_WATER,
+		BSP_CONTENTS_TRANSLUCENT | BSP_CONTENTS_WATER | BSP_CONTENTS_FOG, 
+		0 
+	) )
+	{
+		return true;
+	}
+
+	switch ( scriptShader->sort )
+	{
+		case BSP_SHADER_SORT_BANNER:
+		case BSP_SHADER_SORT_UNDERWATER:
+		case BSP_SHADER_SORT_ADDITIVE:
+		case BSP_SHADER_SORT_NEAREST:
+			return true;
+		
+		default:
+			return false;
+			break;
+	}
+}
+
+bool Q3BspMap::IsNoDrawShader( const shaderInfo_t * scriptShader ) const
+{
+	return TestShaderFlags( 
+		scriptShader, 
+		data, 
+		SURFPARM_NO_DRAW,
+		0, 
+		BSP_SURFACE_NODRAW 
+	);
+}
+
+bool Q3BspMap::IsClusterVisible( int sourceCluster, int testCluster )
+{
+	if ( data.bitsetSrc.empty() || ( sourceCluster < 0 ) )
+	{
+		return true;
+	}
+
+	int i = ( sourceCluster * data.visdata.sizeVector ) + ( testCluster >> 3 );
+
+	unsigned char visSet = data.bitsetSrc[ i ];
+
+	return ( visSet & ( 1 << ( testCluster & 7 ) ) ) != 0;
+}
+
+
+void Q3BspMap::ZeroData( void )
+{
+	memset( ( uint8_t* ) &data.entities, 0,
+		sizeof( data ) - offsetof( mapData_t, entities ) );
+
+	data.nodes.clear();
+	data.leaves.clear();
+	data.leafBrushes.clear();
+	data.leafFaces.clear();
+	data.planes.clear();
+	data.vertexes.clear();
+	data.brushes.clear();
+	data.brushSides.clear();
+	data.shaders.clear();
+	data.models.clear();
+	data.fogs.clear();
+	data.faces.clear();
+	data.meshVertexes.clear();
+	data.lightmaps.clear();
+	data.lightvols.clear();
+	data.bitsetSrc.clear();
+	data.entitiesSrc.clear();
+
+	payload.reset();
+
+	opaqueShaderList.clear();
+	transparentShaderList.clear();
+	effectShaders.clear();
+}
+
+void Q3BspMap::DestroyMap( void )
+{
+	if ( mapAllocated )
+	{
+		ZeroData();
+		mapAllocated = false;
+	}
+}
+
+void Q3BspMap::Read( const std::string& filepath, int scale,
+	onFinishEvent_t finishCallback )
+{
+	if ( IsAllocated() )
+	{
+		DestroyMap();
+	}
+
+	payload.reset( new renderPayload_t() );
+
+	for ( gla_atlas_ptr_t& atlas: payload->textureData )
+	{
+		atlas.reset( new gla::atlas_t() );
+	}
+
+	readFinishEvent = finishCallback;
+	scaleFactor = scale;
+	name = File_StripExt( File_StripPath( filepath ) );
+
+	std::string readParams( "maps|" );
+	readParams.append( filepath );
+
+	gFileWebWorker.Await( ReadBegin, "ReadMapFile_Begin", readParams, this );
+}
+
+void Q3BspMap::WriteLumpToFile( uint32_t lump )
+{
+	FILE* f = nullptr;
+	byte* mem = nullptr;
+	std::string filepath;
+	size_t numBytes = 0;
+	(void)numBytes;
+
+	switch ( lump )
+	{
+		case BSP_LUMP_ENTITIES:
+			filepath = "log/entities.log";
+			mem = ( unsigned char* ) data.entities.infoString;
+			numBytes = data.header.directories[ BSP_LUMP_ENTITIES ].length;
+			break;
+
+		default:
+			return;
+	}
+
+	f = fopen( filepath.c_str(), "wb" );
+	fprintf( f, "%s\n", mem );
+}
+
+bool Q3BspMap::Validate( void )
+{
+	if ( data.header.id[ 0 ] != 'I' || data.header.id[ 1 ] != 'B'
+		|| data.header.id[ 2 ] != 'S' || data.header.id[ 3 ] != 'P' )
+	{
+		MLOG_WARNING( "Header ID does NOT match \'IBSP\'. ID read is: %s \n",
+			data.header.id );
+		return false;
+	}
+
+	if ( data.header.version != BSP_Q3_VERSION )
+	{
+		MLOG_WARNING( "Header version does NOT match %i. Version found is %i\n",
+			BSP_Q3_VERSION, data.header.version );
+		return false;
+	}
+
+	return true;
+}
+
+bspLeaf_t* Q3BspMap::FindClosestLeaf( const glm::vec3& camPos )
+{
+	int nodeIndex = 0;
+
+	uint32_t count = 0;
+	while ( nodeIndex >= 0 )
+	{
+		const bspNode_t* const node = &data.nodes[ nodeIndex ];
+		const bspPlane_t* const plane = &data.planes[ node->plane ];
+
+		// If the distance from the camera to the plane is >= 0,
+		// then our needed camera data is
+		// in a leaf somewhere in front of this node,
+		// otherwise it's behind the node somewhere.
+		glm::vec3 planeNormal( plane->normal.x, plane->normal.y,
+			plane->normal.z );
+
+		float distance = glm::dot( planeNormal, camPos ) - plane->distance;
+
+		if ( distance >= 0 )
+		{
+			nodeIndex = node->children[ 0 ];
+		}
+		else
+		{
+			nodeIndex = node->children[ 1 ];
+		}
+
+		count++;
+	}
+
+	nodeIndex = -( nodeIndex + 1 );
+
+	return  &data.leaves[ nodeIndex ];
 }

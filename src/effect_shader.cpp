@@ -627,31 +627,6 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str )
 	return GL_EnumFromStr( str );
 }
 
-static bool ShaderUsed( shaderInfo_t* outInfo, const Q3BspMap* map )
-{
-	for ( int i = 0; i < map->data.numShaders; ++i )
-	{
-		if ( strncmp( map->data.shaders[ i ].name, &outInfo->name[ 0 ],
-				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
-		{
-			outInfo->mapShaderIndex = i;
-			break;
-		}
-	}
-
-	for ( int i = 0; i < map->data.numFogs; ++i )
-	{
-		if ( strncmp( map->data.fogs[ i ].name, &outInfo->name[ 0 ],
-				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
-		{
-			outInfo->mapFogIndex = i;
-			break;
-		}
-	}
-
-	return outInfo->mapFogIndex != -1 || outInfo->mapShaderIndex != -1;
-}
-
 static const char* SkipBlockAtLevel( const char* buffer, int8_t targetLevel )
 {
 	const char* pch = buffer;
@@ -745,7 +720,7 @@ static const char* ParseEntry(
 			// Ensure we have a valid shader which a)
 			// we know is used by the map and b) hasn't
 			// already been read
-			used = ( ShaderUsed( outInfo, map ) || isMapShader );
+			used = ( map->IsShaderUsed( outInfo ) || isMapShader );
 
 			if ( !used )
 			{
@@ -815,21 +790,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		if ( used )
 		{
-			std::string key( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) );
-
-			map->effectShaders.insert( shaderMapEntry_t(
-				key,
-				entry
-			) );
-
-			// Add names after entry's been copied; these are mostly
-			// used for debugging.
-			shaderInfo_t& infoEntry = map->effectShaders[ key ];
-
-			for ( size_t i = 0; i < infoEntry.stageBuffer.size(); ++i )
-			{
-				infoEntry.stageBuffer[ i ].owningShader = &infoEntry;
-			}
+			map->AddEffectShader( entry );
 		}
 
 		range = ( ptrdiff_t )( end - pChar );
