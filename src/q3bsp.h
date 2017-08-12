@@ -67,7 +67,7 @@ public:
 
 	void 						GenerateProgramListFromShaders( void );
 
-	int 						GetDefaultEffectShaderIndex( void ) const { return defaultShaderIndex; }
+	const shaderInfo_t*			GetDefaultEffectShader( void ) const { return &effectShaders.at( Q3BSPMAP_DEFAULT_SHADER_NAME ); }
 
 	std::vector< gPathMap_t > 	GetShaderSourcesList( void );
 
@@ -98,7 +98,7 @@ public:
 	void 						MakeAllocated( void )
 									{ mapAllocated = true; }
 
-	bool 						IsDefaultShader( shaderInfo_t* info ) const;
+	bool 						IsDefaultShader( const shaderInfo_t* info ) const;
 
 	bool 						IsShaderUsed( shaderInfo_t* outInfo ) const;
 

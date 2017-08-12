@@ -352,6 +352,17 @@ static void MapReadFin( Q3BspMap* map )
 		Q3Bsp_SwizzleCoords( face.lightmapStVecs[ 1 ] );
 	}
 
+	for ( size_t i = 0; i < map->data.shaders.size(); ++i )
+	{
+		if ( strncmp( &map->data.shaders[ i ].name[ 0 ], "noshader", 64 ) == 0 )
+		{
+			printf( "Index[ %i ] Surface Flags: 0x%x, Contents Flags: 0x%x\n", ( int ) i,
+				map->data.shaders[ i ].surfaceFlags, map->data.shaders[ i ].contentsFlags );
+
+			break;
+		}
+	}
+
 	gFileWebWorker.Await(
 		MapReadFin_UnmountFin,
 		"UnmountPackages",
@@ -618,21 +629,27 @@ void Q3BspMap::OnShaderReadFinish( void )
 	std::sort( opaqueShaderList.begin(), opaqueShaderList.end(), LSortPredicate );
 	std::sort( transparentShaderList.begin(), transparentShaderList.end(), LSortPredicate );
 
-	// Find default shader index
+	// Assign indices so we have quick lookup 
+	// when traversing the BSP
+	for ( auto& shaderEntry: effectShaders )
 	{
-		for ( int i = 0; i < ( int ) opaqueShaderList.size(); ++i )
+		const shaderList_t& list = IsTransparentShader( &shaderEntry.second ) ?
+			transparentShaderList : opaqueShaderList;
+
+		for ( int i = 0; i < ( int ) list.size(); ++i )
 		{
-			if ( strcmp( &opaqueShaderList[ i ]->name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME ) == 0 )
+			if ( strncmp( &list[ i ]->name[ 0 ], &shaderEntry.second.name[ 0 ], 
+				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 			{
-				defaultShaderIndex = i;
+				shaderEntry.second.sortListIndex = i;
+				break;
 			}
 		}
 
-		assert( defaultShaderIndex > INDEX_UNDEFINED );
+		assert( shaderEntry.second.sortListIndex > INDEX_UNDEFINED );
 	}
 
-	gFileWebWorker.Await( UnmountShadersFin,
-		"UnmountPackages", nullptr, 0, this );
+	gFileWebWorker.Await( UnmountShadersFin, "UnmountPackages", nullptr, 0, this );
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
@@ -671,7 +688,11 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 	const bspFace_t& face = data.faces[ faceIndex ];
 	const shaderInfo_t* shader = nullptr;
 
-	if ( face.shader != -1 )
+	if ( face.shader < 0 )
+	{
+		shader = GetDefaultEffectShader();
+	}
+	else
 	{
 		shader = GetShaderInfo( data.shaders[ face.shader ].name );
 	}
@@ -872,9 +893,9 @@ std::string Q3BspMap::GetPrintString( const std::string& title ) const
 	return ss.str();
 }
 
-bool Q3BspMap::IsDefaultShader( shaderInfo_t* info ) const
+bool Q3BspMap::IsDefaultShader( const shaderInfo_t* info ) const
 {
-	return strcmp( &info->name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME) == 0;
+	return strcmp( &info->name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME ) == 0;
 }
 
 bool Q3BspMap::IsShaderUsed( shaderInfo_t* outInfo ) const
