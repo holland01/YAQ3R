@@ -273,7 +273,7 @@ struct diffZCache_t
 
 static diffZCache_t gDiffZCache; // division is slow so we cache the inverse
 
-size_t GU_MapViewDepthToInt( float viewZDepth, float zMin, float zMax, size_t depthMask )
+size_t GU_MapViewDepthToInt( float viewZDepth, float zMin, float zMax )
 {
 	float zDiff = zMax - zMin; 
 
@@ -299,7 +299,7 @@ size_t GU_MapViewDepthToInt( float viewZDepth, float zMin, float zMax, size_t de
 		gDiffZCache.iDiffZ = 1.0f / zDiff;
 	}
 
-	normalized = zMax * gDiffZCache.iDiffZ - zMax * zMin * gDiffZCache.iDiffZ / zDiff;
+	float normalized = zMax * gDiffZCache.iDiffZ - zMax * zMin * gDiffZCache.iDiffZ / zDiff;
 
 	size_t ret = ( size_t )( normalized * ( float ) DRAWFACE_SORT_DEPTH_MASK );
 	return ret;
