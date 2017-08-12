@@ -6,7 +6,7 @@
 static void OnMapFinish( void* param )
 {
 	
-	GStateCheckReport();
+	//GStateCheckReport();
 	
 	UNUSED( param );
 
