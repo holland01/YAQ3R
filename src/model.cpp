@@ -85,8 +85,10 @@ void mapModel_t::EncloseBoundsOnPoint( const glm::vec3& v )
 
 #ifdef AABB_MAX_Z_LESS_THAN_MIN_Z
 	if ( v.z > bounds.minPoint.z ) bounds.minPoint.z = v.z;
-#else
 	if ( v.z < bounds.maxPoint.z ) bounds.maxPoint.z = v.z;
+#else
+	if ( v.z > bounds.maxPoint.z ) bounds.maxPoint.z = v.z;
+	if ( v.z < bounds.minPoint.z ) bounds.minPoint.z = v.z;
 #endif
 }
 
