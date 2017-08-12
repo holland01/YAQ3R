@@ -644,3 +644,18 @@ look for min/max values, and then store those appropriately in a separate list. 
 
 Once this is all figured out, some major cleanup is in order... 
 
+### 8/12/17
+
+Still need to sort and draw the transparent faces. None the less, nothing's rendering. I know that "noshader" is a good fit for a default: it only contains one flag value, which is the first
+bit in the contentsFlags member - CONTENTS_SOLID, implying map walls or something like that. So, this isn't the issue why hardly anything is showing. 
+
+Adjusting the sort parameter (draw front to back, not back to front) seems like it could make a difference. The textures rendered are different, yes, but the issue of multiple faces being
+tied to a constantly appearing/disappearing rectangle is still the case. 
+
+So, some things to look investigate for tomorrow:
+
+- shader uploads - what's happening? 
+
+- Do we ever end up calling DrawFace with `PASS_DRAW_MAIN`?
+
+- Is the sort index retrieved from the drawFace_t in `BSPRenderer::DrawFaceList` actually valid?
