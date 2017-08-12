@@ -72,7 +72,7 @@ struct drawFace_t
 
 	bool GetTransparent( void ) const 
 	{ 
-		return ( bool ) !!( metadata & ( 1 << DRAWFACE_METADATA_IS_TRANSPARENT_SHIFT ); ) 
+		return ( bool ) !!( metadata & ( 1 << DRAWFACE_METADATA_IS_TRANSPARENT_SHIFT ) ); 
 	}
 
 	size_t GetMapFaceIndex( void ) const 
@@ -371,17 +371,3 @@ public:
 
 
 };
-
-INLINE void BSPRenderer::DrawFaceList(
-	drawPass_t& p,
-	const std::vector< int32_t >& list
-)
-{
-	passDrawType_t defaultPass = p.drawType;
-
-	for ( int32_t face: list )
-	{
-		LoadPassParams( p, face, defaultPass );
-		DrawFace( p );
-	}
-}

@@ -799,8 +799,11 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m,
 	);
 }
 
-void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
-	passDrawType_t defaultPass ) const
+void BSPRenderer::LoadPassParams( 
+	drawPass_t& p, 
+	int32_t face,
+	passDrawType_t defaultPass 
+) const
 {
 	p.face = &map.data.faces[ face ];
 	p.faceIndex = face;
@@ -822,7 +825,7 @@ void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
 
 static bool SortOpaqueFacePredicate( const drawFace_t& a, const drawFace_t& b )
 {
-	return a.sort < b.sort;
+	return a.sort > b.sort;
 }
 
 static bool SortTransparentFacePredicate( const drawFace_t& a, const drawFace_t& b )
@@ -881,7 +884,9 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 	// Sort the faces and draw them.
 
+	std::sort( pass.opaqueFaces.begin(), pass.opaqueFaces.end(), SortOpaqueFacePredicate );
 
+	DrawFaceList( pass, true );
 
 	if ( allowFaceCulling )
 	{
@@ -957,11 +962,13 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		}
 
 		AABB leafBounds;
+
 		leafBounds.maxPoint = glm::vec3(
 			viewLeaf->boxMax.x,
 			viewLeaf->boxMax.y,
 			viewLeaf->boxMax.z
 		);
+
 		leafBounds.minPoint = glm::vec3(
 			viewLeaf->boxMin.x,
 			viewLeaf->boxMin.y,
@@ -974,8 +981,10 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 		}
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
-			ProcessFace( pass,
-					map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+		{
+			ProcessFace( pass, 
+				map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+		}
 	}
 	else
 	{
@@ -1012,7 +1021,24 @@ void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
 
 void BSPRenderer::DrawFaceList( drawPass_t& pass, bool solid )
 {
+	const std::vector< drawFace_t >& faceList = solid ? pass.opaqueFaces : pass.transparentFaces;
+	const shaderList_t& sortedShaderList = solid ? map.opaqueShaderList : map.transparentShaderList;
 
+	for ( size_t i = 0; i < faceList.size(); ++i )
+	{
+		pass.shader = sortedShaderList[ faceList[ i ].GetShaderListIndex() ];
+
+		if ( map.IsDefaultShader( pass.shader ) )
+		{
+			pass.drawType = PASS_DRAW_MAIN;
+		}
+		else
+		{
+			pass.drawType = PASS_DRAW_EFFECT;
+		}
+
+		DrawFace( pass );
+	}
 }
 
 void BSPRenderer::DrawFace( drawPass_t& pass )
