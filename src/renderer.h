@@ -53,10 +53,71 @@ using drawCall_t = std::function<
 	)
 >;
 
+enum
+{
+	DRAWFACE_SORT_SHADER_INDEX_MASK = 0x1FF,
+	DRAWFACE_SORT_DEPTH_SHIFT = 10,
+	DRAWFACE_SORT_DEPTH_BITS = 21,
+	DRAWFACE_SORT_DEPTH_MASK = (1 << DRAWFACE_SORT_DEPTH_BITS) - 1,
+
+	DRAWFACE_METADATA_IS_TRANSPARENT_SHIFT = 31,
+	DRAWFACE_METADATA_MAP_FACE_INDEX_MASK = 0x7FFFFFFF
+
+};
+
 struct drawFace_t
 {
-	int shaderSortedIndex;
-	int mapFaceIndex;
+	size_t sort;			// z-depth, and shader sort index
+	size_t metadata;		// map face index, and whether or not the face is transparent 
+
+	bool GetTransparent( void ) const 
+	{ 
+		return ( bool ) !!( metadata & ( 1 << DRAWFACE_METADATA_IS_TRANSPARENT_SHIFT ); ) 
+	}
+
+	size_t GetMapFaceIndex( void ) const 
+	{ 
+		return metadata & DRAWFACE_METADATA_MAP_FACE_INDEX_MASK; 
+	}
+	
+	size_t GetShaderListIndex( void ) const 
+	{ 
+		return sort & DRAWFACE_SORT_SHADER_INDEX_MASK; 
+	}
+	
+	size_t GetDepthValue( void ) const 
+	{ 
+		return ( sort >> DRAWFACE_SORT_DEPTH_SHIFT ) & DRAWFACE_SORT_DEPTH_MASK; 
+	}
+ 
+	void SetTransparent( bool isTransparent ) 
+	{ 
+		metadata &= DRAWFACE_METADATA_MAP_FACE_INDEX_MASK;
+
+		// paranoia, because the bool can be anything (at least when compiled to asm.js)
+		metadata |= !!( ( int ) isTransparent ) << DRAWFACE_METADATA_IS_TRANSPARENT_SHIFT; 
+	}
+
+	void SetMapFaceIndex( size_t index )
+	{
+		metadata &= ~DRAWFACE_METADATA_MAP_FACE_INDEX_MASK;
+		metadata |= index;
+	}
+
+	void SetDepthValue( size_t depth )
+	{
+		depth &= DRAWFACE_SORT_DEPTH_MASK;
+		depth <<= DRAWFACE_SORT_DEPTH_SHIFT;
+
+		sort &= DRAWFACE_SORT_SHADER_INDEX_MASK;
+		sort |= depth;
+	}
+
+	void SetShaderListIndex( size_t shaderIndex )
+	{
+		sort &= ~DRAWFACE_SORT_SHADER_INDEX_MASK;
+		sort |= shaderIndex & DRAWFACE_SORT_SHADER_INDEX_MASK; 
+	}
 };
 
 struct drawPass_t
@@ -78,9 +139,11 @@ struct drawPass_t
 
 	const viewParams_t& view;
 
+	float minFaceViewDepth, maxFaceViewDepth; // max < 0, min > 0 due to RHS and Quake's standards
+
 	std::vector< uint8_t > facesVisited;
 	
-	std::vector< drawFace_t > transparent, opaque;
+	std::vector< drawFace_t > transparentFaces, opaqueFaces;
 
 	drawPass_t( const Q3BspMap& map, const viewParams_t& viewData );
 };
@@ -193,6 +256,41 @@ public:
 
 	double				frameTime;
 
+	float				targetFPS;
+
+	bool				alwaysWriteDepth;
+
+	bool				allowFaceCulling;
+
+	std::unique_ptr< InputCamera > camera;
+
+	viewMode_t		curView;
+
+	// -------------------------------
+	// Rendering
+	// -------------------------------
+
+	void				DrawMapPass(
+							int32_t textureIndex,
+							int32_t	lightmapIndex,
+							std::function< void( const Program& )> callback
+						);
+
+	void				DrawEffectPass(
+							const drawTuple_t& data,
+							drawCall_t callback
+						);
+
+
+	void				DrawFaceVerts(
+							const drawPass_t& pass,
+							const shaderStage_t* stage
+						) const;
+
+	// -------------------------------
+	// State management
+	// -------------------------------
+
 	void 				BindTexture(
 							const Program& program,
 							const gla_atlas_ptr_t& atlas,
@@ -211,36 +309,17 @@ public:
 							const shaderInfo_t* shader
 						) const;
 
-	uint32_t			GetPassLayoutFlags( passType_t type );
-
 	void				LoadPassParams(
 							drawPass_t& pass,
 							int32_t face,
 							passDrawType_t defaultPass
 						) const;
 
-	void				DrawMapPass(
-							int32_t textureIndex,
-							int32_t	lightmapIndex,
-							std::function< void( const Program& )> callback
-						);
+	// -------------------------------
+	// BSP Traversal
+	// -------------------------------
 
-	void				DrawEffectPass(
-							const drawTuple_t& data,
-							drawCall_t callback
-						);
-
-	void				ReflectFromTuple(
-							const drawTuple_t& data,
-							const drawPass_t& pass,
-							const Program& program
-						);
-
-	void				DrawFaceList(
-							drawPass_t& p,
-							const std::vector< int32_t >& list
-						);
-
+	void				RenderPass( const viewParams_t& view );
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
 
@@ -248,46 +327,49 @@ public:
 
 	void				TraverseDraw( drawPass_t& pass, bool solid );
 
+	void				DrawFaceList(
+							drawPass_t& p,
+							bool solid
+						);
+
 	void				DrawFace( drawPass_t& pass );
 
-	void				DrawFaceVerts(
-							const drawPass_t& pass,
-							const shaderStage_t* stage
-						) const;
+	// -------------------------------
+	// Init
+	// -------------------------------
+
+	void				Prep( void );
+
+	void				Load( renderPayload_t& payload ) override;
 
 	void				LoadVertexData( void );
 
-public:
-	float				targetFPS;
+	// -------------------------------
+	// Frame
+	// -------------------------------
 
-	bool				alwaysWriteDepth;
 
-	bool				allowFaceCulling;
+	void				Render( void );
 
-	std::unique_ptr< InputCamera > camera;
+	void				Update( float dt );
 
-	viewMode_t		curView;
+	float				CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
-				BSPRenderer( float viewWidth, float viewHeight,
-				 Q3BspMap& map );
-
-				~BSPRenderer( void );
-
-	void		Prep( void );
-
-	void		Load( renderPayload_t& payload ) override;
-
-	void		Sample( void );
-
-	void		Render( void );
-
-	void		RenderPass( const viewParams_t& view );
-
-	float		CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
-
-	void		Update( float dt );
+	// -------------------------------
+	// Meta
+	// -------------------------------
 
 	virtual std::string GetBinLayoutString( void ) const override;
+
+	uint32_t			GetPassLayoutFlags( passType_t type );
+
+
+						BSPRenderer( float viewWidth, float viewHeight,
+						 Q3BspMap& map );
+
+						~BSPRenderer( void );
+
+
 };
 
 INLINE void BSPRenderer::DrawFaceList(

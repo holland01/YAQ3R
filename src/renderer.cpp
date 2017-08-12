@@ -160,6 +160,38 @@ BSPRenderer::~BSPRenderer( void )
 {
 }
 
+// -------------------------------
+// Meta
+// -------------------------------
+
+std::string BSPRenderer::GetBinLayoutString( void ) const
+{
+	std::stringstream ss;
+
+	std::string first = RenderBase::GetBinLayoutString();
+
+	ss << first;
+
+	ss << "[BSPRenderer]\n";
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, textures );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glFaces );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glDebugFaces );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glEffects );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, currLeaf );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, deltaTime );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, frameTime );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, targetFPS );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, alwaysWriteDepth );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, camera );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, curView );
+
+	return ss.str();
+}
+
+// -------------------------------
+// Init
+// -------------------------------
+
 void BSPRenderer::Prep( void )
 {
 	GEnableDepthBuffer();
@@ -196,23 +228,6 @@ void BSPRenderer::Prep( void )
 
 		MakeProg( "main", GMakeMainVertexShader(), GMakeMainFragmentShader(),
 			uniforms, attribs );
-	}
-}
-
-void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
-	passDrawType_t defaultPass ) const
-{
-	p.face = &map.data.faces[ face ];
-	p.faceIndex = face;
-	p.shader = map.GetShaderInfo( face );
-
-	if ( p.shader )
-	{
-		p.drawType = PASS_DRAW_EFFECT;
-	}
-	else
-	{
-		p.drawType = defaultPass;
 	}
 }
 
@@ -302,42 +317,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	GPrintContextInfo();
 }
 
-std::string BSPRenderer::GetBinLayoutString( void ) const
-{
-	std::stringstream ss;
-/*
-	ss << "[RenderBase]\n";
-	ss << SSTREAM_BYTE_OFFSET( RenderBase, glPrograms );
-	ss << SSTREAM_BYTE_OFFSET( RenderBase, apiHandles );
-	ss << SSTREAM_BYTE_OFFSET( RenderBase, map );
-	ss << SSTREAM_BYTE_OFFSET( RenderBase, frustum );
-
-	return ss.str();
-	*/
-
-	std::string first = RenderBase::GetBinLayoutString();
-
-	ss << first;
-
-	ss << "[BSPRenderer]\n";
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, textures );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glFaces );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glDebugFaces );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, glEffects );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, currLeaf );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, deltaTime );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, frameTime );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, targetFPS );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, alwaysWriteDepth );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, camera );
-	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, curView );
-
-	return ss.str();
-}
-
-//---------------------------------------------------------------------
-// Generate our face/render data
-//---------------------------------------------------------------------
 void BSPRenderer::LoadVertexData( void )
 {
 	glFaces.resize( map.data.numFaces );
@@ -412,6 +391,10 @@ void BSPRenderer::LoadVertexData( void )
 #endif
 }
 
+// -------------------------------
+// Frame
+// -------------------------------
+
 void BSPRenderer::Render( void )
 {
 	float startTime = GetTimeSeconds();
@@ -445,192 +428,9 @@ void BSPRenderer::Update( float dt )
 	deltaTime = dt;
 }
 
-void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
-{
-	// if pass.facesVisited[ faceIndex ] is still false after this criteria's
-	// evaluations, we'll pick it up on the next pass as it will meet
-	// the necessary criteria then.
-	if ( pass.facesVisited[ index ] )
-	{
-		return;
-	}
-
-	LoadPassParams( pass, index, PASS_DRAW_MAIN );
-
-	if ( map.IsNoDrawShader( pass.shader ) )
-	{
-		// evaluating this on the next pass will be faster than
-		// the function call.
-		pass.facesVisited[ index ] = true; 
-		return;
-	}
-
-	bool transparent = map.IsTransparentShader( pass.shader );
-
-	bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
-
-	if ( add )
-	{
-		
-	}
-}
-
-void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
-{
-	pass.isSolid = solid;
-	DrawNode( pass, 0 );
-}
-
-void BSPRenderer::RenderPass( const viewParams_t& view )
-{
-	memset( &gCounts, 0, sizeof( gCounts ) );
-
-	drawPass_t pass( map, view );
-	pass.leaf = map.FindClosestLeaf( pass.view.origin );
-
-	frustum->Update( pass.view, true );
-
-	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
-
-	// We start at index 1 because the 0th index
-	// provides a model which represents the entire map.
-	for ( int32_t i = 1; i < map.data.numModels; ++i )
-	{
-		bspModel_t* model = &map.data.models[ i ];
-
-		AABB bounds( model->boxMax, model->boxMin );
-
-		if ( !frustum->IntersectsBox( bounds ) )
-		{
-			continue;
-		}
-
-		pass.isSolid = true;
-		for ( int32_t j = 0; j < model->numFaces; ++j )
-			ProcessFace( pass, model->faceOffset + j );
-
-		pass.isSolid = false;
-		for ( int32_t j = 0; j < model->numFaces; ++j )
-			ProcessFace( pass, model->faceOffset + j );
-	}
-
-	pass.type = PASS_DRAW;
-
-	if ( allowFaceCulling )
-	{
-		GL_CHECK( glEnable( GL_CULL_FACE ) );
-		GL_CHECK( glCullFace( GL_FRONT ) );
-		GL_CHECK( glFrontFace( GL_CCW ) );
-	}
-	else
-	{
-		GL_CHECK( glDisable( GL_CULL_FACE ) );
-	}
-
-	TraverseDraw( pass, true );
-	TraverseDraw( pass, false );
-
-	if ( allowFaceCulling )
-	{
-		GL_CHECK( glDisable( GL_CULL_FACE ) );
-	}
-}
-
-void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
-{
-	if ( nodeIndex < 0 )
-	{
-		pass.viewLeafIndex = -( nodeIndex + 1 );
-		const bspLeaf_t* viewLeaf = &map.data.leaves[ pass.viewLeafIndex ];
-
-		if ( !map.IsClusterVisible( pass.leaf->clusterIndex,
-				viewLeaf->clusterIndex ) )
-		{
-			return;
-		}
-
-		AABB leafBounds;
-		leafBounds.maxPoint = glm::vec3(
-			viewLeaf->boxMax.x,
-			viewLeaf->boxMax.y,
-			viewLeaf->boxMax.z
-		);
-		leafBounds.minPoint = glm::vec3(
-			viewLeaf->boxMin.x,
-			viewLeaf->boxMin.y,
-			viewLeaf->boxMin.z
-		);
-
-		if ( !frustum->IntersectsBox( leafBounds ) )
-		{
-			return;
-		}
-
-		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
-			ProcessFace( pass,
-					map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
-	}
-	else
-	{
-		const bspNode_t* const node = &map.data.nodes[ nodeIndex ];
-		const bspPlane_t* const plane = &map.data.planes[ node->plane ];
-
-		float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x,
-			plane->normal.y, plane->normal.z ) );
-
-		// We're in front of the plane if d > plane->distance.
-		// If both of these are true, it makes sense to draw what is in
-		// front of us, as any non-solid object can be handled properly by
-		// depth if it's infront of the partition plane and we're behind it
-
-		if ( pass.isSolid == ( d > plane->distance ) )
-		{
-			DrawNode( pass, node->children[ 0 ] );
-			DrawNode( pass, node->children[ 1 ] );
-		}
-		else
-		{
-			DrawNode( pass, node->children[ 1 ] );
-			DrawNode( pass, node->children[ 0 ] );
-		}
-	}
-}
-
-void BSPRenderer::BindTexture(
-	const Program& program,
-	const gla_atlas_ptr_t& atlas,
-	uint16_t image,
-	const char* prefix,
-	int offset
-)
-{
-	gla::atlas_image_info_t imageData = atlas->image_info( image );
-
-	atlas->bind_to_active_slot( imageData.layer, offset );
-
-	glm::vec4 transform(
-		imageData.coords.x * imageData.inverse_layer_dims.x,
-		imageData.coords.y * imageData.inverse_layer_dims.y,
-		atlas->dims_x[ image ],
-		atlas->dims_y[ image ]
-	);
-
-	if ( prefix )
-	{
-		std::string strfix( prefix );
-
-		program.LoadInt( strfix + "Sampler", offset );
-		program.LoadVec2( strfix + "ImageScaleRatio",
-			imageData.inverse_layer_dims );
-		program.LoadVec4( strfix + "ImageTransform", transform );
-	}
-	else
-	{
-		program.LoadInt( "sampler0", offset );
-		program.LoadVec2( "imageScaleRatio", imageData.inverse_layer_dims );
-		program.LoadVec4( "imageTransform", transform );
-	}
-}
+// -------------------------------
+// Rendering
+// -------------------------------
 
 void BSPRenderer::DrawMapPass(
 	int32_t textureIndex,
@@ -878,6 +678,343 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	}
 }
 
+void BSPRenderer::DrawFaceVerts( const drawPass_t& pass,
+	const shaderStage_t* stage ) const
+{
+	UNUSED( stage );
+
+	const mapModel_t& m = *( glFaces[ pass.faceIndex ] );
+
+	if ( pass.shader && pass.shader->deform )
+	{
+		DeformVertexes( m, pass.shader );
+	}
+
+	if ( pass.face->type == BSP_FACE_TYPE_POLYGON
+		|| pass.face->type == BSP_FACE_TYPE_MESH )
+	{
+		GU_DrawElements( GL_TRIANGLES, m.iboOffset, m.iboRange );
+	}
+	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
+	{
+		const mapPatch_t& p = *( m.ToPatch() );
+		GU_MultiDrawElements( GL_TRIANGLE_STRIP, p.rowIndices, p.trisPerRow );
+	}
+}
+
+// -------------------------------
+// State management
+// -------------------------------
+
+void BSPRenderer::BindTexture(
+	const Program& program,
+	const gla_atlas_ptr_t& atlas,
+	uint16_t image,
+	const char* prefix,
+	int offset
+)
+{
+	gla::atlas_image_info_t imageData = atlas->image_info( image );
+
+	atlas->bind_to_active_slot( imageData.layer, offset );
+
+	glm::vec4 transform(
+		imageData.coords.x * imageData.inverse_layer_dims.x,
+		imageData.coords.y * imageData.inverse_layer_dims.y,
+		atlas->dims_x[ image ],
+		atlas->dims_y[ image ]
+	);
+
+	if ( prefix )
+	{
+		std::string strfix( prefix );
+
+		program.LoadInt( strfix + "Sampler", offset );
+		program.LoadVec2( strfix + "ImageScaleRatio",
+			imageData.inverse_layer_dims );
+		program.LoadVec4( strfix + "ImageTransform", transform );
+	}
+	else
+	{
+		program.LoadInt( "sampler0", offset );
+		program.LoadVec2( "imageScaleRatio", imageData.inverse_layer_dims );
+		program.LoadVec4( "imageTransform", transform );
+	}
+}
+
+void BSPRenderer::LoadLightVol(
+	const drawPass_t& pass,
+	const Program& prog
+) const
+{
+	if ( pass.lightvol )
+	{
+		float phi = glm::radians(
+			( float ) pass.lightvol->direction.x * 4.0f
+		);
+
+		float theta = glm::radians(
+			( float ) pass.lightvol->direction.y * 4.0f
+		);
+
+		glm::vec3 dirToLight(
+			glm::cos( theta ) * glm::cos( phi ),
+			glm::sin( phi ),
+			glm::cos( phi ) * glm::sin( theta )
+		);
+
+		glm::vec3 ambient( pass.lightvol->ambient );
+		ambient *= Inv255< float >();
+
+		glm::vec3 directional( pass.lightvol->directional );
+		directional *= Inv255< float >();
+
+		prog.LoadVec3( "fragDirToLight", dirToLight );
+		prog.LoadVec3( "fragAmbient", ambient );
+		prog.LoadVec3( "fragDirectional", directional );
+	}
+}
+
+void BSPRenderer::DeformVertexes( const mapModel_t& m,
+	const shaderInfo_t* shader ) const
+{
+	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED ) return;
+
+	std::vector< bspVertex_t > verts = m.clientVertices;
+
+	for ( uint32_t i = 0; i < verts.size(); ++i )
+	{
+		glm::vec3 n(
+			verts[ i ].normal * GenDeformScale( verts[ i ].position, shader )
+		);
+		verts[ i ].position += n;
+	}
+
+	UpdateBufferObject< bspVertex_t >(
+		GL_ARRAY_BUFFER,
+		apiHandles[ 0 ],
+		m.vboOffset,
+		verts,
+		false
+	);
+}
+
+void BSPRenderer::LoadPassParams( drawPass_t& p, int32_t face,
+	passDrawType_t defaultPass ) const
+{
+	p.face = &map.data.faces[ face ];
+	p.faceIndex = face;
+	p.shader = map.GetShaderInfo( face );
+
+	if ( p.shader )
+	{
+		p.drawType = PASS_DRAW_EFFECT;
+	}
+	else
+	{
+		p.drawType = defaultPass;
+	}
+}
+
+// -------------------------------
+// BSP Traversal
+// -------------------------------
+
+static bool SortOpaqueFacePredicate( const drawFace_t& a, const drawFace_t& b )
+{
+	return a.sort < b.sort;
+}
+
+static bool SortTransparentFacePredicate( const drawFace_t& a, const drawFace_t& b )
+{
+	return a.sort > b.sort;
+}
+
+void BSPRenderer::RenderPass( const viewParams_t& view )
+{
+	memset( &gCounts, 0, sizeof( gCounts ) );
+
+	drawPass_t pass( map, view );
+	pass.leaf = map.FindClosestLeaf( pass.view.origin );
+
+	frustum->Update( pass.view, true );
+
+	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
+
+	// We start at index 1 because the 0th index
+	// provides a model which represents the entire map.
+	for ( int32_t i = 1; i < map.data.numModels; ++i )
+	{
+		bspModel_t* model = &map.data.models[ i ];
+
+		AABB bounds( model->boxMax, model->boxMin );
+
+		if ( !frustum->IntersectsBox( bounds ) )
+		{
+			continue;
+		}
+
+		pass.isSolid = true;
+		for ( int32_t j = 0; j < model->numFaces; ++j )
+			ProcessFace( pass, model->faceOffset + j );
+
+		pass.isSolid = false;
+		for ( int32_t j = 0; j < model->numFaces; ++j )
+			ProcessFace( pass, model->faceOffset + j );
+	}
+
+	pass.type = PASS_DRAW;
+
+	if ( allowFaceCulling )
+	{
+		GL_CHECK( glEnable( GL_CULL_FACE ) );
+		GL_CHECK( glCullFace( GL_FRONT ) );
+		GL_CHECK( glFrontFace( GL_CCW ) );
+	}
+	else
+	{
+		GL_CHECK( glDisable( GL_CULL_FACE ) );
+	}
+
+	TraverseDraw( pass, true );
+	TraverseDraw( pass, false );
+
+	// Sort the faces and draw them.
+
+
+
+	if ( allowFaceCulling )
+	{
+		GL_CHECK( glDisable( GL_CULL_FACE ) );
+	}
+}
+
+void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
+{
+	// if pass.facesVisited[ faceIndex ] is still false after this criteria's
+	// evaluations, we'll pick it up on the next pass as it will meet
+	// the necessary criteria then.
+	if ( pass.facesVisited[ index ] )
+	{
+		return;
+	}
+
+	LoadPassParams( pass, index, PASS_DRAW_MAIN );
+
+	if ( map.IsNoDrawShader( pass.shader ) )
+	{
+		// evaluating this on the next pass will be faster than
+		// the function call.
+		pass.facesVisited[ index ] = true; 
+		return;
+	}
+
+	bool transparent = map.IsTransparentShader( pass.shader );
+
+	bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
+
+	if ( add )
+	{
+		drawFace_t dface;
+
+		dface.SetTransparent( transparent );
+		dface.SetMapFaceIndex( index );
+		dface.SetShaderListIndex( pass.shader->sortListIndex );
+
+		// TODO: do view-space zDepth evaluation here.
+		
+		// Keep track of max/min view-space z-values for each face;
+		// ensure that closest point on face bounds (out of the 8 corners)
+		// relative to the view frustum is compared against max-z and farthest
+		// relative to the view frustum is compared against min-z. 
+
+		// This is 8 matrix/vector multiplies (using the world->camera transform). Using SIMD and packing
+		// corner vectors into a 4D matrix you can do these ops in two.
+		// Get it working first, though.
+
+		if ( transparent )
+		{
+			pass.transparentFaces.push_back( dface );
+		}
+		else
+		{
+			pass.opaqueFaces.push_back( dface );
+		}
+	}
+}
+
+void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
+{
+	if ( nodeIndex < 0 )
+	{
+		pass.viewLeafIndex = -( nodeIndex + 1 );
+		const bspLeaf_t* viewLeaf = &map.data.leaves[ pass.viewLeafIndex ];
+
+		if ( !map.IsClusterVisible( pass.leaf->clusterIndex,
+				viewLeaf->clusterIndex ) )
+		{
+			return;
+		}
+
+		AABB leafBounds;
+		leafBounds.maxPoint = glm::vec3(
+			viewLeaf->boxMax.x,
+			viewLeaf->boxMax.y,
+			viewLeaf->boxMax.z
+		);
+		leafBounds.minPoint = glm::vec3(
+			viewLeaf->boxMin.x,
+			viewLeaf->boxMin.y,
+			viewLeaf->boxMin.z
+		);
+
+		if ( !frustum->IntersectsBox( leafBounds ) )
+		{
+			return;
+		}
+
+		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
+			ProcessFace( pass,
+					map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+	}
+	else
+	{
+		const bspNode_t* const node = &map.data.nodes[ nodeIndex ];
+		const bspPlane_t* const plane = &map.data.planes[ node->plane ];
+
+		float d = glm::dot( pass.view.origin, glm::vec3( plane->normal.x,
+			plane->normal.y, plane->normal.z ) );
+
+		// We're in front of the plane if d > plane->distance.
+		// If both of these are true, it makes sense to draw what is in
+		// front of us, as any non-solid object can be handled properly by
+		// depth if it's infront of the partition plane and we're behind it
+
+		if ( pass.isSolid == ( d > plane->distance ) )
+		{
+			DrawNode( pass, node->children[ 0 ] );
+			DrawNode( pass, node->children[ 1 ] );
+		}
+		else
+		{
+			DrawNode( pass, node->children[ 1 ] );
+			DrawNode( pass, node->children[ 0 ] );
+		}
+	}
+}
+
+
+void BSPRenderer::TraverseDraw( drawPass_t& pass, bool solid )
+{
+	pass.isSolid = solid;
+	DrawNode( pass, 0 );
+}
+
+void BSPRenderer::DrawFaceList( drawPass_t& pass, bool solid )
+{
+
+}
+
 void BSPRenderer::DrawFace( drawPass_t& pass )
 {
 	GL_CHECK( glBlendFunc( GL_ONE, GL_ZERO ) );
@@ -922,86 +1059,9 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 }
 
 
-void BSPRenderer::DrawFaceVerts( const drawPass_t& pass,
-	const shaderStage_t* stage ) const
-{
-	UNUSED( stage );
 
-	const mapModel_t& m = *( glFaces[ pass.faceIndex ] );
 
-	if ( pass.shader && pass.shader->deform )
-	{
-		DeformVertexes( m, pass.shader );
-	}
 
-	if ( pass.face->type == BSP_FACE_TYPE_POLYGON
-		|| pass.face->type == BSP_FACE_TYPE_MESH )
-	{
-		GU_DrawElements( GL_TRIANGLES, m.iboOffset, m.iboRange );
-	}
-	else if ( pass.face->type == BSP_FACE_TYPE_PATCH )
-	{
-		const mapPatch_t& p = *( m.ToPatch() );
-		GU_MultiDrawElements( GL_TRIANGLE_STRIP, p.rowIndices, p.trisPerRow );
-	}
-}
-
-void BSPRenderer::DeformVertexes( const mapModel_t& m,
-	const shaderInfo_t* shader ) const
-{
-	if ( !shader || shader->deformCmd == VERTEXDEFORM_CMD_UNDEFINED ) return;
-
-	std::vector< bspVertex_t > verts = m.clientVertices;
-
-	for ( uint32_t i = 0; i < verts.size(); ++i )
-	{
-		glm::vec3 n(
-			verts[ i ].normal * GenDeformScale( verts[ i ].position, shader )
-		);
-		verts[ i ].position += n;
-	}
-
-	UpdateBufferObject< bspVertex_t >(
-		GL_ARRAY_BUFFER,
-		apiHandles[ 0 ],
-		m.vboOffset,
-		verts,
-		false
-	);
-}
-
-void BSPRenderer::LoadLightVol(
-	const drawPass_t& pass,
-	const Program& prog
-) const
-{
-	if ( pass.lightvol )
-	{
-		float phi = glm::radians(
-			( float ) pass.lightvol->direction.x * 4.0f
-		);
-
-		float theta = glm::radians(
-			( float ) pass.lightvol->direction.y * 4.0f
-		);
-
-		glm::vec3 dirToLight(
-			glm::cos( theta ) * glm::cos( phi ),
-			glm::sin( phi ),
-			glm::cos( phi ) * glm::sin( theta )
-		);
-
-		glm::vec3 ambient( pass.lightvol->ambient );
-		ambient *= Inv255< float >();
-
-		glm::vec3 directional( pass.lightvol->directional );
-		directional *= Inv255< float >();
-
-		prog.LoadVec3( "fragDirToLight", dirToLight );
-		prog.LoadVec3( "fragAmbient", ambient );
-		prog.LoadVec3( "fragDirectional", directional );
-	}
-}
 
 /*
 int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const
