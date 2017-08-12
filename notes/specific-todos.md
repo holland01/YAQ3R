@@ -5,6 +5,18 @@
 verify that noshader is actually meant for drawing; if not, there will be faces which index into that shader and that will be drawn when they
 shouldn't be. An alternative name you can use is just "defaultshader" or something like that, for rendering objects without effect shaders
 
+[unnamed]
+
+// Do view-space zDepth evaluation in `BSPRenderer::ProcessFace()` when the drawFace_t is created.
+ 	
+// Keep track of max/min view-space z-values for each face;
+// ensure that closest point on face bounds (out of the 8 corners)
+// relative to the view frustum is compared against max-z and farthest
+// relative to the view frustum is compared against min-z. 
+ 
+// This is 8 matrix/vector multiplies (using the world->camera transform). Using SIMD and packing
+// corner vectors into a 4D matrix you can do these ops in two.
+// Get it working first, though.
 
 [unnamed]
 * ~Some textures are flipped upside down when they shouldn't be. There doesn't appear to be a tcMod setting which causes this to happen, and disabling
