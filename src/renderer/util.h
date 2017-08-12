@@ -38,6 +38,8 @@ void GU_LoadShaderTextures( Q3BspMap& map );
 
 void GU_LoadMainTextures( Q3BspMap& map );
 
+size_t GU_MapViewDepthToInt( float viewZDepth, float zmin, float zmax );
+
 using guImmPosList_t = std::vector< glm::vec3 >;
 
 struct pushBlend_t

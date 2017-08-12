@@ -263,3 +263,44 @@ void GU_LoadMainTextures( Q3BspMap& map )
 
 	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
 }
+
+struct diffZCache_t
+{
+	float zMin = -1.0f;
+	float zMax = -1.0f;
+	float iDiffZ = 0.0f;
+};
+
+static diffZCache_t gDiffZCache; // division is slow so we cache the inverse
+
+size_t GU_MapViewDepthToInt( float viewZDepth, float zMin, float zMax, size_t depthMask )
+{
+	float zDiff = zMax - zMin; 
+
+	// prevent divide by zero
+	if ( zDiff < 0.1f && zDiff >= 0.0f )
+	{
+		return G_MAPPED_DEPTH_CLIPPED;
+	}
+
+	// view space looks down -Z
+	float zDepth = -viewZDepth; 
+
+	if ( zDepth < zMin || zDepth > zMax )
+	{
+		return G_MAPPED_DEPTH_CLIPPED;
+	}
+
+	// update if we need to
+	if ( zMin != gDiffZCache.zMin || zMax != gDiffZCache.zMax )
+	{
+		gDiffZCache.zMax = zMax;
+		gDiffZCache.zMin = zMin;
+		gDiffZCache.iDiffZ = 1.0f / zDiff;
+	}
+
+	normalized = zMax * gDiffZCache.iDiffZ - zMax * zMin * gDiffZCache.iDiffZ / zDiff;
+
+	size_t ret = ( size_t )( normalized * ( float ) DRAWFACE_SORT_DEPTH_MASK );
+	return ret;
+}
