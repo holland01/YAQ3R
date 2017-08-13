@@ -671,6 +671,22 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 
 	Q3BspMapTest_ShaderNameRun();
 
+	// Here we free the linked lists necessary to ensure all
+	// shader stages with an image receive the correct index
+	// into the atlas.
+	while ( !map->pathLinkRoots.empty() )
+	{
+		pathLinkNode_t* node = map->pathLinkRoots.top();
+		map->pathLinkRoots.pop();
+
+		for ( pathLinkNode_t* iNode = node; iNode; )
+		{
+			pathLinkNode_t* tmp = iNode;
+			iNode = iNode->next;
+			delete tmp;
+		}
+	}
+
 	map->mapAllocated = true;
 	map->readFinishEvent( map );
 }
@@ -709,6 +725,30 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 	return shader;
 }
 
+void Q3BspMap::MakeStagePathList( pathLinkNode_t* node )
+{
+	for ( auto& entry: effectShaders )
+	{
+		for ( shaderStage_t& stage: entry.second.stageBuffer )
+		{
+			if ( stage.pathLinked )
+			{
+				continue;
+			}
+
+			if ( strncmp( &node->stage->texturePath[ 0 ], &stage.texturePath[ 0 ],
+					BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
+			{
+				stage.pathLinked = true;
+
+				node->next = new pathLinkNode_t();
+				node->next->stage = &stage;
+				node = node->next;
+			}
+		}
+	}
+}
+
 std::vector< gPathMap_t > Q3BspMap::GetShaderSourcesList( void ) 
 {
 	std::vector< gPathMap_t > sources;
@@ -717,14 +757,27 @@ std::vector< gPathMap_t > Q3BspMap::GetShaderSourcesList( void )
 	{
 		for ( shaderStage_t& stage: entry.second.stageBuffer )
 		{
+			if ( stage.pathLinked )
+			{
+				continue;
+			}
+
 			if ( stage.mapType == MAP_TYPE_IMAGE )
 			{
 				gPathMap_t initial;
 
-				initial.param = &stage;
+				pathLinkNode_t* pathRoot = new pathLinkNode_t();
+				stage.pathLinked = true;
+				pathRoot->stage = &stage;
+
+				MakeStagePathList( pathRoot );
+
+				initial.param = pathRoot;
 				initial.path = std::string( &stage.texturePath[ 0 ] );
 
 				sources.push_back( initial );
+
+				pathLinkRoots.push( pathRoot );
 			}
 		}
 

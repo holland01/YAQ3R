@@ -532,6 +532,10 @@ struct shaderStage_t
 	// this literally just means "force write to depth buffer even if surface is color blended"
 	bool						depthPass = false;
 
+	// we use this when reading image data and assigning
+	// the stage's texture index into the corresponding atlas
+	bool 						pathLinked = false;
+
 	int32_t						textureIndex = INDEX_UNDEFINED;
 
 	// Normal texcoord generation (if textureIndex is defined)
