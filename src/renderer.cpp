@@ -154,6 +154,9 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 	camera->moveStep = 1.0f;
 	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE,
 		G_STATIC_FAR_PLANE );
+
+	//camera->SetPerspective( 65.0f, viewWidth, viewHeight, 100.0f,
+	//	1000.0f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -417,11 +420,11 @@ void BSPRenderer::Update( float dt )
 
 	viewParams_t& view = camera->ViewDataMut();
 
-	SetNearFar(
-		view.clipTransform,
-		G_STATIC_NEAR_PLANE,
-		G_STATIC_FAR_PLANE
-	);
+//	SetNearFar(
+//		view.clipTransform,
+//		G_STATIC_NEAR_PLANE,
+//		G_STATIC_FAR_PLANE
+//	);
 
 	frustum->Update( view, false );
 
@@ -805,7 +808,7 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m,
 
 static bool SortOpaqueFacePredicate( const drawFace_t& a, const drawFace_t& b )
 {
-	return a.sort > b.sort;
+	return a.sort < b.sort;
 }
 
 static bool SortTransparentFacePredicate( const drawFace_t& a, const drawFace_t& b )
@@ -841,9 +844,9 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 		for ( int32_t j = 0; j < model->numFaces; ++j )
 			ProcessFace( pass, model->faceOffset + j );
 
-//		pass.isSolid = false;
-//		for ( int32_t j = 0; j < model->numFaces; ++j )
-//			ProcessFace( pass, model->faceOffset + j );
+		pass.isSolid = false;
+		for ( int32_t j = 0; j < model->numFaces; ++j )
+			ProcessFace( pass, model->faceOffset + j );
 	}
 
 	pass.type = PASS_DRAW;
@@ -860,13 +863,15 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	TraverseDraw( pass, true );
-//	TraverseDraw( pass, false );
+	TraverseDraw( pass, false );
 
 	// Sort the faces and draw them.
 
 	std::sort( pass.opaqueFaces.begin(), pass.opaqueFaces.end(), SortOpaqueFacePredicate );
-
 	DrawFaceList( pass, true );
+
+	std::sort( pass.transparentFaces.begin(), pass.transparentFaces.end(), SortTransparentFacePredicate );
+	DrawFaceList( pass, false );
 
 	if ( allowFaceCulling )
 	{
@@ -903,7 +908,7 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 	if ( add )
 	{
 		drawFace_t dface;
-		
+
 		dface.SetTransparent( transparent );
 		dface.SetMapFaceIndex( index );
 		dface.SetShaderListIndex( pass.shader->sortListIndex );
