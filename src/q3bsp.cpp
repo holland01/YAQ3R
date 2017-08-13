@@ -629,6 +629,9 @@ void Q3BspMap::OnShaderReadFinish( void )
 	std::sort( opaqueShaderList.begin(), opaqueShaderList.end(), LSortPredicate );
 	std::sort( transparentShaderList.begin(), transparentShaderList.end(), LSortPredicate );
 
+	printf( "opaqueShaderList Size: %u, transparentShaderList Size: %u\n", opaqueShaderList.size(),
+		transparentShaderList.size() );
+
 	// Assign indices so we have quick lookup 
 	// when traversing the BSP
 	for ( auto& shaderEntry: effectShaders )
@@ -638,8 +641,9 @@ void Q3BspMap::OnShaderReadFinish( void )
 
 		for ( int i = 0; i < ( int ) list.size(); ++i )
 		{
-			if ( strncmp( &list[ i ]->name[ 0 ], &shaderEntry.second.name[ 0 ], 
-				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
+			if ( strncmp( &list[ i ]->name[ 0 ], 
+					&shaderEntry.second.name[ 0 ], 
+					BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 			{
 				shaderEntry.second.sortListIndex = i;
 				break;
@@ -680,7 +684,7 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( const char* name ) const
 		return &it->second;
 	}
 
-	return nullptr;
+	return GetDefaultEffectShader();
 }
 
 const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
@@ -688,7 +692,7 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 	const bspFace_t& face = data.faces[ faceIndex ];
 	const shaderInfo_t* shader = nullptr;
 
-	if ( face.shader < 0 )
+	if ( face.shader < 0 || face.shader >= ( int ) data.shaders.size() )
 	{
 		shader = GetDefaultEffectShader();
 	}
@@ -697,10 +701,10 @@ const shaderInfo_t* Q3BspMap::GetShaderInfo( int faceIndex ) const
 		shader = GetShaderInfo( data.shaders[ face.shader ].name );
 	}
 
-	if ( face.fog != -1 && !shader )
-	{
-		shader = GetShaderInfo( data.fogs[ face.fog ].name );
-	}
+//	if ( face.fog != -1 && !shader )
+//	{
+//		shader = GetShaderInfo( data.fogs[ face.fog ].name );
+//	}
 
 	return shader;
 }
@@ -909,8 +913,8 @@ bool Q3BspMap::IsShaderUsed( shaderInfo_t* outInfo ) const
 	Q3Bsp_MatchShaderInfoFromName< bspShader_t >( data.shaders, &outInfo->name[ 0 ], 
 		outInfo->mapShaderIndex );
 
-	Q3Bsp_MatchShaderInfoFromName< bspFog_t >( data.fogs, &outInfo->name[ 0 ], 
-		outInfo->mapFogIndex );
+	//Q3Bsp_MatchShaderInfoFromName< bspFog_t >( data.fogs, &outInfo->name[ 0 ], 
+	//	outInfo->mapFogIndex );
 
 	return outInfo->mapFogIndex != INDEX_UNDEFINED 
 		|| outInfo->mapShaderIndex != INDEX_UNDEFINED;
