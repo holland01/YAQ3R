@@ -12,6 +12,7 @@ void O_IntervalLogSetInterval( float interval );
 void O_Log( const char* header, const char* priority, const char* fmt, ... );
 void O_LogBuffer( const char* header, const char* priority,
 	const char* fmt, ... );
+void O_LogOnce( const char* header, const char* priority, const char* fmt, ... );
 void O_LogF( FILE* f, const char* header, const char* fmt, ... );
 void MyDateTime( const char* format, char* outBuffer, int length );
 
@@ -31,6 +32,8 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 // strictly the condition specified by its caller, of course.
 // void MLogError( bool condition, const char* filename, int32_t line,
 // const char* funcname, ... );
+
+#define MLOG_INFO_ONCE( ... ) ( O_LogOnce( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
 #define MLOG_INFO( ... ) ( O_Log( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
