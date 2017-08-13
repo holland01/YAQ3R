@@ -67,8 +67,8 @@ enum
 
 struct drawFace_t
 {
-	size_t sort;			// z-depth, and shader sort index
-	size_t metadata;		// map face index, and whether or not the face is transparent 
+	size_t sort = 0;			// z-depth, and shader sort index
+	size_t metadata = 0;		// map face index, and whether or not the face is transparent 
 
 	bool GetTransparent( void ) const 
 	{ 
