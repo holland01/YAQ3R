@@ -154,9 +154,6 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 	camera->moveStep = 1.0f;
 	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE,
 		G_STATIC_FAR_PLANE );
-
-	//camera->SetPerspective( 65.0f, viewWidth, viewHeight, 100.0f,
-	//	1000.0f );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -615,7 +612,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			0
 		);
 
-		glm::vec2 texDims( 64.0f );
+		glm::vec2 texDims( frameTime );
 
 		for ( effect_t e: stage.effects )
 		{
