@@ -60,12 +60,19 @@ static void AssignIndex( wApiImageInfo_t* info, uint16_t assignIndex )
 		pathLinkNode_t* root =
 			( pathLinkNode_t* ) gImageTracker->textureInfo[ pathString ];
 
+		std::stringstream ss;
+
+		ss << "Iterating List For " << pathString << ", with texture index " << assignIndex << "...\n";
+
 		for ( pathLinkNode_t* n = root; n; )
 		{
 			// This index will persist in the texture array it's going into
 			n->stage->textureIndex = assignIndex;
+			ss << "\t Owner: " << &n->stage->owningShader->name[ 0 ] << ", Index: " << n->stage->owningBufferIndex << "\n";
 			n = n->next;
 		}
+
+		MLOG_INFO_ONCE( "%s", ss.str().c_str() );
 	}
 
 	gImageTracker->iterator++;
