@@ -799,26 +799,6 @@ void BSPRenderer::DeformVertexes( const mapModel_t& m,
 	);
 }
 
-void BSPRenderer::LoadPassParams( 
-	drawPass_t& p, 
-	int32_t face,
-	passDrawType_t defaultPass 
-) const
-{
-	p.face = &map.data.faces[ face ];
-	p.faceIndex = face;
-	p.shader = map.GetShaderInfo( face );
-
-	if ( p.shader )
-	{
-		p.drawType = PASS_DRAW_EFFECT;
-	}
-	else
-	{
-		p.drawType = defaultPass;
-	}
-}
-
 // -------------------------------
 // BSP Traversal
 // -------------------------------
@@ -861,9 +841,9 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 		for ( int32_t j = 0; j < model->numFaces; ++j )
 			ProcessFace( pass, model->faceOffset + j );
 
-		pass.isSolid = false;
-		for ( int32_t j = 0; j < model->numFaces; ++j )
-			ProcessFace( pass, model->faceOffset + j );
+//		pass.isSolid = false;
+//		for ( int32_t j = 0; j < model->numFaces; ++j )
+//			ProcessFace( pass, model->faceOffset + j );
 	}
 
 	pass.type = PASS_DRAW;
@@ -880,7 +860,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	}
 
 	TraverseDraw( pass, true );
-	TraverseDraw( pass, false );
+//	TraverseDraw( pass, false );
 
 	// Sort the faces and draw them.
 
@@ -904,7 +884,9 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 		return;
 	}
 
-	LoadPassParams( pass, index, PASS_DRAW_MAIN );
+	pass.face = &map.data.faces[ index ];
+	pass.faceIndex = index;
+	pass.shader = map.GetShaderInfo( index );
 
 	if ( map.IsNoDrawShader( pass.shader ) )
 	{
@@ -921,7 +903,7 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 	if ( add )
 	{
 		drawFace_t dface;
-
+		
 		dface.SetTransparent( transparent );
 		dface.SetMapFaceIndex( index );
 		dface.SetShaderListIndex( pass.shader->sortListIndex );
@@ -1024,9 +1006,14 @@ void BSPRenderer::DrawFaceList( drawPass_t& pass, bool solid )
 	const std::vector< drawFace_t >& faceList = solid ? pass.opaqueFaces : pass.transparentFaces;
 	const shaderList_t& sortedShaderList = solid ? map.opaqueShaderList : map.transparentShaderList;
 
+	pass.isSolid = solid;
+
 	for ( size_t i = 0; i < faceList.size(); ++i )
 	{
 		pass.shader = sortedShaderList[ faceList[ i ].GetShaderListIndex() ];
+		pass.faceIndex = faceList[ i ].GetMapFaceIndex();
+		pass.face = &map.data.faces[ pass.faceIndex ];
+
 
 		if ( map.IsDefaultShader( pass.shader ) )
 		{
