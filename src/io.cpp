@@ -103,6 +103,39 @@ void O_LogBuffer( const char* header, const char* priority,
 #endif
 }
 
+static std::vector< std::string > gLogOnceEntries;
+
+void O_LogOnce( const char* header, const char* priority, const char* fmt, ... )
+{
+	char buffer[ 2048 ];
+	memset( buffer, 0, sizeof( buffer ) );
+
+	va_list arg;
+	va_start( arg, fmt );
+	int size = snprintf( &buffer[ 0 ], 2048, "\n[ %s | %s ]: ", header, priority );
+	
+	if( size < 0 ) 
+	{
+		printf( "(O_LogOnce) Attempt to print string of format \'%s\' failed\n", fmt );
+		return;
+	}
+
+	vsnprintf( &buffer[ size ], 2048 - size, fmt, arg );
+	va_end( arg );
+
+	std::string asString( &buffer[ 0 ], strlen( &buffer[ 0 ] ) );
+
+	for ( const std::string& str: gLogOnceEntries )
+	{
+		if ( asString == str )
+			return;
+	}
+
+	gLogOnceEntries.push_back( asString );
+	
+	printf( "(O_LogOnce)\n%s\n", &buffer[ 0 ] );
+}
+
 void O_LogF( FILE* f, const char* header, const char* fmt, ... )
 {
 #ifdef DEBUG

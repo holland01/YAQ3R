@@ -519,3 +519,143 @@ be due to issues with the frustum culling or it could just be major problems wit
 given that the code is clearly executing slowly.
 
 * Assuming no issues are happening, you want to test chrome/firefox on Windows, Mac, Linux.
+
+### 8/6/17
+
+**bugfix/any_wall_clip_weirdness**
+
+Right, so the faces are ordered according to the following criteria:
+
+type->lightmap->shader->drawSurface_t 
+
+This is only efficient, though, if there's a significant amount of drawSurface_t's packed together
+in a single bucket list. Otherwise, you're still going to get a large frequency of different texture bindings for both
+lightmaps and normal images.
+
+Furthermore, these aren't being depth sorted. The depth sort should obviously happen relative to the view-transform, for
+both solids and transparent groups.
+
+So, a new method needs to be put together.
+
+For now, forget grouping according to attributes apart from transparency and depth. Get rid of the quadruple loop and
+the crazy hashmap setup.
+
+### 8/8/17
+
+There might be some alpha channel issues with respect to SDL 2 and emscripten/webgl. It looks like SDL 2 doesn't provide
+an alpha-based pixel format. Trying to explicitly set this in the generated asm.js doesn't change anything either. 
+You need to research this more and see what the deal is. [This](https://stackoverflow.com/questions/35372291/alpha-rendering-difference-between-opengl-and-webgl) provides a little more insgiht, but it's not sufficient.
+
+Anyway, as far as the view-depth sort, your best bet is to do the following:
+
+  For each face:
+    define a transformation using the S,T vectors which come with it; take the cross product to produce the Z-axis. Make sure that 
+    the Z-axis direction is consistent with the front face culling method (should be CCW but only works with CW - might due to coordinate swizzling
+    which happens in the beginnign, honestly not sure and will need to think ont hat because it could be important). 
+
+### 8/9/17
+
+Pretty sure I have this figured out right now. The key is to sort the faces/surfaces according to the sort parameter specified in their corresponding
+shader. If the surface is transparent, the default is additive; if opaque, then "opaque" is the setting to fall back on. 
+
+There's this in tr_local.h:
+
+```
+// any changes in surfaceType must be mirrored in rb_surfaceTable[]                                                                                          
+typedef enum {                                                                                                                                               
+    SF_BAD,
+    SF_SKIP,                // ignore                                                                                                                        
+    SF_FACE,                                                                                                                                                 
+    SF_GRID,
+    SF_TRIANGLES,                                                                                                                                            
+    SF_POLY,                                                                                                                                                 
+    SF_MD3,                                                                                                                                                  
+    SF_MD4,
+    SF_FLARE,
+    SF_ENTITY,              // beams, rails, lightning, etc that can be determined by entity                                                                 
+    SF_DISPLAY_LIST,                                                                                                                                         
+    
+    SF_NUM_SURFACE_TYPES,       
+    SF_MAX = 0x7fffffff         // ensures that sizeof( surfaceType_t ) == sizeof( int )                                                                     
+} surfaceType_t;                                                                                                                                             
+
+typedef struct drawSurf_s {
+    unsigned            sort;           // bit combination for fast compares                                                                                 
+    surfaceType_t       *surface;       // any of surface*_t                                                                                                 
+} drawSurf_t;                                                 
+```
+
+as well as this:
+
+```
+#define MAX_DRAWIMAGES      2048
+#define MAX_LIGHTMAPS     256
+#define MAX_SKINS       1024
+
+
+#define MAX_DRAWSURFS     0x10000
+#define DRAWSURF_MASK     (MAX_DRAWSURFS-1)
+
+/*
+
+the drawsurf sort data is packed into a single 32 bit value so it can be
+compared quickly during the qsorting process
+
+the bits are allocated as follows:
+
+21 - 31 : sorted shader index
+11 - 20 : entity index
+2 - 6 : fog index
+//2   : used to be clipped flag REMOVED - 03.21.00 rad
+0 - 1 : dlightmap index
+
+  TTimo - 1.32
+17-31 : sorted shader index
+7-16  : entity index
+2-6   : fog index
+0-1   : dlightmap index
+*/
+#define QSORT_SHADERNUM_SHIFT 17
+#define QSORT_ENTITYNUM_SHIFT 7
+#define QSORT_FOGNUM_SHIFT    2
+```
+
+the `sort` member in `drawSurf_t` relies on the bitmap specified above: a simple inequality comparison is used
+between different sort values when the actual sort is performed - i.e., nothing fancy at all. 
+
+Note also the `surfaceType_t`: it could very well be beneficial to make use of this in your implementation at some point.
+
+What you want to do for now, though, is:
+
+* define a simple default shader which uses the opaque setting for its sort parameter
+* create two global shader lists (one for opaque, one for transparent) which store pointers to entries in the effectShaders map, and are both sorted according to their sort values (remember the defaults)
+* make two lists for drawSurface_t*; remove the current hashmap craziness that's going on because it's not particularly useful. Maybe 
+ditch it all together, since it looks like the performance improvement isn't really there for batched draws. None the less, the ordering
+needs to be defined solely by the `sort` member. 
+* make sure that the sort value for the drawSurface_t is properly set. For now, the only value needed to pay attention to is what's in bits 21-31: the sorted shader index (just use the bit layout for the original and not the TTimo modification to keep things simple)
+
+On init you can presort all of the used shaders. 
+
+For models, evaluating the z-depth is simple because a bounds is already defined for them. 
+
+For faces, I'm still not sure what the best way to extract this would be. The world space st axes for the face could be used as described in the 
+previous entry. But how do we know where the origin of these axes are? I suppose it's possible to cycle through all of the vertices within the face, 
+look for min/max values, and then store those appropriately in a separate list. Using the st axes would be trivial from there.
+
+Once this is all figured out, some major cleanup is in order... 
+
+### 8/12/17
+
+Still need to sort and draw the transparent faces. None the less, nothing's rendering. I know that "noshader" is a good fit for a default: it only contains one flag value, which is the first
+bit in the contentsFlags member - CONTENTS_SOLID, implying map walls or something like that. So, this isn't the issue why hardly anything is showing. 
+
+Adjusting the sort parameter (draw front to back, not back to front) seems like it could make a difference. The textures rendered are different, yes, but the issue of multiple faces being
+tied to a constantly appearing/disappearing rectangle is still the case. 
+
+So, some things to look investigate for tomorrow:
+
+- shader uploads - what's happening? 
+
+- Do we ever end up calling DrawFace with `PASS_DRAW_MAIN`?
+
+- Is the sort index retrieved from the drawFace_t in `BSPRenderer::DrawFaceList` actually valid?

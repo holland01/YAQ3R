@@ -7,7 +7,7 @@ else
 	BROWSER=--browser=$1
 fi
 
-emrun ${BROWSER} --verbose bspviewer.html
+emrun ${BROWSER} bspviewer.html
 
 if [ $1 = "nb" ]; then
 	google-chrome --enable-logging:

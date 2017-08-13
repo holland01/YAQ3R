@@ -45,6 +45,8 @@ struct gContextHandles_t
 	} 
 };
 
+void GPrintContextInfo( void );
+
 bool GInitContextWindow( const char* title, gContextHandles_t& context );
 #ifdef __cplusplus
 }

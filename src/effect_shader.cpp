@@ -403,7 +403,6 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			buffer = StrReadToken( token, buffer );
 
 			// tcmod Scroll or tcmod scroll is possible
-
 			LowerString( token );
 
 			if ( strcmp( token, "scale" ) == 0 )
@@ -415,16 +414,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 				float s = StrReadFloat( buffer );
 				float t = StrReadFloat( buffer );
 
-				/*
-				NOTE: a scale may imply a division by the value,
-				versus a multiplication. I'm not sure...
-
-				if ( s != 0.0f )
-					s = 1.0f / s;
-
-				if ( t != 0.0f )
-					t = 1.0f / t;
-				*/
+				if ( s != 0.0f ) s = 1.0f / s;
+				if ( t != 0.0f ) t = 1.0f / t;
 
 				op.data.scale2D[ 0 ][ 0 ] = s;
 				op.data.scale2D[ 0 ][ 1 ] = 0.0f;
@@ -513,6 +504,81 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			theStage.depthPass = true;
 			return true;
 		}
+	},
+	{
+		"sort",
+		STAGE_READ_FUNC
+		{
+			UNUSED( theStage );
+
+			ZEROTOK( token );
+			buffer = StrReadToken( token, buffer );
+
+			LowerString( token );
+
+			bool debugPrintInfo = false;
+			bool ret = true;
+
+			std::string debugToken;
+
+			if ( strcmp( token, "portal" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_PORTAL;
+				debugToken = "Portal";
+			}
+			else if ( strcmp( token, "sky" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_SKY;
+				debugToken = "Sky";
+			}
+			else if ( strcmp( token, "opaque" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_OPAQUE;
+				debugToken = "Opaque";
+			}
+			else if ( strcmp( token, "banner" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_BANNER;
+				debugToken = "Banner";
+			}
+			else if ( strcmp( token, "underwater" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_UNDERWATER;
+				debugToken = "Underwater";
+			}
+			else if ( strcmp( token, "additive" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_ADDITIVE;
+				debugToken = "Additive";
+			}
+			else if ( strcmp( token, "nearest" ) == 0 )
+			{
+				outInfo->sort = BSP_SHADER_SORT_NEAREST;
+				debugToken = "Nearest";
+			}
+			else if ( isdigit( *token ) )
+			{
+				outInfo->sort = ( bspShaderSort_t ) strtol( token, nullptr, 10 );
+				debugToken = "Integral";
+			}
+			else
+			{
+				if ( debugPrintInfo )
+				{
+					MLOG_INFO( "Default Fallback. For Shader: %s", &outInfo->name[ 0 ] );
+				}
+
+				return false;
+			}
+
+			if ( debugPrintInfo ) 
+			{
+				MLOG_INFO( "%s Sort Found: %lu. For Shader: %s", debugToken.c_str(), 
+					outInfo->sort, &outInfo->name[ 0 ] );
+			}
+
+			return ret;
+		}
 	}
 };
 
@@ -562,29 +628,6 @@ static INLINE GLsizei GL_DepthFuncFromStr( const char* str )
 	// The manual seems to insinuate that gl_ prefixes won't be used for depth
 	// functions. However, this is used just in case...
 	return GL_EnumFromStr( str );
-}
-
-static bool ShaderUsed( const char* header, const Q3BspMap* map )
-{
-	for ( int i = 0; i < map->data.numShaders; ++i )
-	{
-		if ( strncmp( map->data.shaders[ i ].name, header,
-				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
-		{
-			return true;
-		}
-	}
-
-	for ( int i = 0; i < map->data.numFogs; ++i )
-	{
-		if ( strncmp( map->data.fogs[ i ].name, header,
-				BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
-		{
-			return true;
-		}
-	}
-
-	return false;
 }
 
 static const char* SkipBlockAtLevel( const char* buffer, int8_t targetLevel )
@@ -680,7 +723,7 @@ static const char* ParseEntry(
 			// Ensure we have a valid shader which a)
 			// we know is used by the map and b) hasn't
 			// already been read
-			used = ( ShaderUsed( &outInfo->name[ 0 ], map ) || isMapShader );
+			used = ( map->IsShaderUsed( outInfo ) || isMapShader );
 
 			if ( !used )
 			{
@@ -750,21 +793,7 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		if ( used )
 		{
-			std::string key( &entry.name[ 0 ], strlen( &entry.name[ 0 ] ) );
-
-			map->effectShaders.insert( shaderMapEntry_t(
-				key,
-				entry
-			) );
-
-			// Add names after entry's been copied; these are mostly
-			// used for debugging.
-			shaderInfo_t& infoEntry = map->effectShaders[ key ];
-
-			for ( size_t i = 0; i < infoEntry.stageBuffer.size(); ++i )
-			{
-				infoEntry.stageBuffer[ i ].owningShader = &infoEntry;
-			}
+			map->AddEffectShader( entry );
 		}
 
 		range = ( ptrdiff_t )( end - pChar );

@@ -18,3 +18,12 @@ outward to infinity and is parallel with the world-relative XY plane normal of t
 This should help with clipping areas that are wide open.
 
 
+#### State management
+
+Should have a client-side means of keeping track of all used parameters. Basically any opengl function call
+which changes a particular state parameter found in the implementation should be kept track of and stored.
+
+Maybe use a stack based mechanism for each param. You want this primarily because it reduces the need for
+meta function calls like glIsEnabled or glGetIntegerv, which may or may not have an impact on performance.
+
+

@@ -50,10 +50,9 @@
 #	define glClearDepth glClearDepthf
 #endif
 
-#ifdef DEBUG
- void GPrintBadProgram( void );
- bool GHasBadProgram( void );
-#endif
+void GPrintBadProgram( void );
+bool GHasBadProgram( void );
+void GStateCheckReport( void );
 
 enum
 {

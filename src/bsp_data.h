@@ -100,8 +100,26 @@ enum
 	// It always looks cooler in hex.
 	BSP_MAX_SHADER_TOKEN_LENGTH = 0x40,
 
-	BSP_BAD_IMAGE_INDEX = -1
+	BSP_BAD_IMAGE_INDEX = -1,
+
+	BSP_SORT_SHADER_INDEX_SHIFT = 21,
+	BSP_SORT_ENTITY_INDEX_SHIFT = 11,
+	BSP_SORT_ENTITY_INDEX_MASK = 0x7FF,
+	BSP_SORT_FOG_INDEX_SHIFT = 2,
+	BSP_SORT_FOG_INDEX_MASK = 0x1F,
+
+	BSP_SHADER_SORT_PORTAL = 1,
+	BSP_SHADER_SORT_SKY = 2,
+	BSP_SHADER_SORT_OPAQUE = 3,
+	BSP_SHADER_SORT_BANNER = 6,
+	BSP_SHADER_SORT_UNDERWATER = 8,
+	BSP_SHADER_SORT_ADDITIVE = 9,
+	BSP_SHADER_SORT_NEAREST = 16,
+	BSP_SHADER_SORT_MAX = 16
 };
+
+using bspShaderSort_t = uint32_t;
+using surfaceParm_t = uint32_t;
 
 // Map loader-specific flags
 enum
@@ -334,32 +352,32 @@ struct leafModel_t
 
 // Info can be obtained from http://toolz.nexuizninjaz.com/shader/
 //
-enum surfaceParms_t
+enum
 {
-	SURFPARM_ALPHA_SHADOW		= 1 << 1,
-	SURFPARM_AREA_PORTAL		= 1 << 2,
-	SURFPARM_CLUSTER_PORTAL		= 1 << 3,
-	SURFPARM_DO_NOT_ENTER		= 1 << 4,
-	SURFPARM_FLESH				= 1 << 5,
-	SURFPARM_FOG				= 1 << 6,
-	SURFPARM_LAVA				= 1 << 7,
-	SURFPARM_METAL_STEPS		= 1 << 8,
-	SURFPARM_NO_DMG				= 1 << 9,
-	SURFPARM_NO_DLIGHT			= 1 << 10,
-	SURFPARM_NO_DRAW			= 1 << 11,
-	SURFPARM_NO_DROP			= 1 << 12,
-	SURFPARM_NO_IMPACT			= 1 << 13,
-	SURFPARM_NO_MARKS			= 1 << 14,
-	SURFPARM_NO_LIGHTMAP		= 1 << 15,
-	SURFPARM_NO_STEPS			= 1 << 16,
-	SURFPARM_NON_SOLID			= 1 << 17,
-	SURFPARM_ORIGIN				= 1 << 18,
-	SURFPARM_PLAYER_CLIP		= 1 << 19,
-	SURFPARM_SLICK				= 1 << 20,
-	SURFPARM_SLIME				= 1 << 21,
-	SURFPARM_STRUCTURAL			= 1 << 22,
-	SURFPARM_TRANS				= 1 << 23,
-	SURFPARM_WATER				= 1 << 24,
+	SURFPARM_ALPHA_SHADOW		= 1 << 0,
+	SURFPARM_AREA_PORTAL		= 1 << 1,
+	SURFPARM_CLUSTER_PORTAL		= 1 << 2,
+	SURFPARM_DO_NOT_ENTER		= 1 << 3,
+	SURFPARM_FLESH				= 1 << 4,
+	SURFPARM_FOG				= 1 << 5,
+	SURFPARM_LAVA				= 1 << 6,
+	SURFPARM_METAL_STEPS		= 1 << 7,
+	SURFPARM_NO_DMG				= 1 << 8,
+	SURFPARM_NO_DLIGHT			= 1 << 9,
+	SURFPARM_NO_DRAW			= 1 << 10,
+	SURFPARM_NO_DROP			= 1 << 11,
+	SURFPARM_NO_IMPACT			= 1 << 12,
+	SURFPARM_NO_MARKS			= 1 << 13,
+	SURFPARM_NO_LIGHTMAP		= 1 << 14,
+	SURFPARM_NO_STEPS			= 1 << 15,
+	SURFPARM_NON_SOLID			= 1 << 16,
+	SURFPARM_ORIGIN				= 1 << 17,
+	SURFPARM_PLAYER_CLIP		= 1 << 18,
+	SURFPARM_SLICK				= 1 << 19,
+	SURFPARM_SLIME				= 1 << 20,
+	SURFPARM_STRUCTURAL			= 1 << 21,
+	SURFPARM_TRANS				= 1 << 22,
+	SURFPARM_WATER				= 1 << 23,
 };
 
 enum vertexDeformCmd_t
@@ -509,6 +527,9 @@ struct shaderInfo_t;
 
 struct shaderStage_t
 {
+	// enable to force writing to the depth buffer. Only relevant for non-opaque surfaces.
+	// name choice is admittedly poor: depthPass tends to imply an actual render pass.
+	// this literally just means "force write to depth buffer even if surface is color blended"
 	bool						depthPass = false;
 
 	int32_t						textureIndex = INDEX_UNDEFINED;
@@ -549,9 +570,8 @@ struct shaderStage_t
 
 	std::vector< effect_t >		effects;
 
-	// if 0, assume an alpha value of 1
-
-	float						alphaGen = 0.0f;
+	// same idea as rgb gen, using same functions, but with alpha channel.
+	rgbGen_t 					alphaGen = RGBGEN_UNDEFINED;	
 
 	// path to the texture image, if we have one
 
@@ -618,6 +638,7 @@ struct shaderStage_t
 
 struct shaderInfo_t
 {
+	bspShaderSort_t 	sort = BSP_SHADER_SORT_OPAQUE;
 
 	// implies an animated vertex deformation
 	bool				deform = false;
@@ -631,9 +652,9 @@ struct shaderInfo_t
 
 	effect_t            deformParms; // arbitrary parameters for our deform
 
-	uint32_t			cullFace = G_UNSPECIFIED;
+	uint32_t			cullFace = GL_NONE;
 
-	uint32_t			surfaceParms = 0; // global surface parameters
+	surfaceParm_t		surfaceParms = 0; // global surface parameters
 
 	uint32_t			localLoadFlags = 0;
 
@@ -641,6 +662,14 @@ struct shaderInfo_t
 
 	// the amount of draw passes for this shader entry
 	int					stageCount = 0;
+
+	// index into corresponding bspShader_t; useful for surface/content flag lookups
+	int 				mapShaderIndex = INDEX_UNDEFINED;	
+
+	int 				mapFogIndex = INDEX_UNDEFINED;
+
+	// Q3BspMap instance holds two lists of shaders necessary for proper draw order; the sort member above determines which list.
+	int 				sortListIndex = INDEX_UNDEFINED;	
 
 	float				surfaceLight = 0.0f; // 0 if no light
 
@@ -660,6 +689,7 @@ struct shaderInfo_t
 		std::stringstream ss;
 
 		ss << SSTREAM_INFO_BEGIN( shaderInfo_t );
+		ss << SSTREAM_INFO_PARAM( sort );
 		ss << SSTREAM_INFO_PARAM( deform );
 		ss << SSTREAM_INFO_PARAM( deformCmd );
 		ss << SSTREAM_INFO_PARAM( deformFn );
@@ -681,6 +711,7 @@ struct shaderInfo_t
 	{
 		std::stringstream ss;
 
+		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, sort );
 		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deform );
 		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deformCmd );
 		ss << SSTREAM_BYTE_OFFSET( shaderInfo_t, deformFn );

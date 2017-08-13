@@ -5,6 +5,7 @@
 
 #define G_TEXNAME_CHAR_LIMIT 64
 #define G_UNSPECIFIED 0xFFFFFFFF
+#define G_MAPPED_DEPTH_CLIPPED 0xFFFFFFFF
 
 // Just to let everyone know we only care
 // really about RGBA... most of the time
