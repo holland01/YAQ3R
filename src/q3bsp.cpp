@@ -354,13 +354,7 @@ static void MapReadFin( Q3BspMap* map )
 
 	for ( size_t i = 0; i < map->data.shaders.size(); ++i )
 	{
-		if ( strncmp( &map->data.shaders[ i ].name[ 0 ], "noshader", 64 ) == 0 )
-		{
-			printf( "Index[ %i ] Surface Flags: 0x%x, Contents Flags: 0x%x\n", ( int ) i,
-				map->data.shaders[ i ].surfaceFlags, map->data.shaders[ i ].contentsFlags );
-
-			break;
-		}
+		StrFixupAssetPath( &map->data.shaders[ i ].name[ 0 ] );
 	}
 
 	gFileWebWorker.Await(
@@ -601,6 +595,7 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 	// used for debugging.
 	for ( size_t i = 0; i < afterInsert->stageBuffer.size(); ++i )
 	{
+		afterInsert->stageBuffer[ i ].owningBufferIndex = i;
 		afterInsert->stageBuffer[ i ].owningShader = afterInsert;
 	}
 }
