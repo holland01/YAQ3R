@@ -14,6 +14,10 @@
 #define SSTREAM_INFO_BEGIN( T ) #T "{\n"
 #define SSTREAM_INFO_END() "}\n"
 
+#define MAKE_BASE2_MASK( numBits, shift ) ( ( ( 1 << ( numBits ) ) - 1 ) << ( shift ) )
+#define VALUE_FROM_BITS( bits, mask, shift ) ( ( bits & ( mask ) ) >> ( shift ) )
+#define SET_BITS_FOR_VALUE( value, bits, mask, shift ) bits &= ~( mask ); bits |= ( ( value ) << ( shift ) ) & ( mask )
+
 #if defined( EMSCRIPTEN )
 #	define EM_SERV_ASSET_PORT "6931"
 #endif
