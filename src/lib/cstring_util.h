@@ -2,6 +2,8 @@
 
 #include "common.h"
 
+#define STRING_NPOS 0xFFFFFFFF
+
 enum tokType_t
 {
 	TOKTYPE_VALID = 0,
@@ -19,6 +21,14 @@ const char* StrReadToken( char* out, const char* buffer );
 
 const char* StrNextNumber( const char* buffer );
 
-void LowerString( char* str );
+void StrLower( char* str );
+
+// Will stop at null term if hit before maxLength is reached
+void StrLowerN( char* str, size_t maxLength );
+
+void StrFixupAssetPath( char* assetStringPath );
+
+// returns std::string::npos if nothing is found
+size_t StrFindLastOf( const char* str, const char* ch );
 
 float StrReadFloat( const char*& buffer );
