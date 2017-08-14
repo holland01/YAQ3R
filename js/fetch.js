@@ -348,7 +348,7 @@ AL.addSliceMeta = function(metadata, blobSize, files) {
 
 		function stripExt(filename) {
 			let copy = cloneString(filename);
-			while (copy.indexOf('.') !== -1) {
+			if (copy.indexOf('.') !== -1) {
 				let c = copy.length - 1;
 				while (copy.charAt(c) !== '.') {
 					c--;
