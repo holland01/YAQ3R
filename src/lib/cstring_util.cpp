@@ -1,4 +1,5 @@
 #include "cstring_util.h"
+#include <string.h>
 
 tokType_t StrToken( const char* c )
 {
@@ -75,15 +76,58 @@ const char* StrNextNumber( const char* buffer )
 	return buffer;
 }
 
-void LowerString( char * str )
+void StrLower( char * str )
 {
-	char * p = str;
+	char* p = str;
 
 	while ( *p )
 	{
 		*p = tolower( *p );
 		p++;
 	}
+}
+
+void StrLowerN( char* str, size_t maxLength )
+{
+	char* p = str;
+
+	while ( *p && ( size_t )( p - str ) < maxLength )
+	{
+		*p = tolower( *p );
+		p++;
+	}
+}
+
+size_t StrFindLastOf( const char* str, const char* ch )
+{
+	const char * result = nullptr;
+
+	size_t index = STRING_NPOS;
+
+	do 
+	{
+		result = strstr( str + index + 1, ch );
+
+		if ( result )
+		{
+			index = ( size_t )( result - str );
+		}
+	}
+	while ( result );
+
+	return index; 
+}
+
+void StrFixupAssetPath( char* assetPath )
+{
+	size_t loc = StrFindLastOf( assetPath, "/" );
+
+	if ( loc == STRING_NPOS )
+	{
+		return;
+	}
+
+	StrLowerN( assetPath, loc );
 }
 
 float StrReadFloat( const char*& buffer )

@@ -286,7 +286,7 @@ var getHexString = function(str) {
 
 var buildStringFromU8 = function(array, start, end) {
 	if (!end) {
-		end = Number.MAX_SAFE_INTEGER >> 32; // so we don't potentially wait for an eternity
+		end = Number.MAX_SAFE_INTEGER >> 50; // so we don't potentially wait for an eternity
 	}
 	let str = "";
 	for (let i = start; array[i] !== 0 && i < array.length && i < end; ++i) {

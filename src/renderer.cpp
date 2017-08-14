@@ -601,7 +601,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		if ( texIndex < 0 )
 		{
-			return;
+			MLOG_INFO_ONCE( "Zero Found for %s:[%i]%s", &shader->name[ 0 ], i, &stage.texturePath[ 0 ] );
+		//	return;
 		}
 
 		BindTexture(

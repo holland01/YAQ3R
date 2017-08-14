@@ -532,49 +532,47 @@ struct shaderStage_t
 	// this literally just means "force write to depth buffer even if surface is color blended"
 	bool						depthPass = false;
 
+	// we use this when reading image data and assigning
+	// the stage's texture index into the corresponding atlas
+	bool 						pathLinked = false;
+
 	int32_t						textureIndex = INDEX_UNDEFINED;
 
-	// Normal texcoord generation (if textureIndex is defined)
+	// Index of this stage within the owning shader struct's stageBuffer
+	int32_t 					owningBufferIndex = INDEX_UNDEFINED; 
 
+	// Normal texcoord generation (if textureIndex is defined)
 	texCoordGen_t				tcgen = TCGEN_BASE;
 
 	// src is incoming pixels
-
 	GLenum						blendSrc = GL_ONE;
 
 	// destination is the pixels which are already within the
 	// framebuffer from the previous frame
-
 	GLenum						blendDest = GL_ZERO;
 
 	GLenum						depthFunc = GL_LEQUAL;
 
 	// how colors are generated - identity refers to a white image
-
 	rgbGen_t					rgbGen = RGBGEN_UNDEFINED;
 
 	// alpha constraint for the fragment; if fragment fails the condition,
 	// we discard it
-
 	alphaFunc_t					alphaFunc = ALPHA_FUNC_UNDEFINED;
 
 	// either "map" or "clampmap"; clampmap refers to a non-repeating texture
-
 	mapCmd_t					mapCmd = MAP_CMD_UNDEFINED;
 
 	// can be an image, a lightmap, or a whiteimage
-
 	mapType_t					mapType = MAP_TYPE_UNDEFINED;
 
 	// dynamic effects, designed to be passed to the shader
-
 	std::vector< effect_t >		effects;
 
 	// same idea as rgb gen, using same functions, but with alpha channel.
 	rgbGen_t 					alphaGen = RGBGEN_UNDEFINED;	
 
 	// path to the texture image, if we have one
-
 	std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH > texturePath;
 
 	gProgramHandle_t program { ( uint16_t ) G_UNSPECIFIED };

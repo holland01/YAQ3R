@@ -22,6 +22,20 @@ using shaderList_t = std::vector< const shaderInfo_t * >;
 
 #define Q3BSPMAP_DEFAULT_SHADER_NAME "noshader"
 
+// The data-driven mechanism which is used to map a stage
+// to a texture index relies on the texture path itself
+// to use as a key into an unordered hash map. Consequently, 
+// only one actual stage will be written to unless a different approach is taken.
+
+// Other stages which need the same path are likely to exist, 
+// but won't be assigned a corresponding index for that texture in the atlas.
+// So, a linked list is a simple alternative.
+struct pathLinkNode_t
+{
+	shaderStage_t* stage = nullptr;
+	pathLinkNode_t* next = nullptr;
+};
+
 class Q3BspMap
 {
 private:
@@ -36,6 +50,10 @@ private:
 	bool								mapAllocated;
 
 	std::string							name;
+
+	std::stack< pathLinkNode_t* > 		pathLinkRoots;
+
+	void 						MakeStagePathList( pathLinkNode_t * node );
 
 public:
 	std::unique_ptr< renderPayload_t > 	payload;

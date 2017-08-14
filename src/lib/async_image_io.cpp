@@ -54,19 +54,18 @@ static void AssignIndex( wApiImageInfo_t* info, uint16_t assignIndex )
 			keyMap,
 			assignIndex
 		);
-
-	//	if ( assignIndex == gla::atlas_t::no_image_index )
-	//	{
-	//		gImageTracker->map->MarkBadTexture( keyMap );
-	//	}
 	}
 	else
 	{
-		shaderStage_t* stage =
-			( shaderStage_t* ) gImageTracker->textureInfo[ pathString ];
+		pathLinkNode_t* root =
+			( pathLinkNode_t* ) gImageTracker->textureInfo[ pathString ];
 
-		// This index will persist in the texture array it's going into
-		stage->textureIndex = assignIndex;
+		for ( pathLinkNode_t* n = root; n; )
+		{
+			// This index will persist in the texture array it's going into
+			n->stage->textureIndex = assignIndex;
+			n = n->next;
+		}
 	}
 
 	gImageTracker->iterator++;

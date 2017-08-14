@@ -22,6 +22,14 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer,
 #define ZEROTOK( t ) ( memset( t, 0, \
 	sizeof( char ) * BSP_MAX_SHADER_TOKEN_LENGTH ) );
 
+
+static const char* ReadStageTexturePath( shaderStage_t& theStage, const char* buffer )
+{
+	buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+	StrFixupAssetPath( &theStage.texturePath[ 0 ] );
+	return buffer;
+}
+
 // Lookup table we use for each shader/stage command
 std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 {
@@ -219,7 +227,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+			buffer = ReadStageTexturePath( theStage, buffer );
 
 			theStage.mapCmd = MAP_CMD_CLAMPMAP;
 			theStage.mapType = MAP_TYPE_IMAGE;
@@ -233,7 +241,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			UNUSED( outInfo );
 			UNUSED( token );
 
-			buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
+			buffer = ReadStageTexturePath( theStage, buffer );
 
 			theStage.mapCmd = MAP_CMD_MAP;
 
@@ -343,7 +351,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			buffer = StrReadToken( token, buffer );
 
 			// rgbgen Vertex has both lowercase and uppercase entries
-			LowerString( token );
+			StrLower( token );
 
 			if ( strcmp( token, "vertex" ) == 0 )
 			{
@@ -403,7 +411,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			buffer = StrReadToken( token, buffer );
 
 			// tcmod Scroll or tcmod scroll is possible
-			LowerString( token );
+			StrLower( token );
 
 			if ( strcmp( token, "scale" ) == 0 )
 			{
@@ -514,7 +522,7 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			ZEROTOK( token );
 			buffer = StrReadToken( token, buffer );
 
-			LowerString( token );
+			StrLower( token );
 
 			bool debugPrintInfo = false;
 			bool ret = true;
@@ -719,6 +727,7 @@ static const char* ParseEntry(
 		if ( level == 0 )
 		{
 			strcpy( &outInfo->name[ 0 ], token );
+			StrFixupAssetPath( &outInfo->name[ 0 ] );
 
 			// Ensure we have a valid shader which a)
 			// we know is used by the map and b) hasn't
@@ -733,7 +742,7 @@ static const char* ParseEntry(
 			continue;
 		}
 
-		LowerString( token );
+		StrLower( token );
 
 		const std::string strToken( token );
 		if ( stageReadFuncs.find( strToken ) == stageReadFuncs.end() )

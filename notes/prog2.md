@@ -659,3 +659,16 @@ So, some things to look investigate for tomorrow:
 - Do we ever end up calling DrawFace with `PASS_DRAW_MAIN`?
 
 - Is the sort index retrieved from the drawFace_t in `BSPRenderer::DrawFaceList` actually valid?
+
+### 8/13/17
+
+Figure out the issue with the last image path and then you're finished with bugfix/bad_effect_texture_indices.
+
+Note that one image a relevant path refers to is read twice in a row, using the exact same shader stages (why is this happening?). 
+
+There's two images that are relevant, and hence two paths. One appears to be read just fine, and 
+the other is still missing. The image which is found ends with a .blend suffix, and uses the same name as the 
+missing image file. 
+
+The same list is being assigned two different indices. When initially constructed, there is no duplicate. My guess is that somehow
+the path for the non blend variant is getting swapped with the blend variant (and likely its list in turn)
