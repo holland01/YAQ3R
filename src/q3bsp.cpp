@@ -571,8 +571,8 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 	shaderInfo_t* afterInsert = &effectShaders[ key ];
 
 	// Default sort is opaque; if no sort param was specified,
-	// double check for any telling attributes which have us default
-	// to the generic transparent sort. 
+	// double check for any telling attributes which indicate we need to 
+	// switch to the default transparent sort. 
 	bool transparent = IsTransparentShader( afterInsert );
 
 	if ( afterInsert->sort == BSP_SHADER_SORT_OPAQUE && transparent )
@@ -591,7 +591,7 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 		opaqueShaderList.push_back( afterInsert );
 	}
 
-	// Add names after entry's been copied; these are mostly
+	// Add names and indices after entry's been copied; these are mostly
 	// used for debugging.
 	for ( size_t i = 0; i < afterInsert->stageBuffer.size(); ++i )
 	{
@@ -667,7 +667,7 @@ void Q3BspMap::OnMainLoadImagesFinish( void* param )
 	Q3BspMapTest_ShaderNameRun();
 
 	// Here we free the linked lists necessary to ensure all
-	// shader stages with an image receive the correct index
+	// shader stages with an image receive their correct index
 	// into the atlas.
 	while ( !map->pathLinkRoots.empty() )
 	{
