@@ -1,16 +1,22 @@
-[bugfix/bad_effect_texture_indices]
-* In `BSPRenderer::DrawEffectPass()`, there's this:
+[feature/effect_shaders]
+* Go through each effect function entry in the lookup table found in effect_shader.cpp.
+There should be a return false in the event that the evaluated token params aren't recognized (while assigning a default to keep things running).
+Log these.
 
-    ```
-    if ( texIndex < 0 )
-    {
-        //FlagExit();
-    //	MLOG_INFO( "texIndex: %i\n\n %s", texIndex, errorInfo.str().c_str() );
-        return;
-    }
-    ```
-Replace the return with a printf which confirms that texIndex < 0: you want
-to make sure that no crash occurs when the atlas resolves to its default image.
+Also log any situations where a token key for the lookup table itself isn't recognized (this check is right before the table is used). 
+
+[feature/effect_shaders]
+* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
+renderer's current implementation.
+
+[feature/effect_shaders]
+Fix sky-related issues. Some of this is due to the way it's being texture mapped ( tex coords should be mapped according to a sphere with radius specified in a shader (skyparms) )
+
+[feature/effect_shaders]
+Fix lava rising effect.
+
+[unnamed]
+Chrome performance. Should do this immediately after finishing feature/effect_shaders.
 
 [unnamed]
 // Do view-space zDepth evaluation in `BSPRenderer::ProcessFace()` when the drawFace_t is created.
@@ -25,15 +31,5 @@ to make sure that no crash occurs when the atlas resolves to its default image.
 // Get it working first, though.
 
 [unnamed]
-* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
-renderer's current implementation.
-
-[unnamed]
 * Allocate a separate default shader for models which always blends the color mapped value in the texture with the vertex diffuse light/color.
 
-[unnamed]
-* Go through each effect function entry in the lookup table found in effect_shader.cpp.
-There should be a return false in the event that the evaluated token params aren't recognized.
-Log these.
-
-Also log any situations where a token key for the lookup table itself isn't recognized (this check is right before the table is used). 
