@@ -120,7 +120,14 @@ size_t StrFindLastOf( const char* str, const char* ch )
 
 void StrFixupAssetPath( char* assetPath )
 {
-	StrLowerN( assetPath, StrFindLastOf( assetPath, "/" ) );
+	size_t loc = StrFindLastOf( assetPath, "/" );
+
+	if ( loc == STRING_NPOS )
+	{
+		return;
+	}
+
+	StrLowerN( assetPath, loc );
 }
 
 float StrReadFloat( const char*& buffer )
