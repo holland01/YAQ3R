@@ -670,3 +670,5 @@ There's two images that are relevant, and hence two paths. One appears to be rea
 the other is still missing. The image which is found ends with a .blend suffix, and uses the same name as the 
 missing image file. 
 
+The same list is being assigned two different indices. When initially constructed, there is no duplicate. My guess is that somehow
+the path for the non blend variant is getting swapped with the blend variant (and likely its list in turn)
