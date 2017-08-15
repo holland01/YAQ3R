@@ -56,32 +56,39 @@ void O_IntervalLogSetInterval( float interval )
 }
 #endif
 
+#define SCAN_ARG_BUFF( buffer, bufsize, header, priority, fmt ) 						\
+do { 																					\
+	va_list arg;																		\
+	va_start( arg, fmt );																\
+	int size = snprintf( &buffer[ 0 ], bufsize, "\n[ %s | %s ]: ", header, priority );	\
+	if( size < 0 ) 																		\
+	{																					\
+		printf( "(O_LogOnce) Attempt to print string of format \'%s\' failed\n", fmt );	\
+		return;																			\
+	}																					\
+	vsnprintf( &buffer[ size ], bufsize - size, fmt, arg );								\
+	va_end( arg );																		\
+} while ( 0 )
+
+#define O_LOG_OUT_BUFFER_LENGTH 4096
+
 void O_Log( const char* header, const char* priority, const char* fmt, ... )
 {
-#ifdef DEBUG
-	va_list arg;
-
-	va_start( arg, fmt );
-	fprintf( stdout, "\n[ %s | %s ]: ", header, priority );
-	vfprintf( stdout, fmt, arg );
-	fputs( "\n", stdout );
-	va_end( arg );
+#if defined( DEBUG )
+	if ( true )
 #elif defined( O_INTERVAL_LOGGING )
 	if ( gFrameTick.hitInterval )
-	{
-		va_list arg;
-
-		va_start( arg, fmt );
-		fprintf( stdout, "\n[ %s | %s ]: ", header, priority );
-		vfprintf( stdout, fmt, arg );
-		fputs( "\n", stdout );
-		va_end( arg );
-	}
-#else
-	UNUSED( header );
-	UNUSED( priority );
-	UNUSED( fmt );
+#else	// release build, so only print error messages
+	if ( strcmp( priority, "ERROR" ) == 0 )
 #endif
+	{ 
+		char buffer[ O_LOG_OUT_BUFFER_LENGTH ];
+		memset( buffer, 0, sizeof( buffer ) );
+
+		SCAN_ARG_BUFF( buffer, O_LOG_OUT_BUFFER_LENGTH, header, priority, fmt );
+
+		printf( "%s\n", &buffer[ 0 ] );
+	}
 }
 
 void O_LogBuffer( const char* header, const char* priority,
@@ -107,21 +114,10 @@ static std::vector< std::string > gLogOnceEntries;
 
 void O_LogOnce( const char* header, const char* priority, const char* fmt, ... )
 {
-	char buffer[ 2048 ];
+	char buffer[ O_LOG_OUT_BUFFER_LENGTH ];
 	memset( buffer, 0, sizeof( buffer ) );
 
-	va_list arg;
-	va_start( arg, fmt );
-	int size = snprintf( &buffer[ 0 ], 2048, "\n[ %s | %s ]: ", header, priority );
-	
-	if( size < 0 ) 
-	{
-		printf( "(O_LogOnce) Attempt to print string of format \'%s\' failed\n", fmt );
-		return;
-	}
-
-	vsnprintf( &buffer[ size ], 2048 - size, fmt, arg );
-	va_end( arg );
+	SCAN_ARG_BUFF( buffer, O_LOG_OUT_BUFFER_LENGTH, header, priority, fmt );
 
 	std::string asString( &buffer[ 0 ], strlen( &buffer[ 0 ] ) );
 
@@ -133,7 +129,7 @@ void O_LogOnce( const char* header, const char* priority, const char* fmt, ... )
 
 	gLogOnceEntries.push_back( asString );
 	
-	printf( "(O_LogOnce)\n%s\n", &buffer[ 0 ] );
+	printf( "(O_LogOnce) \n%s\n", &buffer[ 0 ] );
 }
 
 void O_LogF( FILE* f, const char* header, const char* fmt, ... )

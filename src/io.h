@@ -32,7 +32,6 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 // strictly the condition specified by its caller, of course.
 // void MLogError( bool condition, const char* filename, int32_t line,
 // const char* funcname, ... );
-
 #define MLOG_INFO_ONCE( ... ) ( O_LogOnce( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
 
 #define MLOG_INFO( ... ) ( O_Log( ( _FUNC_NAME_ ), "INFO", __VA_ARGS__ ) )
@@ -86,13 +85,12 @@ bool NeedsTrailingSlash( const std::string& path, char& outSlash );
 		printf( "OFFSET OF " #type "::" #member ": " F_SIZE_T "\n", count ); \
 	} while ( 0 )
 
-/*!
- * Provides the file extension of a file, without the period.
- * A return of true indicates we have an extension; we also allow
- * for the index to be returned
- * for the rare case that we want to do something specific in the same
- * location. It's totally optional though
-*/
+
+// Provides the file extension of a file, without the period.
+// A return of true indicates we have an extension; we also allow
+// for the index to be returned
+// for the rare case that we want to do something specific in the same
+// location. It's totally optional though
 static INLINE bool File_GetExt( std::string& outExt, size_t* outIndex,
 	const std::string& filename )
 {
