@@ -174,13 +174,17 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				outInfo->cullFace = GL_NONE;
 			}
-			else
+			else if ( strcmp( token, "front" ) == 0 )
 			{
 				// the Q3 Shader Manual states that GL-FRONT is the default
 				// if no keyword is specified. The only other keyword
 				// that we have available to check after the above conditions
 				// is "front" anyway.
 				outInfo->cullFace = GL_FRONT;
+			}
+			else
+			{
+				return false;
 			}
 
 			return true;
@@ -371,7 +375,8 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			}
 			else
 			{
-				theStage.rgbGen = RGBGEN_IDENTITY; 
+				theStage.rgbGen = RGBGEN_IDENTITY;
+				return false;
 			}
 
 			return true;
@@ -751,12 +756,13 @@ static const char* ParseEntry(
 		const std::string strToken( token );
 		if ( stageReadFuncs.find( strToken ) == stageReadFuncs.end() )
 		{
+		//	MLOG_INFO_ONCE( "[ %s ] Did not recognize function \"%s\"", &outInfo->name[ 0 ], token );
 			continue;
 		}
 
 		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
 		{
-			// TODO: default resolution here
+		//	MLOG_INFO_ONCE( "[ %s ] Did not recognize param \"%s\", for function \"%s\"", &outInfo->name[ 0 ], token, strToken.c_str() );
 		}
 	}
 
