@@ -354,7 +354,11 @@ static void MapReadFin( Q3BspMap* map )
 
 	for ( size_t i = 0; i < map->data.shaders.size(); ++i )
 	{
-		StrFixupAssetPath( &map->data.shaders[ i ].name[ 0 ] );
+		BspData_FixupAssetPath( &map->data.shaders[ i ].name[ 0 ] );
+
+		MLOG_INFO( "[%i] %s. Content: 0x%x, Surface: 0x%x", 
+			i, &map->data.shaders[ i ].name[ 0 ], map->data.shaders[ i ].contentsFlags,
+			map->data.shaders[ i ].surfaceFlags );
 	}
 
 	gFileWebWorker.Await(

@@ -115,11 +115,20 @@ enum
 	BSP_SHADER_SORT_UNDERWATER = 8,
 	BSP_SHADER_SORT_ADDITIVE = 9,
 	BSP_SHADER_SORT_NEAREST = 16,
-	BSP_SHADER_SORT_MAX = 16
+	BSP_SHADER_SORT_MAX = 16,
+
+	BSP_ASSET_BASE_NONE = 0,
+	BSP_ASSET_BASE_ENV = 1,
+	BSP_ASSET_BASE_GFX = 2,
+	BSP_ASSET_BASE_MODELS = 3,
+	BSP_ASSET_BASE_SPRITES = 4,
+	BSP_ASSET_BASE_TEXTURES = 5,
+	BSP_ASSET_BASE_MAX = 5
 };
 
 using bspShaderSort_t = uint32_t;
 using surfaceParm_t = uint32_t;
+using bspAssetBase_t = uint32_t;
 
 // Map loader-specific flags
 enum
@@ -726,6 +735,12 @@ struct shaderInfo_t
 		return ss.str();
 	}
 };
+
+void BspData_FixupAssetPath( char* assetPath );
+
+// Assumes the root folder in the string path is one of the asset base paths.
+// Also assumes there is no prefix slash, since quake shader paths don't contain those.
+bspAssetBase_t BspData_GetAssetBaseFromPath( const char* assetStringPath, bspAssetBase_t* group );
 
 bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b );
 

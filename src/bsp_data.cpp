@@ -1,5 +1,67 @@
 #include "bsp_data.h"
 #include "glutil.h"
+#include "lib/cstring_util.h"
+
+void BspData_FixupAssetPath( char* assetPath )
+{
+	size_t loc = StrFindLastOf( assetPath, "/" );
+
+	if ( loc == STRING_NPOS )
+	{
+		return;
+	}
+
+	StrLowerN( assetPath, loc );
+}
+
+bspAssetBase_t BspData_GetAssetBaseFromPath( const char* assetStringPath, bspAssetBase_t* group )
+{
+	bspAssetBase_t g = BSP_ASSET_BASE_NONE;
+
+	if ( !assetStringPath )
+	{
+		goto end;
+	}
+
+	{
+		// Grab the path segment in between
+		// the first two slashes: this is the group.
+		const char* slash0 = strstr( assetStringPath, "/" );
+
+		size_t len = slash0 - assetStringPath;
+
+		if ( strncmp( assetStringPath, "env", len ) == 0 )
+		{
+			g = BSP_ASSET_BASE_ENV;
+		}
+		else if ( strncmp( assetStringPath, "gfx", len ) == 0 )
+		{
+			g = BSP_ASSET_BASE_GFX;
+		}
+		else if ( strncmp( assetStringPath, "models", len ) == 0 )
+		{
+			g = BSP_ASSET_BASE_MODELS;
+		}
+		else if ( strncmp( assetStringPath, "sprites", len ) == 0 )
+		{
+			g = BSP_ASSET_BASE_SPRITES;
+		}
+		else if ( strncmp( assetStringPath, "textures", len ) == 0 )
+		{
+			g = BSP_ASSET_BASE_TEXTURES;
+		}
+	}
+
+end:
+	//MLOG_INFO_ONCE( "%s -> %u", assetStringPath ? assetStringPath : "[nullptr]", g );
+
+	if ( group )
+	{
+		*group = g;
+	}
+
+	return g;
+}
 
 bool EquivalentProgramTypes( const shaderStage_t* a, const shaderStage_t* b )
 {

@@ -26,7 +26,7 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer,
 static const char* ReadStageTexturePath( shaderStage_t& theStage, const char* buffer )
 {
 	buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
-	StrFixupAssetPath( &theStage.texturePath[ 0 ] );
+	BspData_FixupAssetPath( &theStage.texturePath[ 0 ] );
 	return buffer;
 }
 
@@ -254,9 +254,13 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			{
 				theStage.mapType = MAP_TYPE_LIGHT_MAP;
 			}
-			else
+			else if ( BspData_GetAssetBaseFromPath( &theStage.texturePath[ 0 ], nullptr ) != BSP_ASSET_BASE_NONE )
 			{
 				theStage.mapType = MAP_TYPE_IMAGE;
+			}
+			else
+			{
+				return false;
 			}
 
 			return true;
@@ -727,7 +731,7 @@ static const char* ParseEntry(
 		if ( level == 0 )
 		{
 			strcpy( &outInfo->name[ 0 ], token );
-			StrFixupAssetPath( &outInfo->name[ 0 ] );
+			BspData_FixupAssetPath( &outInfo->name[ 0 ] );
 
 			// Ensure we have a valid shader which a)
 			// we know is used by the map and b) hasn't
