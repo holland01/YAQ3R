@@ -26,8 +26,6 @@ void StrLower( char* str );
 // Will stop at null term if hit before maxLength is reached
 void StrLowerN( char* str, size_t maxLength );
 
-void StrFixupAssetPath( char* assetStringPath );
-
 // returns std::string::npos if nothing is found
 size_t StrFindLastOf( const char* str, const char* ch );
 
