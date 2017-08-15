@@ -139,7 +139,7 @@ public:
 };
 
 // Debug only: will be no-op if called in release build.
-// These rare used to verify that each name found in
+// These are used to verify that each name found in
 // mapData_t::shaders doesn't belong to both
 // categories (main - no shader entries, or actual shader entries)
 void Q3BspMapTest_ShaderNameTagMain( const char* name );
@@ -151,7 +151,7 @@ void Q3Bsp_SwizzleCoords( glm::ivec3& v );
 void Q3Bsp_SwizzleCoords( glm::vec2& v );
 
 template < typename T >
-static INLINE void Q3Bsp_MatchShaderInfoFromName( const std::vector< T >& list, const char* name, int& toWrite )
+static INLINE bool Q3Bsp_MatchShaderInfoFromName( const std::vector< T >& list, const char* name, int& toWrite )
 {
 	int listLength = ( int ) list.size();
 
@@ -160,7 +160,9 @@ static INLINE void Q3Bsp_MatchShaderInfoFromName( const std::vector< T >& list, 
 		if ( strncmp( &list[ i ].name[ 0 ], name, BSP_MAX_SHADER_TOKEN_LENGTH - 1 ) == 0 )
 		{
 		 	toWrite = i;
-			break;
+		 	return true;
 		}
 	}
+
+	return false;
 }
