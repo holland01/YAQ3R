@@ -62,6 +62,23 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 
 		AIIO_FixupAssetPath( source );
 
+		// skip asset prefix
+		const char* arg = strstr( &source.path[ 1 ], "/" ) + 1;
+
+		switch ( BspData_GetAssetBaseFromPath( arg, nullptr ) )
+		{
+			case BSP_ASSET_BASE_ENV: env.push_back( source ); break;
+			case BSP_ASSET_BASE_GFX: gfx.push_back( source ); break;
+			case BSP_ASSET_BASE_MODELS: models.push_back( source ); break;
+			case BSP_ASSET_BASE_SPRITES: sprites.push_back( source ); break;
+			case BSP_ASSET_BASE_TEXTURES: textures.push_back( source ); break;
+
+			default: 
+				MLOG_ERROR( "%s", "Invalid bundle module received" );
+				break;
+		}
+
+/*
 		// Grab the path segment in between
 		// the first two slashes: this is our
 		// bundle we wish to assign
@@ -98,6 +115,7 @@ static gImnAutoPtr_t BundleImagePaths( std::vector< gPathMap_t >& sources )
 		{
 			MLOG_ERROR( "%s", "Invalid bundle module received" );
 		}
+*/
 	}
 
 	gImageMountNode_t* h = new gImageMountNode_t();
