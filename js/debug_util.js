@@ -1,9 +1,27 @@
 var STRUCT_LAYOUT_INFO = {
     bspShader_t: {
-        name: 0,
-        surfaceFlags: 64,
-        contentsFlags: 68,
+        name: 0, // char[64]
+        surfaceFlags: 64, // int
+        contentsFlags: 68, // int
         SIZEOF: 72
+    },
+
+    bspFace_t: {
+        shader: 0, // int
+        fog: 4, // int
+        type: 8, // int
+        vertexOffset: 12, // int
+        numVertexes: 16, // int
+        meshVertexOffset: 20, // int
+        numMeshVertexes: 24, // int
+        lightmapIndex: 28, // int
+        lightmapStartCorner: 32, // int[2]
+        lightmapSize: 40, // int[2]
+        lightmapOrigin: 48, // float[3]
+        lightmapStVecs: 60, // float[2][3],
+        normal: 84, // float[3]
+        patchDimensions: 96, // int[2]
+        SIZEOF: 104
     },
 
     mapData_t: {
@@ -147,6 +165,16 @@ var getHeapString = function(address) {
     return str;
 };
 
+var dumpJSON = function(obj) {
+    console.log(JSON.stringify(obj, null, 4));
+};
+
+var bspFace_t_elem = function(base, key, ofs, heap32) {
+    ofs = ofs || 0;
+    heap32 = heap32 || HEAP32;
+    return heap32[(base + STRUCT_LAYOUT_INFO.bspFace_t[key] + ofs) >> 2];
+};
+
 var printHeapString = function(address) {
     console.log(getHeapString(address));
 };
@@ -168,7 +196,11 @@ var Q3BspMap_data = function($pMap) {
 };
 
 var mapData_t_shaders = function($pData) {
-    return HEAP32[($pData + 156) >> 2];
+    return HEAP32[($pData + STRUCT_LAYOUT_INFO.mapData_t.shaders) >> 2];
+};
+
+var mapData_t_faces = function($pData) {
+    return HEAP32[($pData + STRUCT_LAYOUT_INFO.mapData_t.faces) >> 2];
 };
 
 var makeFlagNameList = function(object, flag) {
@@ -219,6 +251,59 @@ var mapData_t_getShaderInfo = function($pData, index) {
     outString += addListNames('[CONTENTS FLAGS]', contentsFlagNames);
 
     return outString;
+};
+
+var mapData_t_getFaceInfo = function($pData, index) {
+    var offset = index * STRUCT_LAYOUT_INFO.bspFace_t.SIZEOF;
+
+    var facesBuff = mapData_t_faces($pData);
+
+    var pElem = facesBuff + offset;
+
+    var info = {
+        shader: bspFace_t_elem(pElem, 'shader'), // int
+        fog: bspFace_t_elem(pElem, 'fog'), // int
+        type: bspFace_t_elem(pElem, 'type'), // int
+        vertexOffset: bspFace_t_elem(pElem, 'vertexOffset'), // int
+        numVertexes: bspFace_t_elem(pElem, 'numVertexes'), // int
+        meshVertexOffset: bspFace_t_elem(pElem, 'meshVertexOffset'), // int
+        numMeshVertexes: bspFace_t_elem(pElem, 'numMeshVertexes'), // int
+        lightmapIndex: bspFace_t_elem(pElem, 'lightmapIndex'), // int
+        lightmapStartCorner: [
+            bspFace_t_elem(pElem, 'lightmapStartCorner'),  // int[2]
+            bspFace_t_elem(pElem, 'lightmapStartCorner', 4)
+        ],
+        lightmapSize: [
+            bspFace_t_elem(pElem, 'lightmapSize'), // int[2]
+            bspFace_t_elem(pElem, 'lightmapSize', 4)
+        ],
+        lightmapOrigin: [ 
+            bspFace_t_elem(pElem, 'lightmapOrigin', 0, HEAPF32), // float[3]
+            bspFace_t_elem(pElem, 'lightmapOrigin', 4, HEAPF32),
+            bspFace_t_elem(pElem, 'lightmapOrigin', 8, HEAPF32)
+        ],
+        lightmapStVecs: [
+            bspFace_t_elem(pElem, 'lightmapStVecs', 0, HEAPF32), // float[2][2],
+            bspFace_t_elem(pElem, 'lightmapStVecs', 4, HEAPF32),
+            bspFace_t_elem(pElem, 'lightmapStVecs', 8, HEAPF32),
+            bspFace_t_elem(pElem, 'lightmapStVecs', 12, HEAPF32),
+            bspFace_t_elem(pElem, 'lightmapStVecs', 16, HEAPF32),
+            bspFace_t_elem(pElem, 'lightmapStVecs', 20, HEAPF32)
+        ],
+        normal: [
+            bspFace_t_elem(pElem, 'normal', 0, HEAPF32), // float[3]
+            bspFace_t_elem(pElem, 'normal', 4, HEAPF32),
+            bspFace_t_elem(pElem, 'normal', 8, HEAPF32)
+        ],
+        patchDimensions: [
+            bspFace_t_elem(pElem, 'patchDimensions'),
+            bspFace_t_elem(pElem, 'patchDimensions', 4) // int[2]
+        ]
+    };
+
+    dumpJSON(info);
+
+    return info;
 };
 
 var shaderInfo_t_printName = function($pShader) {
