@@ -295,26 +295,23 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			}
 			else
 			{
-				GLsizei blendFactor = GL_EnumFromStr( token );
-				if ( blendFactor == -1 )
+				GLsizei sourceFactor = GL_EnumFromStr( token );
+				if ( sourceFactor == -1 )
 				{
-					theStage.blendDest = theStage.blendSrc = GL_ONE;
 					return false;
 				}
-
-				theStage.blendSrc = ( GLenum ) blendFactor;
 
 				ZEROTOK( token );
 				buffer = StrReadToken( token, buffer );
 
-				blendFactor = GL_EnumFromStr( token );
-				if ( blendFactor == -1 )
+				GLsizei destFactor = GL_EnumFromStr( token );
+				if ( destFactor == -1 )
 				{
-					theStage.blendDest = theStage.blendSrc;
 					return false;
 				}
 
-				theStage.blendDest = ( GLenum ) blendFactor;
+				theStage.blendSrc = ( GLenum ) sourceFactor;
+				theStage.blendDest = ( GLenum ) destFactor;
 			}
 
 			return true;
@@ -608,6 +605,7 @@ static INLINE GLsizei GL_EnumFromStr( const char* str )
 	char copytok[ 64 ];
 	memset( copytok, 0, sizeof( copytok ) );
 	strcpy( copytok, str );
+	StrLower( copytok );
 
 	// blending
 	if ( strcmp( copytok, "gl_one_minus_src_alpha" ) == 0 )
