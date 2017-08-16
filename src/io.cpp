@@ -11,6 +11,8 @@ extern void FlagExit( void );
 #	define OS_PATH_SEPARATOR '/'
 #endif
 
+#define O_INTERVAL_LOGGING
+
 #if defined( O_INTERVAL_LOGGING )
 struct frameTick_t
 {
@@ -44,6 +46,12 @@ void O_IntervalLogSetInterval( float interval )
 	// to be done, but I'd consider this good practice.
 	gFrameTick.interval = glm::abs( interval );
 }
+
+bool O_IntervalLogHit( void )
+{
+	return gFrameTick.hitInterval;
+}
+
 #else
 void O_IntervalLogUpdateFrameTick( float dt )
 {
@@ -54,6 +62,8 @@ void O_IntervalLogSetInterval( float interval )
 {
 	UNUSED( interval );
 }
+
+bool O_IntervalLogHit( void ) { return false; }
 #endif
 
 #define SCAN_ARG_BUFF( buffer, bufsize, header, priority, fmt ) 						\

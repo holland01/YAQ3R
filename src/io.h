@@ -8,6 +8,7 @@
 // becomes a no-op
 void O_IntervalLogUpdateFrameTick( float dt );
 void O_IntervalLogSetInterval( float interval );
+bool O_IntervalLogHit( void );
 
 void O_Log( const char* header, const char* priority, const char* fmt, ... );
 void O_LogBuffer( const char* header, const char* priority,

@@ -44,6 +44,11 @@ TRenderer::~TRenderer( void )
 
 void TRenderer::Run( void )
 {
+	if ( O_IntervalLogHit() )
+	{
+		printf( "FPS: %f\n", 1.0f / deltaTime );
+	}
+
 	O_IntervalLogUpdateFrameTick( deltaTime );
 
 	renderer->Update( deltaTime );
