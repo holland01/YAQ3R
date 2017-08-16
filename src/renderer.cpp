@@ -13,6 +13,41 @@
 #include <random>
 #include <algorithm>
 
+//--------------------------------------------------------------
+// debugging
+//--------------------------------------------------------------
+
+template < bool doIt >
+struct logEffectPass_t 
+{
+	std::stringstream errorInfo;
+
+	logEffectPass_t( const shaderInfo_t* shader )
+	{
+		if ( doIt )
+		{
+			errorInfo << shader->GetInfoString();
+		}
+	}
+
+	void Push( int i, const shaderStage_t& stage )
+	{
+		if ( doIt )
+		{
+			errorInfo << "\n-------------------\n\n[" << i << "] "
+				<< stage.GetInfoString() << "\n";
+		}
+	}
+
+	~logEffectPass_t( void )
+	{
+		if ( doIt )
+		{
+			MLOG_INFO_ONCE( "%s", errorInfo.str().c_str() );
+		}
+	}
+};
+
 struct config_t
 {
 	bool drawFacesOnly: 1;
@@ -548,9 +583,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		GL_CHECK( glDepthMask( GL_TRUE ) );
 	}
 
-	//std::stringstream errorInfo;
-
-	//errorInfo << shader->GetInfoString();
+	// Set to true to log info after function leaves
+	logEffectPass_t< false > logger( shader );
 
 	GLenum lastDepth = GL_LEQUAL;
 
@@ -559,8 +593,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		const shaderStage_t& stage = shader->stageBuffer[ i ];
 		const Program& stageProg = stage.GetProgram();
 
-		//errorInfo 	<< "\n-------------------\n[" << i << "]\n"
-		//			<< stage.GetInfoString();
+		logger.Push( i, stage );
 
 		stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
 
