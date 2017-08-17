@@ -88,7 +88,11 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 	  leaf( nullptr ),
 	  lightvol( nullptr ),
 	  shader( nullptr ),
-	  view( viewData )
+	  view( viewData ),
+	  isDebugDraw( false ),
+	  debugDrawCallback( nullptr ),
+	  debugProgram( nullptr )
+
 {
 	facesVisited.resize( map.data.numFaces, 0 );
 }
@@ -99,7 +103,8 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 RenderBase::RenderBase( Q3BspMap& m )
 	:	apiHandles( {{ 0, 0 }} ),
 		map( m ),
-		frustum( new Frustum() )
+		frustum( new Frustum() ),
+		debugRender( new ImmDebugDraw() )
 {
 }
 
@@ -442,6 +447,22 @@ void BSPRenderer::Render( void )
 	frameTime = GetTimeSeconds() - startTime;
 
 	frameCount++;
+
+	{
+		debugRender->Begin();
+
+		debugRender->Position( map.data.models[ 1 ].boxMin );
+		debugRender->Color( { 0, 255, 0, 255 } );
+		
+		debugRender->Position( map.data.models[ 1 ].boxMax );
+		debugRender->Color( { 0, 255, 0, 255 } );
+
+		debugRender->End( 
+			GL_POINTS, 
+			camera->ViewData().clipTransform, 
+		 	camera->ViewData().transform 
+		);
+	}
 }
 
 void BSPRenderer::Update( float dt )
@@ -1005,8 +1026,10 @@ void BSPRenderer::DrawNode( drawPass_t& pass, int32_t nodeIndex )
 
 		for ( int32_t i = 0; i < viewLeaf->numLeafFaces; ++i )
 		{
-			ProcessFace( pass, 
-				map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index );
+			ProcessFace( 
+				pass, 
+				map.data.leafFaces[ viewLeaf->leafFaceOffset + i ].index 
+			);
 		}
 	}
 	else
@@ -1055,8 +1078,11 @@ void BSPRenderer::DrawFaceList( drawPass_t& pass, bool solid )
 		pass.faceIndex = faceList[ i ].GetMapFaceIndex();
 		pass.face = &map.data.faces[ pass.faceIndex ];
 
-
-		if ( map.IsDefaultShader( pass.shader ) )
+		if ( pass.isDebugDraw )
+		{
+			pass.drawType = PASS_DRAW_DEBUG;
+		}
+		else if ( map.IsDefaultShader( pass.shader ) )
 		{
 			pass.drawType = PASS_DRAW_MAIN;
 		}
@@ -1103,19 +1129,20 @@ void BSPRenderer::DrawFace( drawPass_t& pass )
 			DrawEffectPass( data, LEffectCallback );
 		}
 			break;
+
+		case PASS_DRAW_DEBUG:
+			if ( pass.debugDrawCallback )
+			{
+				pass.debugDrawCallback( pass );
+			}
+			break;
+
 		default:
 		case PASS_DRAW_MAIN:
-
 			DrawMapPass( pass.face->shader, pass.face->lightmapIndex, LNonEffectCallback );
-
 			break;
 	}
 }
-
-
-
-
-
 
 /*
 int BSPRenderer::CalcLightvolIndex( const drawPass_t& pass ) const

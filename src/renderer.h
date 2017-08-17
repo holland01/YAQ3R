@@ -30,7 +30,8 @@ enum passType_t
 enum passDrawType_t
 {
 	PASS_DRAW_EFFECT = 0,
-	PASS_DRAW_MAIN
+	PASS_DRAW_MAIN,
+	PASS_DRAW_DEBUG
 };
 
 enum objectType_t
@@ -122,22 +123,28 @@ struct drawPass_t
 {
 	bool isSolid;
 	bool envmap: 1;
-
+	
 	int faceIndex, viewLeafIndex;
 
 	passType_t type;
 	passDrawType_t drawType;
+
 	uint32_t renderFlags;
 
 	const bspFace_t* face;
 	const bspBrush_t* farBrush;
 	const bspLeaf_t* leaf;
 	const bspLightvol_t* lightvol;
+
 	const shaderInfo_t* shader;
 
 	const viewParams_t& view;
 
-	float minFaceViewDepth, maxFaceViewDepth; // max < 0, min > 0 due to RHS and Quake's standards
+	float minFaceViewDepth, maxFaceViewDepth; 						// max < 0, min > 0 due to RHS and Quake's standards
+
+	bool isDebugDraw;												// set to true before calling DrawFaceList to take the debug path
+	std::function< void( drawPass_t& pass ) > debugDrawCallback;	// should follow the same methodology as the callbacks initialized in "DrawFace"
+	Program* debugProgram;											// is nullptr by default, so this is user specified.
 
 	std::vector< uint8_t > facesVisited;
 	
@@ -201,6 +208,8 @@ public:
 	Q3BspMap& map;
 
 	std::unique_ptr< Frustum > frustum;
+
+	std::unique_ptr< ImmDebugDraw > debugRender;
 
 	void 			MakeProg(
 						const std::string& name,
@@ -278,7 +287,6 @@ public:
 							const drawTuple_t& data,
 							drawCall_t callback
 						);
-
 
 	void				DrawFaceVerts(
 							const drawPass_t& pass,
