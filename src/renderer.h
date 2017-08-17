@@ -321,6 +321,8 @@ public:
 
 	void				ProcessFace( drawPass_t& pass, uint32_t index );
 
+	void 				DrawModel( drawPass_t& pass, bool frustumCull, bspModel_t& model );
+
 	void				DrawNode( drawPass_t& pass, int32_t nodeIndex );
 
 	void				TraverseDraw( drawPass_t& pass, bool solid );

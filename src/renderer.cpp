@@ -864,22 +864,7 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 	// provides a model which represents the entire map.
 	for ( int32_t i = 1; i < map.data.numModels; ++i )
 	{
-		bspModel_t* model = &map.data.models[ i ];
-
-		AABB bounds( model->boxMax, model->boxMin );
-
-		if ( !frustum->IntersectsBox( bounds ) )
-		{
-			continue;
-		}
-
-		pass.isSolid = true;
-		for ( int32_t j = 0; j < model->numFaces; ++j )
-			ProcessFace( pass, model->faceOffset + j );
-
-		pass.isSolid = false;
-		for ( int32_t j = 0; j < model->numFaces; ++j )
-			ProcessFace( pass, model->faceOffset + j );
+		DrawModel( pass, true, map.data.models[ i ] );
 	}
 
 	pass.type = PASS_DRAW;
@@ -965,6 +950,24 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 		{
 			pass.opaqueFaces.push_back( dface );
 		}
+	}
+}
+
+void BSPRenderer::DrawModel( drawPass_t& pass, bool frustumCull, bspModel_t& model )
+{
+	AABB bounds( model.boxMax, model.boxMin );
+
+	if ( frustumCull && !frustum->IntersectsBox( bounds ) )
+	{
+		return;
+	}
+
+	for ( int32_t j = 0; j < model.numFaces; ++j )
+	{
+		pass.isSolid = true;
+		ProcessFace( pass, model.faceOffset + j );
+		pass.isSolid = false;
+		ProcessFace( pass, model.faceOffset + j );
 	}
 }
 
