@@ -3,6 +3,8 @@
 #define ASSET_Q3_ROOT "asset"
 #define ASSET_ASCII_DELIMITER "|"
 
+#define LOG_LINE_SEPARATOR "--------------------------\n"
+
 #define C_OFFSETOF_P(p, m) ( uintptr_t( &( ( p )->m ) ) - uintptr_t( ( p ) ) )
 #define C_OFFSETOF_T(t, s) C_OFFSETOF_P( ( t* )0x1000, s )
 
@@ -14,6 +16,10 @@
 #define SSTREAM_INFO_BEGIN( T ) #T "{\n"
 #define SSTREAM_INFO_END() "}\n"
 
+#define SSTREAM_INFO_PARAM_GLM( glmValue ) "\t" #glmValue ": " << ( glm::to_string( glmValue ) ) << ",\n" 
+
+#define SSTREAM_INFO_PARAM_ARRAY2( array ) "\t" #array ": { " << ( array )[ 0 ] << ", " << ( array )[ 1 ] << " }\n"
+ 
 #define MAKE_BASE2_MASK( numBits, shift ) ( ( ( 1 << ( numBits ) ) - 1 ) << ( shift ) )
 #define VALUE_FROM_BITS( bits, mask, shift ) ( ( bits & ( mask ) ) >> ( shift ) )
 #define SET_BITS_FOR_VALUE( value, bits, mask, shift ) bits &= ~( mask ); bits |= ( ( value ) << ( shift ) ) & ( mask )

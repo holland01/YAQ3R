@@ -736,6 +736,58 @@ struct shaderInfo_t
 	}
 };
 
+static INLINE std::string bspModel_t_GetInfoString( bspModel_t* model )
+{
+	std::stringstream ss;
+
+	ss << SSTREAM_INFO_BEGIN( bspModel_t );
+	
+	ss << SSTREAM_INFO_PARAM_GLM( model->boxMin );
+	ss << SSTREAM_INFO_PARAM_GLM( model->boxMax );
+
+	ss << SSTREAM_INFO_PARAM( model->faceOffset );
+	ss << SSTREAM_INFO_PARAM( model->numFaces );
+	ss << SSTREAM_INFO_PARAM( model->brushOffset );
+	ss << SSTREAM_INFO_PARAM( model->numBrushes );
+
+	ss << SSTREAM_INFO_END();
+
+	return ss.str();
+}
+
+static INLINE std::string bspFace_t_GetInfoString( bspFace_t* face )
+{
+	std::stringstream ss;
+
+	ss << SSTREAM_INFO_BEGIN( bspFace_t );
+	
+	ss << SSTREAM_INFO_PARAM( face->shader );
+	ss << SSTREAM_INFO_PARAM( face->fog );
+	ss << SSTREAM_INFO_PARAM( face->type );
+
+	ss << SSTREAM_INFO_PARAM( face->vertexOffset );
+	ss << SSTREAM_INFO_PARAM( face->numVertexes );
+	
+	ss << SSTREAM_INFO_PARAM( face->meshVertexOffset );
+	ss << SSTREAM_INFO_PARAM( face->numMeshVertexes );
+
+	ss << SSTREAM_INFO_PARAM( face->lightmapIndex );
+	ss << SSTREAM_INFO_PARAM_ARRAY2( face->lightmapStartCorner );
+	ss << SSTREAM_INFO_PARAM_ARRAY2( face->lightmapSize );
+
+	ss << SSTREAM_INFO_PARAM_GLM( face->lightmapOrigin );
+	ss << SSTREAM_INFO_PARAM_GLM( face->lightmapStVecs[ 0 ] );
+	ss << SSTREAM_INFO_PARAM_GLM( face->lightmapStVecs[ 1 ] );
+	ss << SSTREAM_INFO_PARAM_GLM( face->normal );
+
+	ss << SSTREAM_INFO_PARAM_ARRAY2( face->patchDimensions );
+
+	ss << SSTREAM_INFO_END();
+
+	return ss.str();
+}
+
+
 void BspData_FixupAssetPath( char* assetPath );
 
 // Assumes the root folder in the string path is one of the asset base paths.
