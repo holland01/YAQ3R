@@ -486,6 +486,17 @@ void Program::LoadDefaultAttribProfiles( void ) const
 	}
 }
 
+void Program::DisableDefaultAttribProfiles( void ) const
+{
+	for ( const auto& attrib: attribs )
+	{
+		if ( attrib.second != -1 )
+		{
+			GL_CHECK( glDisableVertexAttribArray( attrib.second ) );
+		}
+	}
+}
+
 void Program::LoadAltAttribProfiles( void ) const
 {
 	DisableAllAttribs();
@@ -496,6 +507,14 @@ void Program::LoadAltAttribProfiles( void ) const
 		GL_CHECK( glVertexAttribPointer( profile.location, profile.tupleSize, profile.apiType,
 					profile.normalized, profile.stride, ( const GLvoid* )profile.offset ) );
 
+	}
+}
+
+void Program::DisableAltAttribProfiles( void ) const
+{
+	for ( const attribProfile_t& profile: altAttribProfiles )
+	{
+		GL_CHECK( glDisableVertexAttribArray( profile.location ) );
 	}
 }
 

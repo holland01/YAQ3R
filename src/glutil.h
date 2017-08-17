@@ -234,7 +234,11 @@ public:
 
 	void LoadDefaultAttribProfiles( void ) const;
 
+	void DisableDefaultAttribProfiles( void ) const;
+
 	void LoadAltAttribProfiles( void ) const;
+
+	void DisableAltAttribProfiles( void ) const;
 
 	void LoadMat4( const std::string& name, const glm::mat4& t ) const;
 
