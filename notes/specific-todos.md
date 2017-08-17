@@ -22,6 +22,10 @@ This might be due to any of the following:
 Maybe see if passing 1.0f in timeScalarSeconds eliminates this, to ensure nothing is getting sampled out of bounds. (the GLSL generated code should take this into account, but some resulting
 st coords may be too small to be of any actual use)
 
+[RUNNING ON LINUX/WINDOWS]
+Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when 
+switching over to Windows and Linux.
+
 [unnamed]
 Chrome performance. Should do this immediately after finishing feature/effect_shaders.
 
