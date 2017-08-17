@@ -586,7 +586,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// Set to true to log info after function leaves
 	logEffectPass_t< false > logger( shader );
 
+	// Make sure this we have depth func set to LEQUAL before we return.
 	GLenum lastDepth = GL_LEQUAL;
+
+	// Used primarily for texture scrolling.
+	glm::vec2 timeScalarSeconds( GetTimeSeconds() );
 
 	for ( int32_t i = 0; i < shader->stageCount; ++i )
 	{
@@ -646,14 +650,12 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			0
 		);
 
-		glm::vec2 texDims( frameTime );
-
 		for ( effect_t e: stage.effects )
 		{
 			if ( e.name == "tcModScroll" )
 			{
-				e.data.xyzw[ 2 ] = texDims.x;
-				e.data.xyzw[ 3 ] = texDims.y;
+				e.data.xyzw[ 2 ] = timeScalarSeconds.x;
+				e.data.xyzw[ 3 ] = timeScalarSeconds.y;
 			}
 			else if ( e.name == "tcModRotate" )
 			{
