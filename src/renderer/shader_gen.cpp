@@ -355,8 +355,11 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 			DeclTransferVar( "frag_Color", "vec4", "in" ) );
 	}
 
-	for ( const effect_t& op: stage.effects )
+	//for ( const effect_t& op: stage.effects )
+	for ( auto i = stage.effects.rbegin(); i != stage.effects.rend(); ++i )
 	{
+		const effect_t& op = *i;
+
 		// Modify the texture coordinate as necessary before we write to the texture
 		if ( op.name == "tcModTurb" )
 		{
