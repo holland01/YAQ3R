@@ -1,11 +1,4 @@
 [feature/effect_shaders]
-* Go through each effect function entry in the lookup table found in effect_shader.cpp.
-There should be a return false in the event that the evaluated token params aren't recognized (while assigning a default to keep things running).
-Log these.
-
-Also log any situations where a token key for the lookup table itself isn't recognized (this check is right before the table is used). 
-
-[feature/effect_shaders]
 * Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
 renderer's current implementation.
 
@@ -14,6 +7,20 @@ Fix sky-related issues. Some of this is due to the way it's being texture mapped
 
 [feature/effect_shaders]
 Fix lava rising effect.
+
+[feature/effect_shaders]
+Make sure to test this on Linux/Windows. There's some odd artificats, notably with the cross texture and the scrolling which occurs 
+across the bridge. Rainbow/garbage decals are appearing. 
+
+This might be due to any of the following:
+
+- Corrupted bundles
+- driver error (unlikely)
+- missing rgbgen or alphagen-related GLSL code
+- bad param offset/index.
+
+Maybe see if passing 1.0f in timeScalarSeconds eliminates this, to ensure nothing is getting sampled out of bounds. (the GLSL generated code should take this into account, but some resulting
+st coords may be too small to be of any actual use)
 
 [unnamed]
 Chrome performance. Should do this immediately after finishing feature/effect_shaders.
@@ -32,4 +39,6 @@ Chrome performance. Should do this immediately after finishing feature/effect_sh
 
 [unnamed]
 * Allocate a separate default shader for models which always blends the color mapped value in the texture with the vertex diffuse light/color.
+
+
 
