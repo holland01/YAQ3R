@@ -99,16 +99,30 @@ static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID,
 	}
 }
 
+static INLINE GLuint MakeGenericBufferObject( void ) 
+{
+	GLuint obj = 0;
+	GL_CHECK( glGenBuffers( 1, &obj ) );
+
+	if ( !obj )
+	{
+		MLOG_ERROR( "call to glGenBuffers returned 0" );
+	}
+
+	return obj;
+}
+
 template < typename T >
 static INLINE GLuint GenBufferObject( GLenum target,
 	const std::vector< T >& data, GLenum usage )
 {
-	GLuint obj;
-	GL_CHECK( glGenBuffers( 1, &obj ) );
+	GLuint obj = MakeGenericBufferObject();
+
 	GL_CHECK( glBindBuffer( target, obj ) );
 	GL_CHECK( glBufferData( target, data.size() * sizeof( T ),
 		&data[ 0 ], usage ) );
 	GL_CHECK( glBindBuffer( target, 0 ) );
+	
 	return obj;
 }
 
@@ -420,3 +434,42 @@ struct viewportStash_t
 			original[ 2 ], original[ 3 ] ) );
 	}
 };
+//-------------------------------------------------------------------------------------------------
+
+struct immDebugVertex_t
+{
+	glm::vec3 position;
+	glm::u8vec4 color;
+};
+
+class ImmDebugDraw
+{
+	GLuint vbo;
+	
+	size_t previousSize;
+	
+	bool isset;
+	
+	immDebugVertex_t thisVertex;
+	
+	std::vector< immDebugVertex_t > vertices;
+
+	std::unique_ptr< Program > shaderProgram;
+
+	void Finalize( bool setIsset = true );
+
+public:
+	ImmDebugDraw( void );
+
+	~ImmDebugDraw( void );
+
+	void Begin( void );
+
+	void Position( const glm::vec3& position );
+
+	void Color( const glm::u8vec4& color );
+
+	void End( GLenum mode, const glm::mat4& projection, 
+		const glm::mat4& modelView );
+};
+

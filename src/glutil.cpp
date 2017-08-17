@@ -596,3 +596,143 @@ loadBlend_t::~loadBlend_t( void )
 }
 
 //-------------------------------------------------------------------------------------------------
+
+ImmDebugDraw::ImmDebugDraw( void )
+	: 	vbo( MakeGenericBufferObject() ),
+		previousSize( 0 ),
+		isset( false ),
+		shaderProgram( 
+			new Program(
+				std::string( GLSL_INLINE(					// vertex
+					attribute vec3 position;
+					attribute vec4 color;
+
+					uniform mat4 modelToCamera;
+					uniform mat4 cameraToClip;
+
+					varying vec4 frag_Color;
+
+					void main()
+					{
+						gl_Position = cameraToClip * modelToCamera * vec4( position, 1.0 );
+						gl_PointSize = 10.0;
+						frag_Color = color;
+					}
+				) ),
+				std::string( GLSL_INLINE(					// fragment
+					precision mediump float;
+					varying vec4 frag_Color;
+
+					void main()
+					{
+						gl_FragColor = frag_Color;
+					}
+				) ),
+				{
+					"modelToCamera",
+					"cameraToClip"
+				},
+				{
+					"position",
+					"color"
+				}
+			)
+		)
+{
+	shaderProgram->AddAltAttribProfile( 
+		{ 
+			"position", 
+			( GLuint ) shaderProgram->attribs[ "position" ], 
+			3,
+			GL_FLOAT,
+			GL_FALSE,
+			sizeof( immDebugVertex_t ),
+			offsetof( immDebugVertex_t, position )	
+		}
+	);
+
+	shaderProgram->AddAltAttribProfile(
+		{
+			"color",
+			( GLuint ) shaderProgram->attribs[ "color" ],
+			4,
+			GL_UNSIGNED_BYTE,
+			GL_TRUE,
+			sizeof( immDebugVertex_t ),
+			offsetof( immDebugVertex_t, color )	
+		}
+	);
+}
+	
+ImmDebugDraw::~ImmDebugDraw( void )
+{
+	DeleteBufferObject( GL_ARRAY_BUFFER, vbo );
+}
+
+void ImmDebugDraw::Begin( void )
+{
+	previousSize = vertices.size();
+	vertices.clear();
+}
+
+void ImmDebugDraw::Finalize( bool setIsset )
+{
+	if ( isset )
+	{
+		isset = false;
+		vertices.push_back( thisVertex );
+	}
+	else
+	{
+		isset = setIsset;
+	}
+}
+
+void ImmDebugDraw::Position( const glm::vec3& position )
+{
+	thisVertex.position = position;
+	Finalize();
+}
+
+void ImmDebugDraw::Color( const glm::u8vec4& color )
+{
+	thisVertex.color = color;
+	Finalize();
+}
+
+void ImmDebugDraw::End( GLenum mode, const glm::mat4& projection, const glm::mat4& modelView )
+{
+	Finalize( false );
+
+	GLint lastVbo;
+	GL_CHECK( glGetIntegerv( GL_ARRAY_BUFFER_BINDING, &lastVbo ) );
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, vbo ) );
+
+	if ( !vertices.empty() )
+	{
+		size_t byteSize = vertices.size() * sizeof( vertices[ 0 ] );
+
+		if ( vertices.size() <= previousSize )
+		{
+			GL_CHECK( glBufferSubData( GL_ARRAY_BUFFER, 0, byteSize, &vertices[ 0 ] ) );
+		}
+		else
+		{
+			GL_CHECK( glBufferData( GL_ARRAY_BUFFER, byteSize, &vertices[ 0 ], GL_DYNAMIC_DRAW ) );
+		}
+	}
+
+	shaderProgram->LoadAltAttribProfiles();
+
+	shaderProgram->LoadMat4( "cameraToClip", projection );
+	shaderProgram->LoadMat4( "modelToCamera", modelView );
+
+	shaderProgram->Bind();
+	GL_CHECK( glDrawArrays( mode, 0, vertices.size() ) );
+	shaderProgram->Release();
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, ( GLuint ) lastVbo ) );
+
+	shaderProgram->DisableAltAttribProfiles();
+}

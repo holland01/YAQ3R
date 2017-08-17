@@ -24,6 +24,8 @@
 #define VALUE_FROM_BITS( bits, mask, shift ) ( ( bits & ( mask ) ) >> ( shift ) )
 #define SET_BITS_FOR_VALUE( value, bits, mask, shift ) bits &= ~( mask ); bits |= ( ( value ) << ( shift ) ) & ( mask )
 
+#define GLSL_INLINE( v ) #v"\n"
+
 #if defined( EMSCRIPTEN )
 #	define EM_SERV_ASSET_PORT "6931"
 #endif
