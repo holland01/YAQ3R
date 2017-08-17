@@ -672,3 +672,8 @@ missing image file.
 
 The same list is being assigned two different indices. When initially constructed, there is no duplicate. My guess is that somehow
 the path for the non blend variant is getting swapped with the blend variant (and likely its list in turn)
+
+### 8/17/17
+
+Look through the Quake 3 source code and see if there's any means of inferring the actual skybox verts, corners, etc.
+The idea is use an arbitrary "sphere" with the desired curvature (the cloud height in the shader has 1 / cloud_height curvature), and map the texture coordinates to it.
