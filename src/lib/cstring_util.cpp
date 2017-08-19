@@ -123,5 +123,8 @@ float StrReadFloat( const char*& buffer )
 	char f[ 24 ];
 	memset( f, 0, sizeof( f ) );
 	buffer = StrReadToken( f, buffer );
+
+	// invalid input will result in a return value of zero, 
+	// see: http://www.cplusplus.com/reference/cstdlib/strtod/ 
 	return ( float ) strtod( f, NULL );
 }

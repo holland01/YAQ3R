@@ -46,7 +46,7 @@ void TRenderer::Run( void )
 {
 	if ( O_IntervalLogHit() )
 	{
-		printf( "FPS: %f\n", 1.0f / deltaTime );
+		printf( "Origin: %s, FPS: %f\n", glm::to_string( camPtr->ViewData().origin ).c_str(), 1.0f / deltaTime );
 	}
 
 	O_IntervalLogUpdateFrameTick( deltaTime );

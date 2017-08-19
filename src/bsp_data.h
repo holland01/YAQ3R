@@ -387,6 +387,7 @@ enum
 	SURFPARM_STRUCTURAL			= 1 << 21,
 	SURFPARM_TRANS				= 1 << 22,
 	SURFPARM_WATER				= 1 << 23,
+	SURFPARM_SKY				= 1 << 24
 };
 
 enum vertexDeformCmd_t
@@ -423,9 +424,9 @@ enum rgbGen_t
 enum alphaFunc_t
 {
 	ALPHA_FUNC_UNDEFINED = 0,
-	ALPHA_FUNC_GEQUAL_128, // will pass fragment test if alpha value is >= ( 128 / 255 )
-	ALPHA_FUNC_GTHAN_0, // will pass fragment test if alpha value is > 0
-	ALPHA_FUNC_LTHAN_128 // will pass fragment test if alpha value is < ( 128 / 255 )
+	ALPHA_FUNC_GEQUAL_128, 	// will pass fragment test if alpha value is >= ( 128 / 255 )
+	ALPHA_FUNC_GTHAN_0, 	// will pass fragment test if alpha value is > 0
+	ALPHA_FUNC_LTHAN_128 	// will pass fragment test if alpha value is < ( 128 / 255 )
 };
 
 enum mapCmd_t
@@ -649,6 +650,11 @@ struct shaderInfo_t
 
 	// implies an animated vertex deformation
 	bool				deform = false;
+
+	// for skybox. surfaceParms should have SURFPARM_SKY set to
+	// indicate skybox usage.
+
+	float 				cloudHeight = 0.0f;
 
 	// choose wave, normal, or bulge
 	vertexDeformCmd_t	deformCmd = VERTEXDEFORM_CMD_UNDEFINED;

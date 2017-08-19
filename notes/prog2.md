@@ -677,3 +677,7 @@ the path for the non blend variant is getting swapped with the blend variant (an
 
 Look through the Quake 3 source code and see if there's any means of inferring the actual skybox verts, corners, etc.
 The idea is use an arbitrary "sphere" with the desired curvature (the cloud height in the shader has 1 / cloud_height curvature), and map the texture coordinates to it.
+
+If there's nothing which you can make use of (i.e., the data they use isn't found in the bsp file or shaders), then
+you can probably make use of their methodology. Worst case scenario you can continue on the debug code path
+in the renderer which makes use of the drawPass_t routines that process the face data as usual.  

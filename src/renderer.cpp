@@ -89,12 +89,14 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 	  lightvol( nullptr ),
 	  shader( nullptr ),
 	  view( viewData ),
+	  skyShader( nullptr ),
 	  isDebugDraw( false ),
 	  debugDrawCallback( nullptr ),
 	  debugProgram( nullptr )
 
 {
-	facesVisited.resize( map.data.numFaces, 0 );
+	opaqueFacesVisited.resize( map.data.numFaces, false );
+	transparentFacesVisited.resize( map.data.numFaces, false );
 }
 
 //--------------------------------------------------------------
@@ -148,7 +150,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 				[]( const Program& p, const effect_t& e ) -> void
 				{
 					float turb = DEFORM_CALC_TABLE(
-					deformCache.sinTable,
+					gDeformCache.sinTable,
 					0,
 					e.data.wave.phase,
 					GetTimeSeconds(),
@@ -447,7 +449,7 @@ void BSPRenderer::Render( void )
 	frameTime = GetTimeSeconds() - startTime;
 
 	frameCount++;
-
+/*
 	{
 		debugRender->Begin();
 
@@ -463,6 +465,7 @@ void BSPRenderer::Render( void )
 		 	camera->ViewData().transform 
 		);
 	}
+*/
 }
 
 void BSPRenderer::Update( float dt )
@@ -607,7 +610,7 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// Set to true to log info after function leaves
 	logEffectPass_t< false > logger( shader );
 
-	// Make sure this we have depth func set to LEQUAL before we return.
+	// Make sure we have depth func set to LEQUAL before we return.
 	GLenum lastDepth = GL_LEQUAL;
 
 	// Used primarily for texture scrolling.
@@ -733,6 +736,40 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			GL_CHECK( glDisable( GL_CULL_FACE ) );
 		}
 	}
+}
+
+void BSPRenderer::DrawSkyPass( void )
+{
+	drawTuple_t data = std::make_tuple( 
+		&gDeformCache, 
+		gDeformCache.skyShader,
+		-1,
+		-1,
+		map.IsTransparentShader( gDeformCache.skyShader )
+	);
+
+	auto LDrawCallback = [ this ]( const void* voidDeformCache, const Program& program, const shaderStage_t* stage ) -> void
+	{
+		UNUSED( program );
+		UNUSED( stage );
+
+		MLOG_INFO_ONCE( "Sky Program Object Handle: %u\nStage Info: %s", 
+			program.GetHandle(), stage->GetInfoString().c_str() );
+
+		const deformGlobal_t* deformCache = static_cast< const deformGlobal_t* >( voidDeformCache );
+
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, deformCache->skyVbo ) );
+		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, deformCache->skyIbo ) );
+
+		GL_CHECK( glDrawElements( GL_TRIANGLES, deformCache->numSkyIndices, SKY_GL_DRAW_INDEX_TYPE, nullptr ) );
+	
+		//GL_CHECK( glDrawArrays( GL_LINE_STRIP, 0, deformCache->numSkyVertices ) );
+
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
+		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
+	};
+
+	DrawEffectPass( data, LDrawCallback );
 }
 
 void BSPRenderer::DrawFaceVerts( const drawPass_t& pass,
@@ -872,14 +909,14 @@ static bool SortTransparentFacePredicate( const drawFace_t& a, const drawFace_t&
 
 void BSPRenderer::RenderPass( const viewParams_t& view )
 {
+	DrawSkyPass();
+
 	memset( &gCounts, 0, sizeof( gCounts ) );
 
 	drawPass_t pass( map, view );
 	pass.leaf = map.FindClosestLeaf( pass.view.origin );
 
 	frustum->Update( pass.view, true );
-
-	pass.facesVisited.assign( pass.facesVisited.size(), 0 );
 
 	// We start at index 1 because the 0th index
 	// provides a model which represents the entire map.
@@ -920,10 +957,9 @@ void BSPRenderer::RenderPass( const viewParams_t& view )
 
 void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 {
-	// if pass.facesVisited[ faceIndex ] is still false after this criteria's
-	// evaluations, we'll pick it up on the next pass as it will meet
-	// the necessary criteria then.
-	if ( pass.facesVisited[ index ] )
+	std::vector< bool >& facesVisitedList = pass.isSolid ? pass.opaqueFacesVisited : pass.transparentFacesVisited;
+
+	if ( facesVisitedList[ index ] )
 	{
 		return;
 	}
@@ -934,44 +970,59 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 
 	if ( map.IsNoDrawShader( pass.shader ) )
 	{
-		// evaluating this on the next pass will be faster than
-		// the function call.
-		pass.facesVisited[ index ] = true; 
-		return;
+		goto end;
 	}
 
-	bool transparent = map.IsTransparentShader( pass.shader );
-
-	bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
-
-	if ( add )
+	// Already handled by DrawSkyPass
+	if ( map.IsSkyShader( pass.shader ) )
 	{
-		drawFace_t dface;
+	//	pass.skyFaces.push_back( pass.face );
 
-		dface.SetTransparent( transparent );
-		dface.SetMapFaceIndex( index );
-		dface.SetShaderListIndex( pass.shader->sortListIndex );
+	//	MLOG_INFO_ONCE(
+	//		"Adding SkyFace %s", 
+	//		bspFace_t_GetInfoString( &map.data.faces[ index ] ).c_str()
+	//	);
 
-		// TODO: do view-space zDepth evaluation here.
-		
-		// Keep track of max/min view-space z-values for each face;
-		// ensure that closest point on face bounds (out of the 8 corners)
-		// relative to the view frustum is compared against max-z and farthest
-		// relative to the view frustum is compared against min-z. 
+		goto end;
+	}
 
-		// This is 8 matrix/vector multiplies (using the world->camera transform). Using SIMD and packing
-		// corner vectors into a 4D matrix you can do these ops in two.
-		// Get it working first, though.
+	{
+		bool transparent = map.IsTransparentShader( pass.shader );
 
-		if ( transparent )
+		bool add = ( !pass.isSolid && transparent ) || ( pass.isSolid && !transparent );
+
+		if ( add )
 		{
-			pass.transparentFaces.push_back( dface );
-		}
-		else
-		{
-			pass.opaqueFaces.push_back( dface );
+			drawFace_t dface;
+
+			dface.SetTransparent( transparent );
+			dface.SetMapFaceIndex( index );
+			dface.SetShaderListIndex( pass.shader->sortListIndex );
+
+			// TODO: do view-space zDepth evaluation here.
+			
+			// Keep track of max/min view-space z-values for each face;
+			// ensure that closest point on face bounds (out of the 8 corners)
+			// relative to the view frustum is compared against max-z and farthest
+			// relative to the view frustum is compared against min-z. 
+
+			// This is 8 matrix/vector multiplies (using the world->camera transform). Using SIMD and packing
+			// corner vectors into a 4D matrix you can do these ops in two.
+			// Get it working first, though.
+
+			if ( transparent )
+			{
+				pass.transparentFaces.push_back( dface );
+			}
+			else
+			{
+				pass.opaqueFaces.push_back( dface );
+			}
 		}
 	}
+
+end:
+	facesVisitedList[ index ] = true;	
 }
 
 void BSPRenderer::DrawModel( drawPass_t& pass, bool frustumCull, bspModel_t& model )

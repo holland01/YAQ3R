@@ -7,7 +7,7 @@
 
 struct meta_t
 {
-	const bool logProgramGen = false;
+	bool logProgramGen = true;
 	uint32_t currLineCount = 0;
 
 	std::string currShaderFile;
@@ -433,11 +433,12 @@ std::string GGetGLSLHeader( void )
 
 //-------
 // Static shader generation functions
-//------
 
-//! JoinLines function call will append
-//! the ending bracket for the main function,
-//! so we don't have to worry about it here.
+// JoinLines function call will append
+// the ending bracket for the main function,
+// so we don't have to worry about it.
+//-------
+
 std::string GMakeMainVertexShader( void )
 {
 	std::vector< std::string > sourceLines =
@@ -499,6 +500,8 @@ std::string GMakeMainFragmentShader( void )
 
 void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 {
+	//MLOG_INFO_ONCE( "Shader: %s", &shader.name[ 0 ] );
+
 	int j;
 	for ( j = 0; j < shader.stageCount; ++j )
 	{
@@ -544,8 +547,20 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader )
 			p->vertexSource = vertexString;
 			p->fragmentSource = fragmentString;
 #endif
+
 			p->stage = &stage;
 			stage.program = GStoreProgram( p );
+/*
+			{
+				std::string logVertTitle( std::string( "vertex, " ) + std::string( &stage.texturePath[ 0 ] ) );
+
+				gMeta->LogShader( logVertTitle, vertexString, j );
+
+				std::string logFragTitle( std::string( "fragment, " ) + std::string( &stage.texturePath[ 0 ] ) );
+			
+				gMeta->LogShader( logFragTitle, fragmentString, j );
+			}
+			*/
 		}
 
 #ifndef G_DUPLICATE_PROGRAMS

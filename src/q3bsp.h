@@ -125,11 +125,13 @@ public:
 	bool						IsAllocated( void ) const
 								{ return mapAllocated; }
 
+	bool 						IsSkyShader( const shaderInfo_t* scriptShader ) const;
+
 	bool						IsMapOnlyShader( const std::string& filepath ) const;
 
-	bool 						IsTransparentShader( const shaderInfo_t * scriptShader ) const;
+	bool 						IsTransparentShader( const shaderInfo_t* scriptShader ) const;
 
-	bool 						IsNoDrawShader( const shaderInfo_t * scriptShader ) const;
+	bool 						IsNoDrawShader( const shaderInfo_t* scriptShader ) const;
 
 	void						DestroyMap( void );
 

@@ -272,11 +272,38 @@ static INLINE void MapReadFin_UnmountFin( char* data, int size, void* param )
 	S_LoadShaders( map );
 }
 
+static INLINE void TestMaxMin( glm::vec3& destMax, glm::vec3& destMin, glm::vec3& point )
+{
+	if ( destMax.x < point.x ) destMax.x = point.x;
+	if ( destMax.y < point.y ) destMax.y = point.y;
+	if ( destMax.z < point.z ) destMax.z = point.z;
+
+	if ( destMin.x > point.x ) destMin.x = point.x;
+	if ( destMin.y > point.y ) destMin.y = point.y;
+	if ( destMin.z > point.z ) destMin.z = point.z;
+
+//	MLOG_INFO( 
+//		"maxPoint Found: %s\n"
+//		"minPoint Found: %s",
+//		glm::to_string( destMax ).c_str(),
+//		glm::to_string( destMin ).c_str() 
+//	);
+}
+
+static INLINE void TestMaxMin( glm::vec3& destMax, glm::vec3& destMin, glm::ivec3& p )
+{
+	glm::vec3 point( p.x, p.y, p.z );
+
+	TestMaxMin( destMax, destMin, point );
+}
+
 static void MapReadFin( Q3BspMap* map )
 {
 	// Swizzle coordinates from left-handed Z UP axis
 	// to right-handed Y UP axis.
 	// Also perform scaling, desired
+
+	glm::vec3 maxPoint( FLT_MIN ), minPoint( FLT_MAX );
 
 	for ( size_t i = 0; i < map->data.nodes.size(); ++i )
 	{
@@ -285,6 +312,9 @@ static void MapReadFin( Q3BspMap* map )
 
 		Q3Bsp_SwizzleCoords( map->data.nodes[ i ].boxMax );
 		Q3Bsp_SwizzleCoords( map->data.nodes[ i ].boxMin );
+
+		TestMaxMin( maxPoint, minPoint, map->data.nodes[ i ].boxMax );
+		TestMaxMin( maxPoint, minPoint, map->data.nodes[ i ].boxMin );
 	}
 
 	for ( size_t i = 0; i < map->data.leaves.size(); ++i )
@@ -294,14 +324,21 @@ static void MapReadFin( Q3BspMap* map )
 
 		Q3Bsp_SwizzleCoords( map->data.leaves[ i ].boxMax );
 		Q3Bsp_SwizzleCoords( map->data.leaves[ i ].boxMin );
+
+		TestMaxMin( maxPoint, minPoint, map->data.leaves[ i ].boxMax );
+		TestMaxMin( maxPoint, minPoint, map->data.leaves[ i ].boxMin );
 	}
 
 	for ( size_t i = 0; i < map->data.planes.size(); ++i )
 	{
 		map->data.planes[ i ].distance *= map->GetScaleFactor();
+		
 		ScaleCoords( map->data.planes[ i ].normal,
 			( float ) map->GetScaleFactor() );
+
 		Q3Bsp_SwizzleCoords( map->data.planes[ i ].normal );
+
+		TestMaxMin( maxPoint, minPoint, map->data.planes[ i ].normal );
 	}
 
 	for ( size_t i = 0; i < map->data.vertexes.size(); ++i )
@@ -320,6 +357,9 @@ static void MapReadFin( Q3BspMap* map )
 		Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].normal );
 		//Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].texCoords[ 0 ] );
 		//Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].texCoords[ 1 ] );
+
+		TestMaxMin( maxPoint, minPoint, map->data.vertexes[ i ].position );
+		TestMaxMin( maxPoint, minPoint, map->data.vertexes[ i ].normal );
 	}
 
 	for ( size_t i = 0; i < map->data.models.size(); ++i )
@@ -331,6 +371,9 @@ static void MapReadFin( Q3BspMap* map )
 
 		Q3Bsp_SwizzleCoords( map->data.models[ i ].boxMax );
 		Q3Bsp_SwizzleCoords( map->data.models[ i ].boxMin );
+
+		TestMaxMin( maxPoint, minPoint, map->data.models[ i ].boxMax );
+		TestMaxMin( maxPoint, minPoint, map->data.models[ i ].boxMin );
 	}
 
 	for ( size_t i = 0; i < map->data.faces.size(); ++i )
@@ -350,6 +393,11 @@ static void MapReadFin( Q3BspMap* map )
 		Q3Bsp_SwizzleCoords( face.lightmapOrigin );
 		Q3Bsp_SwizzleCoords( face.lightmapStVecs[ 0 ] );
 		Q3Bsp_SwizzleCoords( face.lightmapStVecs[ 1 ] );
+
+		TestMaxMin( maxPoint, minPoint, face.normal );
+		TestMaxMin( maxPoint, minPoint, face.lightmapOrigin );
+		TestMaxMin( maxPoint, minPoint, face.lightmapStVecs[ 0 ] );
+		TestMaxMin( maxPoint, minPoint, face.lightmapStVecs[ 1 ] );
 	}
 
 	for ( size_t i = 0; i < map->data.shaders.size(); ++i )
@@ -360,6 +408,15 @@ static void MapReadFin( Q3BspMap* map )
 
 		BspData_FixupAssetPath( &map->data.shaders[ i ].name[ 0 ] );
 	}
+
+	gDeformCache.skyHeightOffset = maxPoint.y;
+
+	MLOG_INFO( 
+		"maxPoint Found: %s\n"
+		"minPoint Found: %s",
+		glm::to_string( maxPoint ).c_str(),
+		glm::to_string( minPoint ).c_str() 
+	);
 
 	gFileWebWorker.Await(
 		MapReadFin_UnmountFin,
@@ -970,6 +1027,17 @@ bool Q3BspMap::IsShaderUsed( shaderInfo_t* outInfo ) const
 
 	return outInfo->mapFogIndex != INDEX_UNDEFINED 
 		|| outInfo->mapShaderIndex != INDEX_UNDEFINED;
+}
+
+bool Q3BspMap::IsSkyShader( const shaderInfo_t* scriptShader ) const
+{
+	return TestShaderFlags( 
+		scriptShader, 
+		data, 
+		SURFPARM_SKY,
+		0, 
+		BSP_SURFACE_SKY 
+	);
 }
 
 bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const

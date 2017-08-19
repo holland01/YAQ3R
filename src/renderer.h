@@ -142,11 +142,14 @@ struct drawPass_t
 
 	float minFaceViewDepth, maxFaceViewDepth; 						// max < 0, min > 0 due to RHS and Quake's standards
 
+	const shaderInfo_t* skyShader;
+	std::vector< const bspFace_t* > skyFaces;
+
 	bool isDebugDraw;												// set to true before calling DrawFaceList to take the debug path
 	std::function< void( drawPass_t& pass ) > debugDrawCallback;	// should follow the same methodology as the callbacks initialized in "DrawFace"
 	Program* debugProgram;											// is nullptr by default, so this is user specified.
 
-	std::vector< uint8_t > facesVisited;
+	std::vector< bool > opaqueFacesVisited, transparentFacesVisited;
 	
 	std::vector< drawFace_t > transparentFaces, opaqueFaces;
 
@@ -288,11 +291,13 @@ public:
 							drawCall_t callback
 						);
 
+	void 				DrawSkyPass( void );
+
 	void				DrawFaceVerts(
 							const drawPass_t& pass,
 							const shaderStage_t* stage
 						) const;
-
+ 
 	// -------------------------------
 	// State management
 	// -------------------------------

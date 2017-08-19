@@ -8,6 +8,10 @@ void GMakeProgramsFromEffectShader( shaderInfo_t& shader );
 
 std::string GGetGLSLHeader( void );
 
+std::string GMakeSkyVertexShader( void );
+
+std::string GMakeSkyFragmentShader( void );
+
 std::string GMakeMainVertexShader( void );
 
 std::string GMakeMainFragmentShader( void );

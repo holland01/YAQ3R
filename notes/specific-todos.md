@@ -5,6 +5,14 @@ renderer's current implementation.
 [feature/effect_shaders]
 Fix sky-related issues. Some of this is due to the way it's being texture mapped ( tex coords should be mapped according to a sphere with radius specified in a shader (skyparms) )
 
+read this: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection (both geometric and analytic solutions)
+
+then apply that same idea to the spheroid (not an ellipsoid: there's two different radiuses - not 3). That should be all you need.
+
+remember the spheroid equation:
+
+(x^2 + y^2) / a^2 + z^2 / c^2 = 1
+
 [feature/effect_shaders]
 Fix lava rising effect.
 

@@ -240,6 +240,8 @@ public:
 
 	~Program( void );
 
+	GLuint GetHandle( void ) const { return program; }
+
 	void AddUnif( const std::string& name );
 
 	void AddAttrib( const std::string& name );

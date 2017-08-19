@@ -16,6 +16,8 @@ namespace {
 using stageEvalFunc_t = std::function< bool( const char* & buffer,
 	shaderInfo_t* outInfo, shaderStage_t& theStage, char* token ) >;
 
+// returns true if input is recognized, false if invalid/unrecognized.
+// a return false will log whatever is in "token" at the time of return.
 #define STAGE_READ_FUNC []( const char* & buffer, shaderInfo_t* outInfo, \
 	shaderStage_t& theStage, char* token ) -> bool
 
@@ -23,15 +25,17 @@ using stageEvalFunc_t = std::function< bool( const char* & buffer,
 	sizeof( char ) * BSP_MAX_SHADER_TOKEN_LENGTH ) );
 
 
-static const char* ReadStageTexturePath( shaderStage_t& theStage, const char* buffer )
+const char* ReadStageTexturePath( shaderStage_t& theStage, const char* buffer )
 {
 	buffer = StrReadToken( &theStage.texturePath[ 0 ], buffer );
 	BspData_FixupAssetPath( &theStage.texturePath[ 0 ] );
 	return buffer;
 }
 
+bool gIsSkyShader = false; // this saves us an O(N) lookup for every shader that's inserted.
+
 // Lookup table we use for each shader/stage command
-std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
+std::unordered_map< std::string, stageEvalFunc_t > gStageReadFuncs =
 {
 	{
 		"surfaceparm",
@@ -65,6 +69,12 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 			else if ( strcmp( token, "nodraw" ) == 0 )
 			{
 				outInfo->surfaceParms  |= SURFPARM_NO_DRAW;
+			}
+			else if ( strcmp( token, "sky" ) == 0 )
+			{
+				outInfo->surfaceParms |= SURFPARM_SKY;
+
+				gIsSkyShader = true;
 			}
 			else
 			{
@@ -593,6 +603,63 @@ std::unordered_map< std::string, stageEvalFunc_t > stageReadFuncs =
 
 			return ret;
 		}
+	},
+	{
+		"skyparms",
+		STAGE_READ_FUNC
+		{
+			UNUSED( theStage );
+
+			bool ret = true;
+
+			ZEROTOK( token );
+			buffer = StrReadToken( token, buffer );
+			if ( strcmp( token, "-" ) != 0 )
+			{
+				MLOG_WARNING_SANS_FUNCNAME( 
+					"[%s] skyparms: <farbox> param given, but isn't supported yet",
+					&outInfo->name[ 0 ] 
+				);
+				ret = false;
+			}
+
+			outInfo->cloudHeight = StrReadFloat( buffer );
+			if ( outInfo->cloudHeight == 0.0f )
+			{
+				MLOG_WARNING_SANS_FUNCNAME( 
+					"[%s] skyparms: <cloudheight> param is either 0 or invalid.",
+					&outInfo->name[ 0 ] 
+				);
+				ret = false;
+			}
+
+			MLOG_INFO_ONCE( "%f", outInfo->cloudHeight );
+
+			ZEROTOK( token );
+			buffer = StrReadToken( token, buffer );
+			if ( strcmp( token, "-" ) != 0 )
+			{
+				MLOG_WARNING_SANS_FUNCNAME( 
+					"[%s] skyparms: <nearbox> param given, but isn't supported yet",
+					&outInfo->name[ 0 ] 
+				);
+				ret = false;
+			}
+
+			// Just in case the entry doesn't specify this.
+			if ( !( outInfo->surfaceParms & SURFPARM_SKY ) )
+			{
+				MLOG_WARNING_SANS_FUNCNAME( 
+					"[%s] skyparms: surfaceParms check yielded no sky entry...going to fixup in case it won't be found after this",
+					&outInfo->name[ 0 ] 
+				);
+				outInfo->surfaceParms |= SURFPARM_SKY;
+			}
+
+			gIsSkyShader = true;
+
+			return ret;
+		}
 	}
 };
 
@@ -752,13 +819,13 @@ static const char* ParseEntry(
 		StrLower( token );
 
 		const std::string strToken( token );
-		if ( stageReadFuncs.find( strToken ) == stageReadFuncs.end() )
+		if ( gStageReadFuncs.find( strToken ) == gStageReadFuncs.end() )
 		{
 		//	MLOG_INFO_ONCE( "[ %s ] Did not recognize function \"%s\"", &outInfo->name[ 0 ], token );
 			continue;
 		}
 
-		if ( !stageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
+		if ( !gStageReadFuncs.at( strToken )( buffer, outInfo, stage, token ) )
 		{
 		//	MLOG_INFO_ONCE( "[ %s ] Did not recognize param \"%s\", for function \"%s\"", &outInfo->name[ 0 ], token, strToken.c_str() );
 		}
@@ -810,13 +877,23 @@ static void ParseShaderFile( Q3BspMap* map, char* buffer, int size )
 
 		if ( used )
 		{
+			std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH > name;
+			memcpy( &name[ 0 ], &entry.name[ 0 ], BSP_MAX_SHADER_TOKEN_LENGTH );
+
 			map->AddEffectShader( entry );
+
+			if ( gIsSkyShader && !gDeformCache.skyShader )
+			{
+				gDeformCache.skyShader = map->GetShaderInfo( &name[ 0 ] );
+				gDeformCache.InitSkyData( gDeformCache.skyShader->cloudHeight );
+			}
 		}
+
+		gIsSkyShader = false;
 
 		range = ( ptrdiff_t )( end - pChar );
 	}
 }
-
 
 static void OnShaderRead( char* buffer, int size, void* param )
 {

@@ -24,15 +24,30 @@ struct deformModel_t;
 struct mapPatch_t;
 struct mapData_t;
 
+#define SKY_GL_DRAW_INDEX_TYPE GL_UNSIGNED_INT
+
 struct deformGlobal_t
 {
+	const shaderInfo_t* skyShader;
+
+	GLuint skyVbo;
+	GLuint skyIbo;
+
+	GLsizei numSkyIndices;
+	GLsizei numSkyVertices;
+
+	float skyHeightOffset;
+	float waveFormScalar;
+
 	std::array< float, DEFORM_TABLE_SIZE > sinTable;
 	std::array< float, DEFORM_TABLE_SIZE > triTable;
 
-	float waveFormScalar;
+	~deformGlobal_t( void );
+
+	void InitSkyData( float cloudHeight );
 };
 
-extern deformGlobal_t deformCache;
+extern deformGlobal_t gDeformCache;
 
 float GenDeformScale( const glm::vec3& position, const shaderInfo_t* shader );
 
