@@ -5,6 +5,7 @@
 #include "q3bsp.h"
 #include "glutil.h"
 #include "effect_shader.h"
+#include "lib/random.h"
 #include <cmath>
 #include <memory>
 #include <limits>
@@ -185,7 +186,7 @@ deformGlobal_t::~deformGlobal_t( void )
 // Nothing major.
 void deformGlobal_t::InitSkyData( float cloudHeight )
 {
-	float radius = 4096.0f;
+	float radius = 10.0f;
 
 	float subdivCount = 50.0f;
 	
@@ -195,12 +196,14 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	float toS = 1.0f / glm::two_pi< float >();
 	float toT = 1.0f / glm::pi< float >();	
 
-	auto LIndexFromAngles = [ toS, toT, subdivCount ]( float phi, float theta ) -> uint32_t
-	{
-		uint16_t col = static_cast< uint16_t >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, 50]
-		uint16_t row = static_cast< uint16_t >( phi * toT * subdivCount );		// from [0, pi] to [0, 50]
+	Random< uint8_t > colorGen( 100, 255 );
 
-		uint16_t ret = row * subdivCount + col;
+	auto LIndexFromAngles = [ &toS, &toT, &subdivCount ]( float phi, float theta ) -> GLushort
+	{
+		GLushort col = static_cast< GLushort >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, 50]
+		GLushort row = static_cast< GLushort >( phi * toT * subdivCount );		// from [0, pi] to [0, 50]
+
+		GLushort ret = row * subdivCount + col;
 
 		if ( ret > 15000 )
 		{
@@ -216,10 +219,9 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	// to maintain an ascending value as the texture coordinate
 	// progresses toward the end. Otherwise we'd be flipping z
 	// and using 1.0 - s.
-	auto LVertexFromAngles = [ this, radius, cloudHeight, toS, toT ]( float theta, float phi ) -> bspVertex_t
+	auto LVertexFromAngles = [ this, &colorGen, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
 	{
-//		theta = glm::degrees( theta );
-//		phi = glm::degrees( phi );
+		uint8_t b = colorGen();
 
 		bspVertex_t a { 
 			{ 
@@ -241,7 +243,7 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 				0.0f, 0.0f, 0.0f
 			},
 			{
-				255, 255, 255, 255
+				b, b, b, 255
 			}
 		};
 
@@ -249,7 +251,7 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	};
 
 	std::vector< bspVertex_t > skyVerts;
-	std::vector< uint32_t > skyIndices;
+	std::vector< GLushort > skyIndices;
 
 	skyVerts.reserve( subdivCount * subdivCount );
 	skyIndices.reserve( subdivCount * subdivCount * 6 );
@@ -271,7 +273,7 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	}
 
 	skyVbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, skyVerts, GL_DYNAMIC_DRAW );
-	skyIbo = GenBufferObject< uint32_t >( GL_ELEMENT_ARRAY_BUFFER, skyIndices, GL_DYNAMIC_DRAW );
+	skyIbo = GenBufferObject< GLushort >( GL_ELEMENT_ARRAY_BUFFER, skyIndices, GL_DYNAMIC_DRAW );
 
 	numSkyIndices = static_cast< GLsizei >( skyIndices.size() );
 	numSkyVertices = static_cast< GLsizei >( skyVerts.size() );

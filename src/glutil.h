@@ -465,6 +465,8 @@ public:
 
 	~ImmDebugDraw( void );
 
+	const Program* GetProgram( void ) const { return shaderProgram.get(); }
+
 	void Begin( void );
 
 	void Position( const glm::vec3& position );

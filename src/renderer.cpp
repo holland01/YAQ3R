@@ -753,9 +753,6 @@ void BSPRenderer::DrawSkyPass( void )
 		UNUSED( program );
 		UNUSED( stage );
 
-		MLOG_INFO_ONCE( "Sky Program Object Handle: %u\nStage Info: %s", 
-			program.GetHandle(), stage->GetInfoString().c_str() );
-
 		const deformGlobal_t* deformCache = static_cast< const deformGlobal_t* >( voidDeformCache );
 
 		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, deformCache->skyVbo ) );

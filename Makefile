@@ -112,7 +112,7 @@ Makefile.dep: $(CFILES) $(CXXFILES)
 $(BINFILE): $(OFILES)
 	$(E) The Path is this: $PATH
 	$(E) Linking $@
-	$(Q)$(CXX) $(LDFLAGS) $(OFILES) $(LDO) ~/.emscripten_cache/asmjs/sdl2.bc -o $@ $(LDFLAGS)
+	$(Q)$(CXX) $(LDFLAGS) -s DISABLE_EXCEPTION_CATCHING=0 $(OFILES) $(LDO) ~/.emscripten_cache/asmjs/sdl2.bc -o $@ $(LDFLAGS)
 clean:
 	$(E) Removing files
 	$(Q)rm -rf obj/

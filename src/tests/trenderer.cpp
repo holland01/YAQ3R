@@ -4,10 +4,7 @@
 #include "extern/gl_atlas.h"
 
 static void OnMapFinish( void* param )
-{
-	
-	//GStateCheckReport();
-	
+{	
 	UNUSED( param );
 
 	TRenderer* app = ( TRenderer* ) gAppTest;
@@ -25,6 +22,15 @@ static void OnMapFinish( void* param )
 	app->camPtr = app->renderer->camera.get();
 
 	app->renderer->targetFPS = app->GetDesiredFPS();
+
+	app->camPtr->SetViewOrigin( glm::zero<glm::vec3>() );
+
+	//GStateCheckReport();
+
+	MLOG_INFO(
+		"Program Handle: %u",
+		app->renderer->debugRender->GetProgram()->GetHandle() 
+	);
 
 	app->Exec();
 }
@@ -46,13 +52,37 @@ void TRenderer::Run( void )
 {
 	if ( O_IntervalLogHit() )
 	{
-		printf( "Origin: %s, FPS: %f\n", glm::to_string( camPtr->ViewData().origin ).c_str(), 1.0f / deltaTime );
+		printf( 
+			"Origin: %s, FPS: %f\n", 
+			glm::to_string( camPtr->ViewData().origin ).c_str(), 
+			1.0f / deltaTime 
+		);
 	}
 
 	O_IntervalLogUpdateFrameTick( deltaTime );
 
 	renderer->Update( deltaTime );
-	renderer->Render();
+
+	const viewParams_t& view = camPtr->ViewData();
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, gDeformCache.skyVbo ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gDeformCache.skyIbo ) );
+
+	renderer->debugRender->GetProgram()->LoadMat4( "modelToCamera", view.transform );
+	renderer->debugRender->GetProgram()->LoadMat4( "cameraToClip", view.clipTransform );
+
+	renderer->debugRender->GetProgram()->Bind();
+
+	renderer->debugRender->GetProgram()->LoadDefaultAttribProfiles();
+
+	GL_CHECK( glDrawElements( GL_TRIANGLES, gDeformCache.numSkyIndices, GL_UNSIGNED_SHORT, nullptr ) );
+
+	//renderer->debugRender->GetProgram()->DisableDefaultAttribProfiles();
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
+
+	renderer->debugRender->GetProgram()->Release();
 }
 
 void TRenderer::Load( void )
