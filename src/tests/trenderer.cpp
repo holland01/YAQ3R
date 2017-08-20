@@ -77,6 +77,8 @@ void TRenderer::Run( void )
 
 	GL_CHECK( glDrawElements( GL_TRIANGLES, gDeformCache.numSkyIndices, GL_UNSIGNED_SHORT, nullptr ) );
 
+	volatile int testCommit = 0;
+
 	//renderer->debugRender->GetProgram()->DisableDefaultAttribProfiles();
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
