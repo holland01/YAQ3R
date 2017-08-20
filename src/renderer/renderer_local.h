@@ -40,7 +40,7 @@
 #define G_MAG_FILTER GL_LINEAR
 #define G_MIPMAPPED false
 
-#define G_STATIC_NEAR_PLANE 5.0f
+#define G_STATIC_NEAR_PLANE 1.0f
 
 #define G_STATIC_FAR_PLANE 50000.0f
 

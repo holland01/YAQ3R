@@ -546,6 +546,14 @@ struct shaderStage_t
 	// the stage's texture index into the corresponding atlas
 	bool 						pathLinked = false;
 
+	// Normally the attribute layouts are specified before glDraw calls take place;
+	// we can do this most of the time because the buffer objects which are usually bound
+	// store the vertex/index data from the map file. In the case of the skybox,
+	// we have a different format which uses a separate vbo, and calling the program's 
+	// LoadDefaultAttribProfile() function before the effect callback is made wastes time,
+	// because it has to be called right after the skybox buffer objects are bound, regardless.
+	bool 						deferAttribLayoutLoad = false;
+
 	int32_t						textureIndex = INDEX_UNDEFINED;
 
 	// Index of this stage within the owning shader struct's stageBuffer

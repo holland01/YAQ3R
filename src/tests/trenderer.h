@@ -5,23 +5,39 @@
 
 class TRenderer : public Test
 {
-private:
+public:
 	glm::vec3 lightSamplerPos;
 
 	float moveRateChangeRate;
 
-	void Run( void );
+	void LogPeriodically( void ) const;
 
-public:
+	virtual void Run( void );
+
 	std::unique_ptr< BSPRenderer > renderer;
+
+	TRenderer( const char* pathString, onFinishEvent_t mapReadFinish );
+
+	TRenderer( onFinishEvent_t mapReadFinish );
 
 	TRenderer( const std::string& mapFilepath );
 
-	~TRenderer( void );
+	virtual ~TRenderer( void );
 
 	void 	Load( void );
 
 	bool 	OnInputEvent( SDL_Event* e );
 
-	float 	GetDesiredFPS( void ) const { return TEST_FPS_60; } // 60 FPS
+	float 	GetTargetFPS( void ) const { return TEST_FPS_60; } // 60 FPS
+};
+
+class TRendererIsolatedTest : public TRenderer
+{
+public:
+	TRendererIsolatedTest( void );
+	~TRendererIsolatedTest( void );
+
+	std::unique_ptr< RenderBase > isolatedRenderer;
+
+	void Run( void ) override;
 };

@@ -63,7 +63,7 @@ Test::Test( int w, int h, bool fullscreen_,
 {
 	if ( bspFilePath )
 	{
-		gTmpBspPath = bspFilePath;
+		gTmpBspPath = std::string( bspFilePath );
 	}
 
 	if ( mapReadFinish )
@@ -93,7 +93,11 @@ bool Test::Load( const char* winName )
 
 	GLoadVao();
 
-	if ( !gTmpBspPath.empty() )
+	if ( gTmpBspPath.empty() )
+	{
+		( *gTmpMapReadFinish )( this );
+	}
+	else
 	{
 		map->Read( gTmpBspPath, 1, gTmpMapReadFinish );
 	}

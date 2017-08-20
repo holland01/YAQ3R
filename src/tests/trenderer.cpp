@@ -7,11 +7,11 @@ static void OnMapFinish( void* param )
 {	
 	UNUSED( param );
 
-	TRenderer* app = ( TRenderer* ) gAppTest;
+	TRenderer* app = static_cast< TRenderer* >( gAppTest );
 
 	app->renderer.reset( new BSPRenderer(
-		( float ) app->base.width,
-		( float ) app->base.height,
+		static_cast< float >( app->base.width ), 
+		static_cast< float >( app->base.height ),
 		*( app->map.get() ) )
 	);
 
@@ -21,11 +21,7 @@ static void OnMapFinish( void* param )
 	app->map->payload.reset();
 	app->camPtr = app->renderer->camera.get();
 
-	app->renderer->targetFPS = app->GetDesiredFPS();
-
-	app->camPtr->SetViewOrigin( glm::zero<glm::vec3>() );
-
-	//GStateCheckReport();
+	app->renderer->targetFPS = app->GetTargetFPS();
 
 	MLOG_INFO(
 		"Program Handle: %u",
@@ -35,20 +31,28 @@ static void OnMapFinish( void* param )
 	app->Exec();
 }
 
-TRenderer::TRenderer( const std::string& filepath )
-	: Test( 1366, 768, false, filepath.c_str(), OnMapFinish ),
-	  moveRateChangeRate( 1.0f ),
-	  renderer( nullptr )
+TRenderer::TRenderer( const char* filepath, onFinishEvent_t mapReadFinish )
+	:	Test( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT, false, filepath, mapReadFinish ),
+		moveRateChangeRate( 1.0f ),
+	  	renderer( nullptr )
 {
 	O_IntervalLogSetInterval( 5.0f );
 }
+
+TRenderer::TRenderer( const std::string& filepath )
+	: 	TRenderer( filepath.c_str(), OnMapFinish )
+{}
+
+TRenderer::TRenderer( onFinishEvent_t mapReadFinish )
+	:	TRenderer( nullptr, mapReadFinish )
+{}
 
 TRenderer::~TRenderer( void )
 {
 	camPtr = nullptr;
 }
 
-void TRenderer::Run( void )
+void TRenderer::LogPeriodically( void ) const
 {
 	if ( O_IntervalLogHit() )
 	{
@@ -60,29 +64,14 @@ void TRenderer::Run( void )
 	}
 
 	O_IntervalLogUpdateFrameTick( deltaTime );
+}
+
+void TRenderer::Run( void )
+{
+	LogPeriodically();
 
 	renderer->Update( deltaTime );
-
-	const viewParams_t& view = camPtr->ViewData();
-
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, gDeformCache.skyVbo ) );
-	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gDeformCache.skyIbo ) );
-
-	renderer->debugRender->GetProgram()->LoadMat4( "modelToCamera", view.transform );
-	renderer->debugRender->GetProgram()->LoadMat4( "cameraToClip", view.clipTransform );
-
-	renderer->debugRender->GetProgram()->Bind();
-
-	renderer->debugRender->GetProgram()->LoadDefaultAttribProfiles();
-
-	GL_CHECK( glDrawElements( GL_TRIANGLES, gDeformCache.numSkyIndices, GL_UNSIGNED_SHORT, nullptr ) );
-
-	//renderer->debugRender->GetProgram()->DisableDefaultAttribProfiles();
-
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
-	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
-
-	renderer->debugRender->GetProgram()->Release();
+	renderer->Render();
 }
 
 void TRenderer::Load( void )
@@ -90,7 +79,8 @@ void TRenderer::Load( void )
 	if ( !Test::Load( "I am a floating camera" ) )
 	{
 		MLOG_ERROR(
-			"Could not initialize the necessary rendering prerequisites." );
+			"Could not initialize the necessary rendering prerequisites." 
+		);
 		return;
 	}
 
@@ -146,4 +136,55 @@ bool TRenderer::OnInputEvent( SDL_Event* e )
 	}
 
 	return topRet;
+}
+
+//----------------------------------------------------------------
+
+static void IsolatedTestFinish( void* param )
+{
+	TRendererIsolatedTest* app = static_cast< TRendererIsolatedTest* >( gAppTest );
+
+	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT ) );
+	app->isolatedRenderer->targetFPS = app->GetTargetFPS();
+
+	app->camPtr = app->isolatedRenderer->camera.get();
+
+	gDeformCache.InitSkyData( 512 );
+
+	app->Exec();
+}
+
+TRendererIsolatedTest::TRendererIsolatedTest( void )
+	: 	TRenderer( IsolatedTestFinish ),
+		isolatedRenderer( nullptr )
+{
+}
+
+TRendererIsolatedTest::~TRendererIsolatedTest( void )
+{}
+
+void TRendererIsolatedTest::Run( void )
+{
+	LogPeriodically();
+
+	isolatedRenderer->Update( deltaTime );
+
+	const viewParams_t& view = camPtr->ViewData();
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, gDeformCache.skyVbo ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gDeformCache.skyIbo ) );
+
+	isolatedRenderer->debugRender->GetProgram()->LoadMat4( "modelToCamera", view.transform );
+	isolatedRenderer->debugRender->GetProgram()->LoadMat4( "cameraToClip", view.clipTransform );
+
+	isolatedRenderer->debugRender->GetProgram()->Bind();
+
+	isolatedRenderer->debugRender->GetProgram()->LoadDefaultAttribProfiles();
+
+	GL_CHECK( glDrawElements( GL_TRIANGLES, gDeformCache.numSkyIndices, GL_UNSIGNED_SHORT, nullptr ) );
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
+
+	isolatedRenderer->debugRender->GetProgram()->Release();
 }

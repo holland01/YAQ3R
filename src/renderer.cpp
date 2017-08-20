@@ -102,12 +102,31 @@ drawPass_t::drawPass_t( const Q3BspMap& map, const viewParams_t& viewData )
 //--------------------------------------------------------------
 // RenderBase
 //--------------------------------------------------------------
-RenderBase::RenderBase( Q3BspMap& m )
+RenderBase::RenderBase( float viewWidth, float viewHeight )
 	:	apiHandles( {{ 0, 0 }} ),
-		map( m ),
+		camera( new InputCamera( viewWidth, viewHeight ) ),
 		frustum( new Frustum() ),
-		debugRender( new ImmDebugDraw() )
+		debugRender( new ImmDebugDraw() ),
+		targetFPS( 0.0f ),
+		deltaTime( 0.0f )
 {
+	camera->moveStep = 1.0f;
+
+	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE,
+		G_STATIC_FAR_PLANE );
+}
+
+void RenderBase::Update( float dt )
+{
+	float fpsScalar = dt / ( targetFPS == 0.0f ? 1.0f : targetFPS );
+
+	camera->Update( fpsScalar );
+
+	viewParams_t& view = camera->ViewDataMut();
+
+	frustum->Update( view, false );
+
+	deltaTime = dt;
 }
 
 void RenderBase::MakeProg( const std::string& name, const std::string& vertSrc,
@@ -125,7 +144,6 @@ std::string RenderBase::GetBinLayoutString( void ) const
 	ss << "[RenderBase]\n";
 	ss << SSTREAM_BYTE_OFFSET( RenderBase, glPrograms );
 	ss << SSTREAM_BYTE_OFFSET( RenderBase, apiHandles );
-	ss << SSTREAM_BYTE_OFFSET( RenderBase, map );
 	ss << SSTREAM_BYTE_OFFSET( RenderBase, frustum );
 
 	return ss.str();
@@ -133,6 +151,7 @@ std::string RenderBase::GetBinLayoutString( void ) const
 
 RenderBase::~RenderBase( void )
 {
+	// DeleteBufferObject ensures values are non-zero before actually deleting.
 	DeleteBufferObject( GL_ARRAY_BUFFER, apiHandles[ 0 ] );
 	DeleteBufferObject( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] );
 }
@@ -141,8 +160,7 @@ RenderBase::~RenderBase( void )
 // BSPRenderer
 //--------------------------------------------------------------
 BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
-	:
-		RenderBase( map_ ), // Parent class
+	:	RenderBase( viewWidth, viewHeight ),
 
 		glEffects( {
 			{
@@ -184,18 +202,12 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 			}
 		} ),
 		currLeaf( nullptr ),
-
-		deltaTime( 0.0f ),
 		frameTime( 0.0f ),
-		targetFPS( 0.0f ),
 		alwaysWriteDepth( false ),
 		allowFaceCulling( true ),
-		camera( new InputCamera() ),
-		curView( VIEW_MAIN )
+		curView( VIEW_MAIN ),
+		map( map_ )
 {
-	camera->moveStep = 1.0f;
-	camera->SetPerspective( 65.0f, viewWidth, viewHeight, G_STATIC_NEAR_PLANE,
-		G_STATIC_FAR_PLANE );
 }
 
 BSPRenderer::~BSPRenderer( void )
@@ -226,6 +238,7 @@ std::string BSPRenderer::GetBinLayoutString( void ) const
 	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, alwaysWriteDepth );
 	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, camera );
 	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, curView );
+	ss << SSTREAM_BYTE_OFFSET( BSPRenderer, map );
 
 	return ss.str();
 }
@@ -449,42 +462,6 @@ void BSPRenderer::Render( void )
 	frameTime = GetTimeSeconds() - startTime;
 
 	frameCount++;
-/*
-	{
-		debugRender->Begin();
-
-		debugRender->Position( map.data.models[ 1 ].boxMin );
-		debugRender->Color( { 0, 255, 0, 255 } );
-		
-		debugRender->Position( map.data.models[ 1 ].boxMax );
-		debugRender->Color( { 0, 255, 0, 255 } );
-
-		debugRender->End( 
-			GL_POINTS, 
-			camera->ViewData().clipTransform, 
-		 	camera->ViewData().transform 
-		);
-	}
-*/
-}
-
-void BSPRenderer::Update( float dt )
-{
-	float fpsScalar = dt / ( targetFPS == 0.0f ? 1.0f : targetFPS );
-
-	camera->Update( fpsScalar );
-
-	viewParams_t& view = camera->ViewDataMut();
-
-//	SetNearFar(
-//		view.clipTransform,
-//		G_STATIC_NEAR_PLANE,
-//		G_STATIC_FAR_PLANE
-//	);
-
-	frustum->Update( view, false );
-
-	deltaTime = dt;
 }
 
 // -------------------------------
@@ -690,7 +667,10 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 			glEffects.at( e.name )( stageProg, e );
 		}
 
-		stageProg.LoadDefaultAttribProfiles();
+		if ( !stage.deferAttribLayoutLoad )
+		{
+			stageProg.LoadDefaultAttribProfiles();
+		}
 
 #ifdef DEBUG
 		if ( GHasBadProgram() )
@@ -750,7 +730,6 @@ void BSPRenderer::DrawSkyPass( void )
 
 	auto LDrawCallback = [ this ]( const void* voidDeformCache, const Program& program, const shaderStage_t* stage ) -> void
 	{
-		UNUSED( program );
 		UNUSED( stage );
 
 		const deformGlobal_t* deformCache = static_cast< const deformGlobal_t* >( voidDeformCache );
@@ -758,9 +737,11 @@ void BSPRenderer::DrawSkyPass( void )
 		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, deformCache->skyVbo ) );
 		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, deformCache->skyIbo ) );
 
-		GL_CHECK( glDrawElements( GL_TRIANGLES, deformCache->numSkyIndices, SKY_GL_DRAW_INDEX_TYPE, nullptr ) );
+		program.LoadDefaultAttribProfiles();
+
+		GL_CHECK( glDrawElements( GL_TRIANGLES, deformCache->numSkyIndices, GL_UNSIGNED_SHORT, nullptr ) );
 	
-		//GL_CHECK( glDrawArrays( GL_LINE_STRIP, 0, deformCache->numSkyVertices ) );
+		program.DisableDefaultAttribProfiles();
 
 		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
 		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );

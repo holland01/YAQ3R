@@ -13,6 +13,9 @@ class Q3BspMap;
 #define TEST_FPS_UNDEFINED -1.0f
 #define TEST_FPS_60 0.01666f
 
+#define TEST_VIEW_WIDTH 1366
+#define TEST_VIEW_HEIGHT 768
+
 class Test
 {
 public:

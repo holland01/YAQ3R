@@ -186,7 +186,7 @@ deformGlobal_t::~deformGlobal_t( void )
 // Nothing major.
 void deformGlobal_t::InitSkyData( float cloudHeight )
 {
-	float radius = 10.0f;
+	float radius = 4096.0f;
 
 	float subdivCount = 50.0f;
 	
@@ -196,19 +196,25 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	float toS = 1.0f / glm::two_pi< float >();
 	float toT = 1.0f / glm::pi< float >();	
 
-	Random< uint8_t > colorGen( 100, 255 );
+// 	Random< uint8_t > colorGen( 100, 255 );	<-- debug
 
-	auto LIndexFromAngles = [ &toS, &toT, &subdivCount ]( float phi, float theta ) -> GLushort
+	GLushort maxValue = 0;
+
+	std::stringstream buffer;
+
+	auto LIndexFromAngles = [ &buffer, &maxValue, &toS, &toT, &subdivCount ]( float theta, float phi ) -> GLushort
 	{
 		GLushort col = static_cast< GLushort >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, 50]
 		GLushort row = static_cast< GLushort >( phi * toT * subdivCount );		// from [0, pi] to [0, 50]
 
 		GLushort ret = row * subdivCount + col;
 
-		if ( ret > 15000 )
+		if ( ret > maxValue )
 		{
-			MLOG_INFO_ONCE( "Index Found: %u", ret );
+			maxValue = ret;
 		}
+
+		buffer << "theta: " << theta << ", phi: " << phi << ", col: " << col << ", row: " << row << ", index: " << ret << "\n";
 
 		return ret;
 	};
@@ -219,14 +225,12 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	// to maintain an ascending value as the texture coordinate
 	// progresses toward the end. Otherwise we'd be flipping z
 	// and using 1.0 - s.
-	auto LVertexFromAngles = [ this, &colorGen, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
+	auto LVertexFromAngles = [ this, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
 	{
-		uint8_t b = colorGen();
-
-		bspVertex_t a { 
+		return { 
 			{ 
 				radius * glm::cos( theta ) * glm::cos( phi ),
-				radius * glm::sin( phi ),
+				skyHeightOffset + cloudHeight * glm::sin( phi ),
 				radius * glm::sin( theta ) * glm::cos( phi )
 			},
 			{
@@ -243,11 +247,9 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 				0.0f, 0.0f, 0.0f
 			},
 			{
-				b, b, b, 255
+				255, 255, 255, 255
 			}
 		};
-
-		return a;
 	};
 
 	std::vector< bspVertex_t > skyVerts;
@@ -278,8 +280,14 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	numSkyIndices = static_cast< GLsizei >( skyIndices.size() );
 	numSkyVertices = static_cast< GLsizei >( skyVerts.size() );
 
-	MLOG_INFO_ONCE( "skyVbo: %u, skyIbo: %u, cloudHeight: %f, numSkyVertices: %li, numSkyIndices: %li", 
-		skyVbo, skyIbo, cloudHeight, numSkyVertices, numSkyIndices );
+	buffer.seekg( 0, std::ios::end );
+	size_t buffLen = buffer.tellg();
+	buffer.seekg( 0, std::ios::beg );
+
+	MLOG_INFO_ONCE( 
+		"buffer length: %u, skyVbo: %u, skyIbo: %u, cloudHeight: %f, numSkyVertices: %li, numSkyIndices: %li, maxIndex: %u\n"
+		"buffer result:\n%s", 
+		buffLen, skyVbo, skyIbo, cloudHeight, numSkyVertices, numSkyIndices, maxValue, buffer.str().c_str() );
 }
 
 //----------------------------------------------------------

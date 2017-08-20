@@ -20,37 +20,33 @@ enum
 };
 
 InputCamera::InputCamera( void )
-	: InputCamera( viewParams_t(), EuAng() )
+	: InputCamera( 800.0f, 600.0f )
 {
 }
 
-InputCamera::InputCamera( const viewParams_t& view, const EuAng& currRot )
-	: viewData( view ),
-	  currRot( currRot ),
-	  lastMouse( 0.0f ),
-	  moveStep( DEF_MOVE_STEP_SPEED )
+InputCamera::InputCamera( float width, float height )
+	:   lastMouse( 0.0f ),
+	  	moveStep( DEF_MOVE_STEP_SPEED )
 {
+	viewData.origin = glm::zero< glm::vec3 >();
+
+	viewData.transform = glm::mat4( 1.0f );
+
+	viewData.orientation = glm::mat4( 1.0f );
+	viewData.inverseOrient = glm::mat4( 1.0f );
+
+	viewData.forward = Forward();
+	viewData.up = Up();
+	viewData.right = Right();
+
+	SetPerspective( 65.0f, width, height, 1.0f, 100.0f );
+
+	moveStep = DEF_MOVE_STEP_SPEED;
+
 	for ( int i = 0; i < KEY_COUNT; ++i )
 	{
 		keysPressed[ i ] = KEY_NOT_PRESSED;
 	}
-}
-
-InputCamera::InputCamera( float width, float height, const glm::mat4& view, const glm::mat4& projection )
-{
-	viewData.origin = glm::vec3( -view[ 3 ] );
-	viewData.transform = view;
-	viewData.clipTransform = projection;
-	viewData.orientation = view;
-	viewData.orientation[ 3 ] = glm::vec4( 0.0f, 0.0f, 0.0f, 1.0f );
-	viewData.inverseOrient = glm::inverse( viewData.orientation );
-	viewData.forward = Forward();
-	viewData.up = Up();
-	viewData.right = Right();
-	viewData.width = width;
-	viewData.height = height;
-
-	moveStep = DEF_MOVE_STEP_SPEED;
 }
 
 void InputCamera::EvalMouseMove( float x, float y )
@@ -67,6 +63,7 @@ void InputCamera::EvalKeyPress( int key )
 	switch( key )
 	{
 		case SDLK_w:
+			MLOG_INFO( "%s", "W Pressed" );
 			keysPressed[ KEY_FORWARD ] = KEY_PRESSED;
 			break;
 
@@ -142,6 +139,11 @@ void InputCamera::Update( float moveStepScale )
 {
 	 //currRot.Normalize();
 	moveStepScale = glm::abs( moveStepScale );
+
+	if ( glm::isnan( moveStepScale ) || moveStepScale < 0.00001f )
+	{
+		moveStepScale = 1.0f;
+	}
 
 	lastRot = currRot;
 
