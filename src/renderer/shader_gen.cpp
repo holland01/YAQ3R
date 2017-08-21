@@ -356,7 +356,7 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	}
 
 	//for ( const effect_t& op: stage.effects )
-	for ( auto i = stage.effects.rbegin(); i != stage.effects.rend(); ++i )
+	for ( auto i = stage.effects.begin(); i != stage.effects.end(); ++i )
 	{
 		const effect_t& op = *i;
 
