@@ -590,6 +590,8 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 	// Make sure we have depth func set to LEQUAL before we return.
 	GLenum lastDepth = GL_LEQUAL;
 
+	const viewParams_t& viewData = camera->ViewData();
+
 	// Used primarily for texture scrolling.
 	glm::vec2 timeScalarSeconds( GetTimeSeconds() );
 
@@ -600,7 +602,14 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 
 		logger.Push( i, stage );
 
-		stageProg.LoadMat4( "modelToView", camera->ViewData().transform );
+		glm::mat4 viewTransform( viewData.transform );
+
+		if ( stage.translate != glm::zero< glm::vec3 >() )
+		{
+			viewTransform *= glm::translate( glm::mat4( 1.0f ), stage.translate );
+		}
+
+		stageProg.LoadMat4( "modelToView", viewTransform );
 
 		GL_CHECK( glBlendFunc( stage.blendSrc, stage.blendDest ) );
 		GL_CHECK( glDepthFunc( stage.depthFunc ) );
@@ -728,9 +737,20 @@ void BSPRenderer::DrawSkyPass( void )
 		map.IsTransparentShader( gDeformCache.skyShader )
 	);
 
-	auto LDrawCallback = [ this ]( const void* voidDeformCache, const Program& program, const shaderStage_t* stage ) -> void
+	auto LDrawCallback = [ this ]( 
+		const void* voidDeformCache, 
+		const Program& program, 
+		const shaderStage_t* stage 
+	) -> void
 	{
 		UNUSED( stage );
+
+		GLint cull;
+		GL_CHECK( glGetIntegerv( GL_FRONT_FACE, &cull ) );
+		if ( cull != GL_CCW )
+		{
+			GL_CHECK( glFrontFace( GL_CCW ) );
+		}
 
 		const deformGlobal_t* deformCache = static_cast< const deformGlobal_t* >( voidDeformCache );
 
@@ -745,6 +765,11 @@ void BSPRenderer::DrawSkyPass( void )
 
 		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, apiHandles[ 0 ] ) );
 		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, apiHandles[ 1 ] ) );
+
+		if ( cull != GL_CCW )
+		{
+			GL_CHECK( glFrontFace( GL_CCW ) );
+		}
 	};
 
 	DrawEffectPass( data, LDrawCallback );

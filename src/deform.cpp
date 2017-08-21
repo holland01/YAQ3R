@@ -74,7 +74,7 @@ struct baryCoordSystem_t
 // The second half is literally just the negatives of these same values.
 deformGlobal_t gDeformCache =
 {
-	nullptr,// skyShader 
+	nullptr,// skyShader
 
 	0,		// skyVbo
 	0,		// skyIbo
@@ -188,60 +188,52 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 {
 	float radius = 4096.0f;
 
-	float subdivCount = 50.0f;
-	
+	float subdivCount = 16.0f;
+
 	float thetaStep = glm::two_pi< float >() / subdivCount;
 	float phiStep = glm::pi< float >() / subdivCount;
 
 	float toS = 1.0f / glm::two_pi< float >();
-	float toT = 1.0f / glm::pi< float >();	
-
-// 	Random< uint8_t > colorGen( 100, 255 );	<-- debug
+	float toT = 1.0f / glm::pi< float >();
 
 	GLushort maxValue = 0;
+	GLushort maxRow = 0;
+	GLushort maxCol = 0;
 
-	std::stringstream buffer;
-
-	auto LIndexFromAngles = [ &buffer, &maxValue, &toS, &toT, &subdivCount ]( float theta, float phi ) -> GLushort
+	auto LIndexFromAngles = [ &maxRow, &maxCol, &maxValue, &toS, &toT, &subdivCount ]( float theta, float phi ) -> GLushort
 	{
-		GLushort col = static_cast< GLushort >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, 50]
-		GLushort row = static_cast< GLushort >( phi * toT * subdivCount );		// from [0, pi] to [0, 50]
+		GLushort col = static_cast< GLushort >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, subdivCount]
+		GLushort row = static_cast< GLushort >( phi * toT * subdivCount );		// from [0, pi] to [0, subdivCount]
 
 		GLushort ret = row * subdivCount + col;
 
 		if ( ret > maxValue )
 		{
 			maxValue = ret;
+			maxRow = row;
+			maxCol = col;
 		}
-
-		buffer << "theta: " << theta << ", phi: " << phi << ", col: " << col << ", row: " << row << ", index: " << ret << "\n";
 
 		return ret;
 	};
 
-	// Note: vertices are specified with a clockwise winding order.
-	// This simplifies the generation, given that the s coordinate
-	// for each vertex also needs to be mapped in a clockwise order
-	// to maintain an ascending value as the texture coordinate
-	// progresses toward the end. Otherwise we'd be flipping z
-	// and using 1.0 - s.
+	// Note: Theta moves clockwise instead of counter-clockwise.
 	auto LVertexFromAngles = [ this, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
 	{
-		return { 
-			{ 
+		glm::vec2 tex {
+			glm::cos( theta ) * glm::cos( phi ) * 0.5f + 0.5f,
+			glm::sin( theta ) * glm::cos( phi ) * 0.5f + 0.5f
+		};
+
+		return {
+			{
 				radius * glm::cos( theta ) * glm::cos( phi ),
 				skyHeightOffset + cloudHeight * glm::sin( phi ),
 				radius * glm::sin( theta ) * glm::cos( phi )
 			},
 			{
-				{
-					theta * toS,	
-					phi * toT
-				},
-				{
-					theta * toS,
-					phi * toT
-				}
+				tex,
+				tex
 			},
 			{
 				0.0f, 0.0f, 0.0f
@@ -268,26 +260,22 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi + phiStep ) );
 			skyIndices.push_back( LIndexFromAngles( theta, phi ) );
 
-			skyIndices.push_back( LIndexFromAngles( theta, phi ) );
-			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi + phiStep ) );
 			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi ) );
+			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi + phiStep ) );
+			skyIndices.push_back( LIndexFromAngles( theta, phi ) );
 		}
 	}
 
-	skyVbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, skyVerts, GL_DYNAMIC_DRAW );
-	skyIbo = GenBufferObject< GLushort >( GL_ELEMENT_ARRAY_BUFFER, skyIndices, GL_DYNAMIC_DRAW );
+	skyVbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, skyVerts, GL_STATIC_DRAW );
+	skyIbo = GenBufferObject< GLushort >( GL_ELEMENT_ARRAY_BUFFER, skyIndices, GL_STATIC_DRAW );
 
 	numSkyIndices = static_cast< GLsizei >( skyIndices.size() );
 	numSkyVertices = static_cast< GLsizei >( skyVerts.size() );
 
-	buffer.seekg( 0, std::ios::end );
-	size_t buffLen = buffer.tellg();
-	buffer.seekg( 0, std::ios::beg );
-
-	MLOG_INFO_ONCE( 
-		"buffer length: %u, skyVbo: %u, skyIbo: %u, cloudHeight: %f, numSkyVertices: %li, numSkyIndices: %li, maxIndex: %u\n"
-		"buffer result:\n%s", 
-		buffLen, skyVbo, skyIbo, cloudHeight, numSkyVertices, numSkyIndices, maxValue, buffer.str().c_str() );
+	MLOG_INFO_ONCE(
+		"skyVbo: %u, skyIbo: %u, cloudHeight: %f, numSkyVertices: %li, numSkyIndices: %li, maxIndex: %u\n"
+		"maxRow: %u, maxCol: %u",
+		skyVbo, skyIbo, cloudHeight, numSkyVertices, numSkyIndices, maxValue, maxRow, maxCol );
 }
 
 //----------------------------------------------------------

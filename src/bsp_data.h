@@ -593,6 +593,9 @@ struct shaderStage_t
 	// path to the texture image, if we have one
 	std::array< char, BSP_MAX_SHADER_TOKEN_LENGTH > texturePath;
 
+	// optional
+	glm::vec3 					translate = glm::zero< glm::vec3 >();
+
 	gProgramHandle_t program { ( uint16_t ) G_UNSPECIFIED };
 
 	const shaderInfo_t* owningShader = nullptr;

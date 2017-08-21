@@ -659,6 +659,14 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 		afterInsert->stageBuffer[ i ].owningBufferIndex = i;
 		afterInsert->stageBuffer[ i ].owningShader = afterInsert;
 	}
+
+	if ( IsSkyShader( afterInsert ) )
+	{
+		for ( size_t i = 0; i < afterInsert->stageBuffer.size(); ++i )
+		{
+			afterInsert->stageBuffer[ i ].translate.y = -( ( float ) i );
+		}
+	}
 }
 
 void Q3BspMap::OnShaderReadFinish( void )
