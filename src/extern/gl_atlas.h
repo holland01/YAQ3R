@@ -374,7 +374,7 @@ namespace gla {
 									dims_y[image],
 									GL_ATLAS_TEX_FORMAT,
 									GL_UNSIGNED_BYTE,
-									&buffer_table[image][0]) );
+									&buffer_table[image][0]	) );
 		}
 
 		uint16_t key_image(size_t key) const
@@ -691,6 +691,28 @@ namespace gla {
 		}
 	}
 
+	static const float inverse255 = 1.0f / 255.0f;
+	static const float gammaDecode = 2.2f;
+	static const float gammaEncode = 1.0f / gammaDecode;
+
+	static ga_inline void premultiply_alpha_channel_rgba(uint8_t* image_data, size_t length)
+	{
+		for (size_t i = 0; i < length; i += 4) {
+			float r = glm::pow(((float)image_data[i + 0]) * inverse255, gammaDecode);
+			float g = glm::pow(((float)image_data[i + 1]) * inverse255, gammaDecode);
+			float b = glm::pow(((float)image_data[i + 2]) * inverse255, gammaDecode);
+			float a = glm::pow(((float)image_data[i + 3]) * inverse255, gammaDecode);
+
+			r *= a;
+			g *= a;
+			b *= a;
+
+			image_data[i + 0] = (uint8_t)(glm::pow(r, gammaEncode) * 255.0f);
+			image_data[i + 1] = (uint8_t)(glm::pow(g, gammaEncode) * 255.0f);
+			image_data[i + 2] = (uint8_t)(glm::pow(b, gammaEncode) * 255.0f);
+		}
+	}
+
 	static ga_inline uint32_t pack_rgba(uint8_t* rgba)
 	{
 		return (((uint32_t)rgba[0]) << 0)
@@ -810,6 +832,8 @@ namespace gla {
 			atlas_error_exit();
 			return;
 		}
+
+		//premultiply_alpha_channel_rgba(&image_data[0], image_data.size());
 
 		atlas.area_accum += dx * dy;
 
