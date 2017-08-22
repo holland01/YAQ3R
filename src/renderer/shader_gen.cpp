@@ -137,7 +137,7 @@ static INLINE std::string DeclCoreTransforms( void )
 
 static INLINE std::string DeclGammaConstant( void )
 {
-	return "const float gamma = 1.0 / 3.3;";
+	return "const float gamma = 1.0 / 2.2;";
 }
 
 static INLINE std::string DeclPrecision( void )
@@ -175,12 +175,12 @@ static INLINE void WriteTexture(
 	if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
 	{
 		fragmentSrc.push_back( "\tst = clamp( applyTransform( st )," \
-			 "imageTransform.xy, applyTransform( vec2( 0.99 ) ) );" );
+			 "imageTransform.xy, applyTransform( vec2( 1.0 ) ) );" );
 	}
 	else
 	{
 		fragmentSrc.push_back(
-			"\tst = applyTransform( mod( st, vec2( 0.99 ) ) );" );
+			"\tst = applyTransform( mod( st, vec2( 1.0 ) ) );" );
 	}
 
 	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
@@ -326,7 +326,7 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	std::vector< std::string > fragmentSrc =
 	{
 		DeclPrecision(),
-		"const float gamma = 1.0 / 2.2;",
+		DeclGammaConstant(),
 		DeclTransferVar( "frag_Tex", "vec2", "in" ),
 #ifdef G_USE_GL_CORE
 		DeclTransferVar( "fragment", "vec4", "out" ),
@@ -356,7 +356,7 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	}
 
 	//for ( const effect_t& op: stage.effects )
-	for ( auto i = stage.effects.rbegin(); i != stage.effects.rend(); ++i )
+	for ( auto i = stage.effects.begin(); i != stage.effects.end(); ++i )
 	{
 		const effect_t& op = *i;
 

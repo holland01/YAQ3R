@@ -36,6 +36,7 @@ int main( void )
 	static_assert( sizeof( glm::ivec3 ) == sizeof( int ) * 3, SIZE_ERROR_MESSAGE );
 
 	gAppTest = new TRenderer( ASSET_Q3_ROOT"/maps/q3dm13.bsp" );
+	//gAppTest = new TRendererIsolatedTest();
 	gAppTest->Load();
 
 	return 0;

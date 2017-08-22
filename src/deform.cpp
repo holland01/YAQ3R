@@ -74,7 +74,7 @@ struct baryCoordSystem_t
 // The second half is literally just the negatives of these same values.
 deformGlobal_t gDeformCache =
 {
-	nullptr,// skyShader 
+	nullptr,// skyShader
 
 	0,		// skyVbo
 	0,		// skyIbo
@@ -186,68 +186,65 @@ deformGlobal_t::~deformGlobal_t( void )
 // Nothing major.
 void deformGlobal_t::InitSkyData( float cloudHeight )
 {
-	float radius = 10.0f;
+	float radius = 4096.0f;
 
-	float subdivCount = 50.0f;
-	
+	float subdivCount = 16.0f;
+
 	float thetaStep = glm::two_pi< float >() / subdivCount;
 	float phiStep = glm::pi< float >() / subdivCount;
 
 	float toS = 1.0f / glm::two_pi< float >();
-	float toT = 1.0f / glm::pi< float >();	
+	float toT = 1.0f / glm::pi< float >();
 
-	Random< uint8_t > colorGen( 100, 255 );
+	GLushort maxValue = 0;
+	GLushort maxRow = 0;
+	GLushort maxCol = 0;
 
-	auto LIndexFromAngles = [ &toS, &toT, &subdivCount ]( float phi, float theta ) -> GLushort
+	auto LIndexFromAngles = [ &maxRow, &maxCol, &maxValue, &toS, &toT, &subdivCount ]( float theta, float phi ) -> GLushort
 	{
-		GLushort col = static_cast< GLushort >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, 50]
-		GLushort row = static_cast< GLushort >( phi * toT * subdivCount );		// from [0, pi] to [0, 50]
+		GLushort col = static_cast< GLushort >( theta * toS * subdivCount ); 	// from [0, 2pi] to [0, subdivCount]
+		GLushort row = static_cast< GLushort >( phi * toT * subdivCount );		// from [0, pi] to [0, subdivCount]
 
 		GLushort ret = row * subdivCount + col;
 
-		if ( ret > 15000 )
+		if ( ret > maxValue )
 		{
-			MLOG_INFO_ONCE( "Index Found: %u", ret );
+			maxValue = ret;
+			maxRow = row;
+			maxCol = col;
 		}
 
 		return ret;
 	};
 
-	// Note: vertices are specified with a clockwise winding order.
-	// This simplifies the generation, given that the s coordinate
-	// for each vertex also needs to be mapped in a clockwise order
-	// to maintain an ascending value as the texture coordinate
-	// progresses toward the end. Otherwise we'd be flipping z
-	// and using 1.0 - s.
-	auto LVertexFromAngles = [ this, &colorGen, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
+	// Note: Theta moves clockwise instead of counter-clockwise.
+	auto LVertexFromAngles = [ this, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
 	{
-		uint8_t b = colorGen();
+		glm::vec2 tex {
+			glm::cos( theta ) * glm::cos( phi ) * 0.5f + 0.5f,
+			glm::sin( theta ) * glm::cos( phi ) * 0.5f + 0.5f
+		};
 
-		bspVertex_t a { 
-			{ 
+		// tex.s = glm::max( 0.0f, ( ( tex.s * 256.0f ) - 1.1f ) / 256.0f );
+		// tex.t = glm::max( 0.0f, ( ( tex.t * 256.0f ) - 1.1f ) / 256.0f );
+
+		return {
+			{
 				radius * glm::cos( theta ) * glm::cos( phi ),
-				radius * glm::sin( phi ),
+				skyHeightOffset + cloudHeight * glm::sin( phi ),
 				radius * glm::sin( theta ) * glm::cos( phi )
 			},
 			{
-				{
-					theta * toS,	
-					phi * toT
-				},
-				{
-					theta * toS,
-					phi * toT
-				}
+				tex,
+				tex
 			},
 			{
 				0.0f, 0.0f, 0.0f
 			},
 			{
-				b, b, b, 255
+				255, 255, 255, 255
 			}
 		};
-
-		return a;
 	};
 
 	std::vector< bspVertex_t > skyVerts;
@@ -266,20 +263,22 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi + phiStep ) );
 			skyIndices.push_back( LIndexFromAngles( theta, phi ) );
 
-			skyIndices.push_back( LIndexFromAngles( theta, phi ) );
-			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi + phiStep ) );
 			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi ) );
+			skyIndices.push_back( LIndexFromAngles( theta + thetaStep, phi + phiStep ) );
+			skyIndices.push_back( LIndexFromAngles( theta, phi ) );
 		}
 	}
 
-	skyVbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, skyVerts, GL_DYNAMIC_DRAW );
-	skyIbo = GenBufferObject< GLushort >( GL_ELEMENT_ARRAY_BUFFER, skyIndices, GL_DYNAMIC_DRAW );
+	skyVbo = GenBufferObject< bspVertex_t >( GL_ARRAY_BUFFER, skyVerts, GL_STATIC_DRAW );
+	skyIbo = GenBufferObject< GLushort >( GL_ELEMENT_ARRAY_BUFFER, skyIndices, GL_STATIC_DRAW );
 
 	numSkyIndices = static_cast< GLsizei >( skyIndices.size() );
 	numSkyVertices = static_cast< GLsizei >( skyVerts.size() );
 
-	MLOG_INFO_ONCE( "skyVbo: %u, skyIbo: %u, cloudHeight: %f, numSkyVertices: %li, numSkyIndices: %li", 
-		skyVbo, skyIbo, cloudHeight, numSkyVertices, numSkyIndices );
+	MLOG_INFO_ONCE(
+		"skyVbo: %u, skyIbo: %u, cloudHeight: %f, numSkyVertices: %li, numSkyIndices: %li, maxIndex: %u\n"
+		"maxRow: %u, maxCol: %u",
+		skyVbo, skyIbo, cloudHeight, numSkyVertices, numSkyIndices, maxValue, maxRow, maxCol );
 }
 
 //----------------------------------------------------------

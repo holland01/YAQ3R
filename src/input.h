@@ -50,9 +50,7 @@ public:
 
 	InputCamera( void );
 
-	InputCamera( const viewParams_t& view, const EuAng& currRot );
-
-	InputCamera( float width, float height, const glm::mat4& view, const glm::mat4& projection );
+	InputCamera( float width, float height );
 
 	float	moveStep; // units per frame
 

@@ -204,30 +204,33 @@ enum {
 class RenderBase
 {
 public:
-	programMap_t glPrograms;
+	programMap_t 					glPrograms;
 
-	std::array< GLuint, 2 >	apiHandles;
+	std::array< GLuint, 2 >			apiHandles;
 
-	Q3BspMap& map;
+	std::unique_ptr< InputCamera > 	camera;
 
-	std::unique_ptr< Frustum > frustum;
+	std::unique_ptr< Frustum > 		frustum;
 
 	std::unique_ptr< ImmDebugDraw > debugRender;
 
-	void 			MakeProg(
-						const std::string& name,
-						const std::string& vertPath,
-						const std::string& fragPath,
-						const std::vector< std::string >& uniforms,
-						const std::vector< std::string >& attribs
-					);
+	float							targetFPS;
 
-public:
-	virtual void Load( renderPayload_t& payload );
+	float               			deltaTime;
+
+	void MakeProg(
+		const std::string& name,
+		const std::string& vertPath,
+		const std::string& fragPath,
+		const std::vector< std::string >& uniforms,
+		const std::vector< std::string >& attribs
+	);
+
+	virtual void Update( float dt );
 
 	virtual std::string GetBinLayoutString( void ) const;
 
-	RenderBase( Q3BspMap& m );
+	RenderBase( float viewWidth, float viewHeight );
 
 	virtual ~RenderBase( void );
 };
@@ -249,32 +252,31 @@ public:
 		bool
 	>;
 
-	gla_array_t textures;
+	gla_array_t 					textures;
 
 	// has one->one mapping with face indices
 	modelBuffer_t					glFaces;
 
 	// has one-one mapping with
 	// face indices - is only used when debugging for immediate data
-	std::vector< debugFace_t > glDebugFaces;
+	std::vector< debugFace_t > 		glDebugFaces;
 
-	effectMap_t			glEffects;
+	effectMap_t						glEffects;
 
-	const bspLeaf_t*    currLeaf;
+	const bspLeaf_t*    			currLeaf;
 
-	float               deltaTime;
+	double							frameTime;
 
-	double				frameTime;
+	bool							alwaysWriteDepth;
 
-	float				targetFPS;
+	bool							allowFaceCulling;
 
-	bool				alwaysWriteDepth;
+	// true -> 
+	bool 							skyLinearFilter;	
 
-	bool				allowFaceCulling;
+	viewMode_t						curView;
 
-	std::unique_ptr< InputCamera > camera;
-
-	viewMode_t		curView;
+	Q3BspMap& 						map;
 
 	// -------------------------------
 	// Rendering
@@ -353,7 +355,7 @@ public:
 
 	void				Prep( void );
 
-	void				Load( renderPayload_t& payload ) override;
+	void				Load( renderPayload_t& payload );
 
 	void				LoadVertexData( void );
 
@@ -361,10 +363,7 @@ public:
 	// Frame
 	// -------------------------------
 
-
 	void				Render( void );
-
-	void				Update( float dt );
 
 	float				CalcFPS( void ) const { return 1.0f / ( float )frameTime; }
 
@@ -377,8 +376,11 @@ public:
 	uint32_t			GetPassLayoutFlags( passType_t type );
 
 
-						BSPRenderer( float viewWidth, float viewHeight,
-						 Q3BspMap& map );
+						BSPRenderer( 
+							float viewWidth, 
+							float viewHeight,
+							Q3BspMap& map 
+						);
 
 						~BSPRenderer( void );
 

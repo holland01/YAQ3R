@@ -438,8 +438,8 @@ std::unordered_map< std::string, stageEvalFunc_t > gStageReadFuncs =
 				float s = StrReadFloat( buffer );
 				float t = StrReadFloat( buffer );
 
-				if ( s != 0.0f ) s = 1.0f / s;
-				if ( t != 0.0f ) t = 1.0f / t;
+			//	if ( s != 0.0f ) s = 1.0f / s;
+			//	if ( t != 0.0f ) t = 1.0f / t;
 
 				op.data.scale2D[ 0 ][ 0 ] = s;
 				op.data.scale2D[ 0 ][ 1 ] = 0.0f;
