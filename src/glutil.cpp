@@ -461,7 +461,7 @@ void Program::GenData( const std::vector< std::string >& uniforms,
 
 void Program::LoadDefaultAttribProfiles( void ) const
 {
-	DisableAllAttribs();
+	//DisableAllAttribs();
 
 	for ( const auto& attrib: attribs )
 	{

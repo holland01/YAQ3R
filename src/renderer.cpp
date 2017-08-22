@@ -538,6 +538,8 @@ void BSPRenderer::DrawMapPass(
 	// activate texture slot 0 and unbind its currently bound texture.
 	textures[ TEXTURE_ATLAS_MAIN ]->release_from_active_slot( 0 );
 	textures[ TEXTURE_ATLAS_LIGHTMAPS ]->release_from_active_slot( 1 );
+
+	main.DisableDefaultAttribProfiles();
 }
 
 void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
@@ -693,6 +695,11 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		stageProg.Release();
 
 		( *atlas )->release_from_active_slot( 0 );
+
+		if ( !stage.deferAttribLayoutLoad )
+		{
+			stageProg.DisableDefaultAttribProfiles();
+		}
 	}
 
 	// No need to change state here unless there's the possibility
