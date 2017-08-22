@@ -665,6 +665,7 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 		for ( size_t i = 0; i < afterInsert->stageBuffer.size(); ++i )
 		{
 			afterInsert->stageBuffer[ i ].translate.y = -( ( float ) i );
+			afterInsert->stageBuffer[ i ].deferAttribLayoutLoad = true;
 		}
 	}
 }
