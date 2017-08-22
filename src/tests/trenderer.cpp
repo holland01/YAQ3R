@@ -142,6 +142,8 @@ bool TRenderer::OnInputEvent( SDL_Event* e )
 
 static void IsolatedTestFinish( void* param )
 {
+	UNUSED( param );
+
 	TRendererIsolatedTest* app = static_cast< TRendererIsolatedTest* >( gAppTest );
 
 	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT ) );

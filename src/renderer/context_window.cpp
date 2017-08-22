@@ -5,6 +5,19 @@
 
 extern "C" {
 
+static std::string PrecisionFormatString( GLenum which )
+{
+	std::array< GLint, 2 > range;
+	GLint precision;
+	GL_CHECK( glGetShaderPrecisionFormat( GL_FRAGMENT_SHADER, which, &range[ 0 ], &precision ) );
+
+	std::stringstream ss;
+
+	ss << "( min, max, precision ) = " << "( " << range[ 0 ] << ", " << range[ 1 ] << ", " << precision << " )";
+
+	return ss.str();
+}
+
 void GPrintContextInfo( void )
 {
 	int depthSize;
@@ -22,9 +35,13 @@ void GPrintContextInfo( void )
 		<< "\tRed: " << redSize << "\n"
 		<< "\tGreen: " << greenSize << "\n"
 		<< "\tBlue: " << blueSize << "\n"
-		<< "\tAlpha: " << alphaSize << "\n";
+		<< "\tAlpha: " << alphaSize << "\n"
+		<< "Fragment shader precisions" << "\n"
+		<< "\tLow: " << PrecisionFormatString( GL_LOW_FLOAT ) << "\n"
+		<< "\tMedium: " << PrecisionFormatString( GL_MEDIUM_FLOAT ) << "\n"
+		<< "\tHigh: " << PrecisionFormatString( GL_HIGH_FLOAT ) << "\n";
 
-	MLOG_INFO( "OpenGL Context Info, %s", out.str().c_str() );
+	MLOG_INFO_ONCE( "OpenGL Context Info, %s", out.str().c_str() );
 }
 
 bool GInitContextWindow( const char* title,

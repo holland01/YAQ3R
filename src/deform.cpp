@@ -225,6 +225,9 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 			glm::sin( theta ) * glm::cos( phi ) * 0.5f + 0.5f
 		};
 
+		tex.s = glm::max( 0.0f, ( ( tex.s * 256.0f ) - 1.1f ) / 256.0f );
+		tex.t = glm::max( 0.0f, ( ( tex.t * 256.0f ) - 1.1f ) / 256.0f );
+
 		return {
 			{
 				radius * glm::cos( theta ) * glm::cos( phi ),

@@ -271,6 +271,9 @@ public:
 
 	bool							allowFaceCulling;
 
+	// true -> 
+	bool 							skyLinearFilter;	
+
 	viewMode_t						curView;
 
 	Q3BspMap& 						map;

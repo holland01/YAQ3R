@@ -162,6 +162,14 @@ static INLINE void DrawElementBuffer( GLuint ibo, size_t numIndices )
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 }
 
+static INLINE void SetTex2DMinMagFilters( GLenum min, GLenum mag )
+{
+	GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+		min ) );
+	GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+		mag ) );
+}
+
 struct attribProfile_t
 {
 	std::string id;

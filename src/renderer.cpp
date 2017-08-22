@@ -205,6 +205,7 @@ BSPRenderer::BSPRenderer( float viewWidth, float viewHeight, Q3BspMap& map_ )
 		frameTime( 0.0f ),
 		alwaysWriteDepth( false ),
 		allowFaceCulling( true ),
+		skyLinearFilter( false ),
 		curView( VIEW_MAIN ),
 		map( map_ )
 {
@@ -649,7 +650,6 @@ void BSPRenderer::DrawEffectPass( const drawTuple_t& data, drawCall_t callback )
 		if ( texIndex < 0 )
 		{
 			MLOG_INFO_ONCE( "Zero Found for %s:[%i]%s", &shader->name[ 0 ], i, &stage.texturePath[ 0 ] );
-		//	return;
 		}
 
 		BindTexture(
@@ -744,6 +744,15 @@ void BSPRenderer::DrawSkyPass( void )
 	) -> void
 	{
 		UNUSED( stage );
+
+		if ( skyLinearFilter )
+		{
+			SetTex2DMinMagFilters( GL_LINEAR, GL_LINEAR );
+		}
+		else
+		{
+			SetTex2DMinMagFilters( GL_NEAREST, GL_NEAREST );
+		}
 
 		GLint cull;
 		GL_CHECK( glGetIntegerv( GL_FRONT_FACE, &cull ) );
