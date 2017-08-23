@@ -3,12 +3,8 @@
 #include "em_api.h"
 #include "extern/gl_atlas.h"
 
-static void OnMapFinish( void* param )
-{	
-	UNUSED( param );
-
-	TRenderer* app = static_cast< TRenderer* >( gAppTest );
-
+static void LoadBspMap( TRenderer* app )
+{
 	app->renderer.reset( new BSPRenderer(
 		static_cast< float >( app->base.width ), 
 		static_cast< float >( app->base.height ),
@@ -19,14 +15,19 @@ static void OnMapFinish( void* param )
 	app->renderer->Load( *( app->map->payload ) );
 
 	app->map->payload.reset();
-	app->camPtr = app->renderer->camera.get();
 
 	app->renderer->targetFPS = app->GetTargetFPS();
+}
 
-	MLOG_INFO(
-		"Program Handle: %u",
-		app->renderer->debugRender->GetProgram()->GetHandle() 
-	);
+static void OnMapFinish( void* param )
+{	
+	UNUSED( param );
+
+	TRenderer* app = static_cast< TRenderer* >( gAppTest );
+
+	LoadBspMap( app );
+	
+	app->camPtr = app->renderer->camera.get();
 
 	app->Exec();
 }
@@ -146,18 +147,21 @@ static void IsolatedTestFinish( void* param )
 
 	TRendererIsolatedTest* app = static_cast< TRendererIsolatedTest* >( gAppTest );
 
+//	LoadBspMap( app );
+
 	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT ) );
 	app->isolatedRenderer->targetFPS = app->GetTargetFPS();
 
-	app->camPtr = app->isolatedRenderer->camera.get();
+	app->Load_Quad();
 
-	gDeformCache.InitSkyData( 512 );
+	app->camPtr = app->isolatedRenderer->camera.get();
+	app->camPtr->SetViewOrigin( glm::zero< glm::vec3 >() );
 
 	app->Exec();
 }
 
 TRendererIsolatedTest::TRendererIsolatedTest( void )
-	: 	TRenderer( IsolatedTestFinish ),
+	: 	TRenderer( ASSET_Q3_ROOT"/maps/q3dm13.bsp", IsolatedTestFinish ),
 		isolatedRenderer( nullptr )
 {
 }
@@ -165,12 +169,92 @@ TRendererIsolatedTest::TRendererIsolatedTest( void )
 TRendererIsolatedTest::~TRendererIsolatedTest( void )
 {}
 
-void TRendererIsolatedTest::Run( void )
+void TRendererIsolatedTest::Load_Quad( void )
 {
-	LogPeriodically();
+	auto LMakeVertex = [ ]( const glm::vec3& position, const glm::vec2& st, const glm::u8vec4& color ) -> bspVertex_t
+	{
+		return {
+			{ 
+				position
+			},
+			{
+				st, st
+			},
+			{
+				0.0f, 0.0f, 0.0f
+			},
+			color
+		};
+	};
 
-	isolatedRenderer->Update( deltaTime );
+	std::vector< bspVertex_t > quadVerts( 4 );
 
+	float size = 10.0f;
+
+	quadVerts[ 0 ] = LMakeVertex( { size, -size, 0.0f }, { 1.0f, 0.0f }, { 255, 0, 0, 255 } );
+	quadVerts[ 1 ] = LMakeVertex( { size, size, 0.0f }, { 1.0f, 1.0f }, { 255, 255, 0, 255 } );
+	quadVerts[ 2 ] = LMakeVertex( { -size, -size, 0.0f }, { 0.0f, 0.0f }, { 0, 0, 255, 255 } );
+	quadVerts[ 3 ] = LMakeVertex( { -size, size, 0.0f }, { 0.0f, 1.0f }, { 255, 0, 255, 255 } );
+
+	isolatedRenderer->apiHandles[ 0 ] = GenBufferObject( GL_ARRAY_BUFFER, quadVerts, GL_STATIC_DRAW );
+}
+
+void TRendererIsolatedTest::Run_QuadBsp( void )
+{
+
+	BSPRenderer::drawTuple_t data = std::make_tuple( 
+		&gDeformCache, 
+		gDeformCache.skyShader,
+		-1,
+		-1,
+		map->IsTransparentShader( gDeformCache.skyShader )
+	);
+
+	auto LDrawCallback = [ this ]( 
+		const void* voidDeformCache, 
+		const Program& program, 
+		const shaderStage_t* stage 
+	) -> void
+	{
+		MLOG_INFO_ONCE( "Stage Info:\n%s", stage->GetInfoString().c_str() );
+
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, isolatedRenderer->apiHandles[ 0 ] ) );
+		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
+
+		program.LoadDefaultAttribProfiles();
+
+		GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
+
+		program.DisableDefaultAttribProfiles();
+
+		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, renderer->apiHandles[ 0 ] ) );
+		GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, renderer->apiHandles[ 1 ] ) );
+	};
+
+	renderer->DrawEffectPass( data, LDrawCallback );
+}
+
+void TRendererIsolatedTest::Run_Quad( void )
+{
+	const viewParams_t& view = camPtr->ViewData();
+
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, isolatedRenderer->apiHandles[ 0 ] ) );
+
+	const Program* program = isolatedRenderer->debugRender->GetProgram( "textured" );
+
+	program->LoadInt( "sample0", 0 );
+	program->LoadMat4( "modelToCamera", view.transform );
+	program->LoadMat4( "cameraToClip", view.clipTransform );
+
+	program->LoadDefaultAttribProfiles();
+	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
+	program->DisableDefaultAttribProfiles();
+	
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+}
+
+void TRendererIsolatedTest::Run_Skybox( void )
+{
 	const viewParams_t& view = camPtr->ViewData();
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, gDeformCache.skyVbo ) );
@@ -189,4 +273,18 @@ void TRendererIsolatedTest::Run( void )
 	GL_CHECK( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 ) );
 
 	isolatedRenderer->debugRender->GetProgram()->Release();
+}
+
+void TRendererIsolatedTest::Load( void )
+{
+	TRenderer::Load();
+}
+
+void TRendererIsolatedTest::Run( void )
+{
+	LogPeriodically();
+
+	renderer->Update( deltaTime );
+
+	Run_Quad();
 }

@@ -58,6 +58,8 @@ public:
 	void 		 	UpdateTime( void );
 
 	virtual float 	GetDesiredFPS( void ) const { return TEST_FPS_UNDEFINED; }
+
+	GLuint 			MakeRGBATexture( uint8_t* data, GLsizei width, GLsizei height );
 };
 
 class IOTest

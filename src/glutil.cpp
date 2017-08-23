@@ -620,49 +620,50 @@ loadBlend_t::~loadBlend_t( void )
 ImmDebugDraw::ImmDebugDraw( void )
 	: 	vbo( MakeGenericBufferObject() ),
 		previousSize( 0 ),
-		isset( false ),
-		shaderProgram( 
-			new Program(
-				std::string( GLSL_INLINE(					// vertex
-					attribute vec3 position;
-					attribute vec4 color;
-
-					uniform mat4 modelToCamera;
-					uniform mat4 cameraToClip;
-
-					varying vec4 frag_Color;
-
-					void main()
-					{
-						gl_Position = cameraToClip * modelToCamera * vec4( position, 1.0 );
-						gl_PointSize = 10.0;
-						frag_Color = color;
-					}
-				) ),
-				std::string( GLSL_INLINE(					// fragment
-					precision mediump float;
-					varying vec4 frag_Color;
-
-					void main()
-					{
-						gl_FragColor = frag_Color;
-					}
-				) ),
-				{
-					"modelToCamera",
-					"cameraToClip"
-				},
-				{
-					"position",
-					"color"
-				}
-			)
-		)
+		isset( false )
 {
-	shaderProgram->AddAltAttribProfile( 
+	std::unique_ptr< Program > defaultProgram( 
+		new Program(
+			std::string( GLSL_INLINE(					// vertex
+				attribute vec3 position;
+				attribute vec4 color;
+
+				uniform mat4 modelToCamera;
+				uniform mat4 cameraToClip;
+
+				varying vec4 frag_Color;
+
+				void main()
+				{
+					gl_Position = cameraToClip * modelToCamera * vec4( position, 1.0 );
+					gl_PointSize = 10.0;
+					frag_Color = color;
+				}
+			) ),
+			std::string( GLSL_INLINE(					// fragment
+				precision mediump float;
+				varying vec4 frag_Color;
+
+				void main()
+				{
+					gl_FragColor = frag_Color;
+				}
+			) ),
+			{
+				"modelToCamera",
+				"cameraToClip"
+			},
+			{
+				"position",
+				"color"
+			}
+		)
+	);
+
+	defaultProgram->AddAltAttribProfile( 
 		{ 
 			"position", 
-			( GLuint ) shaderProgram->attribs[ "position" ], 
+			( GLuint ) defaultProgram->attribs[ "position" ], 
 			3,
 			GL_FLOAT,
 			GL_FALSE,
@@ -671,10 +672,10 @@ ImmDebugDraw::ImmDebugDraw( void )
 		}
 	);
 
-	shaderProgram->AddAltAttribProfile(
+	defaultProgram->AddAltAttribProfile(
 		{
 			"color",
-			( GLuint ) shaderProgram->attribs[ "color" ],
+			( GLuint ) defaultProgram->attribs[ "color" ],
 			4,
 			GL_UNSIGNED_BYTE,
 			GL_TRUE,
@@ -682,6 +683,51 @@ ImmDebugDraw::ImmDebugDraw( void )
 			offsetof( immDebugVertex_t, color )	
 		}
 	);
+
+	shaderPrograms[ "default" ] = std::move( defaultProgram );
+
+	std::unique_ptr< Program > textured( 
+		new Program(
+			std::string( GLSL_INLINE(					// vertex
+				attribute vec3 position;
+				attribute vec2 tex0;
+
+				uniform mat4 modelToCamera;
+				uniform mat4 cameraToClip;
+
+				varying vec2 frag_Tex;
+
+				void main()
+				{
+					gl_Position = cameraToClip * modelToCamera * vec4( position, 1.0 );
+					gl_PointSize = 10.0;
+					frag_Tex = tex0;
+				}
+			) ),
+			std::string( GLSL_INLINE(					// fragment
+				precision highp float;
+				varying vec2 frag_Tex;
+
+				uniform sampler2D sampler0;
+
+				void main()
+				{
+					gl_FragColor = texture2D( sampler0, frag_Tex );
+				}
+			) ),
+			{
+				"modelToCamera",
+				"cameraToClip",
+				"sampler0"
+			},
+			{
+				"position",
+				"tex0"
+			}
+		)
+	);
+
+	shaderPrograms[ "textured" ] = std::move( textured );
 }
 	
 ImmDebugDraw::~ImmDebugDraw( void )
@@ -743,16 +789,18 @@ void ImmDebugDraw::End( GLenum mode, const glm::mat4& projection, const glm::mat
 		}
 	}
 
-	shaderProgram->LoadAltAttribProfiles();
+	const Program* defaultProgram = GetProgram();
 
-	shaderProgram->LoadMat4( "cameraToClip", projection );
-	shaderProgram->LoadMat4( "modelToCamera", modelView );
+	defaultProgram->LoadAltAttribProfiles();
 
-	shaderProgram->Bind();
+	defaultProgram->LoadMat4( "cameraToClip", projection );
+	defaultProgram->LoadMat4( "modelToCamera", modelView );
+
+	defaultProgram->Bind();
 	GL_CHECK( glDrawArrays( mode, 0, vertices.size() ) );
-	shaderProgram->Release();
+	defaultProgram->Release();
 
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, ( GLuint ) lastVbo ) );
 
-	shaderProgram->DisableAltAttribProfiles();
+	defaultProgram->DisableAltAttribProfiles();
 }

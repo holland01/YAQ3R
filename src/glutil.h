@@ -466,7 +466,7 @@ class ImmDebugDraw
 	
 	std::vector< immDebugVertex_t > vertices;
 
-	std::unique_ptr< Program > shaderProgram;
+	std::unordered_map< std::string, std::unique_ptr< Program > > shaderPrograms;
 
 	void Finalize( bool setIsset = true );
 
@@ -475,7 +475,7 @@ public:
 
 	~ImmDebugDraw( void );
 
-	const Program* GetProgram( void ) const { return shaderProgram.get(); }
+	const Program* GetProgram( const std::string& which = "default" ) const { return shaderPrograms.at( which ).get(); }
 
 	void Begin( void );
 
