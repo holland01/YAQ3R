@@ -36,12 +36,12 @@ static void ScaleCoords( glm::ivec3& v, int scale )
 	v.z *= scale;
 }
 
-static bool TestShaderFlags( 
-	const shaderInfo_t * scriptShader, 
+static bool TestShaderFlags(
+	const shaderInfo_t * scriptShader,
 	const mapData_t & data,
-	surfaceParm_t surfFlags, 
-	int contentsFlags, 
-	int surfaceFlags 
+	surfaceParm_t surfFlags,
+	int contentsFlags,
+	int surfaceFlags
 )
 {
 	if ( !scriptShader )
@@ -282,11 +282,11 @@ static INLINE void TestMaxMin( glm::vec3& destMax, glm::vec3& destMin, glm::vec3
 	if ( destMin.y > point.y ) destMin.y = point.y;
 	if ( destMin.z > point.z ) destMin.z = point.z;
 
-//	MLOG_INFO( 
+//	MLOG_INFO(
 //		"maxPoint Found: %s\n"
 //		"minPoint Found: %s",
 //		glm::to_string( destMax ).c_str(),
-//		glm::to_string( destMin ).c_str() 
+//		glm::to_string( destMin ).c_str()
 //	);
 }
 
@@ -332,7 +332,7 @@ static void MapReadFin( Q3BspMap* map )
 	for ( size_t i = 0; i < map->data.planes.size(); ++i )
 	{
 		map->data.planes[ i ].distance *= map->GetScaleFactor();
-		
+
 		ScaleCoords( map->data.planes[ i ].normal,
 			( float ) map->GetScaleFactor() );
 
@@ -402,7 +402,7 @@ static void MapReadFin( Q3BspMap* map )
 
 	for ( size_t i = 0; i < map->data.shaders.size(); ++i )
 	{
-		//MLOG_INFO_ONCE( "[%i] %s. Content: 0x%x, Surface: 0x%x", 
+		//MLOG_INFO_ONCE( "[%i] %s. Content: 0x%x, Surface: 0x%x",
 		//	i, &map->data.shaders[ i ].name[ 0 ], map->data.shaders[ i ].contentsFlags,
 		//	map->data.shaders[ i ].surfaceFlags );
 
@@ -411,11 +411,11 @@ static void MapReadFin( Q3BspMap* map )
 
 	gDeformCache.skyHeightOffset = maxPoint.y;
 
-	MLOG_INFO( 
+	MLOG_INFO(
 		"maxPoint Found: %s\n"
 		"minPoint Found: %s",
 		glm::to_string( maxPoint ).c_str(),
-		glm::to_string( minPoint ).c_str() 
+		glm::to_string( minPoint ).c_str()
 	);
 
 	gFileWebWorker.Await(
@@ -610,7 +610,12 @@ Q3BspMap::Q3BspMap( void )
 	 	defaultShaderIndex( INDEX_UNDEFINED ),
 		mapAllocated( false ),
 		payload( nullptr ),
-		readFinishEvent( nullptr )
+		readFinishEvent( nullptr ),
+		debugTexturePaths(
+			{
+				"textures/skies/killsky_1.tga"
+			}
+		)
 {
 	ZeroData();
 }
@@ -632,8 +637,8 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 	shaderInfo_t* afterInsert = &effectShaders[ key ];
 
 	// Default sort is opaque; if no sort param was specified,
-	// double check for any telling attributes which indicate we need to 
-	// switch to the default transparent sort. 
+	// double check for any telling attributes which indicate we need to
+	// switch to the default transparent sort.
 	bool transparent = IsTransparentShader( afterInsert );
 
 	if ( afterInsert->sort == BSP_SHADER_SORT_OPAQUE && transparent )
@@ -671,7 +676,7 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 }
 
 void Q3BspMap::OnShaderReadFinish( void )
-{	
+{
 	// Add a default fallback shader, since there exist many faces which don't have one assigned.
 	{
 		shaderInfo_t noshader;
@@ -679,7 +684,7 @@ void Q3BspMap::OnShaderReadFinish( void )
 		// ctor prefills name with zeros
 		strcpy( &noshader.name[ 0 ], Q3BSPMAP_DEFAULT_SHADER_NAME );
 
-		// will find and assign appropriate indices if we have an entry: 
+		// will find and assign appropriate indices if we have an entry:
 		// we can possibly benefit from content and surface flags.
 		IsShaderUsed( &noshader );
 
@@ -697,7 +702,7 @@ void Q3BspMap::OnShaderReadFinish( void )
 	printf( "opaqueShaderList Size: %u, transparentShaderList Size: %u\n", opaqueShaderList.size(),
 		transparentShaderList.size() );
 
-	// Assign indices so we have quick lookup 
+	// Assign indices so we have quick lookup
 	// when traversing the BSP
 	for ( auto& shaderEntry: effectShaders )
 	{
@@ -706,8 +711,8 @@ void Q3BspMap::OnShaderReadFinish( void )
 
 		for ( int i = 0; i < ( int ) list.size(); ++i )
 		{
-			if ( strncmp( &list[ i ]->name[ 0 ], 
-					&shaderEntry.second.name[ 0 ], 
+			if ( strncmp( &list[ i ]->name[ 0 ],
+					&shaderEntry.second.name[ 0 ],
 					BSP_MAX_SHADER_TOKEN_LENGTH ) == 0 )
 			{
 				shaderEntry.second.sortListIndex = i;
@@ -722,6 +727,21 @@ void Q3BspMap::OnShaderReadFinish( void )
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
+{
+	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
+	Q3BspMap& map = *( ( *imageTracker )->map );
+
+	if ( !map.debugTexturePaths.empty() )
+	{
+		GU_LoadDebugTextures( map );
+	}
+	else
+	{
+		GU_LoadMainTextures( map );
+	}
+}
+
+void Q3BspMap::OnDebugLoadImagesFinish( void* param )
 {
 	gImageLoadTrackerPtr_t* imageTracker = ( gImageLoadTrackerPtr_t* ) param;
 	Q3BspMap& map = *( ( *imageTracker )->map );
@@ -814,7 +834,7 @@ void Q3BspMap::MakeStagePathList( pathLinkNode_t* node )
 	}
 }
 
-std::vector< gPathMap_t > Q3BspMap::GetShaderSourcesList( void ) 
+std::vector< gPathMap_t > Q3BspMap::GetShaderSourcesList( void )
 {
 	std::vector< gPathMap_t > sources;
 
@@ -1022,30 +1042,30 @@ bool Q3BspMap::IsDefaultShader( const shaderInfo_t* info ) const
 
 bool Q3BspMap::IsShaderUsed( shaderInfo_t* outInfo ) const
 {
-	if ( outInfo->mapFogIndex != INDEX_UNDEFINED 
+	if ( outInfo->mapFogIndex != INDEX_UNDEFINED
 		|| outInfo->mapShaderIndex != INDEX_UNDEFINED )
 	{
 		return true;
 	}
 
-	Q3Bsp_MatchShaderInfoFromName< bspShader_t >( data.shaders, &outInfo->name[ 0 ], 
+	Q3Bsp_MatchShaderInfoFromName< bspShader_t >( data.shaders, &outInfo->name[ 0 ],
 		outInfo->mapShaderIndex );
 
-	//Q3Bsp_MatchShaderInfoFromName< bspFog_t >( data.fogs, &outInfo->name[ 0 ], 
+	//Q3Bsp_MatchShaderInfoFromName< bspFog_t >( data.fogs, &outInfo->name[ 0 ],
 	//	outInfo->mapFogIndex );
 
-	return outInfo->mapFogIndex != INDEX_UNDEFINED 
+	return outInfo->mapFogIndex != INDEX_UNDEFINED
 		|| outInfo->mapShaderIndex != INDEX_UNDEFINED;
 }
 
 bool Q3BspMap::IsSkyShader( const shaderInfo_t* scriptShader ) const
 {
-	return TestShaderFlags( 
-		scriptShader, 
-		data, 
+	return TestShaderFlags(
+		scriptShader,
+		data,
 		SURFPARM_SKY,
-		0, 
-		BSP_SURFACE_SKY 
+		0,
+		BSP_SURFACE_SKY
 	);
 }
 
@@ -1059,12 +1079,12 @@ bool Q3BspMap::IsMapOnlyShader( const std::string& shaderPath ) const
 
 bool Q3BspMap::IsTransparentShader( const shaderInfo_t* scriptShader ) const
 {
-	if ( TestShaderFlags( 
-		scriptShader, 
-		data, 
+	if ( TestShaderFlags(
+		scriptShader,
+		data,
 		SURFPARM_TRANS | SURFPARM_WATER,
-		BSP_CONTENTS_TRANSLUCENT | BSP_CONTENTS_WATER | BSP_CONTENTS_FOG, 
-		0 
+		BSP_CONTENTS_TRANSLUCENT | BSP_CONTENTS_WATER | BSP_CONTENTS_FOG,
+		0
 	) )
 	{
 		return true;
@@ -1077,7 +1097,7 @@ bool Q3BspMap::IsTransparentShader( const shaderInfo_t* scriptShader ) const
 		case BSP_SHADER_SORT_ADDITIVE:
 		case BSP_SHADER_SORT_NEAREST:
 			return true;
-		
+
 		default:
 			return false;
 			break;
@@ -1086,12 +1106,12 @@ bool Q3BspMap::IsTransparentShader( const shaderInfo_t* scriptShader ) const
 
 bool Q3BspMap::IsNoDrawShader( const shaderInfo_t * scriptShader ) const
 {
-	return TestShaderFlags( 
-		scriptShader, 
-		data, 
+	return TestShaderFlags(
+		scriptShader,
+		data,
 		SURFPARM_NO_DRAW,
-		0, 
-		BSP_SURFACE_NODRAW 
+		0,
+		BSP_SURFACE_NODRAW
 	);
 }
 
