@@ -147,7 +147,7 @@ static void IsolatedTestFinish( void* param )
 
 	TRendererIsolatedTest* app = static_cast< TRendererIsolatedTest* >( gAppTest );
 
-//	LoadBspMap( app );
+	LoadBspMap( app );
 
 	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT ) );
 	app->isolatedRenderer->targetFPS = app->GetTargetFPS();
@@ -162,6 +162,7 @@ static void IsolatedTestFinish( void* param )
 
 TRendererIsolatedTest::TRendererIsolatedTest( void )
 	: 	TRenderer( ASSET_Q3_ROOT"/maps/q3dm13.bsp", IsolatedTestFinish ),
+		texture( 0 ),
 		isolatedRenderer( nullptr )
 {
 }
@@ -199,23 +200,25 @@ void TRendererIsolatedTest::Load_Quad( void )
 	isolatedRenderer->apiHandles[ 0 ] = GenBufferObject( GL_ARRAY_BUFFER, quadVerts, GL_STATIC_DRAW );
 }
 
-void TRendererIsolatedTest::Run_QuadBsp( void )
+void TRendererIsolatedTest::Run_QuadBspEffect( void )
 {
-
-	BSPRenderer::drawTuple_t data = std::make_tuple( 
-		&gDeformCache, 
+	BSPRenderer::drawTuple_t data = std::make_tuple(
+		&gDeformCache,
 		gDeformCache.skyShader,
 		-1,
 		-1,
 		map->IsTransparentShader( gDeformCache.skyShader )
 	);
 
-	auto LDrawCallback = [ this ]( 
-		const void* voidDeformCache, 
-		const Program& program, 
-		const shaderStage_t* stage 
+	auto LDrawCallback = [ this ](
+		const void* param,
+		const Program& program,
+		const shaderStage_t* stage
 	) -> void
 	{
+		UNUSED( param );
+		UNUSED( stage );
+
 		MLOG_INFO_ONCE( "Stage Info:\n%s", stage->GetInfoString().c_str() );
 
 		GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, isolatedRenderer->apiHandles[ 0 ] ) );
@@ -234,23 +237,42 @@ void TRendererIsolatedTest::Run_QuadBsp( void )
 	renderer->DrawEffectPass( data, LDrawCallback );
 }
 
+void TRendererIsolatedTest::Run_QuadBsp( void )
+{
+	Run_Quad();
+}
+
 void TRendererIsolatedTest::Run_Quad( void )
 {
 	const viewParams_t& view = camPtr->ViewData();
 
-	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, isolatedRenderer->apiHandles[ 0 ] ) );
+	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER,
+		isolatedRenderer->apiHandles[ 0 ] ) );
 
-	const Program* program = isolatedRenderer->debugRender->GetProgram( "textured" );
+	const Program* program =
+		isolatedRenderer->debugRender->GetProgram( "textured" );
+
+	gla::atlas_t* atlas = renderer->textures[ TEXTURE_ATLAS_DEBUG ].get();
+	size_t index = atlas->key_image( 0 );
+	gla::atlas_image_info_t info = atlas->image_info( index );
+
+	atlas->bind_to_active_slot( info.layer, 0 );
 
 	program->LoadInt( "sample0", 0 );
 	program->LoadMat4( "modelToCamera", view.transform );
 	program->LoadMat4( "cameraToClip", view.clipTransform );
 
+	program->Bind();
+
 	program->LoadDefaultAttribProfiles();
 	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
 	program->DisableDefaultAttribProfiles();
-	
+
+	program->Release();
+
 	GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+
+	atlas->release_from_active_slot( 0 );
 }
 
 void TRendererIsolatedTest::Run_Skybox( void )

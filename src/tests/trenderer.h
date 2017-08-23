@@ -44,6 +44,8 @@ public:
 
 	void Load_Quad( void );
 
+	void Run_QuadBspEffect( void );
+
 	void Run_QuadBsp( void );
 
 	void Run_Quad( void );

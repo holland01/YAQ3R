@@ -196,7 +196,3 @@ bool Test::OnInputEvent( SDL_Event* e )
 
 	return true;
 }
-
-GLuint Test::MakeRGBATexture( uint8_t* data, GLsizei width, GLsizei height )
-{
-}

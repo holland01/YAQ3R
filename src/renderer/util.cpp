@@ -220,7 +220,8 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 static void LoadImageState(
 	Q3BspMap& map,
 	std::vector< gPathMap_t >& sources,
-	int atlas )
+	int atlas
+)
 {
 	gImageLoadState.map = &map;
 	gImageLoadState.head = BundleImagePaths( sources );
