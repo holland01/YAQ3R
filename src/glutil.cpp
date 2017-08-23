@@ -580,6 +580,26 @@ void Program::Release( void ) const
 	floats.clear();
 }
 
+std::string Program::GetInfoString( void ) const
+{
+	std::stringstream ss;
+
+	ss << "Attributes {" << "\n";
+	for ( auto& attrib: attribs )
+	{
+		ss << "\t" << attrib.first << ": " << attrib.second << ",\n";
+	}
+
+	ss << "}, Uniforms {" << "\n";
+	for ( auto& unif: uniforms )
+	{
+		ss << "\t" << unif.first << ": " << unif.second << ",\n";
+	}
+	ss << "}\n";
+
+	return ss.str();
+}
+
 //-------------------------------------------------------------------------------------------------
 
 loadBlend_t::loadBlend_t( GLenum srcFactor, GLenum dstFactor )

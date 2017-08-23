@@ -295,6 +295,8 @@ public:
 
 	static std::vector< std::string > ArrayLocationNames(
 		const std::string& name, int32_t length );
+
+	std::string GetInfoString( void ) const;
 };
 
 INLINE void Program::AddUnif( const std::string& name )
