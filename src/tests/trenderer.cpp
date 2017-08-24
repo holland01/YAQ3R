@@ -6,7 +6,7 @@
 static void LoadBspMap( TRenderer* app )
 {
 	app->renderer.reset( new BSPRenderer(
-		static_cast< float >( app->base.width ), 
+		static_cast< float >( app->base.width ),
 		static_cast< float >( app->base.height ),
 		*( app->map.get() ) )
 	);
@@ -20,13 +20,13 @@ static void LoadBspMap( TRenderer* app )
 }
 
 static void OnMapFinish( void* param )
-{	
+{
 	UNUSED( param );
 
 	TRenderer* app = static_cast< TRenderer* >( gAppTest );
 
 	LoadBspMap( app );
-	
+
 	app->camPtr = app->renderer->camera.get();
 
 	app->Exec();
@@ -57,10 +57,10 @@ void TRenderer::LogPeriodically( void ) const
 {
 	if ( O_IntervalLogHit() )
 	{
-		printf( 
-			"Origin: %s, FPS: %f\n", 
-			glm::to_string( camPtr->ViewData().origin ).c_str(), 
-			1.0f / deltaTime 
+		printf(
+			"Origin: %s, FPS: %f\n",
+			glm::to_string( camPtr->ViewData().origin ).c_str(),
+			1.0f / deltaTime
 		);
 	}
 
@@ -80,7 +80,7 @@ void TRenderer::Load( void )
 	if ( !Test::Load( "I am a floating camera" ) )
 	{
 		MLOG_ERROR(
-			"Could not initialize the necessary rendering prerequisites." 
+			"Could not initialize the necessary rendering prerequisites."
 		);
 		return;
 	}
@@ -119,12 +119,12 @@ bool TRenderer::OnInputEvent( SDL_Event* e )
 					break;
 				case SDLK_k:
 					renderer->alwaysWriteDepth = !renderer->alwaysWriteDepth;
-					printf( "BSPRenderer: alwaysWriteDepth = %s\n", 
+					printf( "BSPRenderer: alwaysWriteDepth = %s\n",
 						renderer->alwaysWriteDepth ? "true" : "false" );
 					break;
 				case SDLK_l:
 					renderer->allowFaceCulling = !renderer->allowFaceCulling;
-					printf( "BSPRenderer: allowFaceCulling = %s\n", 
+					printf( "BSPRenderer: allowFaceCulling = %s\n",
 						renderer->allowFaceCulling ? "true" : "false" );
 				break;
 				default:
@@ -149,18 +149,15 @@ static void IsolatedTestFinish( void* param )
 
 	LoadBspMap( app );
 
-	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT ) );
+	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH,
+		TEST_VIEW_HEIGHT ) );
 	app->isolatedRenderer->targetFPS = app->GetTargetFPS();
-
-	puts( "TEST 1" );
 
 	if ( app->renderer )
 	{
 		gla::gen_atlas_layers(
 			*( app->renderer->textures[ TEXTURE_ATLAS_DEBUG ] ) );
 	}
-
-	puts( "TEST 2" );
 
 	app->Load_Quad();
 
@@ -185,7 +182,7 @@ void TRendererIsolatedTest::Load_Quad( void )
 	auto LMakeVertex = [ ]( const glm::vec3& position, const glm::vec2& st, const glm::u8vec4& color ) -> bspVertex_t
 	{
 		return {
-			{ 
+			{
 				position
 			},
 			{
