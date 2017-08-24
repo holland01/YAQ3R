@@ -152,6 +152,16 @@ static void IsolatedTestFinish( void* param )
 	app->isolatedRenderer.reset( new RenderBase( TEST_VIEW_WIDTH, TEST_VIEW_HEIGHT ) );
 	app->isolatedRenderer->targetFPS = app->GetTargetFPS();
 
+	puts( "TEST 1" );
+
+	if ( app->renderer )
+	{
+		gla::gen_atlas_layers(
+			*( app->renderer->textures[ TEXTURE_ATLAS_DEBUG ] ) );
+	}
+
+	puts( "TEST 2" );
+
 	app->Load_Quad();
 
 	app->camPtr = app->isolatedRenderer->camera.get();
@@ -258,14 +268,16 @@ void TRendererIsolatedTest::Run_Quad( void )
 
 	atlas->bind_to_active_slot( info.layer, 0 );
 
-	program->LoadInt( "sample0", 0 );
+	program->LoadInt( "sampler0", 0 );
 	program->LoadMat4( "modelToCamera", view.transform );
 	program->LoadMat4( "cameraToClip", view.clipTransform );
 
 	program->Bind();
 
 	program->LoadDefaultAttribProfiles();
+
 	GL_CHECK( glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 ) );
+
 	program->DisableDefaultAttribProfiles();
 
 	program->Release();
@@ -306,7 +318,14 @@ void TRendererIsolatedTest::Run( void )
 {
 	LogPeriodically();
 
-	renderer->Update( deltaTime );
+	if ( renderer && camPtr == renderer->camera.get() )
+	{
+		renderer->Update( deltaTime );
+	}
+	else
+	{
+		camPtr->Update();
+	}
 
 	Run_Quad();
 }

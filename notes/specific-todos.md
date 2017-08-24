@@ -23,21 +23,33 @@ specific images so far.
 [feature/effect_shaders]
 Fix lava rising effect.
 
-[feature/effect_shaders]
+[bugfix/odd_texture_artifact]
 Make sure to test this on Linux/Windows. There's some odd artificats, notably with the cross texture and the scrolling which occurs 
 across the bridge. Rainbow/garbage decals are appearing. 
 
-This might be due to any of the following:
+using the atlas to store one of the cloud images and drawing that to a quad without any scaling/scrolling produces non-mucky results.
+Tested this against both killsky_1 and killsky_2. These were retrieved with the usual method of downloading them from the server
+and "streaming" them from the worker thread - so, it's unlikely that this method alone is what's causing corruption.
 
-- Corrupted bundles
-- driver error (unlikely)
-- missing rgbgen or alphagen-related GLSL code
-- bad param offset/index.
+look at steps for [bugfix/odd_texture_artifact_tmp] first...
 
-Maybe see if passing 1.0f in timeScalarSeconds eliminates this, to ensure nothing is getting sampled out of bounds. (the GLSL generated code should take this into account, but some resulting
-st coords may be too small to be of any actual use)
+then, for each of the sky images, apply both the scrolling and scaling operations to the fragment shader. Just hardcode these
+into the debug fragment shader manually. Be sure to test the scaling first, then the scrolling, then both in one order,
+then both in the reverse order.
 
-[RUNNING ON LINUX/WINDOWS]
+After that, move onto the cross texture and apply what tcmod functions are specified in its corresponding
+shader entry.
+
+[bugfix/odd_texture_artifact_tmp]
+Before the next step, you want to do the following:
+
+- stage the hunks which aren't just debug print statements: those are actually valuable and/or necessary
+- move back to bugfix/odd_texture_artifact
+- git merge -X theirs bugfix/odd_texture_artifact_tmp
+- git branch -d bugfix/odd_texture_artifact_tmp
+
+
+[RUNNING ON WINDOWS]
 Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when 
 switching over to Windows and Linux.
 

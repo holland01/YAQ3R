@@ -613,7 +613,7 @@ Q3BspMap::Q3BspMap( void )
 		readFinishEvent( nullptr ),
 		debugTexturePaths(
 			{
-				"textures/skies/killsky_1.tga"
+				"textures/skies/killsky_2.tga"
 			}
 		)
 {
