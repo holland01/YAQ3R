@@ -708,17 +708,24 @@ ImmDebugDraw::ImmDebugDraw( void )
 				precision highp float;
 				varying vec2 frag_Tex;
 
+				uniform float gamma;
 				uniform sampler2D sampler0;
 
 				void main()
 				{
-					gl_FragColor = texture2D( sampler0, frag_Tex );
+					vec2 st = frag_Tex;
+
+					vec4 gamma4 = vec4( 1.0 / clamp( gamma, 1.0, 2.2 ) );
+
+					gl_FragColor = pow( texture2D( sampler0, st ),
+						gamma4 );
 				}
 			) ),
 			{
 				"modelToCamera",
 				"cameraToClip",
-				"sampler0"
+				"sampler0",
+				"gamma"
 			},
 			{
 				"position",

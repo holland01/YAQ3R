@@ -833,7 +833,7 @@ namespace gla {
 			return;
 		}
 
-		//premultiply_alpha_channel_rgba(&image_data[0], image_data.size());
+		premultiply_alpha_channel_rgba(&image_data[0], image_data.size());
 
 		atlas.area_accum += dx * dy;
 

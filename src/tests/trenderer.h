@@ -26,9 +26,9 @@ public:
 
 	virtual void Load( void ) override;
 
-	bool 	OnInputEvent( SDL_Event* e ) override;
+	virtual bool OnInputEvent( SDL_Event* e ) override;
 
-	float 	GetTargetFPS( void ) const { return TEST_FPS_60; } // 60 FPS
+	float GetTargetFPS( void ) const { return TEST_FPS_60; } // 60 FPS
 };
 
 class TRendererIsolatedTest : public TRenderer
@@ -39,6 +39,8 @@ public:
 	~TRendererIsolatedTest( void );
 
 	GLuint texture;
+
+	float gammaPassThrough;
 
 	std::unique_ptr< RenderBase > isolatedRenderer;
 
@@ -55,4 +57,6 @@ public:
 	virtual void Load( void ) override;
 
 	void Run( void ) override;
+
+	bool OnInputEvent( SDL_Event* e ) override;
 };

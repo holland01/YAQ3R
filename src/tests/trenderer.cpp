@@ -170,6 +170,7 @@ static void IsolatedTestFinish( void* param )
 TRendererIsolatedTest::TRendererIsolatedTest( void )
 	: 	TRenderer( ASSET_Q3_ROOT"/maps/q3dm13.bsp", IsolatedTestFinish ),
 		texture( 0 ),
+		gammaPassThrough( 1.0f ),
 		isolatedRenderer( nullptr )
 {
 }
@@ -266,6 +267,7 @@ void TRendererIsolatedTest::Run_Quad( void )
 	atlas->bind_to_active_slot( info.layer, 0 );
 
 	program->LoadInt( "sampler0", 0 );
+	program->LoadFloat( "gamma", gammaPassThrough );
 	program->LoadMat4( "modelToCamera", view.transform );
 	program->LoadMat4( "cameraToClip", view.clipTransform );
 
@@ -325,4 +327,32 @@ void TRendererIsolatedTest::Run( void )
 	}
 
 	Run_Quad();
+}
+
+bool TRendererIsolatedTest::OnInputEvent( SDL_Event* e )
+{
+	bool ret = TRenderer::OnInputEvent( e );
+
+	switch ( e->type )
+	{
+		case SDL_KEYDOWN:
+			switch ( e->key.keysym.sym )
+			{
+				case SDLK_m:
+					gammaPassThrough += 0.1f;
+					gammaPassThrough = glm::clamp( gammaPassThrough,
+						1.0f, 2.2f );
+					printf( "Gamma: %f\n", gammaPassThrough );
+					break;
+				case SDLK_n:
+					gammaPassThrough -= 0.1f;
+					gammaPassThrough = glm::clamp( gammaPassThrough,
+						1.0f, 2.2f );
+					printf( "Gamma: %f\n", gammaPassThrough );
+					break;
+			}
+			break;
+	}
+
+	return ret;
 }
