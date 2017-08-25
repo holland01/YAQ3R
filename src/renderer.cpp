@@ -300,6 +300,7 @@ static void AddWhiteImage( gla_atlas_ptr_t& atlas )
 		BSP_LIGHTMAP_WIDTH,
 		BSP_LIGHTMAP_HEIGHT,
 		4,
+		0,
 		false
 	);
 }
@@ -328,14 +329,23 @@ void BSPRenderer::Load( renderPayload_t& payload )
 
 	// Iterate through lightmaps and generate corresponding
 	// texture data
+	size_t lightmapSize = BSP_LIGHTMAP_WIDTH * BSP_LIGHTMAP_HEIGHT * 3;
+
 	for ( bspLightmap_t& lightmap: map.data.lightmaps )
 	{
+		uint8_t* bytes = &lightmap.map[ 0 ][ 0 ][ 0 ];
+		for ( size_t i = 0; i < lightmapSize; i += 3 )
+		{
+			gla::brighten_rgb( &bytes[ i ] );
+ 		}
+
 		gla::push_atlas_image(
 			*( textures[ TEXTURE_ATLAS_LIGHTMAPS ] ),
-			&lightmap.map[ 0 ][ 0 ][ 0 ],
+			bytes,
 			BSP_LIGHTMAP_WIDTH,
 			BSP_LIGHTMAP_HEIGHT,
 			3,
+			GL_ATLAS_POST_PROCESS_RGBA_PREMUL_ALPHA,
 			false
 		);
 	}
