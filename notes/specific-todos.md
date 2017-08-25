@@ -24,17 +24,15 @@ specific images so far.
 Fix lava rising effect.
 
 [bugfix/odd_texture_artifact]
-The gamma correction is the source of the issue. With the killsky_2 image,
-using a gamma constant of 1.6 (as opposed to 2.2) allows for the image
-to be reasonably bright without embellishing the blue channel. It could be
-that these textures are already gamma correct in a sense, and the only real
-correction necessary involves lightmaps and vertex colors. So,
-any alpha/rgb gen flags specified for a shader stage involving a vertex
-color would decode the color first, then perform whatever operation,
-then multiply it against the corresponding texture as usual, but the texture
-wouldn't be decoded. This is assuming that these are SRGB. There should
-be a way to check for this in an image program, or info via Google,
-or Quake 3 engine code.
+Textures are definitely SRGB (according to GIMP). 
+
+In prioritized order:
+
+- Need to figure out the colorspace provided for 
+vertex colors as well as lightmaps
+- Compare stb image jpg and tga reading with quake 3 engine's; the engine might be doing something different.
+- Keep looking through quake code for gamma-related things. There's mac specific code lying around in there,
+but it's obviously ancient.
 
 [RUNNING ON WINDOWS]
 Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when
