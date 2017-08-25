@@ -126,7 +126,10 @@ bool TRenderer::OnInputEvent( SDL_Event* e )
 					renderer->allowFaceCulling = !renderer->allowFaceCulling;
 					printf( "BSPRenderer: allowFaceCulling = %s\n",
 						renderer->allowFaceCulling ? "true" : "false" );
-				break;
+					break;
+				case SDLK_j:
+					renderer->skyLinearFilter = !renderer->skyLinearFilter;
+					break;
 				default:
 					break;
 			}
