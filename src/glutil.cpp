@@ -711,14 +711,28 @@ ImmDebugDraw::ImmDebugDraw( void )
 				uniform float gamma;
 				uniform sampler2D sampler0;
 
+				// http://www.java-gaming.org/index.php?topic=37583.0
+				vec3 srgbEncode( vec3 color, in float gam ) {
+				   float r = color.r < 0.0031308 ? 12.92 * color.r : 1.055 * pow( color.r, 1.0 / gam ) - 0.055;
+				   float g = color.g < 0.0031308 ? 12.92 * color.g : 1.055 * pow( color.g, 1.0 / gam ) - 0.055;
+				   float b = color.b < 0.0031308 ? 12.92 * color.b : 1.055 * pow( color.b, 1.0 / gam ) - 0.055;
+				   return vec3( r, g, b );
+				}
+
+				vec3 srgbDecode( vec3 color, in float gam ) {
+				   float r = color.r < 0.04045 ? ( 1.0 / 12.92 ) * color.r : pow( ( color.r + 0.055 ) * ( 1.0 / 1.055 ), gam );
+				   float g = color.g < 0.04045 ? ( 1.0 / 12.92 ) * color.g : pow( ( color.g + 0.055 ) * ( 1.0 / 1.055 ), gam );
+				   float b = color.b < 0.04045 ? ( 1.0 / 12.92 ) * color.b : pow( ( color.b + 0.055 ) * ( 1.0 / 1.055 ), gam );
+				   return vec3( r, g, b );
+				}
+
 				void main()
 				{
 					vec2 st = frag_Tex;
 
-					vec4 gamma4 = vec4( 1.0 / clamp( gamma, 1.0, 2.2 ) );
+					float g = clamp( gamma, 1.0, 2.4 );
 
-					gl_FragColor = pow( texture2D( sampler0, st ),
-						gamma4 );
+					gl_FragColor = vec4( srgbEncode( texture2D( sampler0, st ).rgb, g ), 1.0 );
 				}
 			) ),
 			{
