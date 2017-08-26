@@ -794,6 +794,13 @@ void BSPRenderer::DrawSkyPass( void )
 		{
 			GL_CHECK( glFrontFace( GL_CCW ) );
 		}
+
+		// all images are in a texture atlas, so the filtering method
+		// used will undesirably affect other images
+		if ( !skyLinearFilter )
+		{
+			SetTex2DMinMagFilters( GL_LINEAR, GL_LINEAR );
+		}
 	};
 
 	DrawEffectPass( data, LDrawCallback );
