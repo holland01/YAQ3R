@@ -137,7 +137,7 @@ static INLINE std::string DeclCoreTransforms( void )
 
 static INLINE std::string DeclGammaConstant( void )
 {
-	return "const float gamma = 1.0 / 2.2;";
+	return "const float gamma = 2.4;";
 }
 
 static INLINE std::string DeclPrecision( void )
@@ -149,13 +149,22 @@ static INLINE std::string DeclPrecision( void )
 #endif
 }
 
-static INLINE std::string GammaCorrect( const std::string& colorVec )
+static INLINE std::string GammaDecode( const std::string& colorVec )
 {
 	std::stringstream ss;
 
-	ss << "\t" << colorVec << ".r = pow( " << colorVec << ".r, gamma );\n"
-	   << "\t" << colorVec << ".g = pow( " << colorVec << ".g, gamma );\n"
-	   << "\t" << colorVec << ".b = pow( " << colorVec << ".b, gamma );";
+	ss << "\t" << colorVec << " = vec4( srgbDecode( " << colorVec << ".rgb, gamma ), " 
+		<< colorVec << ".a );";
+
+	return ss.str();
+}
+
+static INLINE std::string GammaEncode( const std::string& colorVec )
+{
+	std::stringstream ss;
+
+	ss << "\t" << colorVec << " = vec4( srgbEncode( " << colorVec << ".rgb, gamma ), " 
+		<< colorVec << ".a );";
 
 	return ss.str();
 }
@@ -187,45 +196,20 @@ static INLINE void WriteTexture(
 
 	std::stringstream colorAssign;
 
-	colorAssign << "\tvec4 color = ";
+	colorAssign << "\tvec4 color = "  << sampleTextureExpr << ";\n";
 
-	// Some shader entries will incorporate specific alpha values
-	/*if ( stage.alphaGen != 0.0f )
+	if ( UsesColor( stage ) )
 	{
-		
-		fragmentSrc.push_back(
-			"\tconst float alphaGen = "
-			+ std::to_string( stage.alphaGen )
-			+ std::to_string( ';' ) );
-
-		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
-
-		if ( UsesColor( stage ) )
-		{
-			 colorAssign << " * vec4( frag_Color.rgb, 1.0 )";
-		}
+		colorAssign << GammaDecode( "color" );
+		colorAssign << "\tcolor *= frag_Color;\n";
+		colorAssign << GammaEncode( "color" );
 	}
-	else
-	{
-		*/
-		colorAssign << sampleTextureExpr;
-
-		if ( UsesColor( stage ) )
-		{
-			colorAssign <<  " * frag_Color";
-		}
-	//}
-
-	colorAssign << ";";
 
 	fragmentSrc.push_back( colorAssign.str() );
 
 	// Is used occasionally, for example in situations like a bad alpha value.
 	if ( discardPredicate )
 		AddDiscardIf( fragmentSrc, std::string( discardPredicate ) );
-
-	// Gamma correction
-	fragmentSrc.insert( fragmentSrc.end(), GammaCorrect( "color" ) );
 
 	fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
 }
@@ -315,6 +299,28 @@ static std::string GenVertexShader( shaderStage_t& stage,
 	return JoinLines( vertexSrc );
 }
 
+static std::string DeclSRGBEncodeDecode( void )
+{
+	return R"(
+	float srgbEncodeScalar( in float colorValue, in float inverseGamma ) {
+		return pow( colorValue, 1.0 / inverseGamma );
+	}
+
+	vec3 srgbEncode( vec3 color, in float inverseGamma ) {
+	   float r = color.r < 0.0031308 ? 12.92 * color.r : 1.055 * pow( color.r, 1.0 / inverseGamma ) - 0.055;
+	   float g = color.g < 0.0031308 ? 12.92 * color.g : 1.055 * pow( color.g, 1.0 / inverseGamma ) - 0.055;
+	   float b = color.b < 0.0031308 ? 12.92 * color.b : 1.055 * pow( color.b, 1.0 / inverseGamma ) - 0.055;
+	   return vec3( r, g, b );
+	}
+
+	vec3 srgbDecode( vec3 color, in float inverseGamma ) {
+	   float r = color.r < 0.04045 ? ( 1.0 / 12.92 ) * color.r : pow( ( color.r + 0.055 ) * ( 1.0 / 1.055 ), inverseGamma );
+	   float g = color.g < 0.04045 ? ( 1.0 / 12.92 ) * color.g : pow( ( color.g + 0.055 ) * ( 1.0 / 1.055 ), inverseGamma );
+	   float b = color.b < 0.04045 ? ( 1.0 / 12.92 ) * color.b : pow( ( color.b + 0.055 ) * ( 1.0 / 1.055 ), inverseGamma );
+	   return vec3( r, g, b );
+	})";
+}
+
 static std::string GenFragmentShader( shaderStage_t& stage,
 							   std::vector< std::string >& uniforms )
 {
@@ -342,7 +348,8 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 		"uniform vec2 imageScaleRatio;",
 		"vec2 applyTransform(in vec2 coords) {",
 		"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
-		"}"
+		"}",
+	   	DeclSRGBEncodeDecode()
 	};
 
 	fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, data );
@@ -478,6 +485,7 @@ std::string GMakeMainFragmentShader( void )
 		"uniform sampler2D lightmapSampler;",
 		"uniform vec2 lightmapImageScaleRatio;",
 		"uniform vec4 lightmapImageTransform;",
+		DeclSRGBEncodeDecode(),
 #ifdef G_USE_GL_CORE
 		DeclTransferVar( "fragment", "vec4", "out" ),
 #endif
@@ -488,8 +496,11 @@ std::string GMakeMainFragmentShader( void )
 			"mainImageSampler", "mainImageImageScaleRatio", "mainImageImageTransform" ),
 		SampleFromTexture( "texCoords", "lightmap", "frag_Lightmap",
 			"lightmapSampler", "lightmapImageScaleRatio", "lightmapImageTransform" ),
-		"\tcolor = frag_Color * image * lightmap;",
-		GammaCorrect( "color" ),
+		//"\tcolor = frag_Color;",
+		GammaDecode( "image" ),
+		GammaDecode( "lightmap" ),
+		"\tcolor = image * lightmap;",
+		GammaEncode( "color" ),
 		WriteFragment( "color" )
 	};
 

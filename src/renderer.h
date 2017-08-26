@@ -185,7 +185,7 @@ namespace gla {
 }
 
 using gla_atlas_ptr_t = std::unique_ptr< gla::atlas_t >;
-using gla_array_t = std::array< gla_atlas_ptr_t, 3 >;
+using gla_array_t = std::array< gla_atlas_ptr_t, 4 >;
 
 // An instance of this gets passed from Q3BspMap to the BSPRenderer once
 // all of the map data has been read.
@@ -197,8 +197,9 @@ struct renderPayload_t
 // indices for the above payload's atlas array
 enum {
 	TEXTURE_ATLAS_SHADERS = 0x0,
-	TEXTURE_ATLAS_MAIN = 0x1,
-	TEXTURE_ATLAS_LIGHTMAPS = 0x2
+	TEXTURE_ATLAS_MAIN = 0x1,	// all primitives/meshes which don't rely on effect shaders
+	TEXTURE_ATLAS_LIGHTMAPS = 0x2,
+	TEXTURE_ATLAS_DEBUG = 0x3 	// arbitrary debug usage
 };
 
 class RenderBase

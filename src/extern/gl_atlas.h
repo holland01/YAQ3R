@@ -695,17 +695,63 @@ namespace gla {
 	static const float gammaDecode = 2.2f;
 	static const float gammaEncode = 1.0f / gammaDecode;
 
-	static ga_inline void premultiply_alpha_channel_rgba(uint8_t* image_data, size_t length)
+	// Trivial, but learned from https://www.opengl.org/discussion_boards/showthread.php/147624-Quake3-Overbright-Lightmap
+	static ga_inline void brighten_rgb(uint8_t* rgb)
 	{
+		uint16_t r = ((uint16_t)rgb[0]) << 2;
+		uint16_t g = ((uint16_t)rgb[1]) << 2;
+		uint16_t b = ((uint16_t)rgb[2]) << 2;
+		
+		float maxf = (float)glm::max(r, glm::max(g, b));
+
+		if (maxf > 255.0f)
+		{
+			float lower = 255.0f / (float) maxf;
+			r = (uint16_t)((float)r * lower);
+			g = (uint16_t)((float)g * lower);
+			b = (uint16_t)((float)b * lower);
+		}
+
+		rgb[0] = (uint8_t)r;
+		rgb[1] = (uint8_t)g;
+		rgb[2] = (uint8_t)b;
+	}
+
+	#define GL_ATLAS_POST_PROCESS_RGBA_BRIGHTEN 0x1
+	#define GL_ATLAS_POST_PROCESS_RGBA_PREMUL_ALPHA 0x2
+
+	static ga_inline void post_process_rgba(uint8_t* image_data, size_t length, uint32_t flags)
+	{
+		if (!flags) {
+			return;
+		}
+
 		for (size_t i = 0; i < length; i += 4) {
+			// assume SRGB, so linearize here
 			float r = glm::pow(((float)image_data[i + 0]) * inverse255, gammaDecode);
 			float g = glm::pow(((float)image_data[i + 1]) * inverse255, gammaDecode);
 			float b = glm::pow(((float)image_data[i + 2]) * inverse255, gammaDecode);
 			float a = glm::pow(((float)image_data[i + 3]) * inverse255, gammaDecode);
 
-			r *= a;
-			g *= a;
-			b *= a;
+			if (!!(flags & GL_ATLAS_POST_PROCESS_RGBA_BRIGHTEN)) {
+				uint8_t tmp[3] = {
+					(uint8_t)(r * 255.0f),
+					(uint8_t)(g * 255.0f),
+					(uint8_t)(b * 255.0f)
+				};
+
+				brighten_rgb(&tmp[0]);
+
+				r = ((float)tmp[0]) * inverse255;
+				g = ((float)tmp[1]) * inverse255;
+				b = ((float)tmp[2]) * inverse255;
+			}
+
+			if (!!(flags & GL_ATLAS_POST_PROCESS_RGBA_PREMUL_ALPHA)) {
+				r *= a;
+				g *= a;
+				b *= a;
+			}
 
 			image_data[i + 0] = (uint8_t)(glm::pow(r, gammaEncode) * 255.0f);
 			image_data[i + 1] = (uint8_t)(glm::pow(g, gammaEncode) * 255.0f);
@@ -816,7 +862,7 @@ namespace gla {
 	}
 
 	static ga_inline void push_atlas_image(atlas_t& atlas,
-		uint8_t* buffer, int dx, int dy, int bpp, bool flip = true)
+		uint8_t* buffer, int dx, int dy, int bpp, uint32_t post_process_flags = 0, bool flip = true)
 	{
 		std::vector<uint8_t> image_data(dx * dy * DESIRED_BPP, 0);
 
@@ -833,7 +879,7 @@ namespace gla {
 			return;
 		}
 
-		//premultiply_alpha_channel_rgba(&image_data[0], image_data.size());
+		post_process_rgba(&image_data[0], image_data.size(), post_process_flags);
 
 		atlas.area_accum += dx * dy;
 

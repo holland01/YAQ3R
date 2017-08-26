@@ -63,7 +63,6 @@ void InputCamera::EvalKeyPress( int key )
 	switch( key )
 	{
 		case SDLK_w:
-			MLOG_INFO( "%s", "W Pressed" );
 			keysPressed[ KEY_FORWARD ] = KEY_PRESSED;
 			break;
 

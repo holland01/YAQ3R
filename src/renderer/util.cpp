@@ -220,7 +220,8 @@ static void LoadImagesBegin( char* mem, int size, void* param )
 static void LoadImageState(
 	Q3BspMap& map,
 	std::vector< gPathMap_t >& sources,
-	int atlas )
+	int atlas
+)
 {
 	gImageLoadState.map = &map;
 	gImageLoadState.head = BundleImagePaths( sources );
@@ -280,6 +281,26 @@ void GU_LoadMainTextures( Q3BspMap& map )
 	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnMainLoadImagesFinish;
 
 	LoadImageState( map, sources, TEXTURE_ATLAS_MAIN );
+}
+
+void GU_LoadDebugTextures( Q3BspMap& map )
+{
+	std::vector< gPathMap_t > sources;
+
+	for ( size_t i = 0; i < map.debugTexturePaths.size(); ++i )
+	{
+		gPathMap_t initial {
+			map.debugTexturePaths[ i ],
+			( void* ) i
+		};
+
+		sources.push_back( initial );
+	}
+
+	gImageLoadState.keyMapped = true;
+	gImageLoadState.mapLoadFinEvent = Q3BspMap::OnDebugLoadImagesFinish;
+
+	LoadImageState( map, sources, TEXTURE_ATLAS_DEBUG );
 }
 
 struct diffZCache_t

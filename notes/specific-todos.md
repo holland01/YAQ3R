@@ -11,7 +11,7 @@ Don't forget to set the defer flag in the sky shader stage program after it's be
 Quick note, which is the message from a recent commit.
 
 ```
-Gamma correction was too high for draw calls using the default program. Also have a working sky with clouds flowing. There is a problem, though, which is due to the linear filtering that’s applied to the sky by default and the fact that the sky textures are stored in a texture atlas. This results in seeing mild “seams” that look like white lines being drawn across the textures in specific areas. It’s not everywhere but it’s not enough to be noticeable, and totally break from the pseudo-immersion. For now, nearest filtering is enabled by default since there isn’t really any interpolation which will result in “crossing into” an adjacent texture (which causes the seam). There’s two lines of commented code which were added in an attempt to “fix up” the texture coordinates by preventing resulting UVs from hitting 256 (the size of both sky textures), but this doesn’t solve the problem. So, the scaling is probably contributing to this, and probably the scrolling as well. 
+Gamma correction was too high for draw calls using the default program. Also have a working sky with clouds flowing. There is a problem, though, which is due to the linear filtering that’s applied to the sky by default and the fact that the sky textures are stored in a texture atlas. This results in seeing mild “seams” that look like white lines being drawn across the textures in specific areas. It’s not everywhere but it’s not enough to be noticeable, and totally break from the pseudo-immersion. For now, nearest filtering is enabled by default since there isn’t really any interpolation which will result in “crossing into” an adjacent texture (which causes the seam). There’s two lines of commented code which were added in an attempt to “fix up” the texture coordinates by preventing resulting UVs from hitting 256 (the size of both sky textures), but this doesn’t solve the problem. So, the scaling is probably contributing to this, and probably the scrolling as well.
 
 To fix this it’s probably best to just add an extra st check in sky-only shader programs which perform this conversion _after_ the scaling/scroll/whatever_other_tc_mod has been applied.
 ```
@@ -23,22 +23,19 @@ specific images so far.
 [feature/effect_shaders]
 Fix lava rising effect.
 
-[feature/effect_shaders]
-Make sure to test this on Linux/Windows. There's some odd artificats, notably with the cross texture and the scrolling which occurs 
-across the bridge. Rainbow/garbage decals are appearing. 
+[bugfix/odd_texture_artifact]
+Textures are definitely SRGB (according to GIMP). 
 
-This might be due to any of the following:
+In prioritized order:
 
-- Corrupted bundles
-- driver error (unlikely)
-- missing rgbgen or alphagen-related GLSL code
-- bad param offset/index.
+- Need to figure out the colorspace provided for 
+vertex colors as well as lightmaps
+- Compare stb image jpg and tga reading with quake 3 engine's; the engine might be doing something different.
+- Keep looking through quake code for gamma-related things. There's mac specific code lying around in there,
+but it's obviously ancient.
 
-Maybe see if passing 1.0f in timeScalarSeconds eliminates this, to ensure nothing is getting sampled out of bounds. (the GLSL generated code should take this into account, but some resulting
-st coords may be too small to be of any actual use)
-
-[RUNNING ON LINUX/WINDOWS]
-Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when 
+[RUNNING ON WINDOWS]
+Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when
 switching over to Windows and Linux.
 
 [unnamed]

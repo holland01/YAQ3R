@@ -191,7 +191,9 @@ static void OnImageRead( char* buffer, int size, void* param )
 		( uint8_t* ) &buffer[ sizeof( *imageInfo ) ],
 		imageInfo->width,
 		imageInfo->height,
-		imageInfo->bpp, false
+		imageInfo->bpp, 
+		GL_ATLAS_POST_PROCESS_RGBA_PREMUL_ALPHA /*| GL_ATLAS_POST_PROCESS_RGBA_BRIGHTEN*/,
+		false
 	);
 
 	AssignIndex(

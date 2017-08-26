@@ -35,8 +35,8 @@ static INLINE void GU_MultiDrawElements(
 class Q3BspMap;
 
 void GU_LoadShaderTextures( Q3BspMap& map );
-
 void GU_LoadMainTextures( Q3BspMap& map );
+void GU_LoadDebugTextures( Q3BspMap& map );
 
 size_t GU_MapViewDepthToInt( float viewZDepth, float zmin, float zmax );
 

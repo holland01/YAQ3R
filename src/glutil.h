@@ -99,7 +99,7 @@ static INLINE void MapUniforms( glHandleMap_t& unifMap, GLuint programID,
 	}
 }
 
-static INLINE GLuint MakeGenericBufferObject( void ) 
+static INLINE GLuint MakeGenericBufferObject( void )
 {
 	GLuint obj = 0;
 	GL_CHECK( glGenBuffers( 1, &obj ) );
@@ -122,7 +122,7 @@ static INLINE GLuint GenBufferObject( GLenum target,
 	GL_CHECK( glBufferData( target, data.size() * sizeof( T ),
 		&data[ 0 ], usage ) );
 	GL_CHECK( glBindBuffer( target, 0 ) );
-	
+
 	return obj;
 }
 
@@ -168,6 +168,37 @@ static INLINE void SetTex2DMinMagFilters( GLenum min, GLenum mag )
 		min ) );
 	GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
 		mag ) );
+}
+
+static INLINE GLuint MakeTex2DRGBA( uint8_t* data, GLsizei width, GLsizei height )
+{
+	GLuint texObj;
+	GL_CHECK( glGenTextures( 1, &texObj ) );
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, texObj ) );
+
+	GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+		GL_CLAMP_TO_EDGE ) );
+	GL_CHECK( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+		GL_CLAMP_TO_EDGE ) );
+
+	SetTex2DMinMagFilters( GL_LINEAR, GL_LINEAR );
+
+	GL_CHECK(
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			G_INTERNAL_RGBA_FORMAT,
+			width, height,
+			0,
+			G_RGBA_FORMAT,
+			GL_UNSIGNED_BYTE,
+			data
+		)
+	);
+
+	GL_CHECK( glBindTexture( GL_TEXTURE_2D, 0 ) );
+
+	return texObj;
 }
 
 struct attribProfile_t
@@ -295,6 +326,8 @@ public:
 
 	static std::vector< std::string > ArrayLocationNames(
 		const std::string& name, int32_t length );
+
+	std::string GetInfoString( void ) const;
 };
 
 INLINE void Program::AddUnif( const std::string& name )
@@ -455,16 +488,16 @@ struct immDebugVertex_t
 class ImmDebugDraw
 {
 	GLuint vbo;
-	
+
 	size_t previousSize;
-	
+
 	bool isset;
-	
+
 	immDebugVertex_t thisVertex;
-	
+
 	std::vector< immDebugVertex_t > vertices;
 
-	std::unique_ptr< Program > shaderProgram;
+	std::unordered_map< std::string, std::unique_ptr< Program > > shaderPrograms;
 
 	void Finalize( bool setIsset = true );
 
@@ -473,7 +506,7 @@ public:
 
 	~ImmDebugDraw( void );
 
-	const Program* GetProgram( void ) const { return shaderProgram.get(); }
+	const Program* GetProgram( const std::string& which = "default" ) const { return shaderPrograms.at( which ).get(); }
 
 	void Begin( void );
 
@@ -481,7 +514,6 @@ public:
 
 	void Color( const glm::u8vec4& color );
 
-	void End( GLenum mode, const glm::mat4& projection, 
+	void End( GLenum mode, const glm::mat4& projection,
 		const glm::mat4& modelView );
 };
-

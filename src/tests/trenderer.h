@@ -12,7 +12,7 @@ public:
 
 	void LogPeriodically( void ) const;
 
-	virtual void Run( void );
+	virtual void Run( void ) override;
 
 	std::unique_ptr< BSPRenderer > renderer;
 
@@ -24,20 +24,39 @@ public:
 
 	virtual ~TRenderer( void );
 
-	void 	Load( void );
+	virtual void Load( void ) override;
 
-	bool 	OnInputEvent( SDL_Event* e );
+	virtual bool OnInputEvent( SDL_Event* e ) override;
 
-	float 	GetTargetFPS( void ) const { return TEST_FPS_60; } // 60 FPS
+	float GetTargetFPS( void ) const { return TEST_FPS_60; } // 60 FPS
 };
 
 class TRendererIsolatedTest : public TRenderer
 {
 public:
 	TRendererIsolatedTest( void );
+
 	~TRendererIsolatedTest( void );
+
+	GLuint texture;
+
+	float gammaPassThrough;
 
 	std::unique_ptr< RenderBase > isolatedRenderer;
 
+	void Load_Quad( void );
+
+	void Run_QuadBspEffect( void );
+
+	void Run_QuadBsp( void );
+
+	void Run_Quad( void );
+
+	void Run_Skybox( void );
+
+	virtual void Load( void ) override;
+
 	void Run( void ) override;
+
+	bool OnInputEvent( SDL_Event* e ) override;
 };

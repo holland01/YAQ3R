@@ -24,10 +24,10 @@ using shaderList_t = std::vector< const shaderInfo_t * >;
 
 // The data-driven mechanism which is used to map a stage
 // to a texture index relies on the texture path itself
-// to use as a key into an unordered hash map. Consequently, 
+// to use as a key into an unordered hash map. Consequently,
 // only one actual stage will be written to unless a different approach is taken.
 
-// Other stages which need the same path are likely to exist, 
+// Other stages which need the same path are likely to exist,
 // but won't be assigned a corresponding index for that texture in the atlas.
 // So, a linked list is a simple alternative.
 struct pathLinkNode_t
@@ -65,6 +65,8 @@ public:
 	shaderList_t 									opaqueShaderList;
 	shaderList_t 									transparentShaderList;
 
+	std::vector< std::string >			debugTexturePaths;
+
 	Q3BspMap( void );
 	~Q3BspMap( void );
 
@@ -77,6 +79,7 @@ public:
 
 	static void 				OnShaderLoadImagesFinish( void* param );
 
+	static void 				OnDebugLoadImagesFinish( void* param );
 
 	static void					OnMainLoadImagesFinish( void* param );
 
