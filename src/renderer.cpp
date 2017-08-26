@@ -378,8 +378,6 @@ void BSPRenderer::Load( renderPayload_t& payload )
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
 
-	//MLOG_INFO( "%s", GetBinLayoutString().c_str() );
-
 	GPrintContextInfo();
 }
 
