@@ -1,0 +1,19 @@
+[gitflow "branch"]
+	master = master
+	develop = develop
+[gitflow "prefix"]
+	feature = feature/
+	bugfix = bugfix/
+	release = release/
+	hotfix = hotfix/
+	support = support/
+	versiontag = 
+[gitflow "path"]
+	hooks = /Users/hollandschutte/Devel/yaq3r/.git/hooks
+[gitflow "branch.feature/effect_shaders"]
+	base = develop
+[branch "feature/effect_shaders"]
+	remote = origin
+	merge = refs/heads/feature/effect_shaders
+[gitflow "branch.bugfix/skyboxglissue"]
+	base = develop
