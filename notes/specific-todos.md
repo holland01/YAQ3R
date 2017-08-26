@@ -1,38 +1,92 @@
 [feature/effect_shaders]
-* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
+* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the
 renderer's current implementation.
-
-[feature/effect_shaders]
-Review the indices/triangle ordering that's happening. It's all kind of shitty. Source of problem could be due to index ordering
-or something like face culling being turned on AND improper front faces since the winding order might be CCW (I can't remember).
-
-Don't forget to set the defer flag in the sky shader stage program after it's been inserted in effect_shader.cpp
-
-Quick note, which is the message from a recent commit.
-
-```
-Gamma correction was too high for draw calls using the default program. Also have a working sky with clouds flowing. There is a problem, though, which is due to the linear filtering that’s applied to the sky by default and the fact that the sky textures are stored in a texture atlas. This results in seeing mild “seams” that look like white lines being drawn across the textures in specific areas. It’s not everywhere but it’s not enough to be noticeable, and totally break from the pseudo-immersion. For now, nearest filtering is enabled by default since there isn’t really any interpolation which will result in “crossing into” an adjacent texture (which causes the seam). There’s two lines of commented code which were added in an attempt to “fix up” the texture coordinates by preventing resulting UVs from hitting 256 (the size of both sky textures), but this doesn’t solve the problem. So, the scaling is probably contributing to this, and probably the scrolling as well.
-
-To fix this it’s probably best to just add an extra st check in sky-only shader programs which perform this conversion _after_ the scaling/scroll/whatever_other_tc_mod has been applied.
-```
-
-Going to put this on the back burner, given that there's some weird artifacts happening. Might be due to
-corrupted memory, given that a) this reproduces across two different machines and b) I've seen it only with two
-specific images so far.
 
 [feature/effect_shaders]
 Fix lava rising effect.
 
-[bugfix/odd_texture_artifact]
-Textures are definitely SRGB (according to GIMP). 
+[bugfix/atlas_seam_filtering]
+There's a lot of material worth reviewing; the details behind
+perspective-correct texture mapping are important, here.
 
-In prioritized order:
+Understand at the very least the `drawAffineTexturedPolygon()` and
+`drawPerspectiveTexturedPolygon()` functions found
+[here](http://www.flipcode.com/archives/High_Speed_Software_Rendering.shtml).
 
-- Need to figure out the colorspace provided for 
-vertex colors as well as lightmaps
-- Compare stb image jpg and tga reading with quake 3 engine's; the engine might be doing something different.
-- Keep looking through quake code for gamma-related things. There's mac specific code lying around in there,
-but it's obviously ancient.
+It's very likely that an understanding of this information will provide
+enough insight to fix this. Obviously trivial solutions aren't working,
+likely due to the nature of the Atlas itself and how it's being constructed.
+
+The BSP algorithm used to create the atlas is efficient in terms of the
+space it allocates for each image. That said, there's almost always
+going to be pockets of empty space which aren't used. They should be sparse,
+though.
+
+A quick and dirty hack that might work for this would be to sample a fraction
+of the image and add that as a border around it. Right edges would "wrap",
+providing the beginning of the left edge, for example. This should
+provide enough room to ensure that the interpolation doesn't wind up crossing
+into the next region.
+
+What's somewhat irritating is that the modulo should technically already
+be taking care of this: the texcoord which is passed to the fragment shader
+is already interpolated across the triangle, and still within the expected
+[0, 1] range, proportional to the polygon's vertices (i.e., no atlas
+calculations are provided). So, even modding the value against 0.99
+before applying the atlas transform, and THEN sampling causes this to happen.
+
+Also tried the following,
+
+```
+static INLINE void WriteTexture(
+		std::vector< std::string >& fragmentSrc,
+		const shaderStage_t& stage,
+		const char* discardPredicate )
+{
+	std::string sampleTextureExpr;
+
+	if ( stage.mapCmd == MAP_CMD_CLAMPMAP )
+	{
+		fragmentSrc.push_back( "\tst = clamp( applyTransform( st )," \
+			 "imageTransform.xy + vec2( 0.1 ), applyTransform( vec2( 0.9 ) ) );" );
+	}
+	else
+	{
+		fragmentSrc.push_back(
+			"\tst = applyTransform( vec2( 0.1 ) + mod( st, vec2( 0.9 ) ) );" );
+	}
+```
+
+Note how the st coords are clamped between [0.1, 0.9] before being transformed.
+This doesn't solve much at all, and even produces artifacts on the skybox
+when nearest filtering is used.
+
+A potential hack would be applying smaller biases, something like
+[0.05, 0.95] to scrolling textures.
+
+The scaling shouldn't really be affecting this, because the transform is affine
+and hence shouldn't cause the result to have a poor proportion relative
+to the initially provided coordinates _unless_ precision is a major
+factor which, technically, it could be.
+
+The border method would be good, but it will require applying the padding 2x
+the offset to both the width and the height in the "slot" for the image
+in the atlas, and then doing glCopyTexSubImage2d (assuming this exists in the
+API) on the data to fill the additinal padding with the appropriate texture
+data. This also implies that image widths and heights will no longer be
+equivalent to the image's corresponding BSP region; the regions will be larger.
+
+This likely affects a few tests made when the atlas is being constructed,
+those will need to be accounted for.
+
+What's also important is knowing what the proper width/height of the padding
+should be in addition to knowing how that width/height will be sufficient.
+
+Also an offset might need to be applied to every st coordinate in the shader
+to prevent duplicates from showing - I'd have to think more about that to be
+sure.
+
+Lots to think about.
 
 [RUNNING ON WINDOWS]
 Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when
@@ -43,18 +97,15 @@ Chrome performance. Should do this immediately after finishing feature/effect_sh
 
 [unnamed]
 // Do view-space zDepth evaluation in `BSPRenderer::ProcessFace()` when the drawFace_t is created.
- 	
+
 // Keep track of max/min view-space z-values for each face;
 // ensure that closest point on face bounds (out of the 8 corners)
 // relative to the view frustum is compared against max-z and farthest
-// relative to the view frustum is compared against min-z. 
- 
+// relative to the view frustum is compared against min-z.
+
 // This is 8 matrix/vector multiplies (using the world->camera transform). Using SIMD and packing
 // corner vectors into a 4D matrix you can do these ops in two.
 // Get it working first, though.
 
 [unnamed]
 * Allocate a separate default shader for models which always blends the color mapped value in the texture with the vertex diffuse light/color.
-
-
-
