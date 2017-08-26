@@ -137,7 +137,7 @@ static INLINE std::string DeclCoreTransforms( void )
 
 static INLINE std::string DeclGammaConstant( void )
 {
-	return "const float gamma = 2.2;";
+	return "const float gamma = 2.4;";
 }
 
 static INLINE std::string DeclPrecision( void )
