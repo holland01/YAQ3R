@@ -498,6 +498,7 @@ std::string GMakeMainFragmentShader( void )
 			"lightmapSampler", "lightmapImageScaleRatio", "lightmapImageTransform" ),
 		//"\tcolor = frag_Color;",
 		GammaDecode( "image" ),
+		GammaDecode( "lightmap" ),
 		"\tcolor = image * lightmap;",
 		GammaEncode( "color" ),
 		WriteFragment( "color" )
