@@ -196,45 +196,20 @@ static INLINE void WriteTexture(
 
 	std::stringstream colorAssign;
 
-	colorAssign << "\tvec4 color = ";
+	colorAssign << "\tvec4 color = "  << sampleTextureExpr << ";\n";
 
-	// Some shader entries will incorporate specific alpha values
-	/*if ( stage.alphaGen != 0.0f )
+	if ( UsesColor( stage ) )
 	{
-		
-		fragmentSrc.push_back(
-			"\tconst float alphaGen = "
-			+ std::to_string( stage.alphaGen )
-			+ std::to_string( ';' ) );
-
-		colorAssign << sampleTextureExpr << ".rgb, alphaGen )";
-
-		if ( UsesColor( stage ) )
-		{
-			 colorAssign << " * vec4( frag_Color.rgb, 1.0 )";
-		}
+		colorAssign << GammaDecode( "color" );
+		colorAssign << "\tcolor *= frag_Color;\n";
+		colorAssign << GammaEncode( "color" );
 	}
-	else
-	{
-		*/
-		colorAssign << sampleTextureExpr << ";\n";
-
-		if ( UsesColor( stage ) )
-		{
-			colorAssign << GammaDecode( "color" );
-			colorAssign << "\tcolor *= frag_Color;\n";
-			colorAssign << GammaEncode( "color" );
-		}
-	//}
 
 	fragmentSrc.push_back( colorAssign.str() );
 
 	// Is used occasionally, for example in situations like a bad alpha value.
 	if ( discardPredicate )
 		AddDiscardIf( fragmentSrc, std::string( discardPredicate ) );
-
-	// Gamma correction
-//	fragmentSrc.insert( fragmentSrc.end(), GammaEncode( "color" ) );
 
 	fragmentSrc.push_back( "\t" + WriteFragment( "color" ) );
 }
