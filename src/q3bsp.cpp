@@ -355,8 +355,6 @@ static void MapReadFin( Q3BspMap* map )
 
 		Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].position );
 		Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].normal );
-		//Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].texCoords[ 0 ] );
-		//Q3Bsp_SwizzleCoords( map->data.vertexes[ i ].texCoords[ 1 ] );
 
 		TestMaxMin( maxPoint, minPoint, map->data.vertexes[ i ].position );
 		TestMaxMin( maxPoint, minPoint, map->data.vertexes[ i ].normal );
@@ -398,6 +396,13 @@ static void MapReadFin( Q3BspMap* map )
 		TestMaxMin( maxPoint, minPoint, face.lightmapOrigin );
 		TestMaxMin( maxPoint, minPoint, face.lightmapStVecs[ 0 ] );
 		TestMaxMin( maxPoint, minPoint, face.lightmapStVecs[ 1 ] );
+
+		//if ( face.type == BSP_FACE_TYPE_BILLBOARD )
+		//{
+			//MLOG_INFO_ONCE(
+			//	"Billboard: [%u] %s", i, bspFace_t_GetInfoString( &face ).c_str()
+			//);
+		//}
 	}
 
 	for ( size_t i = 0; i < map->data.shaders.size(); ++i )
@@ -411,12 +416,12 @@ static void MapReadFin( Q3BspMap* map )
 
 	gDeformCache.skyHeightOffset = maxPoint.y;
 
-	MLOG_INFO(
-		"maxPoint Found: %s\n"
-		"minPoint Found: %s",
-		glm::to_string( maxPoint ).c_str(),
-		glm::to_string( minPoint ).c_str()
-	);
+	//MLOG_INFO(
+	//	"maxPoint Found: %s\n"
+	//	"minPoint Found: %s",
+	//	glm::to_string( maxPoint ).c_str(),
+	//	glm::to_string( minPoint ).c_str()
+	//);
 
 	gFileWebWorker.Await(
 		MapReadFin_UnmountFin,
