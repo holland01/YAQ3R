@@ -364,6 +364,11 @@ namespace gla {
 			coords_y[image] = y;
 		}
 
+		void downscale_image(size_t image)
+		{
+			
+		}
+
 		void fill_atlas_image(size_t image)
 		{
 			GL_H( glTexSubImage2D(	GL_TEXTURE_2D,
