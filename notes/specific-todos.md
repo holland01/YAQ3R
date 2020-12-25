@@ -1,60 +1,52 @@
+priorities:
+
+- bugfix/atlas_seam_filtering
+
+- billboards
+
+- implementing all rgbgen and alphagen methods
+
 [feature/effect_shaders]
-* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the 
+* Review the section in the Q3 Shader Manual for the tcModScale effect; it should shed some light on issues happening with the
 renderer's current implementation.
-
-[feature/effect_shaders]
-Review the indices/triangle ordering that's happening. It's all kind of shitty. Source of problem could be due to index ordering
-or something like face culling being turned on AND improper front faces since the winding order might be CCW (I can't remember).
-
-Don't forget to set the defer flag in the sky shader stage program after it's been inserted in effect_shader.cpp
-
-Quick note, which is the message from a recent commit.
-
-```
-Gamma correction was too high for draw calls using the default program. Also have a working sky with clouds flowing. There is a problem, though, which is due to the linear filtering that’s applied to the sky by default and the fact that the sky textures are stored in a texture atlas. This results in seeing mild “seams” that look like white lines being drawn across the textures in specific areas. It’s not everywhere but it’s not enough to be noticeable, and totally break from the pseudo-immersion. For now, nearest filtering is enabled by default since there isn’t really any interpolation which will result in “crossing into” an adjacent texture (which causes the seam). There’s two lines of commented code which were added in an attempt to “fix up” the texture coordinates by preventing resulting UVs from hitting 256 (the size of both sky textures), but this doesn’t solve the problem. So, the scaling is probably contributing to this, and probably the scrolling as well.
-
-To fix this it’s probably best to just add an extra st check in sky-only shader programs which perform this conversion _after_ the scaling/scroll/whatever_other_tc_mod has been applied.
-```
-
-Going to put this on the back burner, given that there's some weird artifacts happening. Might be due to
-corrupted memory, given that a) this reproduces across two different machines and b) I've seen it only with two
-specific images so far.
 
 [feature/effect_shaders]
 Fix lava rising effect.
 
-[bugfix/odd_texture_artifact]
-Textures are definitely SRGB (according to GIMP). 
+[bugfix/atlas_seam_filtering]
+Downscale the image. Read [this](http://www.ogre3d.org/forums/viewtopic.php?f=4&t=61602) 
 
-In prioritized order:
+This is simpler to the bordered approach idea you had, except it's better since it chooses
+a downscaling method as opposed to something which requires more memory.
 
-- Need to figure out the colorspace provided for 
-vertex colors as well as lightmaps
-- Compare stb image jpg and tga reading with quake 3 engine's; the engine might be doing something different.
-- Keep looking through quake code for gamma-related things. There's mac specific code lying around in there,
-but it's obviously ancient.
+You want to keep the area sizes that the images initially take up, but at the same time this will imply
+that the offsets and scaling parameters passed to the shaders will need to be adjusted accordingly.
+
+There's a function that's stubbed out in gl_atlas.h, line 367. Make sure that this is called 
+before `fill_atlas_image()`, and that the corresponding shader parameters are correct (fetched via `image_info()`).
 
 [RUNNING ON WINDOWS]
 Remember that you edited the directory names of the assets so that every character is lowercase, up until the actual filename. You'll want to use the current bundle when
 switching over to Windows and Linux.
 
 [unnamed]
+Billboards. Note that this will involve some work, but should be taken care of after bufix/atlas_seam_filtering.
+
+
+[unnamed]
 Chrome performance. Should do this immediately after finishing feature/effect_shaders.
 
 [unnamed]
 // Do view-space zDepth evaluation in `BSPRenderer::ProcessFace()` when the drawFace_t is created.
- 	
+
 // Keep track of max/min view-space z-values for each face;
 // ensure that closest point on face bounds (out of the 8 corners)
 // relative to the view frustum is compared against max-z and farthest
-// relative to the view frustum is compared against min-z. 
- 
+// relative to the view frustum is compared against min-z.
+
 // This is 8 matrix/vector multiplies (using the world->camera transform). Using SIMD and packing
 // corner vectors into a 4D matrix you can do these ops in two.
 // Get it working first, though.
 
 [unnamed]
 * Allocate a separate default shader for models which always blends the color mapped value in the texture with the vertex diffuse light/color.
-
-
-

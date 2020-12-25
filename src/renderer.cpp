@@ -1010,13 +1010,6 @@ void BSPRenderer::ProcessFace( drawPass_t& pass, uint32_t index )
 	// Already handled by DrawSkyPass
 	if ( map.IsSkyShader( pass.shader ) )
 	{
-	//	pass.skyFaces.push_back( pass.face );
-
-	//	MLOG_INFO_ONCE(
-	//		"Adding SkyFace %s", 
-	//		bspFace_t_GetInfoString( &map.data.faces[ index ] ).c_str()
-	//	);
-
 		goto end;
 	}
 

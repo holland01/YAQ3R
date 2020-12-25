@@ -753,6 +753,23 @@ struct shaderInfo_t
 	}
 };
 
+static INLINE std::string bspVertex_t_GetInfoString( bspVertex_t* vertex )
+{
+	std::stringstream ss;
+
+	ss << SSTREAM_INFO_BEGIN( bspVertex_t );
+
+	ss << SSTREAM_INFO_PARAM_GLM( vertex->position );
+	ss << SSTREAM_INFO_PARAM_GLM( vertex->texCoords[ 0 ] );
+	ss << SSTREAM_INFO_PARAM_GLM( vertex->texCoords[ 1 ] );
+	ss << SSTREAM_INFO_PARAM_GLM( vertex->normal );
+	ss << SSTREAM_INFO_PARAM_GLM( vertex->color );
+
+	ss << SSTREAM_INFO_END();
+
+	return ss.str();
+}
+
 static INLINE std::string bspModel_t_GetInfoString( bspModel_t* model )
 {
 	std::stringstream ss;

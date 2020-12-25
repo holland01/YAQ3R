@@ -66,27 +66,6 @@ static INLINE std::string SampleTexture2D( const std::string& samplerName,
 	return fname + "( " + samplerName + ", " + coords + " )";
 }
 
-static INLINE std::string SampleFromTexture( const std::string& destCoords,
-									 const std::string& destSample,
-									 const std::string& srcCoords,
-									 const std::string& srcSample,
-									 const std::string& scaleParams,
-									 const std::string& transform )
-{
-
-	std::stringstream ss;
-
-	ss << "\t" << destCoords << " = " << "mod( " << srcCoords
-	<< ", vec2( 0.99 ) ) * " << scaleParams
-	   << " * " << transform << ".zw + " << transform << ".xy;\n";
-
-	ss << "\t" << destSample << " = " << SampleTexture2D( srcSample,
-		destCoords ) << ";";
-
-	return ss.str();
-}
-
-
 static INLINE std::string WriteFragment( const std::string& value )
 {
 #ifdef G_USE_GL_CORE
@@ -189,7 +168,7 @@ static INLINE void WriteTexture(
 	else
 	{
 		fragmentSrc.push_back(
-			"\tst = applyTransform( mod( st, vec2( 1.0 ) ) );" );
+			"\tst = applySignedWrapTransform( st, imageTransform.zw, imageTransform.xy, imageScaleRatio );" );
 	}
 
 	sampleTextureExpr = SampleTexture2D( "sampler0", "st" );
@@ -321,6 +300,37 @@ static std::string DeclSRGBEncodeDecode( void )
 	})";
 }
 
+static std::string DeclSignedWrapTransform( void )
+{
+	return R"(
+float fixupSigned( in float x, in float offset, in float end ) {
+	if (x < 0.0) {
+		return ( x + end ) + offset;
+	}
+
+	return x + offset;
+}
+
+vec2 applySignedWrapTransform( in vec2 coords, in vec2 iAtlasDims, in vec2 atlasOffset, in vec2 imageDims ) {
+	vec2 endOffset = imageDims * iAtlasDims;
+	vec2 coordsScaled = mod( coords, 1.0 ) * endOffset;
+
+	return vec2(
+		fixupSigned( coordsScaled.s, atlasOffset.s, endOffset.s ),
+		fixupSigned( coordsScaled.t, atlasOffset.t, endOffset.t )
+	);
+})";
+}
+
+static std::string DeclBillboardCheck( void )
+{
+return R"(
+bool isBillboardColor( in vec4 c ) {
+	return c.r > 0.9 && c.g > 0.9 && c.b > 0.9;
+}
+)";
+}
+
 static std::string GenFragmentShader( shaderStage_t& stage,
 							   std::vector< std::string >& uniforms )
 {
@@ -349,7 +359,9 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 		"vec2 applyTransform(in vec2 coords) {",
 		"\treturn coords * imageTransform.zw * imageScaleRatio + imageTransform.xy;",
 		"}",
-	   	DeclSRGBEncodeDecode()
+	   	DeclSRGBEncodeDecode(),
+	   	DeclSignedWrapTransform(),
+	   	DeclBillboardCheck()
 	};
 
 	fragmentSrc.insert( fragmentSrc.begin() + fragUnifOffset, data );
@@ -405,7 +417,7 @@ static std::string GenFragmentShader( shaderStage_t& stage,
 	switch ( stage.alphaFunc )
 	{
 	case ALPHA_FUNC_UNDEFINED:
-		WriteTexture( fragmentSrc, stage, nullptr );
+		WriteTexture( fragmentSrc, stage, /*"isBillboardColor( color )"*/ nullptr );
 		break;
 	case ALPHA_FUNC_GEQUAL_128:
 		WriteTexture( fragmentSrc, stage, "color.a < 0.5" );
@@ -486,21 +498,32 @@ std::string GMakeMainFragmentShader( void )
 		"uniform vec2 lightmapImageScaleRatio;",
 		"uniform vec4 lightmapImageTransform;",
 		DeclSRGBEncodeDecode(),
+		DeclSignedWrapTransform(),
+		DeclBillboardCheck(),
 #ifdef G_USE_GL_CORE
 		DeclTransferVar( "fragment", "vec4", "out" ),
 #endif
 		"void main(void) {",
 		"\tvec2 texCoords;",
 		"\tvec4 image, lightmap, color;",
-		SampleFromTexture( "texCoords", "image", "frag_Tex",
-			"mainImageSampler", "mainImageImageScaleRatio", "mainImageImageTransform" ),
-		SampleFromTexture( "texCoords", "lightmap", "frag_Lightmap",
-			"lightmapSampler", "lightmapImageScaleRatio", "lightmapImageTransform" ),
-		//"\tcolor = frag_Color;",
+		R"(
+		texCoords = applySignedWrapTransform( frag_Tex, mainImageImageTransform.zw, mainImageImageTransform.xy, mainImageImageScaleRatio );
+		image = texture2D( mainImageSampler, texCoords );
+		)",
+
+		R"(
+		texCoords = applySignedWrapTransform( frag_Lightmap, lightmapImageTransform.zw, lightmapImageTransform.xy, lightmapImageScaleRatio );
+		lightmap = texture2D( lightmapSampler, texCoords );	
+		)",
 		GammaDecode( "image" ),
 		GammaDecode( "lightmap" ),
 		"\tcolor = image * lightmap;",
 		GammaEncode( "color" ),
+	//	R"(
+	//	if ( isBillboardColor( color ) ) {
+	//		discard;
+	//	}
+	//	)",
 		WriteFragment( "color" )
 	};
 
