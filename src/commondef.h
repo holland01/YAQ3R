@@ -24,6 +24,7 @@
 #define VALUE_FROM_BITS( bits, mask, shift ) ( ( bits & ( mask ) ) >> ( shift ) )
 #define SET_BITS_FOR_VALUE( value, bits, mask, shift ) bits &= ~( mask ); bits |= ( ( value ) << ( shift ) ) & ( mask )
 
+
 #define GLSL_INLINE( v ) #v"\n"
 
 #if defined( EMSCRIPTEN )
@@ -80,6 +81,24 @@ template< class Tint > static INLINE Tint Align( Tint s )
 #elif defined (_MSC_VER)
 #	define _FUNC_NAME_ __FUNCTION__
 #	define _LINE_NUM_ __LINE__
+#endif
+
+#if defined (WEB_WORKER_CLIENT)
+// Each of these macros refers to the name of a
+// method or function which invokes the async
+// web worker API in order to manage resources
+// through the Emscripten web worker file system.
+//
+// We enable/disable these because the upgrade from
+// asm.js to actual web assembly is best handled
+// through controlled, gradual changes.
+#define WEB_WORKER_CLIENT_READMAPFILE_BEGIN
+#define WEB_WORKER_CLIENT_READSHADERS
+#define WEB_WORKER_CLIENT_SENDREQUEST
+#define WEB_WORKER_CLIENT_AIIO_READIMAGES
+#define WEB_WORKER_CLIENT_LOADIMAGESEND
+#define WEB_WORKER_CLIENT_MAPREADFIN
+#define WEB_WORKER_CLIENT_ONSHADERREADFINISH
 #endif
 
 #define INDEX_UNDEFINED -1

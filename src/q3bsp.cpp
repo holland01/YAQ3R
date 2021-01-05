@@ -252,8 +252,10 @@ static void ReadChunk( char* data, int size, void* param );
 
 static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
 {
+#if defined(WEB_WORKER_CLIENT_SENDREQUEST)
 	gFileWebWorker.Await( ReadChunk, "ReadMapFile_Chunk",
 		( char* )&info, sizeof( info ), param );
+#endif
 }
 
 static INLINE void MapReadFin_UnmountFin( char* data, int size, void* param )
@@ -299,6 +301,7 @@ static INLINE void TestMaxMin( glm::vec3& destMax, glm::vec3& destMin, glm::ivec
 
 static void MapReadFin( Q3BspMap* map )
 {
+#if defined (WEB_WORKER_CLIENT_MAPREADFIN)	
 	// Swizzle coordinates from left-handed Z UP axis
 	// to right-handed Y UP axis.
 	// Also perform scaling, desired
@@ -430,6 +433,7 @@ static void MapReadFin( Q3BspMap* map )
 		0,
 		map
 	);
+#endif // WEB_WORKER_CLIENT_MAPREADFIN
 }
 
 static void ReadChunk( char* data, int size, void* param )
@@ -682,6 +686,7 @@ void Q3BspMap::AddEffectShader( shaderInfo_t effectShader )
 
 void Q3BspMap::OnShaderReadFinish( void )
 {
+#if defined(WEB_WORKER_CLIENT_ONSHADERREADFINISH)
 	// Add a default fallback shader, since there exist many faces which don't have one assigned.
 	{
 		shaderInfo_t noshader;
@@ -731,6 +736,7 @@ void Q3BspMap::OnShaderReadFinish( void )
 	}
 
 	gFileWebWorker.Await( UnmountShadersFin, "UnmountPackages", nullptr, 0, this );
+#endif // WEB_WORKER_CLIENT_ONSHADERREADFINISH
 }
 
 void Q3BspMap::OnShaderLoadImagesFinish( void* param )
@@ -1179,6 +1185,7 @@ void Q3BspMap::DestroyMap( void )
 void Q3BspMap::Read( const std::string& filepath, int scale,
 	onFinishEvent_t finishCallback )
 {
+#if defined (WEB_WORKER_CLIENT_READMAPFILE_BEGIN)
 	if ( IsAllocated() )
 	{
 		DestroyMap();
@@ -1197,8 +1204,9 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 
 	std::string readParams( "maps|" );
 	readParams.append( filepath );
-
+       
 	gFileWebWorker.Await( ReadBegin, "ReadMapFile_Begin", readParams, this );
+#endif
 }
 
 void Q3BspMap::WriteLumpToFile( uint32_t lump )

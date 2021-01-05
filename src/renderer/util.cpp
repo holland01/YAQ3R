@@ -182,6 +182,7 @@ static void LoadImagesBegin( char* mem, int size, void* param );
 
 static void LoadImagesEnd( void* param )
 {
+#if defined (WEB_WORKER_CLIENT_LOADIMAGESEND)	
 	gImageLoadState.currNode = gImageLoadState.currNode->next;
 	gFileWebWorker.Await(
 		LoadImagesBegin,
@@ -190,6 +191,7 @@ static void LoadImagesEnd( void* param )
 		0,
 		param
 	);
+#endif // WEB_WORKER_CLIENT_LOADIMAGESEND
 }
 
 static void LoadImagesBegin( char* mem, int size, void* param )

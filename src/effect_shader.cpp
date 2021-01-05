@@ -916,11 +916,13 @@ static void OnShaderRead( char* buffer, int size, void* param )
 
 void S_LoadShaders( Q3BspMap* map )
 {
+#if defined (WEB_WORKER_CLIENT_READSHADERS)
 	std::string shaderRootDir( "scripts|" );
 	shaderRootDir.append( ASSET_Q3_ROOT );
 	shaderRootDir.append( "/scripts" );
 
 	gFileWebWorker.Await( OnShaderRead, "ReadShaders", shaderRootDir, map );
+#endif
 }
 
 bool operator == (

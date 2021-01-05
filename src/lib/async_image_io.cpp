@@ -225,6 +225,7 @@ void AIIO_ReadImages(
 	bool keyMapped
 )
 {
+#if defined(WEB_WORKER_CLIENT_AIIO_READIMAGES)
 	gImageTracker.reset(
 		new gImageLoadTracker_t(
 			map,
@@ -254,4 +255,5 @@ void AIIO_ReadImages(
 		bundlePaths.str(),
 		nullptr
 	);
+#endif // WEB_WORKER_CLIENT_READ_IMAGESd
 }
