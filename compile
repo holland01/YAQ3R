@@ -4,7 +4,7 @@ cd build
 ./gen_workers.sh
 cd ..
 
-CMD=make
+CMD="emmake make"
 
 for var in "$@"
 do
@@ -18,6 +18,8 @@ do
 		echo $(make clean)
 	fi
 done
+
+CMD="${CMD} EM_ASSERTIONS=1"
 
 eval ${CMD}
 
