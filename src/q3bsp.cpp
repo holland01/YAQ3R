@@ -704,8 +704,10 @@ void Q3BspMap::OnShaderReadFinish( void )
 	std::sort( opaqueShaderList.begin(), opaqueShaderList.end(), LSortPredicate );
 	std::sort( transparentShaderList.begin(), transparentShaderList.end(), LSortPredicate );
 
-	printf( "opaqueShaderList Size: %u, transparentShaderList Size: %u\n", opaqueShaderList.size(),
-		transparentShaderList.size() );
+	printf( "opaqueShaderList Size: %" PRIu32 ", transparentShaderList Size: %" PRIu32 "\n",
+		static_cast<uint32_t>(opaqueShaderList.size()),
+		static_cast<uint32_t>(transparentShaderList.size())
+		);
 
 	// Assign indices so we have quick lookup
 	// when traversing the BSP

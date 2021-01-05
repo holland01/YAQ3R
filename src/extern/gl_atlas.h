@@ -366,7 +366,7 @@ namespace gla {
 
 		void downscale_image(size_t image)
 		{
-			
+			(void)image;
 		}
 
 		void fill_atlas_image(size_t image)

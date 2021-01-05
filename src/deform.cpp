@@ -218,7 +218,7 @@ void deformGlobal_t::InitSkyData( float cloudHeight )
 	};
 
 	// Note: Theta moves clockwise instead of counter-clockwise.
-	auto LVertexFromAngles = [ this, &radius, &cloudHeight, &toS, &toT ]( float theta, float phi ) -> bspVertex_t
+	auto LVertexFromAngles = [ this, &radius, &cloudHeight ]( float theta, float phi ) -> bspVertex_t
 	{
 		glm::vec2 tex {
 			glm::cos( theta ) * glm::cos( phi ) * 0.5f + 0.5f,

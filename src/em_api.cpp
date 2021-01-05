@@ -90,10 +90,10 @@ void EM_UnmountFS( void )
 {
 	if ( gMounted )
 	{
-		EM_ASM(
+		EM_ASM({
 			FS.unmount('/memory');
 			FS.rmdir('/memory');
-		);
+			}, 0);
 		gMounted = false;
 	}
 }

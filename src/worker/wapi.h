@@ -74,8 +74,8 @@ static inline uint32_t WAPI_Fetch16( char* buffer, int ofs, int size )
 }
 
 static inline uint32_t WAPI_StrEquals(
-	register const char* a,
-	register const char* b,
+	const char* a,
+	const char* b,
 	int n,
 	int* stopIndex
 )

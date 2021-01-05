@@ -373,7 +373,7 @@ void BSPRenderer::Load( renderPayload_t& payload )
 		}
 	}
 
-	printf( "Program Count: %i\n", GNumPrograms() );
+	printf( "Program Count: %i\n", static_cast<int32_t>(GNumPrograms()) );
 
 	glPrograms[ "main" ]->LoadMat4( "viewToClip",
 		camera->ViewData().clipTransform );
