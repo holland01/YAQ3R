@@ -38,6 +38,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <time.h>
+#include <inttypes.h>
 
 #include <string>
 #include <sstream>
