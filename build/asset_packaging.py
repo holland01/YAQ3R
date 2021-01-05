@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os, shutil
 
 MAP_ORIGIN_PREFIX = os.path.join('..', 'asset')
@@ -98,15 +100,15 @@ log_files = [
 
 import subprocess
 
-FILE_PACKAGER = os.path.join(os.environ['EMSCRIPTEN'], 'tools', 'file_packager.py')
+FILE_PACKAGER = os.path.join(os.environ['EMSCRIPTEN'], 'tools', 'file_packager')
 
-def package_list(list, target_prefix, path_origin_prefix, path_alias_prefix):
+def package_list(lst, target_prefix, path_origin_prefix, path_alias_prefix):
     global FILE_PACKAGER
-    for f in list:
+    for f in lst:
         path = f['name']
         if 'ext' in f:
             path += f['ext']
-        args = ['python', FILE_PACKAGER]
+        args = [FILE_PACKAGER]
         args.append(os.path.join(target_prefix, f['target']))
         args.append('--preload')
         args.append(os.path.join(path_origin_prefix, path))
