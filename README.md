@@ -8,7 +8,7 @@ Despite Quake III's file format being written circa 1999, and therefore being ex
 Current Focuses:
 
 - Performance
-	* Lots of shitty code has passed through this repo.
+	* Lots of unsightly code has passed through this repo.
 	* It's definitely on its way to getting better.
 	* It's improved significantly within the past month or so.
 
