@@ -371,15 +371,15 @@ namespace gla {
 
 		void fill_atlas_image(size_t image)
 		{
-			GL_H( glTexSubImage2D(	GL_TEXTURE_2D,
-									0,
-									(GLsizei) origin_x(image),
-									(GLsizei) origin_y(image),
-									dims_x[image],
-									dims_y[image],
-									GL_ATLAS_TEX_FORMAT,
-									GL_UNSIGNED_BYTE,
-									&buffer_table[image][0]	) );
+			GL_H( glTexSubImage2D(GL_TEXTURE_2D,
+					      0,
+					      (GLsizei) origin_x(image),
+					      (GLsizei) origin_y(image),
+					      dims_x[image],
+					      dims_y[image],
+					      GL_ATLAS_TEX_FORMAT,
+					      GL_UNSIGNED_BYTE,
+					      &buffer_table[image][0]	) );
 		}
 
 		uint16_t key_image(size_t key) const
