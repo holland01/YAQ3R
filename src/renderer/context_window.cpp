@@ -47,7 +47,14 @@ void GPrintContextInfo( void )
 bool GInitContextWindow( const char* title,
 		gContextHandles_t& handles )
 {
-	SDL_Init( SDL_INIT_VIDEO );
+#ifndef EMSCRIPTEN
+	GLenum glewErr = GLEW_OK; // avoid issues with goto
+#endif	
+	
+	if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {
+		goto sdl_failure;
+	}
+	
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, G_API_MAJOR_VERSION );
@@ -82,7 +89,7 @@ bool GInitContextWindow( const char* title,
 
 #ifndef EMSCRIPTEN
 	glewExperimental = true;
-	GLenum glewErr = glewInit();
+	glewErr = glewInit();
 	if ( glewErr != GLEW_OK )
 	{
 		MLOG_ERROR( "Could not initialize GLEW: %s", 
