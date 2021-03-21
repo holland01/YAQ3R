@@ -81,7 +81,11 @@ template< class Tint > static INLINE Tint Align( Tint s )
 #elif defined (_MSC_VER)
 #	define _FUNC_NAME_ __FUNCTION__
 #	define _LINE_NUM_ __LINE__
+#else
+#error "Need __GNUC__ or _MSC_VER_ defined"
 #endif
+
+#define DEBUG_STUB printf("YAQ3R DEBUG TRACE - %s:%s:%i\n", __FILE__, _FUNC_NAME_, _LINE_NUM_)
 
 #if defined (WEB_WORKER_CLIENT)
 // Each of these macros refers to the name of a
