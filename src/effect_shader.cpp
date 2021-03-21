@@ -922,6 +922,8 @@ void S_LoadShaders( Q3BspMap* map )
 	shaderRootDir.append( "/scripts" );
 
 	gFileWebWorker.Await( OnShaderRead, "ReadShaders", shaderRootDir, map );
+#else
+	UNUSED( map );
 #endif
 }
 

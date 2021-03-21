@@ -255,6 +255,9 @@ static INLINE void SendRequest( wApiChunkInfo_t& info, void* param )
 #if defined(WEB_WORKER_CLIENT_SENDREQUEST)
 	gFileWebWorker.Await( ReadChunk, "ReadMapFile_Chunk",
 		( char* )&info, sizeof( info ), param );
+#else
+	UNUSED( info );
+	UNUSED( param );
 #endif
 }
 
@@ -433,6 +436,8 @@ static void MapReadFin( Q3BspMap* map )
 		0,
 		map
 	);
+#else
+	UNUSED( map );
 #endif // WEB_WORKER_CLIENT_MAPREADFIN
 }
 
@@ -1206,6 +1211,10 @@ void Q3BspMap::Read( const std::string& filepath, int scale,
 	readParams.append( filepath );
        
 	gFileWebWorker.Await( ReadBegin, "ReadMapFile_Begin", readParams, this );
+#else
+	UNUSED( filepath );
+	UNUSED( scale );
+	UNUSED( finishCallback );
 #endif
 }
 

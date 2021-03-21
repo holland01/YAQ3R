@@ -255,5 +255,12 @@ void AIIO_ReadImages(
 		bundlePaths.str(),
 		nullptr
 	);
+#else
+	UNUSED( map );
+	UNUSED( bundlePath );
+	UNUSED( pathInfo );
+	UNUSED( finish );
+	UNUSED( destAtlas );
+	UNUSED( keyMapped );
 #endif // WEB_WORKER_CLIENT_READ_IMAGESd
 }

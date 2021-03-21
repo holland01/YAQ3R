@@ -191,6 +191,8 @@ static void LoadImagesEnd( void* param )
 		0,
 		param
 	);
+#else
+	UNUSED( param );
 #endif // WEB_WORKER_CLIENT_LOADIMAGESEND
 }
 
