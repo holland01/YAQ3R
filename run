@@ -7,8 +7,4 @@ else
 	BROWSER=--browser=$1
 fi
 
-emrun ${BROWSER} bspviewer.html
-
-if [ $1 = "nb" ]; then
-	google-chrome --enable-logging:
-fi
+emrun --verbose --serve_after_exit --serve_after_close ${BROWSER} bspviewer.html --log_stdout ./stdout.log --log_stderr ./stderr.log
