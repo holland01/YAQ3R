@@ -113,11 +113,11 @@ AL.binifyMetadata = function(buffer, files) {
 
 AL.callLoaderCB = function(loader, dataPtr, len)
 {
-	let stack = Runtime.stackSave();
-	Runtime.dynCall('vii',
+	let stack = stackSave();
+	dynCall('vii',
 			loader.params.proxy,
 			[dataPtr, len]);
-	Runtime.stackRestore(stack);
+	stackRestore(stack);
 }
 
 AL.CONTENT_PIPELINE_BENCHMARK = false;
@@ -564,9 +564,9 @@ function walkFileDirectory(pathPtr, callbackPtr, errPtr) {
 	 var iterate = true;
 
 	 function callfn(data, size) {
-		 var stack = Runtime.stackSave();
-		 Runtime.dynCall('vii', callbackPtr, [data, size]);
-		 Runtime.stackRestore(stack);
+		 var stack = stackSave();
+		 dynCall('vii', callbackPtr, [data, size]);
+		 stackRestore(stack);
 	 }
 
 	 function traverse(node) {
