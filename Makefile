@@ -143,5 +143,5 @@ file_traverse: file_traverse.wasm file_traverse.js
 clean:
 	$(E) Removing files
 	$(Q)rm -rf obj/
-	$(Q)rm -f $(BINFILE) $(TARGET_NAME).wasm Makefile.dep
+	$(Q)rm -f $(BINFILE) $(TARGET_NAME).wasm Makefile.dep $(FILE_TRAVERSE_OUT) $(FILE_TRAVERSE_WAT) $(FILE_TRAVERSE_JS_OUT)
 	$(Q)mkdir obj
