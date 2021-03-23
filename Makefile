@@ -24,12 +24,13 @@ TARGET_NAME := bspviewer
 
 BINFILE = $(TARGET_NAME).html
 
+EM_LIBS := -lworkerfs.js -lwasi.js
+
 FILE_TRAVERSE_CFLAGS := --no-entry -I./src -fno-inline-functions -O0 -std=c++14 
 FILE_TRAVERSE_IN := src/worker/file_traverse.cxx
 FILE_TRAVERSE_EXPORT_FUNCTIONS := -s "EXPORTED_FUNCTIONS=['_ReadShaders', '_ReadMapFile_Begin', '_ReadMapFile_Chunk', '_ReadImage', '_MountPackage', '_UnmountPackages']"
-FILE_TRAVERSE_OPTS :=\
-	-s WASM=1 -s BUILD_AS_WORKER=1 -s TOTAL_MEMORY=234881024 -s STB_IMAGE=1\
-	-lworkerfs.js
+FILE_TRAVERSE_EXTRA_EXPORTED_RUNTIME_METHODS := -s "EXTRA_EXPORTED_RUNTIME_METHODS=['writeStringToMemory', 'dynCall']"
+FILE_TRAVERSE_OPTS := -s WASM=1 -s BUILD_AS_WORKER=1 -s TOTAL_MEMORY=234881024 -s STB_IMAGE=1 $(EM_LIBS)
 FILE_TRAVERSE_OUT := worker/file_traverse.wasm
 
 COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
@@ -47,7 +48,7 @@ DEBUGFLAGS = -DDEBUG -Wno-unused-function -Wno-unused-variable\
   -Wno-unused-value -Wno-dollar-in-identifier-extension\
   -Wno-unused-parameter -g
 
-LDFLAGS = --emrun --profiling-funcs -lworkerfs.js -s WASM=1
+LDFLAGS = --emrun --profiling-funcs -s WASM=1 $(EM_LIBS)
 LDO = -s LZ4=1 -s DEMANGLE_SUPPORT=1 -s TOTAL_MEMORY=536870912
 
 ifdef PRELOAD_ALL_ASSETS
