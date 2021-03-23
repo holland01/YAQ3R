@@ -32,6 +32,8 @@ FILE_TRAVERSE_EXPORT_FUNCTIONS := -s "EXPORTED_FUNCTIONS=['_ReadShaders', '_Read
 FILE_TRAVERSE_EXTRA_EXPORTED_RUNTIME_METHODS := -s "EXTRA_EXPORTED_RUNTIME_METHODS=['writeStringToMemory', 'dynCall']"
 FILE_TRAVERSE_OPTS := -s WASM=1 -s BUILD_AS_WORKER=1 -s TOTAL_MEMORY=234881024 -s STB_IMAGE=1 $(EM_LIBS)
 FILE_TRAVERSE_OUT := worker/file_traverse.wasm
+FILE_TRAVERSE_WAT := worker/file_traverse.wat
+FILE_TRAVERSE_JS_OUT := worker/file_traverse.js
 
 COMMONFLAGS = -Wall -Wextra -pedantic -Werror \
  -Wno-dollar-in-identifier-extension \
@@ -123,8 +125,20 @@ $(BINFILE): $(OFILES)
 	$(CXX) $(LDFLAGS) -s FORCE_FILESYSTEM=1 -s DISABLE_EXCEPTION_CATCHING=0 $(OFILES) $(LDO) $(EMSCRIPTEN)/cache/wasm/libSDL2.a -o $@ $(LDFLAGS)
 	wasm-dis $(TARGET_NAME).wasm -o $(TARGET_NAME).wat
 
-file_traverse: 
-	$(CXX) $(FILE_TRAVERSE_CFLAGS) $(FILE_TRAVERSE_IN) $(FILE_TRAVERSE_EXPORT_FUNCTIONS) $(FILE_TRAVERSE_OPTS) -o $(FILE_TRAVERSE_OUT)
+# It appears that we need to generate two files:
+# A JS file which represents the glue that launches and runs
+# the WASM module, and the wasm module itself.
+# The only real difference between these two targets is that
+# one specifies an output file as js and the other uses wasm;
+# not sure if this is documented behavior or not...
+file_traverse.wasm: 
+	$(CXX) $(FILE_TRAVERSE_CFLAGS) $(FILE_TRAVERSE_IN) $(FILE_TRAVERSE_EXTRA_EXPORTED_RUNTIME_METHODS) $(FILE_TRAVERSE_EXPORT_FUNCTIONS) $(FILE_TRAVERSE_OPTS) -o $(FILE_TRAVERSE_OUT)
+	wasm-dis $(FILE_TRAVERSE_OUT) -o $(FILE_TRAVERSE_WAT)
+
+file_traverse.js:
+	$(CXX) $(FILE_TRAVERSE_CFLAGS) $(FILE_TRAVERSE_IN) $(FILE_TRAVERSE_EXTRA_EXPORTED_RUNTIME_METHODS) $(FILE_TRAVERSE_EXPORT_FUNCTIONS) $(FILE_TRAVERSE_OPTS) -o $(FILE_TRAVERSE_JS_OUT)
+
+file_traverse: file_traverse.wasm file_traverse.js
 
 clean:
 	$(E) Removing files
