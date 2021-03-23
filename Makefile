@@ -77,7 +77,7 @@ CXXFLAGS = $(CFLAGS)
 
 DEPDIR = deps
 
-all: $(BINFILE)
+all: file_traverse $(BINFILE)
 
 ifeq ($(MAKECMDGOALS),)
 -include Makefile.dep
