@@ -413,3 +413,12 @@ var dumpMem8 = function(ptr, len, lineLength) {
 
     return '\n\n' + all + '\n\n';
 }
+
+function debugStub(e) {
+  console.log(`YAG3R DEBUG JS - ${e.fileName}:${e.lineNumber}`);
+}
+
+function debugObj(name, o) {
+  console.log(`${name}:`);
+  console.log(JSON.stringify(o, null, 4));
+}
